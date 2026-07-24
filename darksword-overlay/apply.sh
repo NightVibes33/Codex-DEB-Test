@@ -28,10 +28,6 @@ do
     "$TARGET/apps/ios/Sources/$source_root/DarkSwordCompatibility.swift"
 done
 
-# Use Apple's iPhoneOS compiler only for the real iOS Cargo target. The upstream
-# script previously exported IPHONEOS_DEPLOYMENT_TARGET globally before UniFFI
-# generated host bindings, causing host aws-lc-sys to target iPhone with the
-# macOS SDK.
 IOS_CLANG_SOURCE="$SCRIPT_DIR/rust/ios-clang-wrapper.sh"
 IOS_CLANGXX_SOURCE="$SCRIPT_DIR/rust/ios-clangxx-wrapper.sh"
 test -f "$IOS_CLANG_SOURCE"
@@ -61,7 +57,6 @@ if 'IOS_CLANG_WRAPPER="$SCRIPT_DIR/ios-clang-wrapper.sh"' not in text:
         1,
     )
 
-# Target-specific compiler settings do not affect the host UniFFI build.
 old_exports = '''export CXX_aarch64_apple_ios="$IOS_CLANGXX_WRAPPER"
 export CXX_aarch64_apple_ios_sim="$IOS_CLANGXX_WRAPPER"
 export CXX_aarch64_apple_ios_macabi="$IOS_CLANGXX_WRAPPER"
@@ -93,8 +88,6 @@ else:
             1,
         )
 
-# Supply the deployment target only to iOS/macabi Cargo invocations. Host Cargo
-# commands used for UniFFI generation must never inherit this variable.
 pattern = re.compile(
     r'(?m)^(?P<indent>[ \t]*)(?P<command>cargo rustc .*?--target '
     r'(?:aarch64|x86_64)-apple-ios(?:-sim|-macabi)?\b[^\n]*)$'
@@ -120,15 +113,27 @@ python3 "$SCRIPT_DIR/restore_alleycat_ui.py" "$TARGET"
 chmod +x "$SCRIPT_DIR/backport_perception.py"
 python3 "$SCRIPT_DIR/backport_perception.py" "$TARGET"
 
-grep -q 'Perception:' "$TARGET/apps/ios/project.yml"
-grep -q '@Perceptible' "$TARGET/apps/ios/Sources/Litter/Models/AppState.swift"
-grep -q 'WithPerceptionTracking' "$TARGET/apps/ios/Sources/Litter/LitterApp.swift"
-grep -q 'darkswordOnChange' "$TARGET/apps/ios/Sources/Litter/DarkSword/DarkSwordCompatibility.swift"
-grep -q 'CC_aarch64_apple_ios="$IOS_CLANG_WRAPPER"' "$TARGET/apps/ios/scripts/build-rust.sh"
-grep -q 'ContentView()' "$TARGET/apps/ios/Sources/Litter/LitterApp.swift"
-grep -q 'AlleyCat Labs' "$TARGET/apps/ios/Sources/Litter/Views/SettingsView.swift"
-grep -q 'PRODUCT_NAME: AlleyCat' "$TARGET/apps/ios/project.yml"
-grep -q '<string>Alley Cãt</string>' "$TARGET/apps/ios/Sources/Litter/Info.plist"
+require_grep() {
+  local label="$1"
+  local pattern="$2"
+  local file="$3"
+  if ! grep -q -- "$pattern" "$file"; then
+    echo "error: AlleyCat overlay verification failed: $label ($file)" >&2
+    exit 1
+  fi
+  echo "verified: $label"
+}
+
+require_grep "Perception package" 'Perception:' "$TARGET/apps/ios/project.yml"
+require_grep "Perceptible AppState" '@Perceptible' "$TARGET/apps/ios/Sources/Litter/Models/AppState.swift"
+require_grep "iOS 16 onChange compatibility" 'darkswordOnChange' "$TARGET/apps/ios/Sources/Litter/DarkSword/DarkSwordCompatibility.swift"
+require_grep "iPhone C compiler wrapper" 'CC_aarch64_apple_ios="$IOS_CLANG_WRAPPER"' "$TARGET/apps/ios/scripts/build-rust.sh"
+require_grep "real AlleyCat root" 'ContentView()' "$TARGET/apps/ios/Sources/Litter/LitterApp.swift"
+require_grep "AlleyCat Labs settings entry" 'AlleyCat Labs' "$TARGET/apps/ios/Sources/Litter/Views/SettingsView.swift"
+require_grep "AlleyCat product name" 'PRODUCT_NAME: AlleyCat' "$TARGET/apps/ios/project.yml"
+require_grep "Alley Cãt display name" '<string>Alley Cãt</string>' "$TARGET/apps/ios/Sources/Litter/Info.plist"
+require_grep "target-scoped iPhone deployment" 'env IPHONEOS_DEPLOYMENT_TARGET="$IOS_DEPLOYMENT_TARGET" cargo rustc' "$TARGET/apps/ios/scripts/build-rust.sh"
+
 if grep -q 'DarkSwordRootView()' "$TARGET/apps/ios/Sources/Litter/LitterApp.swift"; then
   echo 'error: replacement DarkSword tab shell is still the app root' >&2
   exit 1
@@ -137,7 +142,5 @@ if grep -q '^export IPHONEOS_DEPLOYMENT_TARGET=' "$TARGET/apps/ios/scripts/build
   echo 'error: global IPHONEOS_DEPLOYMENT_TARGET still present in build-rust.sh' >&2
   exit 1
 fi
-grep -q 'env IPHONEOS_DEPLOYMENT_TARGET="$IOS_DEPLOYMENT_TARGET" cargo rustc' \
-  "$TARGET/apps/ios/scripts/build-rust.sh"
 
 echo "Full AlleyCat UI, rootless host tools, iOS Rust isolation, and iOS 16 compatibility backports completed for $TARGET."
