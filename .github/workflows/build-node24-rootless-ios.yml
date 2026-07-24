@@ -1,5 +1,5 @@
-name: Build Node 24 Rootless iOS
-run-name: Node 24.4.1 for rootless iOS 16.7.11
+name: Build Node.js Mobile Rootless iOS
+run-name: Real Node.js Mobile CLI for iOS 16.7.11
 
 on:
   push:
@@ -11,93 +11,118 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: 24.4.1
-  IOS_DEPLOYMENT_TARGET: 16.0
+  IOS_DEPLOYMENT_TARGET: '16.0'
   PACKAGE_ARCH: iphoneos-arm64
+  NODEJS_MOBILE_REF: d9552e0e01ed5bdbe12a31d1ce6c0877a4f39580
 
 jobs:
   build:
     runs-on: macos-15
-    timeout-minutes: 180
+    timeout-minutes: 240
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Toolchain
+      - name: Install toolchain
         run: |
           set -euxo pipefail
           xcodebuild -version
-          clang --version
           xcrun --sdk iphoneos --show-sdk-path
-          brew install ninja ldid dpkg
+          brew install ldid dpkg coreutils
 
-      - name: Download Node 24
+      - name: Clone maintained iOS-patched Node source
         run: |
           set -euxo pipefail
-          curl --retry 5 --retry-all-errors -fL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}.tar.xz" -o node.tar.xz
-          tar -xf node.tar.xz
-          mv "node-v${NODE_VERSION}" node-src
+          git clone https://github.com/nodejs-mobile/nodejs-mobile.git node-src
+          cd node-src
+          git checkout "$NODEJS_MOBILE_REF"
+          git submodule update --init --recursive
+          grep -E '^#define NODE_(MAJOR|MINOR|PATCH)_VERSION' src/node_version.h
 
-      - name: Configure iOS arm64
+      - name: Configure real iOS arm64 target
         working-directory: node-src
         run: |
           set -euxo pipefail
-          SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
-          TARGET="arm64-apple-ios${IOS_DEPLOYMENT_TARGET}"
-          export SDKROOT
-          export CC="$(xcrun --sdk iphoneos -f clang) -target $TARGET -isysroot $SDKROOT"
-          export CXX="$(xcrun --sdk iphoneos -f clang++) -target $TARGET -isysroot $SDKROOT"
-          export CC_host="$(xcrun -f clang)"
-          export CXX_host="$(xcrun -f clang++)"
-          export AR="$(xcrun --sdk iphoneos -f ar)"
-          export RANLIB="$(xcrun --sdk iphoneos -f ranlib)"
-          export CFLAGS="-target $TARGET -isysroot $SDKROOT -O2"
-          export CXXFLAGS="$CFLAGS -std=gnu++20"
-          export LDFLAGS="-target $TARGET -isysroot $SDKROOT"
-          python3 configure.py --dest-os=mac --dest-cpu=arm64 --cross-compiling --prefix=/var/jb/usr --without-npm --without-corepack --without-snapshot --without-intl --openssl-no-asm --enable-static --ninja
+          export GYP_DEFINES="target_arch=arm64 host_os=mac target_os=ios ios_deployment_target=${IOS_DEPLOYMENT_TARGET}"
+          export MACOSX_DEPLOYMENT_TARGET="$IOS_DEPLOYMENT_TARGET"
+          ./configure \
+            --dest-os=ios \
+            --dest-cpu=arm64 \
+            --with-intl=none \
+            --cross-compiling \
+            --enable-static \
+            --openssl-no-asm \
+            --v8-options=--jitless \
+            --without-node-code-cache \
+            --without-node-snapshot \
+            --prefix=/var/jb/usr
 
-      - name: Build
+      - name: Build iOS Node CLI
         working-directory: node-src
         run: |
           set -euxo pipefail
-          ninja -C out/Release -j"$(sysctl -n hw.ncpu)" node
+          make -j"$(sysctl -n hw.ncpu)" node
+          test -f out/Release/node
           file out/Release/node
-          xcrun vtool -show-build out/Release/node
+          xcrun vtool -show-build out/Release/node | tee ../build-version.txt
+          grep -Eq 'platform IOS|platform 2' ../build-version.txt
 
-      - name: Package
+      - name: Read built version
+        id: version
+        working-directory: node-src
+        run: |
+          set -euxo pipefail
+          MAJOR=$(awk '/NODE_MAJOR_VERSION/{print $3; exit}' src/node_version.h)
+          MINOR=$(awk '/NODE_MINOR_VERSION/{print $3; exit}' src/node_version.h)
+          PATCH=$(awk '/NODE_PATCH_VERSION/{print $3; exit}' src/node_version.h)
+          VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Package rootless DEB
+        env:
+          BUILT_VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euxo pipefail
           ROOT="$PWD/package-root"
-          mkdir -p "$ROOT/var/jb/usr/bin" "$ROOT/DEBIAN"
-          cp node-src/out/Release/node "$ROOT/var/jb/usr/bin/node"
-          chmod 0755 "$ROOT/var/jb/usr/bin/node"
-          ldid -S "$ROOT/var/jb/usr/bin/node"
+          BIN="$ROOT/var/jb/usr/bin/node"
+          mkdir -p "$(dirname "$BIN")" "$ROOT/DEBIAN"
+          cp node-src/out/Release/node "$BIN"
+          chmod 0755 "$BIN"
+          ldid -S "$BIN"
+
           printf '%s\n' \
-            'Package: nodejs' \
-            'Name: Node.js 24 (Rootless)' \
-            "Version: ${NODE_VERSION}-2" \
+            'Package: nodejs-mobile' \
+            'Name: Node.js Mobile CLI (Rootless)' \
+            "Version: ${BUILT_VERSION}-1" \
             "Architecture: ${PACKAGE_ARCH}" \
-            'Description: Node.js 24 for rootless iOS 16+' \
+            'Description: Real iOS-patched Node.js CLI for rootless iOS 16+' \
             'Maintainer: NightVibes33' \
             'Section: Development' \
             'Priority: optional' \
             'Depends: firmware (>= 16.0)' > "$ROOT/DEBIAN/control"
-          dpkg-deb --root-owner-group --build "$ROOT" "nodejs_${NODE_VERSION}-2_${PACKAGE_ARCH}.deb"
 
-      - name: Verify
+          DEB="nodejs-mobile_${BUILT_VERSION}-1_${PACKAGE_ARCH}.deb"
+          dpkg-deb --root-owner-group --build "$ROOT" "$DEB"
+          echo "DEB=$DEB" >> "$GITHUB_ENV"
+
+      - name: Verify package
         run: |
           set -euxo pipefail
-          DEB="nodejs_${NODE_VERSION}-2_${PACKAGE_ARCH}.deb"
           dpkg-deb -I "$DEB"
           dpkg-deb -c "$DEB"
-          rm -rf verify-root && mkdir verify-root
+          rm -rf verify-root
+          mkdir verify-root
           dpkg-deb -x "$DEB" verify-root
           BIN=verify-root/var/jb/usr/bin/node
+          test -x "$BIN"
           file "$BIN" | grep -q arm64
-          xcrun vtool -show-build "$BIN" | tee build-version.txt
-          grep -Eq 'platform IOS|platform 2' build-version.txt
+          xcrun vtool -show-build "$BIN" | tee packaged-build-version.txt
+          grep -Eq 'platform IOS|platform 2' packaged-build-version.txt
+          ldid -e "$BIN" >/dev/null
 
       - uses: actions/upload-artifact@v4
         with:
-          name: nodejs-24-ios16-rootless-arm64
-          path: nodejs_${{ env.NODE_VERSION }}-2_${{ env.PACKAGE_ARCH }}.deb
+          name: nodejs-mobile-ios16-rootless-arm64
+          path: ${{ env.DEB }}
           if-no-files-found: error
+          retention-days: 30
