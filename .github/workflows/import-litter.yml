@@ -87,7 +87,7 @@ jobs:
             test -d upstream/litter/ThirdParty/EmexDE
             test -d upstream/litter/shared/rust-bridge
             test -f upstream/litter/apps/ios/project.yml
-            test -f upstream/litter/shared/third_party/codex/Cargo.toml
+            test -f upstream/litter/shared/third_party/codex/codex-rs/Cargo.toml
             test -f upstream/litter/shared/third_party/ghostty/build.zig
           } 2>&1 | tee import-artifacts/vendor.log
 
