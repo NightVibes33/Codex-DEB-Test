@@ -1,7 +1,6 @@
 import SwiftUI
 import UIKit
-import Observation
-
+import Perception
 extension Notification.Name {
     static let themeDidChange = Notification.Name("com.litter.themeDidChange")
 }
@@ -62,7 +61,7 @@ enum LitterAppearanceMode: String, CaseIterable, Identifiable {
 }
 
 @MainActor
-@Observable
+@Perceptible
 final class ThemeManager {
     static let shared = ThemeManager()
 
@@ -94,7 +93,7 @@ final class ThemeManager {
         themeIndex.filter { $0.type == .dark }
     }
 
-    @ObservationIgnored private var definitionCache: [String: ThemeDefinition] = [:]
+    @PerceptionIgnored private var definitionCache: [String: ThemeDefinition] = [:]
 
     private init() {
         loadThemeIndex()

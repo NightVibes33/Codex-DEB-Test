@@ -1,18 +1,17 @@
 import Foundation
-import Observation
-
+import Perception
 @MainActor
-@Observable
+@Perceptible
 final class AppRuntimeController {
     static let shared = AppRuntimeController()
 
-    @ObservationIgnored private weak var appModel: AppModel?
-    @ObservationIgnored private weak var voiceRuntime: VoiceRuntimeController?
-    @ObservationIgnored private let lifecycle = AppLifecycleController()
-    @ObservationIgnored private let liveActivities = TurnLiveActivityController()
-    @ObservationIgnored private let reachability = NetworkReachabilityObserver()
-    @ObservationIgnored private var pendingLiveActivitySync = false
-    @ObservationIgnored private var lastLiveActivitySyncTime: CFAbsoluteTime = 0
+    @PerceptionIgnored private weak var appModel: AppModel?
+    @PerceptionIgnored private weak var voiceRuntime: VoiceRuntimeController?
+    @PerceptionIgnored private let lifecycle = AppLifecycleController()
+    @PerceptionIgnored private let liveActivities = TurnLiveActivityController()
+    @PerceptionIgnored private let reachability = NetworkReachabilityObserver()
+    @PerceptionIgnored private var pendingLiveActivitySync = false
+    @PerceptionIgnored private var lastLiveActivitySyncTime: CFAbsoluteTime = 0
 
     func bind(appModel: AppModel, voiceRuntime: VoiceRuntimeController) {
         self.appModel = appModel

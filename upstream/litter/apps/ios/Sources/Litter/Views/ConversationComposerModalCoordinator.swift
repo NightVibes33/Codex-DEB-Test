@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 import UIKit
+import Perception
 
 struct ConversationComposerModalCoordinator<Content: View>: View {
     @Environment(AppModel.self) private var appModel
@@ -145,6 +146,7 @@ struct ConversationComposerModalCoordinator<Content: View>: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         content
             .sheet(isPresented: $showAttachMenu) {
                 ConversationComposerAttachSheet(
@@ -263,7 +265,8 @@ struct ConversationComposerModalCoordinator<Content: View>: View {
             } message: {
                 Text("Microphone permission is required for voice input. Enable it in Settings.")
             }
-    }
+    
+        }}
 
     @ViewBuilder
     private var permissionsSheetContent: some View {

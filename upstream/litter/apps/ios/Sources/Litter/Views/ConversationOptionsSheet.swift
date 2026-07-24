@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 /// Shared sheet for model + reasoning + plan/fast/permissions options. Used
 /// by the home composer's `HomeModelChip` (no thread yet — `threadKey` nil)
@@ -17,6 +18,7 @@ struct ConversationOptionsSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
+        WithPerceptionTracking {
         // Present the inline selector exactly as it appears in the
         // conversation popover — no NavigationStack, no title bar. The
         // sheet drag indicator handles dismissal; a Done row from
@@ -35,5 +37,6 @@ struct ConversationOptionsSheet: View {
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(LitterTheme.surface.ignoresSafeArea())
-    }
+    
+        }}
 }

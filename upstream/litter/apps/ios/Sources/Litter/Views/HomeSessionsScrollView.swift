@@ -2,6 +2,7 @@ import AVKit
 import ImageIO
 import SwiftUI
 import UIKit
+import Perception
 
 // MARK: - SwiftUI entry point
 
@@ -920,6 +921,7 @@ private struct HomeCatFooterView: View {
     let playEntrance: Bool
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 10) {
             Rectangle().fill(LitterTheme.border.opacity(0.28)).frame(height: AlleyVisual.hairline)
             Circle().fill(LitterTheme.accent.opacity(0.55)).frame(width: 4, height: 4)
@@ -930,7 +932,8 @@ private struct HomeCatFooterView: View {
         .padding(.top, 28)
         .padding(.bottom, 20)
         .accessibilityHidden(true)
-    }
+    
+        }}
 }
 
 struct AlphaAnimatedImageView: UIViewRepresentable {
@@ -1828,6 +1831,7 @@ struct HomeSessionRowContent: View {
     let onShowPiP: () -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack(alignment: .topTrailing) {
             SessionCanvasLine(
                 session: session,
@@ -1901,7 +1905,8 @@ struct HomeSessionRowContent: View {
             SessionContextMenuPreview(session: session)
         })
         .accessibilityIdentifier("home.recentSessionCard")
-    }
+    
+        }}
 }
 
 /// Small card that previews a session in the context-menu popup.
@@ -1911,6 +1916,7 @@ private struct SessionContextMenuPreview: View {
     let session: HomeDashboardRecentSession
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 6) {
             Text(session.sessionTitle.isEmpty ? "Session" : session.sessionTitle)
                 .litterFont(size: LitterFont.conversationBodyPointSize, weight: .medium)
@@ -1932,5 +1938,6 @@ private struct SessionContextMenuPreview: View {
         .padding(.vertical, 12)
         .frame(width: 240, alignment: .leading)
         .background(LitterTheme.surface)
-    }
+    
+        }}
 }

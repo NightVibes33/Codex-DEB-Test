@@ -3,6 +3,7 @@ import UserNotifications
 import WatchConnectivity
 #if canImport(WidgetKit)
 import WidgetKit
+import Perception
 #endif
 
 /// Thin transport seam over `WCSession` so unit tests can drive
@@ -137,10 +138,10 @@ final class WatchCompanionBridge: NSObject {
     // MARK: - Observation
 
     /// Observe the canonical Rust-backed `AppModel.shared.snapshot` via
-    /// `withObservationTracking`. Each `onChange` re-arms a fresh tracker on
+    /// `withPerceptionTracking`. Each `onChange` re-arms a fresh tracker on
     /// the main actor, which is the same pattern `HomeDashboardModel` uses.
     private func observe() {
-        withObservationTracking {
+        withPerceptionTracking {
             // Touch every field that participates in the watch payload or
             // complication entry so a mutation to any of them schedules a
             // push. `pushIfChanged()` is the single sink that diffs against

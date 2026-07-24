@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import Perception
 
 /// Full-screen terminal. The Ghostty surface fills the entire body —
 /// keystrokes go straight to the PTY via the hidden first-responder text
@@ -31,6 +32,7 @@ struct TerminalScreen: View {
     private let alleycatServerIdPrefix = "alleycat:"
 
     var body: some View {
+        WithPerceptionTracking {
         GeometryReader { geometry in
             let terminalInsets = terminalHorizontalInsets(for: geometry)
 
@@ -90,7 +92,8 @@ struct TerminalScreen: View {
                 break
             }
         }
-    }
+    
+        }}
 
     private func terminalNavigationBar(topInset: CGFloat) -> some View {
         ZStack {
@@ -697,6 +700,7 @@ private struct TerminalConfigSheet: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             Form {
                 Section("Font") {
@@ -755,7 +759,8 @@ private struct TerminalConfigSheet: View {
                 }
             }
         }
-    }
+    
+        }}
 
     private func applyDraft() {
         fontSize = draftFontSize

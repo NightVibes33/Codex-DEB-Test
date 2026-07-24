@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 /// Scrollable list of every thread across connected servers, sorted by
 /// recency, filtered by the current query. Tapping a row calls `onAdd`.
@@ -63,6 +64,7 @@ struct ThreadSearchResultsView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         ScrollView {
             LazyVStack(spacing: 0) {
                 Color.clear.frame(height: contentInsets.top)
@@ -118,7 +120,8 @@ struct ThreadSearchResultsView: View {
         .refreshable {
             await onRefresh()
         }
-    }
+    
+        }}
 
     @ViewBuilder
     private var runtimeFilterRow: some View {
@@ -173,6 +176,7 @@ private struct ThreadSearchRow: View {
     let onRemove: () -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         Button(action: { isPinned ? onRemove() : onAdd() }) {
             HStack(alignment: .center, spacing: 10) {
                 ThreadSearchRuntimeIcon(kind: session.agentRuntimeKind)
@@ -208,16 +212,19 @@ private struct ThreadSearchRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-    }
+    
+        }}
 }
 
 private struct ThreadSearchRuntimeIcon: View {
     let kind: AgentRuntimeKind
 
     var body: some View {
+        WithPerceptionTracking {
         AgentIconView(kind: kind, size: 16)
             .accessibilityLabel(kind.displayLabel)
-    }
+    
+        }}
 }
 
 /// One lineage's worth of search rows. `members` is sorted by `updatedAt`
@@ -258,6 +265,7 @@ private struct ThreadSearchClusterRow: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 0) {
             if let head { headRow(for: head) }
             if isExpanded {
@@ -266,7 +274,8 @@ private struct ThreadSearchClusterRow: View {
             }
         }
         .background(isExpanded ? LitterTheme.surface.opacity(0.3) : Color.clear)
-    }
+    
+        }}
 
     private func headRow(for session: HomeDashboardRecentSession) -> some View {
         let isPinned = pinnedThreadKeys.contains(SavedThreadsStore.PinnedKey(threadKey: session.key))

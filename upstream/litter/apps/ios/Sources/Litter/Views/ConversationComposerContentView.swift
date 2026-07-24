@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import Perception
 
 struct ConversationComposerContentView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -111,6 +112,7 @@ struct ConversationComposerContentView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(spacing: 0) {
             if !attachments.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -210,7 +212,8 @@ struct ConversationComposerContentView: View {
         }
         .frame(maxWidth: LitterPlatform.isRegularSurface(horizontalSizeClass: horizontalSizeClass) ? 760 : .infinity)
         .frame(maxWidth: .infinity, alignment: .center)
-    }
+    
+        }}
 }
 
 
@@ -219,6 +222,7 @@ private struct ConversationAttachmentPreviewChip: View {
     let onRemove: () -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 8) {
             Group {
                 if let image = attachment.image {
@@ -260,7 +264,8 @@ private struct ConversationAttachmentPreviewChip: View {
         .padding(.trailing, 6)
         .padding(.vertical, 6)
         .modifier(GlassRoundedRectModifier(cornerRadius: 18))
-    }
+    
+        }}
 }
 
 private struct ConversationComposerPluginChipStrip: View {
@@ -268,6 +273,7 @@ private struct ConversationComposerPluginChipStrip: View {
     let onRemove: (PluginMentionSelection) -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
                 ForEach(plugins, id: \.path) { plugin in
@@ -300,7 +306,8 @@ private struct ConversationComposerPluginChipStrip: View {
                 }
             }
         }
-    }
+    
+        }}
 }
 
 struct ConversationComposerModeChip: View {
@@ -325,6 +332,7 @@ struct ConversationComposerModeChip: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         Button(action: onTap) {
             HStack(spacing: 6) {
                 Text(label)
@@ -338,7 +346,8 @@ struct ConversationComposerModeChip: View {
             .background(Capsule().fill(background))
         }
         .buttonStyle(.plain)
-    }
+    
+        }}
 }
 
 private struct ConversationComposerPlanProgressView: View {
@@ -364,6 +373,7 @@ private struct ConversationComposerPlanProgressView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: isExpanded ? 8 : 0) {
             Button {
                 withAnimation(.snappy(duration: 0.18)) {
@@ -389,7 +399,8 @@ private struct ConversationComposerPlanProgressView: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(LitterTheme.codeBackground.opacity(0.92))
         )
-    }
+    
+        }}
 
     private var headerContent: some View {
         Group {
@@ -503,6 +514,7 @@ private struct ConversationComposerGoalRowView: View {
     private let cornerRadius: CGFloat = 12
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .center, spacing: 8) {
                 statusPill
@@ -576,7 +588,8 @@ private struct ConversationComposerGoalRowView: View {
         .onChange(of: goal.status) { _, new in
             pulsing = (new == .active)
         }
-    }
+    
+        }}
 
     private var statusPill: some View {
         Button(action: { if canTogglePause { actions.togglePause() } }) {
@@ -849,6 +862,7 @@ private struct ConversationComposerActiveTaskRowView: View {
     let summary: ConversationActiveTaskSummary
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 10) {
             Image(systemName: "checklist")
                 .litterFont(size: 11, weight: .semibold)
@@ -878,5 +892,6 @@ private struct ConversationComposerActiveTaskRowView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(LitterTheme.surface.opacity(0.72))
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-    }
+    
+        }}
 }

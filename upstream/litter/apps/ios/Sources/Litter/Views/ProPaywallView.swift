@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 struct ProPaywallView: View {
     let feature: ProFeature
@@ -7,6 +8,7 @@ struct ProPaywallView: View {
     @State private var store = ProAccessStore.shared
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             AlleyBackdrop().ignoresSafeArea()
             Form {
@@ -32,7 +34,8 @@ struct ProPaywallView: View {
         .onChange(of: store.hasProAccess) { _, unlocked in
             if unlocked { onUnlocked?() }
         }
-    }
+    
+        }}
 
     private var heroSection: some View {
         Section {

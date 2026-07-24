@@ -1,5 +1,6 @@
 import SwiftUI
 import WidgetKit
+import Perception
 
 /// Modular rectangular complication (Infograph Modular hero slot). Shows
 /// the L badge + runtime header, full task title, and current tool call.
@@ -26,6 +27,7 @@ struct LitterRectangularView: View {
     let entry: LitterComplicationEntry
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 4) {
                 RoundedRectangle(cornerRadius: 3)
@@ -59,7 +61,8 @@ struct LitterRectangularView: View {
                 .truncationMode(.tail)
         }
         .widgetURL(entry.taskId.flatMap { URL(string: "litter-watch://task/\($0)") })
-    }
+    
+        }}
 
     private var eyebrow: String {
         entry.mode == .running

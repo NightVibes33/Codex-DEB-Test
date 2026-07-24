@@ -1,9 +1,11 @@
 import SwiftUI
+import Perception
 
 struct DarkSwordResearchWorkspaceView: View {
     private let labRoot = "/var/jb/usr/share/darksword/jailbreak-lab"
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             List {
                 Section("Jailbreak Lab") {
@@ -29,7 +31,8 @@ struct DarkSwordResearchWorkspaceView: View {
             }
             .navigationTitle("Research Workspace")
         }
-    }
+    
+        }}
 }
 
 private struct LabRow: View {
@@ -38,6 +41,7 @@ private struct LabRow: View {
     let icon: String
 
     var body: some View {
+        WithPerceptionTracking {
         Label {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
@@ -49,7 +53,8 @@ private struct LabRow: View {
         } icon: {
             Image(systemName: icon)
         }
-    }
+    
+        }}
 }
 
 struct DarkSwordCrashViewer: View {
@@ -64,6 +69,7 @@ struct DarkSwordCrashViewer: View {
     ]
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             List(records) { record in
                 Button {
@@ -107,7 +113,8 @@ struct DarkSwordCrashViewer: View {
                 DarkSwordCrashDetail(record: record)
             }
         }
-    }
+    
+        }}
 
     private func reload() {
         var found: [DarkSwordCrashRecord] = []
@@ -140,6 +147,7 @@ private struct DarkSwordCrashDetail: View {
     @State private var text = "Loading…"
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             ScrollView {
                 Text(text)
@@ -154,7 +162,8 @@ private struct DarkSwordCrashDetail: View {
                 text = (try? String(contentsOfFile: record.path, encoding: .utf8)) ?? "Unable to read this log."
             }
         }
-    }
+    
+        }}
 }
 
 struct DarkSwordSourceEditorView: View {
@@ -164,6 +173,7 @@ struct DarkSwordSourceEditorView: View {
     @State private var pendingWrite = false
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             VStack(spacing: 10) {
                 TextField("Absolute file path", text: $path)
@@ -202,7 +212,8 @@ struct DarkSwordSourceEditorView: View {
                 Text(path)
             }
         }
-    }
+    
+        }}
 
     private func readFile() {
         do {
@@ -232,6 +243,7 @@ struct DarkSwordToolApprovalView: View {
     private let socketPath = "/var/jb/var/run/darksword-rootd.sock"
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             List {
                 Section("Privileged tool service") {
@@ -266,7 +278,8 @@ struct DarkSwordToolApprovalView: View {
             }
             .onAppear(perform: refresh)
         }
-    }
+    
+        }}
 
     private func refresh() {
         socketReady = FileManager.default.fileExists(atPath: socketPath)

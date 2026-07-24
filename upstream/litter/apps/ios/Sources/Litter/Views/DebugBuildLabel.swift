@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 enum BuildInfo {
     /// True only for installs that came from the App Store production
@@ -41,6 +42,7 @@ enum BuildInfo {
 
 struct DebugBuildLabel: View {
     var body: some View {
+        WithPerceptionTracking {
         if !BuildInfo.isAppStoreProduction, let label = BuildInfo.shortLabel {
             Text(label)
                 .litterFont(.caption2)
@@ -48,5 +50,6 @@ struct DebugBuildLabel: View {
                 .monospacedDigit()
                 .accessibilityHidden(true)
         }
-    }
+    
+        }}
 }

@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import Perception
 
 
 struct EmexDEHostView: UIViewControllerRepresentable {
@@ -18,6 +19,7 @@ struct EmexDERouteView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(spacing: 0) {
             headerBar
                 .background(LitterTheme.background)
@@ -32,7 +34,8 @@ struct EmexDERouteView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .background(LitterTheme.background.ignoresSafeArea())
-    }
+    
+        }}
 
     private var headerBar: some View {
         HStack(spacing: 12) {

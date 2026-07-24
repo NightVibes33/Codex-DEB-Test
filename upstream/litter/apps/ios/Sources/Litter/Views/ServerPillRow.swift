@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 struct ServerPillRow: View {
     let servers: [HomeDashboardServer]
@@ -12,6 +13,7 @@ struct ServerPillRow: View {
     let onAdd: () -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 ForEach(servers) { server in
@@ -31,5 +33,6 @@ struct ServerPillRow: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 4)
         }
-    }
+    
+        }}
 }

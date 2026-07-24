@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 struct ConversationComposerContextBarView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -6,6 +7,7 @@ struct ConversationComposerContextBarView: View {
     let contextPercent: Int64?
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 4) {
             if let primary = rateLimits?.primary {
                 RateLimitBadgeView(
@@ -33,7 +35,8 @@ struct ConversationComposerContextBarView: View {
         .padding(.horizontal, 12)
         .padding(.top, -2)
         .padding(.trailing, LitterPlatform.isRegularSurface(horizontalSizeClass: horizontalSizeClass) ? 12 : 40)
-    }
+    
+        }}
 
     private func normalizedPercent(_ raw: Int32) -> Int {
         let used = min(Int(raw), 100)

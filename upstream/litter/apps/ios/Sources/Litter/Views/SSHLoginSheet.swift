@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 struct SSHLoginSheet: View {
     let server: DiscoveredServer
@@ -43,6 +44,7 @@ struct SSHLoginSheet: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             ZStack {
                 AlleyBackdrop().ignoresSafeArea()
@@ -193,7 +195,8 @@ struct SSHLoginSheet: View {
                 unlockMacosKeychain = false
             }
         }
-    }
+    
+        }}
 
     private var passwordInput: some View {
         HStack(spacing: 8) {

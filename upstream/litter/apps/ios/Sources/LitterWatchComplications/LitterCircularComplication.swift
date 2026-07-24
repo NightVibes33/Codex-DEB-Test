@@ -1,5 +1,6 @@
 import SwiftUI
 import WidgetKit
+import Perception
 
 /// Circular complication: small donut with RUN/IDLE eyebrow + big number.
 ///
@@ -28,6 +29,7 @@ struct LitterCircularView: View {
     let entry: LitterComplicationEntry
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             Circle()
                 .stroke(Color.black.opacity(0.2), lineWidth: 2.5)
@@ -51,7 +53,8 @@ struct LitterCircularView: View {
         }
         .padding(2)
         .widgetURL(entry.taskId.flatMap { URL(string: "litter-watch://task/\($0)") })
-    }
+    
+        }}
 
     private var primary: String {
         switch entry.mode {

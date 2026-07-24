@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 struct RealtimeVoiceScreen: View {
     @Environment(\.colorScheme) private var colorScheme
@@ -133,6 +134,7 @@ struct RealtimeVoiceScreen: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             Color(hex: glowPalette.background)
                 .ignoresSafeArea()
@@ -199,7 +201,8 @@ struct RealtimeVoiceScreen: View {
                 isRetryingAfterAuthSave = false
             }
         }
-    }
+    
+        }}
 
     @ViewBuilder
     private var transcriptContent: some View {
@@ -513,6 +516,7 @@ private struct VoiceScreenPulsingDot: View {
     @State private var scale: CGFloat = 1.0
 
     var body: some View {
+        WithPerceptionTracking {
         Circle()
             .fill(color)
             .frame(width: 8, height: 8)
@@ -534,7 +538,8 @@ private struct VoiceScreenPulsingDot: View {
                     }
                 }
             }
-    }
+    
+        }}
 }
 
 private struct SiriEdgeGlow: View {
@@ -543,6 +548,7 @@ private struct SiriEdgeGlow: View {
     let palette: GlowPalette
 
     var body: some View {
+        WithPerceptionTracking {
         TimelineView(.animation(minimumInterval: 0.5)) { timeline in
             let _ = timeline.date
             GeometryReader { geometry in
@@ -572,7 +578,8 @@ private struct SiriEdgeGlow: View {
             }
         }
         .animation(.easeInOut(duration: 0.6), value: phase)
-    }
+    
+        }}
 
     private func makeAngularGradient(for phase: VoiceSessionPhase) -> AngularGradient {
         let colors = phaseColors(for: phase)

@@ -1,5 +1,6 @@
 import SwiftUI
 import WatchKit
+import Perception
 
 /// 1 · Task pages — the watch's home is one full-screen page per task plus a
 /// trailing "new task" page. Crown rotation switches tasks; each page has
@@ -10,6 +11,7 @@ struct HomeScreen: View {
     @EnvironmentObject var theme: WatchThemeStore
 
     var body: some View {
+        WithPerceptionTracking {
         Group {
             if !store.hasData {
                 skeletonPages
@@ -24,7 +26,8 @@ struct HomeScreen: View {
             }
         }
         .containerBackground(theme.backgroundGradient, for: .navigation)
-    }
+    
+        }}
 
     /// Cold-launch placeholder: three pulsing skeleton pages plus a final
     /// hint page so the user knows the watch is waiting on iPhone.
@@ -96,6 +99,7 @@ private struct HiddenFooterPage: View {
     let count: Int
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(spacing: 8) {
             Spacer(minLength: 0)
             NavigationLink {
@@ -124,7 +128,8 @@ private struct HiddenFooterPage: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.horizontal, 6)
-    }
+    
+        }}
 }
 
 // MARK: - Per-task page
@@ -140,6 +145,7 @@ private struct TaskPage: View {
     let task: WatchTask
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationLink {
             TaskDetailScreen(task: task)
         } label: {
@@ -157,7 +163,8 @@ private struct TaskPage: View {
                 Label("Hide", systemImage: "eye.slash")
             }
         }
-    }
+    
+        }}
 
     private var content: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -308,6 +315,7 @@ private struct NewTaskPage: View {
     @Environment(\.watchSize) private var watchSize
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(spacing: 10) {
             Spacer(minLength: 0)
             NavigationLink {
@@ -337,7 +345,8 @@ private struct NewTaskPage: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.horizontal, 6)
-    }
+    
+        }}
 
     private var micDiameter: CGFloat {
         switch watchSize {
@@ -356,13 +365,15 @@ private struct StatusChip: View {
     var isAOD: Bool = false
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 4) {
             bullet
             Text(label)
                 .font(WatchTheme.mono(10, weight: .bold))
                 .foregroundStyle(isAOD ? theme.textSecondary : color)
         }
-    }
+    
+        }}
 
     @ViewBuilder private var bullet: some View {
         switch status {
@@ -407,6 +418,7 @@ private struct HeaderBadges: View {
     @EnvironmentObject var theme: WatchThemeStore
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 6) {
             if store.approvalsTaskCount > 0 {
                 Badge(color: theme.warning, count: store.approvalsTaskCount)
@@ -415,7 +427,8 @@ private struct HeaderBadges: View {
                 Badge(color: theme.success, count: store.runningTaskCount)
             }
         }
-    }
+    
+        }}
 }
 
 private struct Badge: View {
@@ -424,13 +437,15 @@ private struct Badge: View {
     let count: Int
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 3) {
             Circle().fill(color).frame(width: 5, height: 5)
             Text("\(count)")
                 .font(WatchTheme.mono(10))
                 .foregroundStyle(theme.textSecondary)
         }
-    }
+    
+        }}
 }
 
 #if DEBUG

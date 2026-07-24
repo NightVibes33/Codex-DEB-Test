@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 struct PetSettingsView: View {
     @Environment(AppModel.self) private var appModel
@@ -13,6 +14,7 @@ struct PetSettingsView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         Form {
             Section {
                 Toggle(isOn: Binding(
@@ -152,7 +154,8 @@ struct PetSettingsView: View {
             }
             await refreshPets()
         }
-    }
+    
+        }}
 
     @MainActor
     private func refreshPets() async {

@@ -1,5 +1,6 @@
 import SwiftUI
 import Charts
+import Perception
 
 struct ConversationInfoView: View {
     @Environment(AppModel.self) private var appModel
@@ -44,6 +45,7 @@ struct ConversationInfoView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         ScrollView {
             VStack(spacing: 0) {
                 if !isServerOnly {
@@ -101,7 +103,8 @@ struct ConversationInfoView: View {
         .sheet(isPresented: $isShowingMountedFolders) {
             MountedFoldersView()
         }
-    }
+    
+        }}
 
     // MARK: - Server-Only Action Row
 

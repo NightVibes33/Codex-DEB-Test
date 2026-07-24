@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 struct AppearanceSettingsView: View {
     @Environment(ThemeManager.self) private var themeManager
@@ -6,6 +7,7 @@ struct AppearanceSettingsView: View {
     @AppStorage("conversationTextSizeStep") private var textSizeStep = ConversationTextSize.tiny.rawValue
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             AlleyBackdrop().ignoresSafeArea()
             Form {
@@ -30,7 +32,8 @@ struct AppearanceSettingsView: View {
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
-    }
+    
+        }}
 
     // MARK: - Appearance Mode
 
@@ -249,6 +252,7 @@ private struct ThemePickerRow: View {
     let trailingAccessory: ThemePickerTrailingAccessory
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 10) {
             ThemePreviewBadge(
                 backgroundHex: entry?.backgroundHex ?? "#000000",
@@ -277,7 +281,8 @@ private struct ThemePickerRow: View {
             }
         }
         .contentShape(Rectangle())
-    }
+    
+        }}
 }
 
 private struct ThemePickerSheet: View {
@@ -302,6 +307,7 @@ private struct ThemePickerSheet: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             ZStack {
                 AlleyBackdrop().ignoresSafeArea()
@@ -359,7 +365,8 @@ private struct ThemePickerSheet: View {
                 }
             }
         }
-    }
+    
+        }}
 
     private var searchField: some View {
         HStack(spacing: 8) {
@@ -425,6 +432,7 @@ struct ThemePreviewBadge: View {
     let accentHex: String
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack(alignment: .bottomTrailing) {
             Text("Aa")
                 .font(.system(size: 12, weight: .bold, design: .monospaced))
@@ -443,7 +451,8 @@ struct ThemePreviewBadge: View {
                 .frame(width: 6, height: 6)
                 .offset(x: 1, y: 1)
         }
-    }
+    
+        }}
 
     @MainActor
     static func renderToImage(backgroundHex: String, foregroundHex: String, accentHex: String) -> UIImage {

@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import Perception
 
 struct ConversationComposerEntryRowView: View {
     @Binding var showAttachMenu: Bool
@@ -73,6 +74,7 @@ struct ConversationComposerEntryRowView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(alignment: .center, spacing: 8) {
             if !voiceManager.isRecording && !voiceManager.isTranscribing && !isTurnActive {
                 Button {
@@ -214,5 +216,6 @@ struct ConversationComposerEntryRowView: View {
                 hasAttachment: hasAttachment
             )
         }
-    }
+    
+        }}
 }

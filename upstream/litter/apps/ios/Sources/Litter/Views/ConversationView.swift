@@ -3,6 +3,7 @@ import PhotosUI
 import UIKit
 import os
 import HairballUI
+import Perception
 
 private let conversationViewSignpostLog = OSLog(
     subsystem: Bundle.main.bundleIdentifier ?? "com.litter.ios",
@@ -106,6 +107,7 @@ struct ConversationView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         ConversationMessageList(
             items: items,
             threadStatus: threadStatus,
@@ -224,7 +226,8 @@ struct ConversationView: View {
             taskBag.run { await loadInitialTurnsIfNeeded() }
         }
         .onDisappear { taskBag.cancelAll() }
-    }
+    
+        }}
 
     private func loadInitialTurnsIfNeeded() async {
         guard !thread.initialTurnsLoaded else { return }
@@ -500,6 +503,7 @@ private struct ConversationBottomChrome: View {
     @StateObject private var taskBag = ViewTaskBag()
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(spacing: 0) {
             ConversationPinnedContextStrip(
                 items: pinnedContextItems
@@ -554,7 +558,8 @@ private struct ConversationBottomChrome: View {
             Text(collaborationModeError ?? "Unable to update collaboration mode.")
         }
         .onDisappear { taskBag.cancelAll() }
-    }
+    
+        }}
 
     private var hasPinnedDiff: Bool {
         pinnedContextItems.contains {
@@ -627,13 +632,15 @@ struct RateLimitBadgeView: View, Equatable {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 3) {
             Text(label)
                 .font(LitterFont.monospaced(size: 9.5, weight: .semibold))
                 .foregroundColor(LitterTheme.textSecondary)
             ContextBadgeView(percent: percent, tint: tint)
         }
-    }
+    
+        }}
 }
 
 
@@ -745,6 +752,7 @@ private struct ConversationMessageList: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         let turns = mergedRenderableTurns
         let lastTurnID = turns.last?.id
         ScrollViewReader { proxy in
@@ -924,7 +932,8 @@ private struct ConversationMessageList: View {
             }
             }
         }
-    }
+    
+        }}
 
     private func isTurnExpanded(_ turn: TranscriptTurn) -> Bool {
         !turn.isCollapsedByDefault || expandedTurnIDs.contains(turn.id)
@@ -1263,12 +1272,14 @@ private struct ConversationTurnRow: View, Equatable {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         if isExpanded {
             expandedContent
         } else {
             collapsedCard
         }
-    }
+    
+        }}
 
     private var expandedContent: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -1441,6 +1452,7 @@ private struct CollapsedTurnMetaItem: View {
     let text: String
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 4) {
             Image(systemName: systemImage)
                 .litterFont(size: 9, weight: .medium)
@@ -1450,7 +1462,8 @@ private struct CollapsedTurnMetaItem: View {
                 .foregroundColor(LitterTheme.textSecondary)
                 .lineLimit(1)
         }
-    }
+    
+        }}
 }
 
 private struct ScrollToBottomIndicator: View {
@@ -1458,6 +1471,7 @@ private struct ScrollToBottomIndicator: View {
     @State private var bob = false
 
     var body: some View {
+        WithPerceptionTracking {
         Button(action: action) {
             HStack(spacing: 8) {
                 Image(systemName: "arrow.down")
@@ -1476,7 +1490,8 @@ private struct ScrollToBottomIndicator: View {
         .onAppear {
             bob = true
         }
-    }
+    
+        }}
 }
 
 private struct ConversationInputBar: View {
@@ -1590,6 +1605,7 @@ private struct ConversationInputBar: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         ConversationComposerModalCoordinator(
             snapshot: snapshot,
             experimentalFeatures: experimentalFeatures,
@@ -1679,7 +1695,8 @@ private struct ConversationInputBar: View {
             fileSearchTask = nil
             taskBag.cancelAll()
         }
-    }
+    
+        }}
 
     private var composerSurface: some View {
         VStack(spacing: 0) {
@@ -2793,6 +2810,7 @@ private struct CollaborationModeSelectorSheet: View {
     let onSelect: (AppModeKind) -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             List {
                 if isLoading && presets.isEmpty {
@@ -2833,7 +2851,8 @@ private struct CollaborationModeSelectorSheet: View {
             .background(LitterTheme.surface)
             .navigationTitle("Collaboration Mode")
         }
-    }
+    
+        }}
 }
 
 enum GoalSlashCommandAction: Equatable {
@@ -3323,6 +3342,7 @@ struct PendingUserInputPromptView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Image(systemName: "questionmark.bubble.fill")
@@ -3430,7 +3450,8 @@ struct PendingUserInputPromptView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
         .modifier(GlassRectModifier(cornerRadius: 14))
-    }
+    
+        }}
 
     private func otherAnswerBinding(for question: PendingUserInputQuestion) -> Binding<String> {
         Binding(
@@ -3461,6 +3482,7 @@ struct PlanImplementationPromptView: View {
     let onDismiss: () -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Image(systemName: "list.bullet.clipboard.fill")
@@ -3506,7 +3528,8 @@ struct PlanImplementationPromptView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
         .modifier(GlassRectModifier(cornerRadius: 14))
-    }
+    
+        }}
 }
 
 struct QueuedFollowUpsPreviewView: View {
@@ -3515,6 +3538,7 @@ struct QueuedFollowUpsPreviewView: View {
     let onDelete: (AppQueuedFollowUpPreview) -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Image(systemName: "clock.arrow.circlepath")
@@ -3602,7 +3626,8 @@ struct QueuedFollowUpsPreviewView: View {
         .padding(12)
         .background(LitterTheme.codeBackground.opacity(0.92))
         .clipShape(RoundedRectangle(cornerRadius: 14))
-    }
+    
+        }}
 }
 
 private struct QueuedFollowUpPreviewStyle {
@@ -3650,6 +3675,7 @@ private struct ConversationLoadingIndicator: View {
     @State private var shimmerOffset: CGFloat = -1
 
     var body: some View {
+        WithPerceptionTracking {
         Text(label)
             .litterFont(.body, weight: .medium)
             .foregroundStyle(
@@ -3667,13 +3693,15 @@ private struct ConversationLoadingIndicator: View {
             .onAppear {
                 shimmerOffset = 2
             }
-    }
+    
+        }}
 }
 
 private struct MinigameLaunchButton: View {
     let action: () -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         Button(action: action) {
             Image(systemName: "gamecontroller.fill")
                 .font(.system(size: 14, weight: .semibold))
@@ -3691,13 +3719,15 @@ private struct MinigameLaunchButton: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Play a minigame while waiting")
-    }
+    
+        }}
 }
 
 struct TypingIndicator: View {
     @State private var shimmerOffset: CGFloat = -1
 
     var body: some View {
+        WithPerceptionTracking {
         Text("Thinking")
             .litterFont(.body, weight: .medium)
             .foregroundStyle(
@@ -3716,7 +3746,8 @@ struct TypingIndicator: View {
             .onAppear {
                 shimmerOffset = 2
             }
-    }
+    
+        }}
 }
 
 struct CameraView: UIViewControllerRepresentable {
@@ -3757,6 +3788,7 @@ private struct SubagentBreadcrumbBar: View {
     let onNavigateToParent: () -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 8) {
             Button(action: onNavigateToParent) {
                 HStack(spacing: 4) {
@@ -3793,7 +3825,8 @@ private struct SubagentBreadcrumbBar: View {
                 .background(LitterTheme.surface.opacity(0.96))
                 .ignoresSafeArea()
         )
-    }
+    
+        }}
 }
 
 // MARK: - Debug Overlay
@@ -3805,6 +3838,7 @@ private struct ConversationDebugButton: View {
     @State private var showPopover = false
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 6) {
             Button {
                 showPopover.toggle()
@@ -3842,7 +3876,8 @@ private struct ConversationDebugButton: View {
                 .environment(appModel)
                 .presentationCompactAdaptation(.popover)
         }
-    }
+    
+        }}
 }
 
 private struct PulseModifier: ViewModifier {
@@ -3863,6 +3898,7 @@ private struct DebugPopoverContent: View {
     @State private var recordings: [URL] = []
 
     var body: some View {
+        WithPerceptionTracking {
         ScrollView {
         VStack(alignment: .leading, spacing: 12) {
             Text("Debug")
@@ -3970,7 +4006,8 @@ private struct DebugPopoverContent: View {
         .frame(maxHeight: 500)
         .background(LitterTheme.surface)
         .onAppear { recordings = recorder.listRecordings() }
-    }
+    
+        }}
 }
 
 private struct TurnDebugOverlay: ViewModifier {

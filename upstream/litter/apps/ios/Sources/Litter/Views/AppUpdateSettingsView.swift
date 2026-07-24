@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import Perception
 
 struct AppUpdateSettingsView: View {
     @Environment(\.openURL) private var openURL
@@ -10,6 +11,7 @@ struct AppUpdateSettingsView: View {
     @State private var shareItem: ShareItem?
 
     var body: some View {
+        WithPerceptionTracking {
         ScrollView {
             VStack(spacing: 14) {
                 statusPanel
@@ -49,7 +51,8 @@ struct AppUpdateSettingsView: View {
             taskBag.cancelAll()
             if updater.phase.isBusy { updater.cancelDownload() }
         }
-    }
+    
+        }}
 
     private var statusPanel: some View {
         updatePanel(title: "Status", icon: availabilityIcon) {
@@ -591,6 +594,7 @@ private struct UpdateIconBadge: View {
     var color: Color
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(color.opacity(0.16))
@@ -603,7 +607,8 @@ private struct UpdateIconBadge: View {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(color.opacity(0.35), lineWidth: 0.8)
         )
-    }
+    
+        }}
 }
 
 private struct ShareItem: Identifiable {

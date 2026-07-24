@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import Perception
 
 private enum CatTransmissionFrames {
     static let names = [
@@ -22,6 +23,7 @@ struct CatTransmissionPressView<Content: View>: View {
     @ViewBuilder var content: () -> Content
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             if transmissionActive {
                 CatTransmissionFramePlayer()
@@ -45,7 +47,8 @@ struct CatTransmissionPressView<Content: View>: View {
         .onDisappear {
             stopHold()
         }
-    }
+    
+        }}
 
     private func stopHold() {
         transmissionActive = false
@@ -56,6 +59,7 @@ private struct CatTransmissionFramePlayer: View {
     @State private var frameIndex = 0
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             if let image = UIImage(named: CatTransmissionFrames.names[frameIndex]) {
                 Image(uiImage: image)
@@ -72,5 +76,6 @@ private struct CatTransmissionFramePlayer: View {
                 frameIndex = (frameIndex + 1) % CatTransmissionFrames.names.count
             }
         }
-    }
+    
+        }}
 }

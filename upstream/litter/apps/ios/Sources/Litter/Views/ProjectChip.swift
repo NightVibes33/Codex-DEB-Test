@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 struct ProjectChip: View {
     let project: AppProject?
@@ -6,6 +7,7 @@ struct ProjectChip: View {
     let onTap: () -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         Button(action: onTap) {
             HStack(spacing: 6) {
                 Image(systemName: "folder")
@@ -32,7 +34,8 @@ struct ProjectChip: View {
         )
         .disabled(disabled)
         .opacity(disabled ? 0.5 : 1)
-    }
+    
+        }}
 
     private var label: String {
         if let project {

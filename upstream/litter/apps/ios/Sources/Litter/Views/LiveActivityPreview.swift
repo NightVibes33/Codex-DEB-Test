@@ -1,5 +1,6 @@
 #if DEBUG
 import SwiftUI
+import Perception
 
 private let allCards: [(String, CodexTurnAttributes.ContentState, String)] = [
     (
@@ -42,18 +43,21 @@ private struct AdaptiveTimer: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         Text(text)
             .font(.system(size: 15, design: LitterPalette.fontDesign))
             .monospacedDigit()
             .fontWeight(.regular)
             .foregroundStyle(timerColor)
-    }
+    
+        }}
 }
 
 private struct CardStack: View {
     let cards = allCards
 
     var body: some View {
+        WithPerceptionTracking {
         ScrollView {
             VStack(spacing: 16) {
                 ForEach(Array(cards.enumerated()), id: \.offset) { _, card in
@@ -75,7 +79,8 @@ private struct CardStack: View {
             .padding(12)
         }
         .background(AlleyBackdrop())
-    }
+    
+        }}
 }
 
 #Preview("Dark Mode") {

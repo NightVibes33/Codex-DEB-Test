@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 struct InlineVoiceStatusStrip: View {
     let session: VoiceSessionState
@@ -13,6 +14,7 @@ struct InlineVoiceStatusStrip: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 8) {
             HStack(spacing: 5) {
                 Circle()
@@ -57,7 +59,8 @@ struct InlineVoiceStatusStrip: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 6)
         .background(LitterTheme.surface.opacity(0.6))
-    }
+    
+        }}
 
     private func phaseColor(_ phase: VoiceSessionPhase) -> Color {
         switch phase {

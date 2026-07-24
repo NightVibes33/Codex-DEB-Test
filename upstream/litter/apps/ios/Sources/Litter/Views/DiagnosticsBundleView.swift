@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import Perception
 
 struct DiagnosticsBundleView: View {
     @State private var bundleText = ""
@@ -8,6 +9,7 @@ struct DiagnosticsBundleView: View {
 
     @StateObject private var taskBag = ViewTaskBag()
     var body: some View {
+        WithPerceptionTracking {
         List {
             Section {
                 Button {
@@ -73,7 +75,8 @@ struct DiagnosticsBundleView: View {
             }
         }
         .onDisappear { taskBag.cancelAll() }
-    }
+    
+        }}
 
     @MainActor
     private func collect() async {

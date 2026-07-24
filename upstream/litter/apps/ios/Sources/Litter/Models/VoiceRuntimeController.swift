@@ -1,11 +1,11 @@
 import ActivityKit
 import AVFoundation
 import Foundation
-import Observation
+import Perception
 import UIKit
 
 @MainActor
-@Observable
+@Perceptible
 final class VoiceRuntimeController: VoiceActions {
     static let shared = VoiceRuntimeController()
     static let localServerID = "local"
@@ -21,22 +21,22 @@ final class VoiceRuntimeController: VoiceActions {
     var handoffEffort: String?
     var handoffFastMode = false
 
-    @ObservationIgnored private weak var appModel: AppModel?
-    @ObservationIgnored private var realtimeSession: RealtimeWebRtcSession?
-    @ObservationIgnored private lazy var handoffManager = RustHandoffManager(localServerId: Self.localServerID)
-    @ObservationIgnored private var updateSubscription: AppStoreSubscription?
-    @ObservationIgnored private var eventTask: Task<Void, Never>?
-    @ObservationIgnored private var handoffActionPollTask: Task<Void, Never>?
-    @ObservationIgnored private var voiceLaunchTask: Task<Void, Never>?
-    @ObservationIgnored private var realtimeAnswerTask: Task<Void, Never>?
-    @ObservationIgnored private var voiceCallActivityTask: Task<Void, Never>?
-    @ObservationIgnored private var voiceSessionStopTask: Task<Void, Never>?
-    @ObservationIgnored private var sharedVoiceSessionSyncTask: Task<Void, Never>?
-    @ObservationIgnored private var voiceCallActivity: Activity<CodexVoiceCallAttributes>?
-    @ObservationIgnored private var voiceInputDecayToken: UUID?
-    @ObservationIgnored private var voiceOutputDecayToken: UUID?
-    @ObservationIgnored private var voiceStopRequestedThreadKey: ThreadKey?
-    @ObservationIgnored private var lastHandledVoiceEndRequestToken: String?
+    @PerceptionIgnored private weak var appModel: AppModel?
+    @PerceptionIgnored private var realtimeSession: RealtimeWebRtcSession?
+    @PerceptionIgnored private lazy var handoffManager = RustHandoffManager(localServerId: Self.localServerID)
+    @PerceptionIgnored private var updateSubscription: AppStoreSubscription?
+    @PerceptionIgnored private var eventTask: Task<Void, Never>?
+    @PerceptionIgnored private var handoffActionPollTask: Task<Void, Never>?
+    @PerceptionIgnored private var voiceLaunchTask: Task<Void, Never>?
+    @PerceptionIgnored private var realtimeAnswerTask: Task<Void, Never>?
+    @PerceptionIgnored private var voiceCallActivityTask: Task<Void, Never>?
+    @PerceptionIgnored private var voiceSessionStopTask: Task<Void, Never>?
+    @PerceptionIgnored private var sharedVoiceSessionSyncTask: Task<Void, Never>?
+    @PerceptionIgnored private var voiceCallActivity: Activity<CodexVoiceCallAttributes>?
+    @PerceptionIgnored private var voiceInputDecayToken: UUID?
+    @PerceptionIgnored private var voiceOutputDecayToken: UUID?
+    @PerceptionIgnored private var voiceStopRequestedThreadKey: ThreadKey?
+    @PerceptionIgnored private var lastHandledVoiceEndRequestToken: String?
 
     init() {
         installVoiceSessionControlObserver()

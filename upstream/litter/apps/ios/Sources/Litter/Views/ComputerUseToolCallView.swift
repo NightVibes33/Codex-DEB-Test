@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import Perception
 
 struct ComputerUseToolCallView: View {
     let data: ConversationMcpToolCallData
@@ -32,6 +33,7 @@ struct ComputerUseToolCallView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 0) {
             header
 
@@ -77,7 +79,8 @@ struct ComputerUseToolCallView: View {
                 }
             }
         }
-    }
+    
+        }}
 
     private var header: some View {
         HStack(spacing: 8) {

@@ -1,4 +1,4 @@
-import Observation
+import Perception
 import SwiftUI
 
 
@@ -31,7 +31,7 @@ enum ChatRuntimeMode: String, Codable, CaseIterable, Identifiable {
 }
 
 @MainActor
-@Observable
+@Perceptible
 final class AppState {
     private struct ThreadPermissionOverride {
         var approvalPolicy: String

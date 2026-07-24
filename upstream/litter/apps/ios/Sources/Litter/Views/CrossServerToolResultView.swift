@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 /// Rich rendering for list_servers and list_sessions tool results.
 /// Decodes structured JSON from contentSummary and renders using the same
@@ -7,6 +8,7 @@ struct CrossServerToolResultView: View {
     let data: ConversationDynamicToolCallData
 
     var body: some View {
+        WithPerceptionTracking {
         if let payload = decode() {
             VStack(alignment: .leading, spacing: 6) {
                 switch payload {
@@ -39,7 +41,8 @@ struct CrossServerToolResultView: View {
                 }
             }
         }
-    }
+    
+        }}
 
     private func emptyRow(_ text: String) -> some View {
         Text(text).litterFont(.caption).foregroundColor(LitterTheme.textMuted).padding(.vertical, 4)
@@ -135,6 +138,7 @@ struct SessionServerCardRow: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(alignment: .center, spacing: 12) {
             Image(systemName: icon)
                 .litterFont(size: 16, weight: .medium)
@@ -199,5 +203,6 @@ struct SessionServerCardRow: View {
                 .stroke(LitterTheme.border.opacity(0.7), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-    }
+    
+        }}
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 struct CodeBlockView: View {
     let language: String
@@ -6,6 +7,7 @@ struct CodeBlockView: View {
     var fontSize: CGFloat = LitterFont.conversationBodyPointSize
 
     var body: some View {
+        WithPerceptionTracking {
         ScrollView(.horizontal, showsIndicators: false) {
             if isDiffLanguage(language) {
                 SyntaxHighlightedDiffText(
@@ -27,7 +29,8 @@ struct CodeBlockView: View {
         .background(LitterTheme.codeBackground.opacity(0.8))
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .modifier(GlassRectModifier(cornerRadius: 8))
-    }
+    
+        }}
 }
 
 #if DEBUG

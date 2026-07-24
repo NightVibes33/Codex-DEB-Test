@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 /// Three-state bottom bar for the home screen:
 ///
@@ -39,6 +40,7 @@ struct HomeBottomBar: View {
     private let buttonSize: CGFloat = 44
 
     var body: some View {
+        WithPerceptionTracking {
         // Two isolated glass pools so the + and search buttons don't blob
         // into a single liquid-glass shape. Pool 1 handles plus ↔ composer,
         // pool 2 handles search ↔ searchRow. Without this, `searchRow`
@@ -97,7 +99,8 @@ struct HomeBottomBar: View {
             .padding(.horizontal, mode == .collapsed ? 14 : 0)
         }
         .animation(.spring(response: 0.42, dampingFraction: 0.82), value: mode)
-    }
+    
+        }}
 
     private var plusButton: some View {
         Button {

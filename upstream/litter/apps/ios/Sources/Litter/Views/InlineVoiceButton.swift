@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 struct InlineVoiceButton: View {
     let session: VoiceSessionState?
@@ -34,6 +35,7 @@ struct InlineVoiceButton: View {
     private var iconSize: CGFloat { isActive ? 22 : 16 }
 
     var body: some View {
+        WithPerceptionTracking {
         if isAvailable {
             Button(action: isActive ? onStop : onStart) {
                 Circle()
@@ -62,7 +64,8 @@ struct InlineVoiceButton: View {
             .animation(.spring(response: 0.4, dampingFraction: 0.75), value: isActive)
             .animation(.spring(response: 0.4, dampingFraction: 0.75), value: phase)
         }
-    }
+    
+        }}
 }
 
 private struct VoiceButtonWaveform: View {
@@ -70,6 +73,7 @@ private struct VoiceButtonWaveform: View {
     let barCount: Int
 
     var body: some View {
+        WithPerceptionTracking {
         Canvas { context, size in
             let barWidth: CGFloat = 2.5
             let totalWidth = barWidth * CGFloat(barCount)
@@ -92,5 +96,6 @@ private struct VoiceButtonWaveform: View {
                 )
             }
         }
-    }
+    
+        }}
 }

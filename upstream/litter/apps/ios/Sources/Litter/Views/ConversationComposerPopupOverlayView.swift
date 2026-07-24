@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 enum ConversationComposerPopupState {
     case none
@@ -20,6 +21,7 @@ struct ConversationComposerPopupOverlayView: View {
     let onApplyPluginSuggestion: (PluginSummary) -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         switch state {
         case .none:
             EmptyView()
@@ -183,7 +185,8 @@ struct ConversationComposerPopupOverlayView: View {
                 }
             }
         }
-    }
+    
+        }}
 
     @ViewBuilder
     private func sectionHeader(_ title: String) -> some View {

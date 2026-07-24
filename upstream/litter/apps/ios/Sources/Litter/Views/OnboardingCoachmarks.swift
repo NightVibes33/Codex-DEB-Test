@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 enum CoachmarkTarget: Hashable {
     case addServer
@@ -102,6 +103,7 @@ struct OnboardingCoachmarksView: View {
     ]
 
     var body: some View {
+        WithPerceptionTracking {
         GeometryReader { proxy in
             ZStack(alignment: .topLeading) {
                 ForEach(items) { item in
@@ -113,7 +115,8 @@ struct OnboardingCoachmarksView: View {
             .frame(width: proxy.size.width, height: proxy.size.height, alignment: .topLeading)
         }
         .allowsHitTesting(false)
-    }
+    
+        }}
 
     /// Resolve the on-screen rect for a target. Server pill, +, and search
     /// publish anchors from inside the dashboard subtree. The voice button
@@ -229,6 +232,7 @@ struct OnboardingCoachmarksView: View {
 /// the same 1.2s curve and visually fly across the screen.
 private struct CoachmarkHalo: View {
     var body: some View {
+        WithPerceptionTracking {
         TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
             // Phase: 0..1, period 1.6s, sinusoidal so it eases at endpoints.
             let t = context.date.timeIntervalSinceReferenceDate
@@ -247,7 +251,8 @@ private struct CoachmarkHalo: View {
                 )
                 .scaleEffect(scale)
         }
-    }
+    
+        }}
 }
 
 /// Hand-drawn-feeling coachmark arrow. The path is either a smooth quadratic
@@ -264,6 +269,7 @@ private struct CoachmarkArrow: View {
     let isPrimary: Bool
 
     var body: some View {
+        WithPerceptionTracking {
         Canvas { ctx, _ in
             // Trim so the path starts outside the label box and ends with
             // clearance from the button so the arrowhead doesn't poke into
@@ -324,7 +330,8 @@ private struct CoachmarkArrow: View {
             head.closeSubpath()
             ctx.fill(head, with: .color(LitterTheme.accent.opacity(isPrimary ? 0.95 : 0.9)))
         }
-    }
+    
+        }}
 
     private func squiggleAmplitude(for style: OnboardingCoachmarksView.LineStyle, length: CGFloat) -> CGFloat {
         // Skip squiggle on short arrows — looks like noise at small scale.

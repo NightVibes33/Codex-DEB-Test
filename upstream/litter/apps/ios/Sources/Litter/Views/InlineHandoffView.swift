@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 struct InlineHandoffView: View {
     @Environment(AppModel.self) private var appModel
@@ -24,6 +25,7 @@ struct InlineHandoffView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         if thread != nil, !entries.isEmpty {
             ScrollViewReader { proxy in
                 ScrollView(.vertical, showsIndicators: false) {
@@ -64,7 +66,8 @@ struct InlineHandoffView: View {
             }
             .padding(.vertical, 4)
         }
-    }
+    
+        }}
 }
 
 private struct InlineHandoffRow: View {
@@ -95,6 +98,7 @@ private struct InlineHandoffRow: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         Text(entry.text)
             .font(font)
             .foregroundStyle(color)
@@ -102,7 +106,8 @@ private struct InlineHandoffRow: View {
             .frame(maxWidth: .infinity)
             .fixedSize(horizontal: false, vertical: true)
             .contentTransition(.opacity)
-    }
+    
+        }}
 }
 
 private struct InlineHandoffEntry: Identifiable {

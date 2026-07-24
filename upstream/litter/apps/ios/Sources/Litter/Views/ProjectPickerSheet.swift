@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 struct ProjectPickerSheet: View {
     let projects: [AppProject]
@@ -22,6 +23,7 @@ struct ProjectPickerSheet: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             VStack(spacing: 0) {
                 search
@@ -46,7 +48,8 @@ struct ProjectPickerSheet: View {
                 }
             }
         }
-    }
+    
+        }}
 
     private var search: some View {
         HStack(spacing: 8) {

@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import Perception
 
 struct BuildArtifactShareCard: View {
     let artifact: BuildArtifact
@@ -9,6 +10,7 @@ struct BuildArtifactShareCard: View {
     @State private var sizeText: String?
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .center, spacing: 10) {
                 Image(systemName: "shippingbox.fill")
@@ -66,7 +68,8 @@ struct BuildArtifactShareCard: View {
         .sheet(item: $sharePayload) { payload in
             ArtifactActivitySheet(items: [payload.url])
         }
-    }
+    
+        }}
 
     private func refreshSize() async {
         guard sizeText == nil, let size = try? await IshFS.fileSize(path: artifact.path) else { return }

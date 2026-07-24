@@ -1,5 +1,6 @@
 import SwiftUI
 import StoreKit
+import Perception
 
 enum TipJarFeature {
     static let isVisible = false
@@ -9,6 +10,7 @@ struct TipJarView: View {
     private var store: TipJarStore { TipJarStore.shared }
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             AlleyBackdrop().ignoresSafeArea()
 
@@ -56,7 +58,8 @@ struct TipJarView: View {
         .task {
             await store.loadProducts()
         }
-    }
+    
+        }}
 
     private var headerSection: some View {
         Section {
@@ -195,6 +198,7 @@ struct SupporterBadge: View {
     @State private var showTipJar = false
 
     var body: some View {
+        WithPerceptionTracking {
         if TipJarFeature.isVisible {
             let store = TipJarStore.shared
             Button { showTipJar = true } label: {
@@ -220,7 +224,8 @@ struct SupporterBadge: View {
                 }
             }
         }
-    }
+    
+        }}
 }
 
 /// Renders purchased kitty icons for a tier range (e.g. 0..<2 = lower tiers,
@@ -232,6 +237,7 @@ struct SupporterKittyBadges: View {
     @State private var showTipJar = false
 
     var body: some View {
+        WithPerceptionTracking {
         if TipJarFeature.isVisible {
             let store = TipJarStore.shared
             let purchased = store.tiers.enumerated()
@@ -266,7 +272,8 @@ struct SupporterKittyBadges: View {
                 }
             }
         }
-    }
+    
+        }}
 }
 
 private struct TipCatIcon: View {
@@ -274,9 +281,11 @@ private struct TipCatIcon: View {
     let size: CGFloat
 
     var body: some View {
+        WithPerceptionTracking {
         AlleyCatMark(size: size * 0.78)
             .frame(width: size, height: size)
             .modifier(GlassCircleModifier())
             .accessibilityHidden(true)
-    }
+    
+        }}
 }

@@ -1,15 +1,15 @@
 #if targetEnvironment(macCatalyst)
 import Foundation
-import Observation
+import Perception
 import SwiftUI
 
 @MainActor
-@Observable
+@Perceptible
 final class AppRuntimeController {
     static let shared = AppRuntimeController()
 
-    @ObservationIgnored private weak var appModel: AppModel?
-    @ObservationIgnored private let reachability = NetworkReachabilityObserver()
+    @PerceptionIgnored private weak var appModel: AppModel?
+    @PerceptionIgnored private let reachability = NetworkReachabilityObserver()
 
     func bind(appModel: AppModel, voiceRuntime: VoiceRuntimeController) {
         self.appModel = appModel
@@ -128,8 +128,8 @@ final class AppRuntimeController {
 
     func handleBackgroundPush() async {}
 
-    @ObservationIgnored private var hasRecoveredOnForeground = false
-    @ObservationIgnored private var lastBackgroundedAt: Date?
+    @PerceptionIgnored private var hasRecoveredOnForeground = false
+    @PerceptionIgnored private var lastBackgroundedAt: Date?
     private static let longResumeThreshold: TimeInterval = 15
 }
 
@@ -150,7 +150,7 @@ final class AppLifecycleController {
 }
 
 @MainActor
-@Observable
+@Perceptible
 final class VoiceRuntimeController {
     static let shared = VoiceRuntimeController()
     static let localServerID = "local"
@@ -185,7 +185,7 @@ struct VoiceSessionState: Identifiable, Equatable {
 }
 
 @MainActor
-@Observable
+@Perceptible
 final class StableSafeAreaInsets {
     var bottomInset: CGFloat = 0
     func start(fallback: CGFloat) {

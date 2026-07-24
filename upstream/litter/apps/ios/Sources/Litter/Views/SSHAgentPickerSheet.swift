@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 struct SSHBridgeAgentContext: Identifiable {
     let id: String
@@ -63,6 +64,7 @@ struct SSHAgentPickerSheet: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             ZStack {
                 AlleyBackdrop().ignoresSafeArea()
@@ -94,7 +96,8 @@ struct SSHAgentPickerSheet: View {
                 }
             }
         }
-    }
+    
+        }}
 
     private var hostSection: some View {
         Section {

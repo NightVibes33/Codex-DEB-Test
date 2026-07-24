@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 /// Minimal reply composer shown when the user swipes right on a home
 /// session row. Sends a turn on the targeted thread and dismisses.
@@ -17,6 +18,7 @@ struct QuickReplySheet: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             VStack(alignment: .leading, spacing: 12) {
                 Text(thread.sessionTitle)
@@ -95,7 +97,8 @@ struct QuickReplySheet: View {
                 isFocused = true
             }
         }
-    }
+    
+        }}
 
     private func submit() async {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)

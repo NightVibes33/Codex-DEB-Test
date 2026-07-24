@@ -1,5 +1,6 @@
 import SwiftUI
 import WatchKit
+import Perception
 
 /// 2 · Realtime voice — controls the iPhone's realtime voice session and
 /// renders live transcript + audio level. Falls back to text dictation
@@ -9,6 +10,7 @@ struct RealtimeVoiceScreen: View {
     @EnvironmentObject var theme: WatchThemeStore
 
     var body: some View {
+        WithPerceptionTracking {
         Group {
             if let voice = store.voice {
                 ActiveBody(voice: voice)
@@ -24,7 +26,8 @@ struct RealtimeVoiceScreen: View {
             ),
             for: .navigation
         )
-    }
+    
+        }}
 }
 
 // MARK: - Active
@@ -35,6 +38,7 @@ private struct ActiveBody: View {
     let voice: WatchVoiceState
 
     var body: some View {
+        WithPerceptionTracking {
         ScrollView(.vertical) {
             VStack(spacing: 8) {
                 header
@@ -56,7 +60,8 @@ private struct ActiveBody: View {
             .padding(.horizontal, 4)
             .padding(.vertical, 6)
         }
-    }
+    
+        }}
 
     private var header: some View {
         HStack(spacing: 6) {
@@ -134,6 +139,7 @@ private struct VoiceTurnRow: View {
     let turn: WatchTranscriptTurn
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(alignment: .top, spacing: 4) {
             switch turn.role {
             case .user:
@@ -167,7 +173,8 @@ private struct VoiceTurnRow: View {
                 Spacer(minLength: 0)
             }
         }
-    }
+    
+        }}
 }
 
 // MARK: - Mic ring
@@ -181,6 +188,7 @@ private struct MicRing: View {
     let onTap: () -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         Button(action: onTap) {
             ZStack {
                 Circle()
@@ -206,7 +214,8 @@ private struct MicRing: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(isMuted ? "Unmute" : "Mute")
-    }
+    
+        }}
 
     private var outerDiameter: CGFloat { 96 * watchSize.fontScale }
     private var innerDiameter: CGFloat { 80 * watchSize.fontScale }
@@ -240,6 +249,7 @@ private struct StatusPill: View {
     let mode: WatchVoiceState.Mode
 
     var body: some View {
+        WithPerceptionTracking {
         Text(label)
             .font(WatchTheme.mono(9, weight: .bold))
             .foregroundStyle(color)
@@ -249,7 +259,8 @@ private struct StatusPill: View {
                 Capsule().fill(color.opacity(0.18))
                     .overlay(Capsule().stroke(color.opacity(0.45), lineWidth: 0.5))
             )
-    }
+    
+        }}
 
     private var label: String {
         switch mode {
@@ -279,6 +290,7 @@ private struct IdleBody: View {
     @EnvironmentObject var theme: WatchThemeStore
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(spacing: 10) {
             WatchEmptyState(
                 icon: "waveform",
@@ -315,7 +327,8 @@ private struct IdleBody: View {
             .buttonStyle(.plain)
         }
         .padding(.vertical, 6)
-    }
+    
+        }}
 }
 
 #if DEBUG

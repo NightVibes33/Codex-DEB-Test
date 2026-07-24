@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import MachO
+import Perception
 
 struct AppIconSettingsView: View {
     @State private var proStore = ProAccessStore.shared
@@ -11,6 +12,7 @@ struct AppIconSettingsView: View {
     @State private var errorMessage: String?
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             AlleyBackdrop().ignoresSafeArea()
             Form {
@@ -116,7 +118,8 @@ struct AppIconSettingsView: View {
         } message: {
             Text(errorMessage ?? "Unable to change the app icon.")
         }
-    }
+    
+        }}
 
     private func iconPreview(_ option: AlleyCatAppIcon) -> some View {
         Image(option.assetName)

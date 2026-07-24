@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import Perception
 
 struct ConversationComposerExpandedView: View {
     @Binding var inputText: String
@@ -20,6 +21,7 @@ struct ConversationComposerExpandedView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             ZStack(alignment: .topLeading) {
                 ConversationComposerTextView(
@@ -75,5 +77,6 @@ struct ConversationComposerExpandedView: View {
                 isFocused = true
             }
         }
-    }
+    
+        }}
 }

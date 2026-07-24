@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 #if DEBUG
 struct ConversationDisplayUITestHarnessView: View {
@@ -19,6 +20,7 @@ struct ConversationDisplayUITestHarnessView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
@@ -85,7 +87,8 @@ struct ConversationDisplayUITestHarnessView: View {
             }
             (UIApplication.shared.delegate as? AppDelegate)?.signalContentReady()
         }
-    }
+    
+        }}
 
     private func applyLaunchDisplayModes() {
         let environment = ProcessInfo.processInfo.environment

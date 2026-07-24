@@ -1,6 +1,5 @@
 import Foundation
-import Observation
-
+import Perception
 enum LitterFeature: String, CaseIterable, Identifiable {
     case realtimeVoice = "realtime_voice"
     case appleWatch = "apple_watch"
@@ -40,11 +39,11 @@ enum LitterFeature: String, CaseIterable, Identifiable {
     }
 }
 
-@Observable
+@Perceptible
 final class ExperimentalFeatures {
     static let shared = ExperimentalFeatures()
 
-    @ObservationIgnored private let key = "litter.experimentalFeatures"
+    @PerceptionIgnored private let key = "litter.experimentalFeatures"
     private var overrides: [String: Bool]
 
     private init() {

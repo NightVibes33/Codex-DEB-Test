@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 /// A reusable list of ambient suggestion rows shared between the iPad hero
 /// (`NewThreadHeroView`) and the iPhone home composer (`HomeDashboardView`).
@@ -27,6 +28,7 @@ struct AmbientSuggestionsList: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 8) {
             ForEach(Array(visible.enumerated()), id: \.element.id) { index, suggestion in
                 // Reveal from the bottom up: the bottom pill (index == count-1)
@@ -47,7 +49,8 @@ struct AmbientSuggestionsList: View {
                 try? await Task.sleep(nanoseconds: 140_000_000)
             }
         }
-    }
+    
+        }}
 
     @ViewBuilder
     private func pill(for suggestion: AmbientSuggestion) -> some View {

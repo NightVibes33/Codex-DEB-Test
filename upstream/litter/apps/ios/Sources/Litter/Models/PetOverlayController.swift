@@ -1,5 +1,5 @@
 import Foundation
-import Observation
+import Perception
 import SwiftUI
 
 enum PetAvatarState: Int {
@@ -22,7 +22,7 @@ struct CachedPetPackage: Equatable {
 }
 
 @MainActor
-@Observable
+@Perceptible
 final class PetOverlayController {
     static let shared = PetOverlayController()
 

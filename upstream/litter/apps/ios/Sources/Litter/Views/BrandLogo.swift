@@ -1,9 +1,11 @@
 import SwiftUI
+import Perception
 
 struct BrandLogo: View {
     var size: CGFloat
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(spacing: max(7, size * 0.065)) {
             AlleyCatMark(size: size * 0.64)
             Text("ALLEY C\u{00C3}T")
@@ -16,13 +18,15 @@ struct BrandLogo: View {
         .frame(width: size, height: size)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Alley C\u{00E3}t")
-    }
+    
+        }}
 }
 
 struct AlleyCatMark: View {
     var size: CGFloat
 
     var body: some View {
+        WithPerceptionTracking {
         Image("app_icon_current")
             .resizable()
             .interpolation(.high)
@@ -35,7 +39,8 @@ struct AlleyCatMark: View {
             }
             .shadow(color: Color.black.opacity(0.18), radius: size * 0.12, x: 0, y: size * 0.06)
             .accessibilityHidden(true)
-    }
+    
+        }}
 }
 
 #if DEBUG

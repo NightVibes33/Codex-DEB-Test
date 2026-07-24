@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 struct ContextBadgeView: View, Equatable {
     let percent: Int
@@ -9,6 +10,7 @@ struct ContextBadgeView: View, Equatable {
     private let inset: CGFloat = 1.5
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             RoundedRectangle(cornerRadius: cornerRadius)
                 .stroke(tint.opacity(0.4), lineWidth: strokeWidth)
@@ -28,5 +30,6 @@ struct ContextBadgeView: View, Equatable {
                 .foregroundColor(tint)
         }
         .frame(width: 35, height: 16)
-    }
+    
+        }}
 }

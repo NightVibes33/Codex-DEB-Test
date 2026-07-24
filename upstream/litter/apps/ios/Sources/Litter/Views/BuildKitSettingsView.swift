@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import UniformTypeIdentifiers
+import Perception
 
 struct BuildKitSettingsView: View {
     @State private var status: LitterBuildKitStatus?
@@ -12,6 +13,7 @@ struct BuildKitSettingsView: View {
     @State private var tokenInput = ""
 
     var body: some View {
+        WithPerceptionTracking {
         List {
             readinessSection
             privateAssetDownloadSection
@@ -45,7 +47,8 @@ struct BuildKitSettingsView: View {
             taskBag.cancelAll()
             if downloader.phase.isBusy { downloader.cancel() }
         }
-    }
+    
+        }}
 
     private var readinessSection: some View {
         Section {

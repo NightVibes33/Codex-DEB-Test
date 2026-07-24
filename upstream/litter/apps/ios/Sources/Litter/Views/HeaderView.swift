@@ -1,5 +1,6 @@
 import SafariServices
 import SwiftUI
+import Perception
 
 struct HeaderView: View {
     @Environment(AppState.self) private var appState
@@ -28,6 +29,7 @@ struct HeaderView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         Button {
             appState.showModelSelector.toggle()
         } label: {
@@ -62,7 +64,8 @@ struct HeaderView: View {
         .task(id: thread.key) {
             await loadModelsIfNeeded()
         }
-    }
+    
+        }}
 
     private var expandedHeaderLabel: some View {
         primaryHeaderRow
@@ -283,6 +286,7 @@ struct ConversationModelPickerPanel: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         InlineModelSelectorView(
             models: availableModels,
             selectedModel: selectedModelBinding,
@@ -304,7 +308,8 @@ struct ConversationModelPickerPanel: View {
         .task(id: thread.key) {
             await appModel.loadConversationMetadataIfNeeded(serverId: thread.key.serverId)
         }
-    }
+    
+        }}
 
     private var selectedModelBinding: Binding<String> {
         Binding(
@@ -359,6 +364,7 @@ struct ConversationToolbarControls: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         Group {
             switch control {
             case .reload:
@@ -380,7 +386,8 @@ struct ConversationToolbarControls: View {
                 remoteAuthSession = nil
             }
         }
-    }
+    
+        }}
 
     private var reloadButton: some View {
         Button {
@@ -634,6 +641,7 @@ struct InlineModelSelectorView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         let visibleModels = activeModelSearchIndex.results(matching: modelSearchQuery)
         let selectedModelIsAmp: Bool = {
             guard let model = currentModel else { return false }
@@ -846,7 +854,8 @@ struct InlineModelSelectorView: View {
         .onChange(of: selectedAgentRuntimeKind) { _, _ in
             synchronizeRuntimeFilter()
         }
-    }
+    
+        }}
 
     private var runtimeSelector: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -1071,6 +1080,7 @@ struct ModelSelectorSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
+        WithPerceptionTracking {
         InlineModelSelectorView(
             models: models,
             selectedModel: $selectedModel,
@@ -1086,7 +1096,8 @@ struct ModelSelectorSheet: View {
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(LitterTheme.surface.ignoresSafeArea())
-    }
+    
+        }}
 }
 
 private struct RuntimeModelBucket: Identifiable {
@@ -1111,6 +1122,7 @@ private struct RuntimeFilterRow: View {
     let onSelect: (AgentRuntimeKind?) -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
                 RuntimeFilterPill(
@@ -1131,7 +1143,8 @@ private struct RuntimeFilterRow: View {
             }
             .padding(.horizontal, 16)
         }
-    }
+    
+        }}
 }
 
 private struct RuntimeFilterPill: View {
@@ -1142,6 +1155,7 @@ private struct RuntimeFilterPill: View {
     let onTap: () -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         Button(action: onTap) {
             HStack(spacing: 5) {
                 if let kind {
@@ -1158,7 +1172,8 @@ private struct RuntimeFilterPill: View {
             .clipShape(Capsule())
         }
         .buttonStyle(.plain)
-    }
+    
+        }}
 }
 
 private struct ModelSearchIndex {
@@ -1217,10 +1232,12 @@ private struct ModelRuntimeIcon: View {
     let kind: AgentRuntimeKind
 
     var body: some View {
+        WithPerceptionTracking {
         AgentIconView(kind: kind, size: 20)
             .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
             .accessibilityLabel(kind.displayLabel)
-    }
+    
+        }}
 }
 
 #if DEBUG

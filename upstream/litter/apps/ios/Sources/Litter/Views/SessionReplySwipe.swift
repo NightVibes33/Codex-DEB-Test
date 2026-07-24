@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 /// Wraps a session row with a right-swipe "reply" gesture. Only commits
 /// when the user drags right past a threshold and releases — behaves like
@@ -19,6 +20,7 @@ struct SessionReplySwipeWrapper<Content: View>: View {
     private let maxReveal: CGFloat = 110
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack(alignment: .leading) {
             // Blue reply hint behind the row, revealed as you swipe right.
             HStack(spacing: 6) {
@@ -67,7 +69,8 @@ struct SessionReplySwipeWrapper<Content: View>: View {
         }
         .clipped()
         .onDisappear { commitResetTask?.cancel() }
-    }
+    
+        }}
 
     private var revealOpacity: Double {
         min(1.0, max(0.0, Double(offsetX / commitDistance)))

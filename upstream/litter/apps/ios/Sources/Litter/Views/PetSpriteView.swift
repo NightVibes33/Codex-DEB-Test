@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import Perception
 
 private let petFrameWidth = 192
 private let petFrameHeight = 208
@@ -65,6 +66,7 @@ struct PetOverlayView: View {
     @State private var ambientMessage: String?
 
     var body: some View {
+        WithPerceptionTracking {
         let displayState = ambientState ?? state
         let displayMessage = message ?? ambientMessage
         let scale = controller.petScale
@@ -154,13 +156,15 @@ struct PetOverlayView: View {
                 try? await Task.sleep(for: .milliseconds(2600))
             }
         }
-    }
+    
+        }}
 }
 
 private struct PetSpeechBubble: View {
     let text: String
 
     var body: some View {
+        WithPerceptionTracking {
         Text(text)
             .font(.system(size: 11, weight: .medium, design: .monospaced))
             .foregroundStyle(LitterTheme.textPrimary)
@@ -178,7 +182,8 @@ private struct PetSpeechBubble: View {
                     .stroke(LitterTheme.border.opacity(0.9), lineWidth: 1)
             )
             .shadow(color: .black.opacity(0.18), radius: 8, x: 0, y: 4)
-    }
+    
+        }}
 }
 
 struct PetSpriteView: View {
@@ -190,6 +195,7 @@ struct PetSpriteView: View {
     @State private var frameIndex = 0
 
     var body: some View {
+        WithPerceptionTracking {
         let renderedState = playbackState ?? state
         let frames = atlas?.frames(for: renderedState) ?? []
         let atlasSignature = atlas?.framesByRow.map { row in
@@ -216,7 +222,8 @@ struct PetSpriteView: View {
 
             await playLoop(for: state)
         }
-    }
+    
+        }}
 
     private func frame(from frames: [PetSpriteFrame]) -> PetSpriteFrame? {
         frames.indices.contains(frameIndex) ? frames[frameIndex] : frames.first

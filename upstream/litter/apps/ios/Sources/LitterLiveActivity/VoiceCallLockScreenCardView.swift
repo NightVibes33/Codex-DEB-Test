@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 struct VoiceCallLockScreenCardView: View {
     let attributes: CodexVoiceCallAttributes
@@ -13,6 +14,7 @@ struct VoiceCallLockScreenCardView: View {
     private var tertiaryText: Color { LitterPalette.textMuted.color(for: colorScheme) }
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 10) {
                 Image("brand_logo")
@@ -75,7 +77,8 @@ struct VoiceCallLockScreenCardView: View {
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(cardBackground)
-    }
+    
+        }}
 
     private var endSessionIcon: some View {
         Image(systemName: "xmark.circle.fill")

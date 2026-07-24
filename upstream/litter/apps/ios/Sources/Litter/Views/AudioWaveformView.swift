@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 struct AudioWaveformView: View {
     let level: Float
@@ -11,6 +12,7 @@ struct AudioWaveformView: View {
     @State private var head = 0
 
     var body: some View {
+        WithPerceptionTracking {
         TimelineView(.animation(minimumInterval: 1.0 / 30)) { timeline in
             Canvas { ctx, size in
                 let _ = timeline.date
@@ -33,7 +35,8 @@ struct AudioWaveformView: View {
             .onChange(of: timeline.date) { _, _ in pushLevel() }
         }
         .onAppear { pushLevel() }
-    }
+    
+        }}
 
     private func pushLevel() {
         smoothedLevel += (CGFloat(level) - smoothedLevel) * 0.3

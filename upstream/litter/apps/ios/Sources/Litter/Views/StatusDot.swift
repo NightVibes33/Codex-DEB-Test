@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 /// Shared visual language for "this thing's current state" — used for task
 /// rows (active / hydrating / hydrated / idle) and server pills (connected /
@@ -22,6 +23,7 @@ struct StatusDot: View {
     var size: CGFloat = 10
 
     var body: some View {
+        WithPerceptionTracking {
         Group {
             switch state {
             case .ok:
@@ -39,7 +41,8 @@ struct StatusDot: View {
             }
         }
         .frame(width: size + 2, height: size + 2)
-    }
+    
+        }}
 
     /// TimelineView-driven pulse. Unlike a `@State` + `.onAppear` +
     /// `.repeatForever` setup (which can silently stop after List row

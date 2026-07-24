@@ -1,5 +1,6 @@
 import SwiftUI
 import WidgetKit
+import Perception
 
 /// Corner (bottom-right) graphic complication. Ginger arc follows the corner
 /// curve, with runtime + task title stacked at the inside edge.
@@ -26,6 +27,7 @@ struct LitterCornerView: View {
     let entry: LitterComplicationEntry
 
     var body: some View {
+        WithPerceptionTracking {
         Text(entry.runtimeLabel(at: entry.date))
             .font(.system(size: 14, weight: .bold, design: .monospaced))
             .foregroundStyle(.white)
@@ -36,7 +38,8 @@ struct LitterCornerView: View {
                     .foregroundStyle(LitterComplicationTint.ginger)
             }
             .widgetURL(entry.taskId.flatMap { URL(string: "litter-watch://task/\($0)") })
-    }
+    
+        }}
 
     private var shortTitle: String {
         let limit = 20

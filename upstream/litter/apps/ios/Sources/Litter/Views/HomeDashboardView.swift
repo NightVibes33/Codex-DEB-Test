@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import Perception
 
 /// Which chrome layer the dashboard renders with.
 ///
@@ -193,6 +194,7 @@ struct HomeDashboardView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         canvas
             .onAppear { onInputModeChange?(inputMode) }
             .onChange(of: inputMode) { _, nextMode in
@@ -299,7 +301,8 @@ struct HomeDashboardView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(sidebarNavBarVisibility, for: .navigationBar)
             .toolbar { toolbarContent }
-    }
+    
+        }}
 
     private var sidebarNavBarVisibility: Visibility { .visible }
 
@@ -671,6 +674,7 @@ struct HomeDashboardView: View {
 
 private struct EmptyHomeFatCatView: View {
     var body: some View {
+        WithPerceptionTracking {
         VStack(spacing: 12) {
             AlleyCatMark(size: 92)
             Text("No active threads")
@@ -682,7 +686,8 @@ private struct EmptyHomeFatCatView: View {
                 .foregroundStyle(LitterTheme.textMuted)
         }
         .accessibilityElement(children: .combine)
-    }
+    
+        }}
 }
 
 // MARK: - Session Canvas Layout
@@ -762,6 +767,7 @@ struct SessionCanvasLine: View {
     // ────────────────────────────────────────────────────
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(alignment: .top, spacing: 0) {
             Group {
                 if isOpening {
@@ -897,7 +903,8 @@ struct SessionCanvasLine: View {
         // tracking.
         .animation(.easeInOut(duration: 0.25), value: isActive)
         .accessibilityIdentifier("home.recentSessionCard")
-    }
+    
+        }}
 
     // MARK: - Zoom 2: meta line
 
@@ -1745,6 +1752,7 @@ private struct TurnStopwatchChip: View {
     let end: Date?
 
     var body: some View {
+        WithPerceptionTracking {
         if let end {
             chip(seconds: max(0, end.timeIntervalSince(start)))
         } else {
@@ -1752,7 +1760,8 @@ private struct TurnStopwatchChip: View {
                 chip(seconds: max(0, context.date.timeIntervalSince(start)))
             }
         }
-    }
+    
+        }}
 
     @ViewBuilder
     private func chip(seconds: TimeInterval) -> some View {
@@ -1782,6 +1791,7 @@ private struct SessionPulsingDots: View {
     @State private var phase = 0
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 2) {
             ForEach(0..<3, id: \.self) { i in
                 Circle()
@@ -1797,17 +1807,20 @@ private struct SessionPulsingDots: View {
                 }
             }
         }
-    }
+    
+        }}
 }
 
 private struct HomeRuntimeIcon: View {
     let kind: AgentRuntimeKind
 
     var body: some View {
+        WithPerceptionTracking {
         AgentIconView(kind: kind, size: 15)
             .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
             .accessibilityLabel(kind.displayLabel)
-    }
+    
+        }}
 }
 
 /// Renders the task title at the same size the conversation view uses for

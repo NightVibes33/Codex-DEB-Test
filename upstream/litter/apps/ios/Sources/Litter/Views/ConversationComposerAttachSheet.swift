@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 struct ConversationComposerAttachSheet: View {
     let onPickPhotoLibrary: () -> Void
@@ -7,6 +8,7 @@ struct ConversationComposerAttachSheet: View {
     let onTakePhoto: (() -> Void)?
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(spacing: 12) {
             Text("Attach")
                 .litterFont(.headline, weight: .semibold)
@@ -42,7 +44,8 @@ struct ConversationComposerAttachSheet: View {
         .padding(.bottom, 20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(AlleyBackdrop().ignoresSafeArea())
-    }
+    
+        }}
 
     @ViewBuilder
     private func sheetButtonLabel(_ title: String, systemImage: String) -> some View {
@@ -91,6 +94,7 @@ struct ConversationRemoteFilePickerView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             VStack(spacing: 12) {
                 searchField
@@ -120,7 +124,8 @@ struct ConversationRemoteFilePickerView: View {
             searchTask?.cancel()
             searchTask = nil
         }
-    }
+    
+        }}
 
     private var searchField: some View {
         HStack(spacing: 10) {
@@ -239,6 +244,7 @@ private struct RemoteFileResultRow: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         Button(action: onAttach) {
             HStack(spacing: 10) {
                 Image(systemName: iconName)
@@ -267,5 +273,6 @@ private struct RemoteFileResultRow: View {
             .modifier(GlassRoundedRectModifier(cornerRadius: 14))
         }
         .buttonStyle(.plain)
-    }
+    
+        }}
 }

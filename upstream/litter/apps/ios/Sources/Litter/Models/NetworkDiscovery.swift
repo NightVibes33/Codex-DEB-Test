@@ -1,5 +1,5 @@
 import Foundation
-import Observation
+import Perception
 import UIKit
 
 struct BonjourDiscoverySeed: Hashable {
@@ -91,7 +91,7 @@ private actor TailscaleDiscoveryDiagnostics {
 }
 
 @MainActor
-@Observable
+@Perceptible
 final class NetworkDiscovery {
     var servers: [DiscoveredServer] = []
     var isScanning = false
@@ -102,11 +102,11 @@ final class NetworkDiscovery {
     /// Human-readable label for the current scan phase.
     var scanProgressLabel: String?
 
-    @ObservationIgnored private var scanTask: Task<Void, Never>?
-    @ObservationIgnored private var initialLoadTask: Task<Void, Never>?
-    @ObservationIgnored private var activeScanID = UUID()
-    @ObservationIgnored private var networkServerLastSeen: [String: Date] = [:]
-    @ObservationIgnored private let discoveryStore = DiscoveryBridge()
+    @PerceptionIgnored private var scanTask: Task<Void, Never>?
+    @PerceptionIgnored private var initialLoadTask: Task<Void, Never>?
+    @PerceptionIgnored private var activeScanID = UUID()
+    @PerceptionIgnored private var networkServerLastSeen: [String: Date] = [:]
+    @PerceptionIgnored private let discoveryStore = DiscoveryBridge()
 
     private let cacheKey = "litter.discovery.networkServers.v1"
     private let cacheRetention: TimeInterval = 7 * 24 * 60 * 60

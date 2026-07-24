@@ -1,14 +1,13 @@
 import Foundation
-import Observation
-
+import Perception
 @MainActor
-@Observable
+@Perceptible
 final class ConversationWarmupCoordinator {
     private(set) var activeWarmupID: UUID?
     private(set) var hasCompletedWarmup = false
 
-    @ObservationIgnored private var isPrewarming = false
-    @ObservationIgnored private var pendingContinuations: [CheckedContinuation<Void, Never>] = []
+    @PerceptionIgnored private var isPrewarming = false
+    @PerceptionIgnored private var pendingContinuations: [CheckedContinuation<Void, Never>] = []
 
     func prewarmIfNeeded() async {
         guard !hasCompletedWarmup else { return }

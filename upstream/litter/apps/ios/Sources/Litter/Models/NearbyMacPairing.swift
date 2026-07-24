@@ -1,7 +1,7 @@
 #if !targetEnvironment(macCatalyst)
 import Foundation
 import NearbyInteraction
-import Observation
+import Perception
 import UIKit
 import simd
 
@@ -23,10 +23,10 @@ enum NearbyMacPairingState: Equatable {
 ///
 /// Wiring: platform (Swift) owns Bonjour browse + NISession; Rust owns the
 /// pair protocol state machine and reports transitions through a polled
-/// event stream. We re-expose state as an `@Observable` so SwiftUI can
+/// event stream. We re-expose state as an `@Perceptible` so SwiftUI can
 /// render the onboarding view directly.
 @MainActor
-@Observable
+@Perceptible
 final class NearbyMacPairing: NSObject {
     static let shared = NearbyMacPairing()
 

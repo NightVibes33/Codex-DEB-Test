@@ -1,6 +1,7 @@
 import SwiftUI
 import WatchKit
 import UserNotifications
+import Perception
 
 /// Identifiers shared with the iPhone notification scheduler. Keep in lock
 /// step with `WatchApprovalNotification` on the iOS target — copied here so
@@ -207,6 +208,7 @@ struct WatchRootView: View {
     @State private var path: [WatchTask] = []
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack(path: $path) {
             TabView(selection: $tab) {
                 HomeScreen().tag(RootTab.home)
@@ -229,7 +231,8 @@ struct WatchRootView: View {
                 apply(destination)
             }
         }
-    }
+    
+        }}
 
     /// Apply a parsed deep-link destination. Routed via
     /// `WatchDeepLinkRouter` so both `.onOpenURL` and AppIntent-triggered

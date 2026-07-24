@@ -1,5 +1,6 @@
 import SwiftUI
 import WatchKit
+import Perception
 
 /// 2 · Dictate — opens the native watchOS text input controller (Scribble
 /// / Dictate / Emoji). Real transcription from Apple's system dictation;
@@ -22,6 +23,7 @@ struct VoiceScreen: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         ScrollView(.vertical) {
             VStack(spacing: 10) {
                 HStack(spacing: 6) {
@@ -116,7 +118,8 @@ struct VoiceScreen: View {
             ),
             for: .navigation
         )
-    }
+    
+        }}
 
     // MARK: - Dictation
 

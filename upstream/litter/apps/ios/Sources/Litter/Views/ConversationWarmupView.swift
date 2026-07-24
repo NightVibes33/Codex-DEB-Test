@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import os
+import Perception
 
 private let conversationWarmupSignpostLog = OSLog(
     subsystem: Bundle.main.bundleIdentifier ?? "com.litter.ios",
@@ -19,6 +20,7 @@ struct ConversationWarmupView: View {
     @State private var voiceManager = VoiceTranscriptionManager()
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             ConversationComposerEntryRowView(
                 showAttachMenu: $warmupShowAttachMenu,
@@ -48,7 +50,8 @@ struct ConversationWarmupView: View {
         .task(id: warmupID) {
             await runWarmup()
         }
-    }
+    
+        }}
 
     @MainActor
     private func runWarmup() async {

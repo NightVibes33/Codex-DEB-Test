@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 /// Compact Alley Cat mark used in navigation chrome.
 struct AnimatedLogo: View {
@@ -7,6 +8,7 @@ struct AnimatedLogo: View {
     @State private var isLive = false
 
     var body: some View {
+        WithPerceptionTracking {
         AlleyCatMark(size: size * 0.82)
             .scaleEffect(isLive ? 1 : 0.94)
             .opacity(isLive ? 1 : 0.78)
@@ -17,5 +19,6 @@ struct AnimatedLogo: View {
             .frame(width: size, height: size)
             .onAppear { isLive = true }
             .accessibilityHidden(true)
-    }
+    
+        }}
 }

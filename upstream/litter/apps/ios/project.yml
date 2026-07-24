@@ -47,6 +47,9 @@ settings:
     CLANG_ENABLE_EXPLICIT_MODULES: "NO"
 
 packages:
+  Perception:
+    url: https://github.com/pointfreeco/swift-perception.git
+    revision: de219a1cf34e958134e75a9ebb134cf09bf52fc6
   Hairball:
     url: https://github.com/dnakov/hairball.git
     branch: main
@@ -622,6 +625,8 @@ targets:
       - path: Sources/Litter/Resources/cat_transmission_05.png
       - path: Sources/Litter/Resources/cat_transmission_06.png
     dependencies:
+      - package: Perception
+        product: Perception
       - sdk: CarPlay.framework
       - sdk: CoreGraphics.framework
       - sdk: CoreText.framework
@@ -1198,6 +1203,8 @@ targets:
       - path: Sources/Litter/Resources/cat_transmission_05.png
       - path: Sources/Litter/Resources/cat_transmission_06.png
     dependencies:
+      - package: Perception
+        product: Perception
       - sdk: Security.framework
       - sdk: SystemConfiguration.framework
       - sdk: Network.framework
@@ -1258,6 +1265,9 @@ targets:
     deploymentTarget: "16.1"
     entitlements:
       path: Sources/LitterLiveActivity/LitterLiveActivity.entitlements
+    dependencies:
+      - package: Perception
+        product: Perception
     sources:
       - path: Sources/LitterLiveActivity
       - path: Sources/Litter/Models/CodexTurnAttributes.swift
@@ -1306,6 +1316,8 @@ targets:
       - path: Sources/Litter/Resources/Fonts
       - path: Sources/LitterWatch/Assets.xcassets
     dependencies:
+      - package: Perception
+        product: Perception
       - target: LitterWatchComplications
         embed: true
     settings:
@@ -1342,6 +1354,9 @@ targets:
     deploymentTarget: "11.0"
     entitlements:
       path: Sources/LitterWatchComplications/LitterWatchComplications.entitlements
+    dependencies:
+      - package: Perception
+        product: Perception
     sources:
       - path: Sources/LitterWatchComplications
         excludes:

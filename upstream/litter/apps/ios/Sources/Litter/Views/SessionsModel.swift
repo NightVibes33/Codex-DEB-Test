@@ -1,8 +1,7 @@
 import Foundation
-import Observation
-
+import Perception
 @MainActor
-@Observable
+@Perceptible
 final class SessionsModel {
     struct ThreadEphemeralState: Equatable {
         let hasTurnActive: Bool
@@ -24,14 +23,14 @@ final class SessionsModel {
     private(set) var ephemeralStateByThreadKey: [ThreadKey: ThreadEphemeralState] = [:]
     private(set) var activeThreadKey: ThreadKey?
 
-    @ObservationIgnored private weak var appModel: AppModel?
-    @ObservationIgnored private weak var appState: AppState?
-    @ObservationIgnored private var searchQuery = ""
-    @ObservationIgnored private var selectedRuntimeKind: AgentRuntimeKind?
-    @ObservationIgnored private var hasInitializedState = false
-    @ObservationIgnored private var observationGeneration = 0
-    @ObservationIgnored private var frozenMostRecentThreadOrder: [ThreadKey]?
-    @ObservationIgnored private var lastPublishedSnapshot: Snapshot?
+    @PerceptionIgnored private weak var appModel: AppModel?
+    @PerceptionIgnored private weak var appState: AppState?
+    @PerceptionIgnored private var searchQuery = ""
+    @PerceptionIgnored private var selectedRuntimeKind: AgentRuntimeKind?
+    @PerceptionIgnored private var hasInitializedState = false
+    @PerceptionIgnored private var observationGeneration = 0
+    @PerceptionIgnored private var frozenMostRecentThreadOrder: [ThreadKey]?
+    @PerceptionIgnored private var lastPublishedSnapshot: Snapshot?
 
     func bind(appModel: AppModel, appState: AppState) {
         let needsRebind = self.appModel !== appModel || self.appState !== appState
@@ -75,7 +74,7 @@ final class SessionsModel {
 
         observationGeneration &+= 1
         let generation = observationGeneration
-        let snapshot = withObservationTracking {
+        let snapshot = withPerceptionTracking {
             let selectedServerFilterId = appState.sessionsSelectedServerFilterId
             let showOnlyForks = appState.sessionsShowOnlyForks
             let workspaceSortMode = WorkspaceSortMode(rawValue: appState.sessionsWorkspaceSortModeRaw) ?? .mostRecent

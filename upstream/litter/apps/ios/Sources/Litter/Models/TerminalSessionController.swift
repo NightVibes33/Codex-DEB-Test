@@ -1,8 +1,7 @@
 import Foundation
-import Observation
-
+import Perception
 @MainActor
-@Observable
+@Perceptible
 final class TerminalSessionController {
     enum Phase: Equatable {
         case idle
@@ -24,11 +23,11 @@ final class TerminalSessionController {
     private(set) var sessionId: String?
     private(set) var sshTrustChallenge: SshHostTrustChallenge?
 
-    @ObservationIgnored private let appStore: AppStore
-    @ObservationIgnored private var outputListener: TerminalOutputRelay?
-    @ObservationIgnored private var outputSink: ((Data) -> Void)?
-    @ObservationIgnored private var eventGeneration = 0
-    @ObservationIgnored private var terminalSize = TerminalSize(cols: 80, rows: 24)
+    @PerceptionIgnored private let appStore: AppStore
+    @PerceptionIgnored private var outputListener: TerminalOutputRelay?
+    @PerceptionIgnored private var outputSink: ((Data) -> Void)?
+    @PerceptionIgnored private var eventGeneration = 0
+    @PerceptionIgnored private var terminalSize = TerminalSize(cols: 80, rows: 24)
 
     init(appStore: AppStore = AppModel.shared.store) {
         self.appStore = appStore

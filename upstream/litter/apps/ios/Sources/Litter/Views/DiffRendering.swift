@@ -1,6 +1,7 @@
 import SwiftUI
 import HairballUI
 import UIKit
+import Perception
 
 func isDiffLanguage(_ language: String?) -> Bool {
     guard let normalized = language?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() else {
@@ -26,6 +27,7 @@ struct SyntaxHighlightedDiffText: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         DiffAttributedTextView(attributedText: renderedDiff)
         .task(id: renderInputs) {
             renderedDiff = syntaxHighlightedDiffAttributedString(
@@ -35,7 +37,8 @@ struct SyntaxHighlightedDiffText: View {
                 colorScheme: colorScheme
             )
         }
-    }
+    
+        }}
 
     private var renderInputs: RenderInputs {
         RenderInputs(

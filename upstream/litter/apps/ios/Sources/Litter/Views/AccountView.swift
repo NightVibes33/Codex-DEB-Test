@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 struct AccountView: View {
     @Environment(AppModel.self) private var appModel
@@ -12,12 +13,14 @@ struct AccountView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         if let server {
             AccountConnectionView(server: server, dismiss: dismiss)
         } else {
             AccountDisconnectedView(dismiss: dismiss)
         }
-    }
+    
+        }}
 }
 
 private struct AccountConnectionView: View {
@@ -31,6 +34,7 @@ private struct AccountConnectionView: View {
     @State private var hasStoredApiKey = OpenAIApiKeyStore.shared.hasStoredKey
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             ZStack {
                 AlleyBackdrop().ignoresSafeArea()
@@ -62,7 +66,8 @@ private struct AccountConnectionView: View {
                 hasStoredApiKey = OpenAIApiKeyStore.shared.hasStoredKey
             }
         }
-    }
+    
+        }}
 
     private var currentAccountSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -311,6 +316,7 @@ private struct AccountDisconnectedView: View {
     let dismiss: DismissAction
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             ZStack {
                 AlleyBackdrop().ignoresSafeArea()
@@ -348,7 +354,8 @@ private struct AccountDisconnectedView: View {
                 }
             }
         }
-    }
+    
+        }}
 
     private func restartLocalServer() async {
         do {

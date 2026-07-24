@@ -1,6 +1,7 @@
 import AVFoundation
 import SwiftUI
 import UIKit
+import Perception
 
 struct AlleycatConnectedTarget: Equatable {
     let serverId: String
@@ -47,6 +48,7 @@ struct AlleycatAddServerSheet: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             ZStack {
                 AlleyBackdrop().ignoresSafeArea()
@@ -114,7 +116,8 @@ struct AlleycatAddServerSheet: View {
                 Text("Allow camera access in Settings to scan an Alleycat pairing QR code.")
             }
         )
-    }
+    
+        }}
 
     private func requestInitialScanIfNeeded() {
         guard !LitterPlatform.rendersAsMacApp else { return }
@@ -544,6 +547,7 @@ private struct QRScannerScreen: View {
     @State private var copied = false
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             Color.black.ignoresSafeArea()
             QRCaptureSheet(
@@ -573,7 +577,8 @@ private struct QRScannerScreen: View {
             .padding(.top, 8)
             .padding(.bottom, 24)
         }
-    }
+    
+        }}
 
     private var topBar: some View {
         HStack {

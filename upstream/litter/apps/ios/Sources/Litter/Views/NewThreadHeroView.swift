@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 /// Centered "new thread" landing used as the detail pane when the user taps
 /// "+" from the sidebar on regular-width surfaces.
@@ -41,6 +42,7 @@ struct NewThreadHeroView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             AlleyBackdrop().ignoresSafeArea()
 
@@ -99,7 +101,8 @@ struct NewThreadHeroView: View {
                 }
             }
         }
-    }
+    
+        }}
 
     // MARK: - Chips
 

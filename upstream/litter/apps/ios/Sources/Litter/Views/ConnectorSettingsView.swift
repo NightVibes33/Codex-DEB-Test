@@ -1,5 +1,6 @@
 import SwiftUI
 import Foundation
+import Perception
 
 struct ConnectorSettingsView: View {
     @AppStorage("litterConnectorRelayBaseURL") private var relayBaseURL = ""
@@ -20,6 +21,7 @@ struct ConnectorSettingsView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             AlleyBackdrop().ignoresSafeArea()
             Form {
@@ -105,7 +107,8 @@ struct ConnectorSettingsView: View {
         } message: {
             Text(errorMessage ?? "Unable to check connectors.")
         }
-    }
+    
+        }}
 
     private func statusRow(
         title: String,
@@ -209,6 +212,7 @@ private struct ConnectorSettingsRow: View {
     let connector: ConnectorCatalogEntry
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: iconName)
                 .foregroundColor(statusColor)
@@ -232,7 +236,8 @@ private struct ConnectorSettingsRow: View {
             }
         }
         .padding(.vertical, 4)
-    }
+    
+        }}
 
     private var iconName: String {
         switch connector.status {

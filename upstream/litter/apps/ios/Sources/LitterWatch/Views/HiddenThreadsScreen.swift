@@ -1,5 +1,6 @@
 import SwiftUI
 import WatchKit
+import Perception
 
 /// Lists threads the user has hidden from home. Each row exposes an Unhide
 /// action that round-trips back to the phone via
@@ -11,6 +12,7 @@ struct HiddenThreadsScreen: View {
     @Environment(\.watchSize) private var watchSize
 
     var body: some View {
+        WithPerceptionTracking {
         Group {
             if store.hiddenTasks.isEmpty {
                 WatchEmptyState(
@@ -40,7 +42,8 @@ struct HiddenThreadsScreen: View {
         }
         .navigationTitle("hidden")
         .containerBackground(theme.backgroundGradient, for: .navigation)
-    }
+    
+        }}
 }
 
 private struct HiddenRow: View {
@@ -49,6 +52,7 @@ private struct HiddenRow: View {
     let task: WatchTask
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(task.title)
@@ -91,7 +95,8 @@ private struct HiddenRow: View {
             .accessibilityLabel("Unhide task")
         }
         .padding(.vertical, 2)
-    }
+    
+        }}
 }
 
 #if DEBUG

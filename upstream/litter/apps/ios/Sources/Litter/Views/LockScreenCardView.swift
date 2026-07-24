@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 struct LockScreenCardView: View {
     let prompt: String
@@ -21,6 +22,7 @@ struct LockScreenCardView: View {
     private var warningText: Color { LitterPalette.warning.color(for: colorScheme) }
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .center, spacing: 10) {
                 ZStack {
@@ -89,7 +91,8 @@ struct LockScreenCardView: View {
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(cardBackground)
-    }
+    
+        }}
 
     private var displayText: String {
         if let snippet = state.outputSnippet, !snippet.isEmpty { return snippet }

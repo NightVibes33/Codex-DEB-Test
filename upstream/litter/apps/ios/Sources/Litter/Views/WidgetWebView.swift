@@ -1,5 +1,6 @@
 import SwiftUI
 import WebKit
+import Perception
 
 /// Container UIView that hosts a WKWebView but suppresses intrinsicContentSize
 /// invalidations from propagating to SwiftUI's layout system.
@@ -685,6 +686,7 @@ struct WidgetContainerView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 0) {
             widgetView
                 .frame(height: max(contentHeight, minimumInlineHeight))
@@ -726,7 +728,8 @@ struct WidgetContainerView: View {
         .fullScreenCover(isPresented: $isFullscreen) {
             fullscreenWidget
         }
-    }
+    
+        }}
 
     private var widgetView: some View {
         WidgetWebView(

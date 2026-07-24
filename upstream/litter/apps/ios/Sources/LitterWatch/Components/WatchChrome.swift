@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 /// Themed eyebrow heading — small uppercased mono text. When `color` is nil
 /// it falls back to the live `WatchThemeStore` accent so unstyled callers
@@ -10,11 +11,13 @@ struct WatchEyebrow: View {
     var size: CGFloat = 11
 
     var body: some View {
+        WithPerceptionTracking {
         Text(text.uppercased())
             .font(WatchTheme.mono(size, weight: .bold))
             .tracking(1.4)
             .foregroundStyle(color ?? theme.accent)
-    }
+    
+        }}
 }
 
 /// Pulsing dot used to signal activity.
@@ -24,6 +27,7 @@ struct PulsingDot: View {
     @State private var pulse = false
 
     var body: some View {
+        WithPerceptionTracking {
         Circle()
             .fill(color)
             .frame(width: size, height: size)
@@ -34,7 +38,8 @@ struct PulsingDot: View {
                 value: pulse
             )
             .onAppear { pulse = true }
-    }
+    
+        }}
 }
 
 /// Skeleton placeholder for a single `TaskPage`. Three of these stack inside
@@ -45,6 +50,7 @@ struct SkeletonTaskPlaceholder: View {
     @State private var pulse = false
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 8) {
             chip(width: 56, height: 10)
 
@@ -78,7 +84,8 @@ struct SkeletonTaskPlaceholder: View {
         .animation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true),
                    value: pulse)
         .onAppear { pulse = true }
-    }
+    
+        }}
 
     private func bar(width: CGFloat?, height: CGFloat) -> some View {
         GeometryReader { geo in
@@ -112,6 +119,7 @@ struct WatchEmptyState: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.system(size: 22, weight: .regular))
@@ -130,5 +138,6 @@ struct WatchEmptyState: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.horizontal, 6)
-    }
+    
+        }}
 }

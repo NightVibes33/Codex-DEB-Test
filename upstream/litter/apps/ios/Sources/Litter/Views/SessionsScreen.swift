@@ -1,5 +1,6 @@
 import SwiftUI
 import os
+import Perception
 
 private let sessionsScreenSignpostLog = OSLog(
     subsystem: Bundle.main.bundleIdentifier ?? "com.litter.ios",
@@ -54,8 +55,10 @@ struct SessionsScreen: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         screenContent(derived: sessionsModel.derivedData)
-    }
+    
+        }}
 
 
     private func screenContent(derived: SessionsDerivedData) -> some View {
@@ -1350,6 +1353,7 @@ struct PulsingDot: View {
     @State private var pulse = false
 
     var body: some View {
+        WithPerceptionTracking {
         Circle()
             .fill(LitterTheme.accent)
             .frame(width: 8, height: 8)
@@ -1357,7 +1361,8 @@ struct PulsingDot: View {
             .opacity(pulse ? 0.6 : 1.0)
             .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: pulse)
             .onAppear { pulse = true }
-    }
+    
+        }}
 }
 
 #if DEBUG

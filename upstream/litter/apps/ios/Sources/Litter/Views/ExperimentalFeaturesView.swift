@@ -1,10 +1,12 @@
 import SwiftUI
+import Perception
 
 struct ExperimentalFeaturesView: View {
     @State private var experimentalFeatures = ExperimentalFeatures.shared
     @State private var debugSettings = DebugSettings.shared
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             AlleyBackdrop().ignoresSafeArea()
             Form {
@@ -103,7 +105,8 @@ struct ExperimentalFeaturesView: View {
         }
         .navigationTitle("Experimental")
         .navigationBarTitleDisplayMode(.inline)
-    }
+    
+        }}
 
     private func binding(for feature: LitterFeature) -> Binding<Bool> {
         Binding(

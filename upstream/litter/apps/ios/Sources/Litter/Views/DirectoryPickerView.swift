@@ -2,8 +2,7 @@ import Foundation
 import SwiftUI
 import UIKit
 import os
-import Observation
-
+import Perception
 struct DirectoryPickerServerOption: Identifiable, Hashable {
     let id: String
     let name: String
@@ -77,7 +76,7 @@ private func isDisconnectedClientError(_ error: Error) -> Bool {
 }
 
 @MainActor
-@Observable
+@Perceptible
 private final class DirectoryPickerSheetModel {
     var currentPath = ""
     var allEntries: [String] = []
@@ -88,7 +87,7 @@ private final class DirectoryPickerSheetModel {
     var searchQuery = ""
     var homePath = ""
 
-    @ObservationIgnored private var lastLoadedServerId = ""
+    @PerceptionIgnored private var lastLoadedServerId = ""
 
     private static let relativeFormatter: RelativeDateTimeFormatter = {
         let formatter = RelativeDateTimeFormatter()
@@ -443,6 +442,7 @@ struct DirectoryPickerView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             AlleyBackdrop().ignoresSafeArea()
             VStack(spacing: 0) {
@@ -539,7 +539,8 @@ struct DirectoryPickerView: View {
         } message: {
             Text(newFolderError ?? "")
         }
-    }
+    
+        }}
 
     private var controls: some View {
         VStack(spacing: 8) {

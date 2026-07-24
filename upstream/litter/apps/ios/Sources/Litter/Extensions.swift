@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import Perception
 
 extension Color {
     init(hex: String) {
@@ -119,6 +120,7 @@ enum AlleyVisual {
 
 struct AlleyBackdrop: View {
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             LitterTheme.backgroundGradient
             RadialGradient(
@@ -134,7 +136,8 @@ struct AlleyBackdrop: View {
             )
         }
         .accessibilityHidden(true)
-    }
+    
+        }}
 }
 
 struct AlleyPanelModifier: ViewModifier {
@@ -486,12 +489,14 @@ struct GlassMorphContainer<Content: View>: View {
     @ViewBuilder var content: () -> Content
 
     var body: some View {
+        WithPerceptionTracking {
         if #available(iOS 26.0, *) {
             GlassEffectContainer(spacing: spacing) { content() }
         } else {
             content()
         }
-    }
+    
+        }}
 }
 
 extension View {

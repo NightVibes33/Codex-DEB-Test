@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 struct PluginSettingsView: View {
     @Environment(AppModel.self) private var appModel
@@ -29,6 +30,7 @@ struct PluginSettingsView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             AlleyBackdrop().ignoresSafeArea()
             Form {
@@ -114,7 +116,8 @@ struct PluginSettingsView: View {
         } message: {
             Text(errorMessage ?? "Unable to update plugins.")
         }
-    }
+    
+        }}
 
     private func loadPlugins() async {
         guard let targetServer else { return }
@@ -203,6 +206,7 @@ private struct PluginSettingsRow: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: iconName)
                 .foregroundColor(statusColor)
@@ -254,7 +258,8 @@ private struct PluginSettingsRow: View {
             }
         }
         .padding(.vertical, 4)
-    }
+    
+        }}
 
     private var iconName: String {
         if plugin.installed || plugin.enabled { return "checkmark.seal.fill" }

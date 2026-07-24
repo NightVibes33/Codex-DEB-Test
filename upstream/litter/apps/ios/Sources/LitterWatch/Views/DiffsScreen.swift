@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 /// Full diffs view for the focused task. One vertical page per changed file
 /// (crown switches files), each page scrolls the unified-diff content with
@@ -12,6 +13,7 @@ struct DiffsScreen: View {
     @EnvironmentObject var theme: WatchThemeStore
 
     var body: some View {
+        WithPerceptionTracking {
         // Always pull the freshest task from the store so the page stays
         // live if a new snapshot lands while we're on this screen.
         let task = store.focusedTask
@@ -36,7 +38,8 @@ struct DiffsScreen: View {
             }
         }
         .containerBackground(theme.backgroundGradient, for: .navigation)
-    }
+    
+        }}
 
     private func index(of diff: WatchFileDiff, in diffs: [WatchFileDiff]) -> Int {
         diffs.firstIndex(of: diff) ?? 0
@@ -55,6 +58,7 @@ private struct DiffPage: View {
     let index: Int
 
     var body: some View {
+        WithPerceptionTracking {
         ScrollView(.vertical) {
             VStack(alignment: .leading, spacing: 6) {
                 header
@@ -66,7 +70,8 @@ private struct DiffPage: View {
             .padding(.horizontal, 4)
             .padding(.vertical, 4)
         }
-    }
+    
+        }}
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -215,6 +220,7 @@ private struct DiffLineRow: View {
     let line: DiffLine
 
     var body: some View {
+        WithPerceptionTracking {
         Text(line.text.isEmpty ? " " : line.text)
             .font(WatchTheme.mono(9))
             .foregroundStyle(foreground)
@@ -224,7 +230,8 @@ private struct DiffLineRow: View {
             .background(background)
             .lineLimit(nil)
             .fixedSize(horizontal: false, vertical: true)
-    }
+    
+        }}
 
     private var foreground: Color {
         switch line.kind {

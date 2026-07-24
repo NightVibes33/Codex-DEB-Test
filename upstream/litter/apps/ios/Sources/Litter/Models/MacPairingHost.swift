@@ -2,6 +2,7 @@
 import Foundation
 import NearbyInteraction
 import UIKit
+import Perception
 
 /// Mac-side pair host. Runs only on the unsandboxed (direct-dist) Catalyst
 /// lane alongside the Feature A local codex. Publishes a Bonjour service
@@ -15,7 +16,7 @@ import UIKit
 ///   * UIAlertController confirm dialog
 ///   * LAN IP resolution via getifaddrs (en0/en1 IPv4)
 @MainActor
-@Observable
+@Perceptible
 final class MacPairingHost: NSObject {
     static let shared = MacPairingHost()
 

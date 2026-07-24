@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 struct WallpaperAdjustView: View {
     @Environment(WallpaperManager.self) private var wallpaperManager
@@ -24,6 +25,7 @@ struct WallpaperAdjustView: View {
     @State private var applyErrorMessage: String?
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             // Sample bubbles
             sampleBubbles
@@ -92,7 +94,8 @@ struct WallpaperAdjustView: View {
             motionEnabled = initialConfig.motionEnabled
             brightness = initialConfig.brightness
         }
-    }
+    
+        }}
 
     // MARK: - Preview
 

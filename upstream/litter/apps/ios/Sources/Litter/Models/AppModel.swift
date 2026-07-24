@@ -1,5 +1,5 @@
 import Foundation
-import Observation
+import Perception
 import UIKit
 
 enum LocalAccountLoginFlowError: LocalizedError {
@@ -20,7 +20,7 @@ enum LocalAccountLoginFlowError: LocalizedError {
 }
 
 @MainActor
-@Observable
+@Perceptible
 final class AppModel {
     private struct PendingThreadStateEvent: Sendable {
         let state: AppThreadStateRecord
@@ -106,23 +106,23 @@ final class AppModel {
     private(set) var composerPrefillRequest: ComposerPrefillRequest?
     private(set) var isRecoveringLocalServer = false
 
-    @ObservationIgnored private var subscription: AppStoreSubscription?
-    @ObservationIgnored private var updateTask: Task<Void, Never>?
-    @ObservationIgnored private var loadingModelServerIds: Set<String> = []
-    @ObservationIgnored private var loadingRateLimitServerIds: Set<String> = []
-    @ObservationIgnored private var recentConversationMetadataLoads: [String: Date] = [:]
-    @ObservationIgnored private var pendingThreadRefreshKeys: Set<ThreadKey> = []
-    @ObservationIgnored private var pendingThreadRefreshTask: Task<Void, Never>?
-    @ObservationIgnored private var pendingActiveThreadHydrationKey: ThreadKey?
-    @ObservationIgnored private var pendingActiveThreadHydrationTask: Task<Void, Never>?
-    @ObservationIgnored private var pendingSnapshotRefreshTask: Task<Void, Never>?
-    @ObservationIgnored private var pendingThreadStateEvents: [ThreadKey: PendingThreadStateEvent] = [:]
-    @ObservationIgnored private var pendingThreadStateTask: Task<Void, Never>?
-    @ObservationIgnored private var pendingCommandRowMutations: [String: PendingCommandRowMutation] = [:]
-    @ObservationIgnored private var pendingCommandRowMutationTask: Task<Void, Never>?
-    @ObservationIgnored private var cachedThreadSnapshots: [ThreadKey: AppThreadSnapshot] = [:]
-    @ObservationIgnored private var loadingTurnPageThreadKeys: Set<ThreadKey> = []
-    @ObservationIgnored private var localServerRecoveryTask: Task<Void, Never>?
+    @PerceptionIgnored private var subscription: AppStoreSubscription?
+    @PerceptionIgnored private var updateTask: Task<Void, Never>?
+    @PerceptionIgnored private var loadingModelServerIds: Set<String> = []
+    @PerceptionIgnored private var loadingRateLimitServerIds: Set<String> = []
+    @PerceptionIgnored private var recentConversationMetadataLoads: [String: Date] = [:]
+    @PerceptionIgnored private var pendingThreadRefreshKeys: Set<ThreadKey> = []
+    @PerceptionIgnored private var pendingThreadRefreshTask: Task<Void, Never>?
+    @PerceptionIgnored private var pendingActiveThreadHydrationKey: ThreadKey?
+    @PerceptionIgnored private var pendingActiveThreadHydrationTask: Task<Void, Never>?
+    @PerceptionIgnored private var pendingSnapshotRefreshTask: Task<Void, Never>?
+    @PerceptionIgnored private var pendingThreadStateEvents: [ThreadKey: PendingThreadStateEvent] = [:]
+    @PerceptionIgnored private var pendingThreadStateTask: Task<Void, Never>?
+    @PerceptionIgnored private var pendingCommandRowMutations: [String: PendingCommandRowMutation] = [:]
+    @PerceptionIgnored private var pendingCommandRowMutationTask: Task<Void, Never>?
+    @PerceptionIgnored private var cachedThreadSnapshots: [ThreadKey: AppThreadSnapshot] = [:]
+    @PerceptionIgnored private var loadingTurnPageThreadKeys: Set<ThreadKey> = []
+    @PerceptionIgnored private var localServerRecoveryTask: Task<Void, Never>?
 
     init(
         store: AppStore? = nil,

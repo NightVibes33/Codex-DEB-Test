@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 /// Displays a scoped wallpaper (thread → server → fallback gradient).
 struct ChatWallpaperBackground: View {
@@ -8,6 +9,7 @@ struct ChatWallpaperBackground: View {
     var threadKey: ThreadKey?
 
     var body: some View {
+        WithPerceptionTracking {
         let _ = wallpaperManager.version // trigger recomposition on wallpaper changes
         let config = wallpaperManager.resolveConfig(for: threadKey)
 
@@ -19,7 +21,8 @@ struct ChatWallpaperBackground: View {
         } else {
             AlleyBackdrop().ignoresSafeArea()
         }
-    }
+    
+        }}
 
     @ViewBuilder
     private func wallpaperContent(for config: WallpaperConfig) -> some View {
@@ -76,6 +79,7 @@ struct FittedWallpaperImage: View {
     let image: UIImage
 
     var body: some View {
+        WithPerceptionTracking {
         GeometryReader { proxy in
             ZStack {
                 LitterTheme.backgroundGradient
@@ -86,5 +90,6 @@ struct FittedWallpaperImage: View {
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
         }
-    }
+    
+        }}
 }

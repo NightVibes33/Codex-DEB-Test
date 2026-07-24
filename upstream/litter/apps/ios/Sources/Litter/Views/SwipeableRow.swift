@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 /// Swipe-left-to-hide row wrapper. Shows a full-width red "hide" background
 /// whose opacity scales with drag distance. If the user drags past the
@@ -28,6 +29,7 @@ struct SwipeableRow<Content: View>: View {
     private let activationDistance: CGFloat = 8
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack(alignment: .trailing) {
             // Full-row red background, opacity driven by how far we've slid.
             Rectangle()
@@ -103,7 +105,8 @@ struct SwipeableRow<Content: View>: View {
                 }
         }
         .clipped()
-    }
+    
+        }}
 
     private var revealOpacity: Double {
         let progress = min(1.0, max(0.0, Double(-offsetX / commitDistance)))

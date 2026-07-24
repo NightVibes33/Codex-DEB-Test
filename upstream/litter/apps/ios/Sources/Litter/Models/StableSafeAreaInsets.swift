@@ -1,14 +1,13 @@
 import SwiftUI
 import UIKit
-import Observation
-
+import Perception
 @MainActor
-@Observable
+@Perceptible
 final class StableSafeAreaInsets {
     private(set) var bottomInset: CGFloat = 0
 
-    @ObservationIgnored private var didStart = false
-    @ObservationIgnored private var observers: [NSObjectProtocol] = []
+    @PerceptionIgnored private var didStart = false
+    @PerceptionIgnored private var observers: [NSObjectProtocol] = []
 
     func start(fallback: CGFloat) {
         if bottomInset <= 0, fallback > 0 {

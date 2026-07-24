@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 struct RollingMetricText: View {
     let text: String
@@ -13,6 +14,7 @@ struct RollingMetricText: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         if reduceMotion {
             metricText
         } else {
@@ -33,7 +35,8 @@ struct RollingMetricText: View {
                     }
                 }
         }
-    }
+    
+        }}
 
     private var metricText: Text {
         Text(verbatim: text)

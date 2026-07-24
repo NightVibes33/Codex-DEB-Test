@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 /// Primary Apps surface: list of all `SavedApp`s on disk. Always-visible
 /// from the Home Dashboard's Apps toolbar button.
@@ -11,6 +12,7 @@ struct AppsListView: View {
     @State private var detailAppId: String?
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             AlleyBackdrop().ignoresSafeArea()
             Group {
@@ -60,7 +62,8 @@ struct AppsListView: View {
         } message: {
             Text("This removes the app, its saved HTML, and its persisted state.")
         }
-    }
+    
+        }}
 
     private var list: some View {
         List {

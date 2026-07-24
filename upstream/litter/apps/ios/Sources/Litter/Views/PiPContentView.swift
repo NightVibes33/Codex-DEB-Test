@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 /// Body rendered into the PiP sample-buffer layer on every tick.
 ///
@@ -17,6 +18,7 @@ struct PiPContentView: View {
     static let maxHeight: CGFloat = 720
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack(alignment: .topLeading) {
             Color(hex: "#1F2937")
             LinearGradient(
@@ -50,7 +52,8 @@ struct PiPContentView: View {
         .frame(minHeight: Self.minHeight, maxHeight: Self.maxHeight, alignment: .topLeading)
         .background(Color(hex: "#1F2937"))
         .clipped()
-    }
+    
+        }}
 
     @MainActor
     private func activeSession() -> HomeDashboardRecentSession? {

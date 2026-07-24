@@ -2,6 +2,7 @@ import Nuke
 import NukeUI
 import SwiftUI
 import UIKit
+import Perception
 
 struct ImageGenerationToolCallView: View {
     let data: ConversationImageGenerationData
@@ -27,6 +28,7 @@ struct ImageGenerationToolCallView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 0) {
             header
 
@@ -57,7 +59,8 @@ struct ImageGenerationToolCallView: View {
                 }
             }
         }
-    }
+    
+        }}
 
     private var header: some View {
         HStack(spacing: 8) {
@@ -226,6 +229,7 @@ private struct ImageGenerationLoadingTile: View {
     @State private var pulse = false
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(spacing: 12) {
             ZStack {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -270,7 +274,8 @@ private struct ImageGenerationLoadingTile: View {
                 pulse = true
             }
         }
-    }
+    
+        }}
 }
 
 private struct ShareSheet: UIViewControllerRepresentable {

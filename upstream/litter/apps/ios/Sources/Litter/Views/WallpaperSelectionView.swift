@@ -3,6 +3,7 @@ import PhotosUI
 import UniformTypeIdentifiers
 import Hairball
 import HairballUI
+import Perception
 
 private struct VideoTransferable: Transferable {
     let url: URL
@@ -58,6 +59,7 @@ struct WallpaperSelectionView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             // Sample bubbles overlay
             sampleBubbles
@@ -146,7 +148,8 @@ struct WallpaperSelectionView: View {
                 typingEffectConfig = wallpaperManager.resolveTypingEffectForServer(resolvedServerId)
             }
         }
-    }
+    
+        }}
 
     // MARK: - Preview Background
 
@@ -910,6 +913,7 @@ private struct StreamingEffectPreview: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         StreamingMarkdownContentView(renderer: renderer)
             .tokenReveal(TokenRevealConfig(
                 duration: max(config.revealDuration, 0.01),
@@ -924,7 +928,8 @@ private struct StreamingEffectPreview: View {
             )
             .onAppear { startFeed() }
             .onDisappear { feedTask?.cancel() }
-    }
+    
+        }}
 
     private func startFeed() {
         let text = Self.sampleText

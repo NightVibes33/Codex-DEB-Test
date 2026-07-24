@@ -1,5 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import Perception
 
 struct MountedFoldersView: View {
     enum PickerMode: Equatable {
@@ -15,6 +16,7 @@ struct MountedFoldersView: View {
     @State private var isMountingContainer = false
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             ZStack {
                 AlleyBackdrop().ignoresSafeArea()
@@ -75,7 +77,8 @@ struct MountedFoldersView: View {
         .task {
             await refreshNativeContainerStatus()
         }
-    }
+    
+        }}
 
     // MARK: - List
 

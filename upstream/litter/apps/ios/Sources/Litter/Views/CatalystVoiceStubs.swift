@@ -1,5 +1,6 @@
 #if targetEnvironment(macCatalyst)
 import SwiftUI
+import Perception
 
 struct HomeVoiceOrbButton: View {
     let session: VoiceSessionState?
@@ -8,8 +9,10 @@ struct HomeVoiceOrbButton: View {
     let action: () -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         EmptyView()
-    }
+    
+        }}
 }
 
 struct RealtimeVoiceScreen: View {
@@ -18,8 +21,10 @@ struct RealtimeVoiceScreen: View {
     let onToggleSpeaker: () -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         EmptyView()
-    }
+    
+        }}
 }
 
 struct InlineVoiceButton: View {
@@ -27,7 +32,9 @@ struct InlineVoiceButton: View {
     let action: () -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         EmptyView()
-    }
+    
+        }}
 }
 #endif

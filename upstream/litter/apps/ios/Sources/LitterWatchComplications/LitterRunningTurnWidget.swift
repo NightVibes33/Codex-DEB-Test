@@ -1,5 +1,6 @@
 import SwiftUI
 import WidgetKit
+import Perception
 
 /// Smart Stack widget mirroring the iPhone's Live Activity for the
 /// currently running turn. Reads `running.turn.v1` from the App Group and
@@ -100,13 +101,15 @@ struct LitterRunningTurnView: View {
     @Environment(\.widgetFamily) private var family
 
     var body: some View {
+        WithPerceptionTracking {
         switch family {
         case .accessoryInline:
             inlineBody
         default:
             rectangularBody
         }
-    }
+    
+        }}
 
     @ViewBuilder
     private var rectangularBody: some View {

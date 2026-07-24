@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import Perception
 
 struct VoiceCallView: View {
     @Environment(AppModel.self) private var appModel
@@ -23,6 +24,7 @@ struct VoiceCallView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             AlleyBackdrop()
                 .ignoresSafeArea()
@@ -56,7 +58,8 @@ struct VoiceCallView: View {
             }
         }
 #endif
-    }
+    
+        }}
 
     private func bindModel() {
         guard let context = voiceContext else { return }
@@ -261,6 +264,7 @@ private struct CompactSpeakerIndicator: View {
     let tint: Color
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Circle()
@@ -277,7 +281,8 @@ private struct CompactSpeakerIndicator: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .background(Capsule().fill(LitterTheme.surface.opacity(0.92)))
-    }
+    
+        }}
 }
 
 private struct VoiceCreditsTranscriptView: View {
@@ -296,6 +301,7 @@ private struct VoiceCreditsTranscriptView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(spacing: 0) {
@@ -341,7 +347,8 @@ private struct VoiceCreditsTranscriptView: View {
                 scrollToBottom(proxy, animated: true)
             }
         }
-    }
+    
+        }}
 
     private var placeholder: some View {
         VStack(spacing: 10) {
@@ -734,6 +741,7 @@ private struct VoiceCreditsEntryRow: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 10) {
             Text(entry.title)
                 .font(LitterFont.monospaced(.caption, weight: .bold, scale: textScale))
@@ -761,7 +769,8 @@ private struct VoiceCreditsEntryRow: View {
         .frame(maxWidth: maxContentWidth, alignment: .leading)
         .frame(maxWidth: .infinity)
         .opacity(entry.kind == .liveAssistant || entry.kind == .liveUser ? 0.94 : 1)
-    }
+    
+        }}
 }
 
 private struct VoiceTranscriptMediaView: View {
@@ -769,6 +778,7 @@ private struct VoiceTranscriptMediaView: View {
 
     @ViewBuilder
     var body: some View {
+        WithPerceptionTracking {
         switch media {
         case .userImages(let images):
             VoiceTranscriptUserImagesView(images: images)
@@ -777,13 +787,15 @@ private struct VoiceTranscriptMediaView: View {
         case .imageGeneration(let data):
             ImageGenerationToolCallView(data: data, externalExpanded: true)
         }
-    }
+    
+        }}
 }
 
 private struct VoiceTranscriptUserImagesView: View {
     let images: [ChatImage]
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 10) {
             ForEach(images) { image in
                 if let uiImage = decodeImage(image) {
@@ -815,7 +827,8 @@ private struct VoiceTranscriptUserImagesView: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(LitterTheme.border, lineWidth: 0.5)
         )
-    }
+    
+        }}
 
     private func decodeImage(_ image: ChatImage) -> UIImage? {
         guard let data = imageData(for: image) else { return nil }
@@ -845,6 +858,7 @@ private struct VoiceCallDebugSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             List(session.debugEntries) { entry in
                 Text("\(entry.timestamp.formatted(date: .omitted, time: .standard)) \(entry.line)")
@@ -865,6 +879,7 @@ private struct VoiceCallDebugSheet: View {
                 }
             }
         }
-    }
+    
+        }}
 }
 #endif

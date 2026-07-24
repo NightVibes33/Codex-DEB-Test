@@ -1,8 +1,7 @@
 import Foundation
-import Observation
-
+import Perception
 @MainActor
-@Observable
+@Perceptible
 final class HomeDashboardModel {
     private struct Snapshot {
         let connectedServers: [HomeDashboardServer]
@@ -45,20 +44,20 @@ final class HomeDashboardModel {
         }
     }
 
-    @ObservationIgnored private weak var appModel: AppModel?
-    @ObservationIgnored private(set) var rebuildCount = 0
-    @ObservationIgnored private var isActive = false
-    @ObservationIgnored private var observationGeneration = 0
-    @ObservationIgnored private var lastSessionSummaries: [AppSessionSummary] = []
+    @PerceptionIgnored private weak var appModel: AppModel?
+    @PerceptionIgnored private(set) var rebuildCount = 0
+    @PerceptionIgnored private var isActive = false
+    @PerceptionIgnored private var observationGeneration = 0
+    @PerceptionIgnored private var lastSessionSummaries: [AppSessionSummary] = []
     /// Debounces rapid snapshot changes (e.g. the flood of store events
     /// during `listThreads` loads) so we don't rebuild the home list
     /// hundreds of times per second.
-    @ObservationIgnored private var debouncedRefreshTask: Task<Void, Never>?
+    @PerceptionIgnored private var debouncedRefreshTask: Task<Void, Never>?
     /// Set by the UI when the user intentionally clears the server filter
     /// so the snapshot reconciler doesn't re-select a default server.
     private var userClearedSelection = false
-    @ObservationIgnored private var preferencesObserver: NSObjectProtocol?
-    @ObservationIgnored private var savedServersObserver: NSObjectProtocol?
+    @PerceptionIgnored private var preferencesObserver: NSObjectProtocol?
+    @PerceptionIgnored private var savedServersObserver: NSObjectProtocol?
 
     init() {
         selectedServerId = SavedProjectStore.selectedServerId
@@ -187,7 +186,7 @@ final class HomeDashboardModel {
         reloadThreadPreferences()
         observationGeneration &+= 1
         let generation = observationGeneration
-        let snapshot = withObservationTracking {
+        let snapshot = withPerceptionTracking {
             let appSnapshot = appModel.snapshot
             let nextConnectedServers = HomeDashboardSupport.sortedConnectedServers(
                 from: appSnapshot?.servers ?? [],

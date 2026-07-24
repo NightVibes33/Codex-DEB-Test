@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import Perception
 
 struct KittyStoreHostView: UIViewControllerRepresentable {
     @Environment(ThemeManager.self) private var themeManager
@@ -32,6 +33,7 @@ struct KittyStoreRouteView: View {
     @AppStorage("litterSettingsRequestedRoute") private var requestedSettingsRoute = ""
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(spacing: 0) {
             headerBar
                 .background(KittyStoreHostPalette.background)
@@ -48,7 +50,8 @@ struct KittyStoreRouteView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .background(KittyStoreHostPalette.background.ignoresSafeArea())
-    }
+    
+        }}
 
     private var headerBar: some View {
         HStack(spacing: 12) {

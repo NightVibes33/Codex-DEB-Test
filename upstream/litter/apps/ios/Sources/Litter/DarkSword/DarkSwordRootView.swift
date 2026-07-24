@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 /// DarkSword is the product shell. The complete NightVibes Litter ContentView
 /// remains the real chat/agent engine and is embedded without replacing its
@@ -7,6 +8,7 @@ struct DarkSwordRootView: View {
     @AppStorage("darksword.selectedSection") private var selectedSection = DarkSwordSection.chat.rawValue
 
     var body: some View {
+        WithPerceptionTracking {
         TabView(selection: $selectedSection) {
             DarkSwordChatSurface()
                 .tabItem { Label("Chat", systemImage: "bubble.left.and.bubble.right.fill") }
@@ -28,7 +30,8 @@ struct DarkSwordRootView: View {
                 .tabItem { Label("Tools", systemImage: "checkmark.shield.fill") }
                 .tag(DarkSwordSection.tools.rawValue)
         }
-    }
+    
+        }}
 }
 
 enum DarkSwordSection: String {
@@ -43,6 +46,7 @@ private struct DarkSwordChatSurface: View {
     @AppStorage("darksword.loginHintDismissed") private var loginHintDismissed = false
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack(alignment: .top) {
             // This is the full advanced Litter runtime from NightVibes33/litter.
             // It owns ChatGPT-account/Codex authentication, model selection,
@@ -58,7 +62,8 @@ private struct DarkSwordChatSurface: View {
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
-    }
+    
+        }}
 }
 
 private struct DarkSwordLoginBanner: View {
@@ -73,6 +78,7 @@ private struct DarkSwordLoginBanner: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
                 Image(systemName: "person.crop.circle.badge.checkmark")
@@ -122,7 +128,8 @@ private struct DarkSwordLoginBanner: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .stroke(Color.secondary.opacity(0.22), lineWidth: 0.5)
         }
-    }
+    
+        }}
 
     /// Litter's ChatGPTOAuth implementation uses OpenAI's official
     /// https://chatgpt.com/auth/login origin and stores only the returned account

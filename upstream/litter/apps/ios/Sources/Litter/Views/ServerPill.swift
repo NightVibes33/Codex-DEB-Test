@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 struct ServerPill: View {
     let server: HomeDashboardServer
@@ -11,6 +12,7 @@ struct ServerPill: View {
     let onShowMountedFolders: () -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         Button(action: onTap) {
             HStack(spacing: 6) {
                 StatusDot(state: server.statusDotState, size: 8)
@@ -68,7 +70,8 @@ struct ServerPill: View {
                 Label("Remove", systemImage: "trash")
             }
         }
-    }
+    
+        }}
 }
 
 private struct AgentRuntimeBadgeStack: View {
@@ -94,6 +97,7 @@ private struct AgentRuntimeBadgeStack: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         let visible = visibleRuntimes
         let isOverflowing = visible.count > maxBadgesWithoutOverflow
         let displayed = isOverflowing ? Array(visible.prefix(badgesWhenOverflowing)) : visible
@@ -114,13 +118,15 @@ private struct AgentRuntimeBadgeStack: View {
             .layoutPriority(1)
             .accessibilityLabel(visible.map(\.displayName).joined(separator: ", "))
         }
-    }
+    
+        }}
 }
 
 private struct AgentRuntimeOverflowBadge: View {
     let count: Int
 
     var body: some View {
+        WithPerceptionTracking {
         Text("+\(count)")
             .litterMonoFont(size: 9, weight: .bold)
             .foregroundStyle(LitterTheme.textPrimary)
@@ -139,13 +145,15 @@ private struct AgentRuntimeOverflowBadge: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
             .shadow(color: .black.opacity(0.32), radius: 2, y: 1)
-    }
+    
+        }}
 }
 
 private struct AgentRuntimeBadge: View {
     let runtime: AgentRuntimeInfo
 
     var body: some View {
+        WithPerceptionTracking {
         AgentIconView(kind: runtime.kind, size: 18)
             .background(
                 RoundedRectangle(cornerRadius: 5, style: .continuous)
@@ -157,13 +165,15 @@ private struct AgentRuntimeBadge: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
             .shadow(color: .black.opacity(0.32), radius: 2, y: 1)
-    }
+    
+        }}
 }
 
 struct AddServerPill: View {
     let onTap: () -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         Button(action: onTap) {
             HStack(spacing: 4) {
                 Image(systemName: "plus")
@@ -184,5 +194,6 @@ struct AddServerPill: View {
                 .allowsHitTesting(false)
         )
         .coachmarkAnchor(.addServer)
-    }
+    
+        }}
 }

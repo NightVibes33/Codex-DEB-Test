@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 /// Per-task detail — shows the task's steps, subtitle, and nav links to
 /// its transcript or a reply composer. Requesting focus on this task from
@@ -11,6 +12,7 @@ struct TaskDetailScreen: View {
     let task: WatchTask
 
     var body: some View {
+        WithPerceptionTracking {
         // Prefer the freshest version from the store — the task param might
         // be stale if we've been on this screen across multiple snapshots.
         let current = store.tasks.first(where: { $0.id == task.id }) ?? task
@@ -100,7 +102,8 @@ struct TaskDetailScreen: View {
             store.focus(on: current)
         }
         .containerBackground(theme.backgroundGradient, for: .navigation)
-    }
+    
+        }}
 
     private func header(for task: WatchTask) -> some View {
         HStack(spacing: 6) {
@@ -179,6 +182,7 @@ private struct DiffsLink: View {
     let diffs: [WatchFileDiff]
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationLink {
             DiffsScreen()
         } label: {
@@ -223,7 +227,8 @@ private struct DiffsLink: View {
             )
         }
         .buttonStyle(.plain)
-    }
+    
+        }}
 
     private var additions: Int { diffs.reduce(0) { $0 + $1.additions } }
     private var deletions: Int { diffs.reduce(0) { $0 + $1.deletions } }
@@ -242,6 +247,7 @@ private struct StepRow: View {
     let step: WatchTaskStep
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             StepBullet(state: step.state)
                 .frame(width: 12, height: 12)
@@ -260,7 +266,8 @@ private struct StepRow: View {
             }
             Spacer(minLength: 0)
         }
-    }
+    
+        }}
 
     private func color(for state: WatchTaskStep.State) -> Color {
         switch state {
@@ -277,6 +284,7 @@ private struct StepBullet: View {
     @State private var pulse = false
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             Circle().fill(fill)
             Circle().stroke(stroke, lineWidth: 1)
@@ -297,7 +305,8 @@ private struct StepBullet: View {
                 EmptyView()
             }
         }
-    }
+    
+        }}
 
     private var fill: Color {
         switch state {

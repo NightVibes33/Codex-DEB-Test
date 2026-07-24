@@ -2,6 +2,7 @@ import SwiftUI
 import PhotosUI
 import UIKit
 import os
+import Perception
 
 /// Composer variant for the home screen. When a project is selected, typing
 /// and hitting send creates a new thread on (project.serverId, project.cwd)
@@ -73,6 +74,7 @@ struct HomeComposerView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(spacing: 0) {
             if let errorMessage {
                 HStack(spacing: 6) {
@@ -228,7 +230,8 @@ struct HomeComposerView: View {
                 isComposerFocused = true
             }
         }
-    }
+    
+        }}
 
     private func handleSend() {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -586,6 +589,7 @@ private struct HomePluginAutocompletePopup: View {
     let onSelect: (PluginSummary) -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(spacing: 0) {
             if plugins.isEmpty {
                 Text("No plugins")
@@ -642,5 +646,6 @@ private struct HomePluginAutocompletePopup: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .padding(.horizontal, 12)
         .padding(.bottom, 56)
-    }
+    
+        }}
 }

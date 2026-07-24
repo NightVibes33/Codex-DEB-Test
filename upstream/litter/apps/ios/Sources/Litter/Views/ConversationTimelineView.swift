@@ -1,6 +1,7 @@
 import SwiftUI
 import HairballUI
 import UIKit
+import Perception
 
 enum ConversationLiveDetailRetentionPolicy {
     static func retainedRichDetailItemIDs(for items: [ConversationItem]) -> Set<String> {
@@ -41,8 +42,10 @@ struct ConversationTurnTimeline: View {
     var onOpenConversation: ((ThreadKey) -> Void)? = nil
 
     var body: some View {
+        WithPerceptionTracking {
         timelineContent
-    }
+    
+        }}
 
     private var timelineContent: some View {
         let rows = rowDescriptors
@@ -888,6 +891,7 @@ private struct ConversationExplorationGroupRow: View {
     @State private var expanded = false
 
     var body: some View {
+        WithPerceptionTracking {
         let entries = explorationEntries
 
         VStack(alignment: .leading, spacing: 6) {
@@ -981,7 +985,8 @@ private struct ConversationExplorationGroupRow: View {
             guard !newValue else { return }
             expanded = false
         }
-    }
+    
+        }}
 
     private var summaryText: String {
         let prefix = isActive ? "Exploring" : "Explored"
@@ -1161,6 +1166,7 @@ private struct ConversationReasoningRow: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: expanded ? 8 : 0) {
             Button(action: toggleExpanded) {
                 HStack(spacing: 8) {
@@ -1201,7 +1207,8 @@ private struct ConversationReasoningRow: View {
         .onChange(of: displayMode) { _, newValue in
             expanded = newValue.defaultExpanded()
         }
-    }
+    
+        }}
 
     private var reasoningText: String {
         (data.summary + data.content)
@@ -1230,6 +1237,7 @@ private struct ConversationTodoListRow: View {
     @State private var expanded = true
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 0) {
             Button(action: toggleExpanded) {
                 HStack(spacing: 8) {
@@ -1292,7 +1300,8 @@ private struct ConversationTodoListRow: View {
                 .transition(.sectionReveal)
             }
         }
-    }
+    
+        }}
 
     private var completedCount: Int {
         data.completedCount
@@ -1357,6 +1366,7 @@ private struct ConversationProposedPlanRow: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         if let trimmedContent {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
@@ -1376,7 +1386,8 @@ private struct ConversationProposedPlanRow: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
         }
-    }
+    
+        }}
 }
 
 private struct ConversationTurnDiffRow: View {
@@ -1384,6 +1395,7 @@ private struct ConversationTurnDiffRow: View {
     @State private var presented: PresentedDiff?
 
     var body: some View {
+        WithPerceptionTracking {
         Button {
             presented = PresentedDiff(
                 id: "turn-diff",
@@ -1403,7 +1415,8 @@ private struct ConversationTurnDiffRow: View {
                 sections: sheet.sections
             )
         }
-    }
+    
+        }}
 }
 
 private struct ConversationCommandExecutionRow: View {
@@ -1425,6 +1438,7 @@ private struct ConversationCommandExecutionRow: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: expanded ? 8 : 0) {
             shellHeader
             if expanded {
@@ -1454,7 +1468,8 @@ private struct ConversationCommandExecutionRow: View {
         .onChange(of: displayMode) { _, newValue in
             expanded = newValue == .expanded || data.isInProgress || data.status == .failed
         }
-    }
+    
+        }}
 
     private var shellHeader: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -1567,6 +1582,7 @@ private struct ConversationCommandOutputViewport: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         ScrollViewReader { proxy in
             VStack(alignment: .leading, spacing: 6) {
                 ScrollView(.vertical, showsIndicators: false) {
@@ -1645,7 +1661,8 @@ private struct ConversationCommandOutputViewport: View {
                 }
             }
         }
-    }
+    
+        }}
 
     private var visibleOutput: String {
         guard shouldLimitOutput, !expandedLongOutput else {
@@ -1702,6 +1719,7 @@ private struct ConversationUserInputResponseRow: View {
     let data: ConversationUserInputResponseData
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 6) {
             ForEach(Array(data.questions.enumerated()), id: \.element.id) { _, question in
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -1722,7 +1740,8 @@ private struct ConversationUserInputResponseRow: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
-    }
+    
+        }}
 }
 
 private struct ConversationDividerRow: View {
@@ -1730,6 +1749,7 @@ private struct ConversationDividerRow: View {
     let isLiveTurn: Bool
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 10) {
             Capsule()
                 .fill(LitterTheme.border)
@@ -1743,7 +1763,8 @@ private struct ConversationDividerRow: View {
         .padding(.vertical, 4)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)
-    }
+    
+        }}
 
     @ViewBuilder
     private var dividerContent: some View {
@@ -1816,6 +1837,7 @@ private struct ConversationCodeReviewRow: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 12) {
             ForEach(visibleFindings, id: \.index) { entry in
                 ConversationCodeReviewFindingCard(
@@ -1824,7 +1846,8 @@ private struct ConversationCodeReviewRow: View {
                 )
             }
         }
-    }
+    
+        }}
 }
 
 private struct ConversationCodeReviewFindingCard: View {
@@ -1858,6 +1881,7 @@ private struct ConversationCodeReviewFindingCard: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .center, spacing: 10) {
                 if let priorityLabel {
@@ -1896,7 +1920,8 @@ private struct ConversationCodeReviewFindingCard: View {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(LitterTheme.border.opacity(0.7), lineWidth: 1)
         )
-    }
+    
+        }}
 }
 
 private struct ConversationSystemCardRow: View {
@@ -1927,7 +1952,9 @@ private struct ConversationSystemCardRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    var body: some View { bodyView }
+    var body: some View {
+        WithPerceptionTracking { bodyView 
+        }}
 }
 
 struct ConversationPinnedContextStrip: View {
@@ -1944,6 +1971,7 @@ struct ConversationPinnedContextStrip: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 8) {
             if pinnedPlan != nil || cachedCombinedPinnedDiff != nil {
                 if let plan = pinnedPlan, let diff = cachedCombinedPinnedDiff {
@@ -1975,7 +2003,8 @@ struct ConversationPinnedContextStrip: View {
         .onChange(of: pinnedDiffTaskKey, initial: false) { _, _ in
             cachedCombinedPinnedDiff = Self.buildCombinedPinnedDiff(from: items)
         }
-    }
+    
+        }}
 
     private var pinnedPlan: ConversationItem? {
         items.last(where: {
@@ -2184,6 +2213,7 @@ private struct DiffIndicatorLabel: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 8) {
             Image(systemName: "arrow.left.arrow.right")
                 .litterFont(size: 11, weight: .semibold)
@@ -2210,7 +2240,8 @@ private struct DiffIndicatorLabel: View {
         .fixedSize(horizontal: true, vertical: false)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
-    }
+    
+        }}
 
     private var accessibilityLabel: String {
         if stats.hasChanges {
@@ -2279,6 +2310,7 @@ private struct ConversationDiffDetailSheet: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 8) {
@@ -2328,7 +2360,8 @@ private struct ConversationDiffDetailSheet: View {
         }
         .presentationDetents([.medium, .large])
         .id(themeManager.themeVersion)
-    }
+    
+        }}
 
     private var usesStickyHeaders: Bool {
         guard sections.count <= maxStickyDiffSections else { return false }

@@ -1,5 +1,6 @@
 import SwiftUI
 import UserNotifications
+import Perception
 
 /// 6 · Notification long-look. Driven by the real push payload the phone
 /// sent. watchOS passes us `UNNotification.request.content`; we pull title,
@@ -17,6 +18,7 @@ struct NotificationScreen: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         let content = notification?.request.content
 
         VStack(alignment: .leading, spacing: 8) {
@@ -58,7 +60,8 @@ struct NotificationScreen: View {
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
         .containerBackground(theme.backgroundGradient, for: .navigation)
-    }
+    
+        }}
 }
 
 #if DEBUG

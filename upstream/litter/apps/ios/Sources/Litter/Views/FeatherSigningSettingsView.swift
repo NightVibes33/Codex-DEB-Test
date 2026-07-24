@@ -1,6 +1,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 import UIKit
+import Perception
 
 struct FeatherSigningSettingsView: View {
     @State private var snapshot = FeatherSigningMaterialStore.snapshot(checkRevocation: false)
@@ -27,6 +28,7 @@ struct FeatherSigningSettingsView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack(alignment: .bottom) {
             Form {
                 customizationSection
@@ -97,7 +99,8 @@ struct FeatherSigningSettingsView: View {
         }
         .onDisappear { options.save() }
         .onChange(of: options) { _, newValue in newValue.normalizedForFeatherCertificate.save() }
-    }
+    
+        }}
 
     private var customizationSection: some View {
         featherSection("Customization") {
@@ -813,6 +816,7 @@ private struct SheetButton: View {
     @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             if isWorking {
                 ProgressView()
@@ -829,7 +833,8 @@ private struct SheetButton: View {
         .foregroundStyle(isEnabled ? Color.white : Color.secondary)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-    }
+    
+        }}
 }
 
 private struct FeatherSignedIPAShareItem: Identifiable {

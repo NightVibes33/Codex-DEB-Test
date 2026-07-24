@@ -1,6 +1,7 @@
 import Combine
 import Foundation
 import SwiftUI
+import Perception
 
 struct LitterOnboardingState {
     static let currentVersion = 1
@@ -30,6 +31,7 @@ struct OnboardingView: View {
     @State private var demoState: DemoWorkspaceState = .idle
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             ZStack {
                 AlleyBackdrop().ignoresSafeArea()
@@ -72,7 +74,8 @@ struct OnboardingView: View {
         }
         .interactiveDismissDisabled(mode == .firstRun)
         .task { await readiness.refresh(appModel: appModel, appState: appState) }
-    }
+    
+        }}
 
     private var header: some View {
         VStack(spacing: 14) {

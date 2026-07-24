@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 /// Composer + progress overlay shown over a `SavedAppDetailView` while the
 /// user asks for an update. The underlying widget remains visible (and
@@ -14,6 +15,7 @@ struct SavedAppUpdateOverlay: View {
     @FocusState private var fieldFocused: Bool
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             Color.black.opacity(isUpdating ? 0.0 : 0.35)
                 .ignoresSafeArea()
@@ -43,7 +45,8 @@ struct SavedAppUpdateOverlay: View {
                 fieldFocused = true
             }
         }
-    }
+    
+        }}
 
     private var composer: some View {
         VStack(alignment: .leading, spacing: 12) {

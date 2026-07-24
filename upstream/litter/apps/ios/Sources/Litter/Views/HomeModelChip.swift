@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 /// Small tap-to-open model picker for the home composer bar, styled to
 /// match `ProjectChip` so the two sit together above the input. Reads +
@@ -88,6 +89,7 @@ struct HomeModelChip: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         Button {
             selectedDetent = .large
             showSheet = true
@@ -168,5 +170,6 @@ struct HomeModelChip: View {
             guard let serverId else { return }
             await appModel.loadConversationMetadataIfNeeded(serverId: serverId)
         }
-    }
+    
+        }}
 }

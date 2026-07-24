@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 private struct LoadingStageText: View {
     private static let stages: [String] = [
@@ -12,6 +13,7 @@ private struct LoadingStageText: View {
     @State private var index = 0
 
     var body: some View {
+        WithPerceptionTracking {
         Text(Self.stages[index])
             .litterFont(.caption, weight: .medium)
             .foregroundStyle(LitterTheme.textSecondary)
@@ -29,7 +31,8 @@ private struct LoadingStageText: View {
                     }
                 }
             }
-    }
+    
+        }}
 }
 
 struct MinigameOverlayView: View {
@@ -40,6 +43,7 @@ struct MinigameOverlayView: View {
     @State private var skeletonShimmer: CGFloat = -1
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(spacing: 0) {
             header
             Divider().background(LitterTheme.textSecondary.opacity(0.2))
@@ -53,7 +57,8 @@ struct MinigameOverlayView: View {
                 .stroke(LitterTheme.accent.opacity(0.32), lineWidth: AlleyVisual.hairline)
         )
         .shadow(color: Color.black.opacity(0.18), radius: 12, x: 0, y: -4)
-    }
+    
+        }}
 
     private var titleText: String {
         switch state {

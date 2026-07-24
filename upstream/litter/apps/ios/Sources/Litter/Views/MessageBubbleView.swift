@@ -4,6 +4,7 @@ import HairballUI
 import Nuke
 import NukeUI
 import UIKit
+import Perception
 
 extension View {
     @ViewBuilder
@@ -52,6 +53,7 @@ struct LitterMarkdownView: View {
     @State private var debugSettings = DebugSettings.shared
 
     var body: some View {
+        WithPerceptionTracking {
         Group {
             if debugSettings.enabled && debugSettings.disableMarkdown {
                 Text(markdown)
@@ -63,7 +65,8 @@ struct LitterMarkdownView: View {
             }
         }
         .modifier(LocalMarkdownFileLinkModifier())
-    }
+    
+        }}
 
     @ViewBuilder
     private func renderedMarkdown(selectionEnabled: Bool) -> some View {
@@ -260,8 +263,10 @@ struct InlineSelectableMarkdownMessage<Content: View>: View {
     @ViewBuilder let content: () -> Content
 
     var body: some View {
+        WithPerceptionTracking {
         content()
-    }
+    
+        }}
 }
 
 private extension LitterMarkdownStyleVariant {
@@ -284,6 +289,7 @@ struct UserBubble: View {
     private let contentFontSize = LitterFont.conversationBodyPointSize
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(alignment: .top, spacing: 0) {
             Spacer(minLength: compact ? 30 : 60)
             VStack(alignment: .trailing, spacing: compact ? 4 : 8) {
@@ -345,7 +351,8 @@ struct UserBubble: View {
         .onChange(of: text) { _, _ in
             expandedLongText = false
         }
-    }
+    
+        }}
 
     private var visibleText: String {
         guard shouldLimitText, !expandedLongText else {
@@ -443,6 +450,7 @@ struct AssistantBubble: View, Equatable {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(alignment: .top, spacing: 0) {
             if allowsInlineSelection {
                 InlineSelectableMarkdownMessage(
@@ -460,7 +468,8 @@ struct AssistantBubble: View, Equatable {
             }
             Spacer(minLength: compact ? 8 : 20)
         }
-    }
+    
+        }}
 
     private var bubbleContent: some View {
         VStack(alignment: .leading, spacing: compact ? 4 : 8) {
@@ -488,6 +497,7 @@ struct AssistantBlocksBubble: View {
     private let contentFontSize = LitterFont.conversationBodyPointSize
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(alignment: .top, spacing: 0) {
             VStack(alignment: .leading, spacing: compact ? 4 : 8) {
                 if let label {
@@ -508,7 +518,8 @@ struct AssistantBlocksBubble: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             Spacer(minLength: compact ? 8 : 20)
         }
-    }
+    
+        }}
 
     @ViewBuilder
     private func segmentView(_ segment: MessageRenderCache.AssistantSegment) -> some View {
@@ -585,12 +596,14 @@ private struct LitterMathBlockView: View {
     let latex: String
 
     var body: some View {
+        WithPerceptionTracking {
         ScrollView(.horizontal, showsIndicators: true) {
             LatexBlockView(content: latex)
                 .fixedSize(horizontal: true, vertical: false)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
+    
+        }}
 }
 
 struct StreamingAssistantBubble: View {
@@ -640,6 +653,7 @@ struct StreamingAssistantBubble: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         Group {
             if shouldUseSegmentedRenderer {
                 AssistantBlocksBubble(
@@ -653,7 +667,8 @@ struct StreamingAssistantBubble: View {
         .onChange(of: text) {
             onSnapshotRendered?()
         }
-    }
+    
+        }}
 
     private var shouldUseSegmentedRenderer: Bool {
         !isStreaming || MessageContentBridge.containsMath(text)
@@ -746,6 +761,7 @@ struct MessageBubbleView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         Group {
             if message.role == .user {
                 userBubbleWithActions
@@ -763,7 +779,8 @@ struct MessageBubbleView: View {
                 }
             }
         }
-    }
+    
+        }}
 
     private var renderRevisionKey: MessageRenderCache.RevisionKey {
         MessageRenderCache.makeRevisionKey(

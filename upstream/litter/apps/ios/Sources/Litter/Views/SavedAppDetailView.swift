@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 /// Fullscreen host for a single saved app. Loads the widget HTML + persisted
 /// state from Rust on appear, renders through `WidgetWebView` in app-mode so
@@ -28,6 +29,7 @@ struct SavedAppDetailView: View {
     @State private var cachedStructuredThreadId: String?
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             Color.black.ignoresSafeArea()
             if let payload {
@@ -124,7 +126,8 @@ struct SavedAppDetailView: View {
         } message: {
             Text("This removes the app, its saved HTML, and its persisted state.")
         }
-    }
+    
+        }}
 
     /// While a saved-app update is in flight, poll the on-disk HTML
     /// every 500ms. When the model-driven `apply_patch` lands a new
@@ -421,6 +424,7 @@ private struct ShimmerStrip: View {
     @State private var phase: CGFloat = -1
 
     var body: some View {
+        WithPerceptionTracking {
         GeometryReader { geo in
             LinearGradient(
                 colors: [
@@ -441,5 +445,6 @@ private struct ShimmerStrip: View {
                 }
             }
         }
-    }
+    
+        }}
 }

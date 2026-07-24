@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import Perception
 
 struct ToolCallCardView: View {
     let model: ToolCallCardModel
@@ -33,6 +34,7 @@ struct ToolCallCardView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 8) {
                 Image(systemName: model.kind.iconName)
@@ -123,7 +125,8 @@ struct ToolCallCardView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
+    
+        }}
 
     private func setExpanded(_ nextValue: Bool) {
         expanded = nextValue
@@ -555,6 +558,7 @@ private struct ToolCallImagePreview: View {
     private static let imageCache = NSCache<NSString, UIImage>()
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 6) {
             Text("IMAGE")
                 .litterFont(.caption2, weight: .bold)
@@ -594,7 +598,8 @@ private struct ToolCallImagePreview: View {
         .task(id: taskKey) {
             await loadImage()
         }
-    }
+    
+        }}
 
     private var taskKey: String {
         "\(descriptor.cacheKey)|\(serverId ?? "<none>")"

@@ -1,4 +1,5 @@
 import StoreKit
+import Perception
 
 struct TipTier: Identifiable {
     let id: String
@@ -14,7 +15,7 @@ struct TipTier: Identifiable {
 }
 
 @MainActor
-@Observable
+@Perceptible
 final class TipJarStore {
     enum PurchaseState: Equatable {
         case idle

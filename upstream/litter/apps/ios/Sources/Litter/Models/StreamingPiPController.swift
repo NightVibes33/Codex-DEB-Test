@@ -1,7 +1,7 @@
 import AVKit
 import CoreMedia
 import CoreVideo
-import Observation
+import Perception
 import SwiftUI
 import UIKit
 
@@ -16,7 +16,7 @@ import UIKit
 /// Push cadence: 4 Hz. We always push a fresh frame — the view body reads
 /// `AppModel.shared.snapshot` directly so each render reflects current state.
 @MainActor
-@Observable
+@Perceptible
 final class StreamingPiPController: NSObject {
     static let shared = StreamingPiPController()
 
@@ -40,58 +40,58 @@ final class StreamingPiPController: NSObject {
     /// content. PiP reads each sample buffer's format description to size
     /// the floating window, so changing dimensions per frame is how we
     /// resize.
-    @ObservationIgnored private let renderWidth: CGFloat = 360
+    @PerceptionIgnored private let renderWidth: CGFloat = 360
     /// Coarse vertical snap so the floating window doesn't jitter on every
     /// token. PiP-side animation handles the transition between steps.
-    @ObservationIgnored private let heightStep: CGFloat = 24
+    @PerceptionIgnored private let heightStep: CGFloat = 24
     /// Max push cadence — actual frames pushed are gated by `isDirty`, so
     /// idle cost is unchanged. Streaming updates can hit this ceiling.
-    @ObservationIgnored private let pushIntervalSeconds: TimeInterval = 1.0 / 30.0
+    @PerceptionIgnored private let pushIntervalSeconds: TimeInterval = 1.0 / 30.0
     /// Native device scale so text is rendered at Retina resolution.
     /// Pixel-buffer dimensions and cgImage dimensions are points * scale.
-    @ObservationIgnored private let renderScale: CGFloat = UIScreen.main.scale
+    @PerceptionIgnored private let renderScale: CGFloat = UIScreen.main.scale
     /// Pool/buffer dimensions in pixels (not points). When the SwiftUI
     /// content's point size changes we recreate the pool with the matching
     /// pixel dimensions and trigger a PiP aspect transition.
-    @ObservationIgnored private var currentRenderSize: CGSize = {
+    @PerceptionIgnored private var currentRenderSize: CGSize = {
         let scale = UIScreen.main.scale
         return CGSize(width: 360 * scale, height: 160 * scale)
     }()
     /// When set, height is locked to this value (clamped to PiPContentView
     /// min/max) regardless of the card's intrinsic content height. Set by
     /// the PiP skip ⏪/⏩ controls and cleared on PiP close.
-    @ObservationIgnored private var userHeightOverride: CGFloat?
+    @PerceptionIgnored private var userHeightOverride: CGFloat?
     /// Set true whenever something the card depends on changes. The render
     /// timer only pushes a frame when this is true (or the 1 Hz heartbeat
     /// is due), so an idle PiP drops to ~zero CPU.
-    @ObservationIgnored private var isDirty = true
-    @ObservationIgnored private var lastPushTime: Date = .distantPast
-    /// Bumped on every `endSession` so an in-flight `withObservationTracking`
+    @PerceptionIgnored private var isDirty = true
+    @PerceptionIgnored private var lastPushTime: Date = .distantPast
+    /// Bumped on every `endSession` so an in-flight `withPerceptionTracking`
     /// callback can detect it's for a stopped session and stop re-subscribing.
-    @ObservationIgnored private var observationGeneration: Int = 0
+    @PerceptionIgnored private var observationGeneration: Int = 0
     /// Heartbeat cadence — push a frame at least this often even with no
     /// data changes so the elapsed-turn timer chip keeps ticking.
-    @ObservationIgnored private let heartbeatSeconds: TimeInterval = 1.0
+    @PerceptionIgnored private let heartbeatSeconds: TimeInterval = 1.0
 
-    @ObservationIgnored private let audioKeeper = SilentAudioKeeper()
-    @ObservationIgnored private var hostView: PiPHostView?
-    @ObservationIgnored private var pipController: AVPictureInPictureController?
-    @ObservationIgnored private var possibleObservation: NSKeyValueObservation?
-    @ObservationIgnored private var renderTimer: Timer?
-    @ObservationIgnored private var startRetryTimer: Timer?
-    @ObservationIgnored private var startAttemptedAt: Date?
-    @ObservationIgnored private var didRebuildForCurrentStart = false
-    @ObservationIgnored private var startupFramePushCount = 0
-    @ObservationIgnored private var pixelBufferPool: CVPixelBufferPool?
+    @PerceptionIgnored private let audioKeeper = SilentAudioKeeper()
+    @PerceptionIgnored private var hostView: PiPHostView?
+    @PerceptionIgnored private var pipController: AVPictureInPictureController?
+    @PerceptionIgnored private var possibleObservation: NSKeyValueObservation?
+    @PerceptionIgnored private var renderTimer: Timer?
+    @PerceptionIgnored private var startRetryTimer: Timer?
+    @PerceptionIgnored private var startAttemptedAt: Date?
+    @PerceptionIgnored private var didRebuildForCurrentStart = false
+    @PerceptionIgnored private var startupFramePushCount = 0
+    @PerceptionIgnored private var pixelBufferPool: CVPixelBufferPool?
     /// Set by `start()` when we want PiP to begin as soon as the controller's
     /// `isPictureInPicturePossible` flips true. Without this gate the first
     /// `startPictureInPicture()` after fresh setup is silently dropped because
     /// iOS hasn't acknowledged the new layer + audio session yet.
-    @ObservationIgnored private var pendingStart = false
+    @PerceptionIgnored private var pendingStart = false
 
     /// SwiftUI body we ask `ImageRenderer` to rasterise every tick. The body
     /// reads `AppModel.shared` so each rasterisation reflects fresh state.
-    @ObservationIgnored private lazy var renderer: ImageRenderer<PiPContentView> = {
+    @PerceptionIgnored private lazy var renderer: ImageRenderer<PiPContentView> = {
         let r = ImageRenderer(content: PiPContentView())
         // Width is fixed; nil height lets ImageRenderer use the SwiftUI
         // content's intrinsic height (clamped by PiPContentView's frame).
@@ -365,7 +365,7 @@ final class StreamingPiPController: NSObject {
     /// replaced (which AppModel does once per debounced batch of bridge
     /// events), `onChange` fires, we set `isDirty`, and re-subscribe.
     private func observeSnapshotChanges(generation: Int) {
-        withObservationTracking {
+        withPerceptionTracking {
             _ = AppModel.shared.snapshot
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in

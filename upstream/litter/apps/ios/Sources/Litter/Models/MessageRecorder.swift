@@ -1,12 +1,11 @@
 import Foundation
-import Observation
-
+import Perception
 /// Thin Swift wrapper over the Rust-side MessageRecorder.
 /// Recording/serialization happens entirely in Rust using the upstream protocol
 /// types (ServerNotification, ClientRequest) which already have serde.
 /// Swift just manages file I/O and replay lifecycle.
 @MainActor
-@Observable
+@Perceptible
 final class MessageRecorder {
     static let shared = MessageRecorder()
 

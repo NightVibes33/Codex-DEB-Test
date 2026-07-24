@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 /// Transcript for the currently-focused task. Each task carries its own
 /// transcript inline (see `WatchTask.transcript`), so this always reflects
@@ -8,6 +9,7 @@ struct TranscriptScreen: View {
     @EnvironmentObject var theme: WatchThemeStore
 
     var body: some View {
+        WithPerceptionTracking {
         let task = store.focusedTask
         let turns = task?.transcript ?? []
 
@@ -54,7 +56,8 @@ struct TranscriptScreen: View {
             }
         }
         .containerBackground(theme.backgroundGradient, for: .navigation)
-    }
+    
+        }}
 }
 
 private struct TranscriptBubble: View {
@@ -63,6 +66,7 @@ private struct TranscriptBubble: View {
     let turn: WatchTranscriptTurn
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(alignment: .top, spacing: 4) {
             switch turn.role {
             case .user:
@@ -103,7 +107,8 @@ private struct TranscriptBubble: View {
                 Spacer(minLength: 0)
             }
         }
-    }
+    
+        }}
 }
 
 #if DEBUG

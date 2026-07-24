@@ -1,10 +1,12 @@
 import SwiftUI
+import Perception
 
 struct AIProviderSettingsView: View {
     @StateObject private var providerStore = AIProviderStore.shared
     @State private var showAddProvider = false
 
     var body: some View {
+        WithPerceptionTracking {
         List {
             modelSettingsSection
             providersSection
@@ -33,7 +35,8 @@ struct AIProviderSettingsView: View {
         .onAppear {
             providerStore.reload()
         }
-    }
+    
+        }}
 
     private var modelSettingsSection: some View {
         Section {
@@ -133,6 +136,7 @@ private struct AddAIProviderView: View {
     @State private var report = AIProviderHealthReport(status: .unknown, models: [])
 
     var body: some View {
+        WithPerceptionTracking {
         Form {
             Section {
                 TextField("Name", text: $name)
@@ -189,7 +193,8 @@ private struct AddAIProviderView: View {
                     .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || baseURL.trimmingCharacters(in: .whitespaces).isEmpty)
             }
         }
-    }
+    
+        }}
 
     private var reportColor: Color {
         switch report.status {
@@ -235,6 +240,7 @@ private struct AIProviderDetailView: View {
     @State private var isTesting = false
 
     var body: some View {
+        WithPerceptionTracking {
         List {
             Section {
                 Text(provider.displayName)
@@ -277,7 +283,8 @@ private struct AIProviderDetailView: View {
         .tint(LitterTheme.accent)
         .navigationTitle(provider.displayName)
         .navigationBarTitleDisplayMode(.inline)
-    }
+    
+        }}
 
     private var reportColor: Color {
         switch report.status {

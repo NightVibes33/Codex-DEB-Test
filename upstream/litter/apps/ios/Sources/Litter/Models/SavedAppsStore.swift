@@ -1,6 +1,5 @@
 import Foundation
-import Observation
-
+import Perception
 /// Generated UniFFI records don't carry Swift-only conformances. Lifting
 /// `SavedApp` to `Identifiable` lets SwiftUI `.sheet(item:)`/`ForEach` use
 /// its UUIDv4 as the stable identity.
@@ -11,7 +10,7 @@ extension SavedApp: Identifiable {}
 /// detail; `pendingConversationThreadId` pops back and pushes the origin
 /// conversation (used by the "View Conversation" button on the detail view).
 @MainActor
-@Observable
+@Perceptible
 final class SavedAppsNavigation {
     static let shared = SavedAppsNavigation()
 
@@ -51,15 +50,15 @@ final class SavedAppsNavigation {
 /// `notifyRustPreferencesChanged()`. State saves do not — the inner
 /// `state_json` blob is intentionally kept out of the small KVS envelope.
 @MainActor
-@Observable
+@Perceptible
 final class SavedAppsStore {
     static let shared = SavedAppsStore()
 
     private(set) var apps: [SavedApp] = []
 
-    @ObservationIgnored private let directory: String = SavedAppsDirectory.path
-    @ObservationIgnored private var saveStateDebouncers: [String: Task<Void, Never>] = [:]
-    @ObservationIgnored private var pendingStateSaves: [String: PendingStateSave] = [:]
+    @PerceptionIgnored private let directory: String = SavedAppsDirectory.path
+    @PerceptionIgnored private var saveStateDebouncers: [String: Task<Void, Never>] = [:]
+    @PerceptionIgnored private var pendingStateSaves: [String: PendingStateSave] = [:]
 
     private struct PendingStateSave {
         let stateJson: String

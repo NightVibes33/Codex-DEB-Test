@@ -2,6 +2,7 @@
 import NearbyInteraction
 import SwiftUI
 import simd
+import Perception
 
 /// Debug surface for the iPhone-side UWB ranging used by the Mac pairing
 /// flow. Reuses `NearbyMacPairing.shared` in debug mode (which skips the
@@ -16,6 +17,7 @@ struct UWBDebugView: View {
         .autoconnect()
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             AlleyBackdrop().ignoresSafeArea()
             ScrollView {
@@ -35,7 +37,8 @@ struct UWBDebugView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onReceive(tick) { now = $0 }
         .onDisappear { pairing.stopDebug() }
-    }
+    
+        }}
 
     // MARK: - Sections
 
@@ -179,6 +182,7 @@ private struct DistanceBar: View {
     let meters: Float?
 
     var body: some View {
+        WithPerceptionTracking {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 Capsule().fill(LitterTheme.surface)
@@ -188,7 +192,8 @@ private struct DistanceBar: View {
             }
         }
         .frame(height: 6)
-    }
+    
+        }}
 
     private var fill: Float {
         guard let m = meters else { return 0 }
@@ -205,6 +210,7 @@ private struct CompassView: View {
     let horizontalAngle: Float?
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             Circle()
                 .stroke(LitterTheme.border, lineWidth: 1)
@@ -222,7 +228,8 @@ private struct CompassView: View {
                 .foregroundColor(LitterTheme.textMuted)
                 .offset(y: -52)
         }
-    }
+    
+        }}
 
     @ViewBuilder
     private var arrow: some View {

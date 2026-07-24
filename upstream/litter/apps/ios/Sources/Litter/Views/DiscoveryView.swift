@@ -1,5 +1,6 @@
 import SwiftUI
 import Network
+import Perception
 
 struct DiscoveryView: View {
     var onServerSelected: ((DiscoveredServer) -> Void)?
@@ -75,6 +76,7 @@ struct DiscoveryView: View {
     private func handleDisappear() {}
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             AlleyBackdrop().ignoresSafeArea()
             chooserContent
@@ -240,7 +242,8 @@ struct DiscoveryView: View {
         } message: {
             Text("Enter a new name for this server.")
         }
-    }
+    
+        }}
 
     // MARK: - Chooser
 

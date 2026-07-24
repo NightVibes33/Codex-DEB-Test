@@ -1,5 +1,6 @@
 import SwiftUI
 import WatchKit
+import Perception
 
 /// 3 · Approve — real pending approval from the phone. Deny on the left,
 /// allow on the right. `handGestureShortcut(.primaryAction)` maps the
@@ -9,6 +10,7 @@ struct ApprovalScreen: View {
     @EnvironmentObject var theme: WatchThemeStore
 
     var body: some View {
+        WithPerceptionTracking {
         Group {
             if let approval = store.pendingApproval {
                 ApprovalBody(approval: approval)
@@ -21,7 +23,8 @@ struct ApprovalScreen: View {
             }
         }
         .containerBackground(theme.backgroundGradient, for: .navigation)
-    }
+    
+        }}
 }
 
 private struct ApprovalBody: View {
@@ -31,6 +34,7 @@ private struct ApprovalBody: View {
     let approval: WatchApproval
 
     var body: some View {
+        WithPerceptionTracking {
         ScrollView(.vertical) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 6) {
@@ -128,7 +132,8 @@ private struct ApprovalBody: View {
             .padding(.horizontal, 4)
             .padding(.vertical, 4)
         }
-    }
+    
+        }}
 
     private func tap(approve: Bool) {
         WKInterfaceDevice.current().play(approve ? .success : .failure)

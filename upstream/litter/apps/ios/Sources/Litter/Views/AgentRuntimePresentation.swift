@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 /// Bridge alias: Rust exposes agent identity as an opaque `String` (the
 /// lowercase id alleycat advertises). The legacy `AgentRuntimeKind`
@@ -133,6 +134,7 @@ struct AgentIconView: View {
     var size: CGFloat = 24
 
     var body: some View {
+        WithPerceptionTracking {
         if let assetName = kind.bundledAssetName {
             Image(assetName)
                 .resizable()
@@ -141,7 +143,8 @@ struct AgentIconView: View {
         } else {
             AgentMonogramView(kind: kind, size: size)
         }
-    }
+    
+        }}
 }
 
 /// Letter-based fallback when no icon is cached. Renders the first
@@ -152,6 +155,7 @@ struct AgentMonogramView: View {
     var size: CGFloat = 24
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             RoundedRectangle(cornerRadius: size * 0.2)
                 .fill(Color.black.opacity(0.82))
@@ -164,7 +168,8 @@ struct AgentMonogramView: View {
                 .foregroundColor(LitterTheme.accent)
         }
         .frame(width: size, height: size)
-    }
+    
+        }}
 
     private var monogramLetter: String {
         kind.first.map { String($0).uppercased() } ?? "?"
@@ -173,6 +178,7 @@ struct AgentMonogramView: View {
 
 struct BetaBadge: View {
     var body: some View {
+        WithPerceptionTracking {
         Text("BETA")
             .litterFont(.caption2)
             .foregroundColor(LitterTheme.accent)
@@ -182,5 +188,6 @@ struct BetaBadge: View {
                 RoundedRectangle(cornerRadius: 3)
                     .stroke(LitterTheme.accent.opacity(0.6), lineWidth: 0.5)
             )
-    }
+    
+        }}
 }

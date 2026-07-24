@@ -1,5 +1,5 @@
 import Foundation
-import Observation
+import Perception
 #if !LITTER_APP_STORE_SAFE
 import StoreKit
 #endif
@@ -46,7 +46,7 @@ enum ProFeature: String, Identifiable, Hashable {
 
 #if LITTER_APP_STORE_SAFE
 @MainActor
-@Observable
+@Perceptible
 final class ProAccessStore {
     enum PurchaseState: Equatable {
         case idle
@@ -93,7 +93,7 @@ final class ProAccessStore {
 }
 #else
 @MainActor
-@Observable
+@Perceptible
 final class ProAccessStore {
     enum PurchaseState: Equatable {
         case idle

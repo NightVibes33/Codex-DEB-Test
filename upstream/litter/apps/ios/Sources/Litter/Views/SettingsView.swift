@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import Perception
 
 enum SettingsFeatureVisibility {
     static let showsTipJar = false
@@ -44,6 +45,7 @@ struct SettingsView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack(path: $navigationPath) {
             ZStack {
                 AlleyBackdrop().ignoresSafeArea()
@@ -184,7 +186,8 @@ struct SettingsView: View {
             .environment(\.textScale, textScale)
         }
         .onDisappear { taskBag.cancelAll() }
-    }
+    
+        }}
 
     // MARK: - Getting Started Section
 
@@ -1053,6 +1056,7 @@ private struct ConversationSettingsRouteView: View {
     @AppStorage(ConversationDisplayPreferenceKey.tools) private var toolDisplayMode = ConversationDetailDisplayMode.collapsed.rawValue
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             AlleyBackdrop().ignoresSafeArea()
             Form {
@@ -1089,16 +1093,19 @@ private struct ConversationSettingsRouteView: View {
         }
         .navigationTitle("Conversation")
         .navigationBarTitleDisplayMode(.inline)
-    }
+    
+        }}
 }
 
 private struct SettingsTerminalView: View {
     let initialDirectory: String
 
     var body: some View {
+        WithPerceptionTracking {
         TerminalScreen(cwd: initialDirectory)
             .navigationBarTitleDisplayMode(.inline)
-    }
+    
+        }}
 }
 
 private enum SettingsServerSheet: Identifiable {
@@ -1250,6 +1257,7 @@ private struct SettingsServerConnectionEditor: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             ZStack {
                 AlleyBackdrop().ignoresSafeArea()
@@ -1277,7 +1285,8 @@ private struct SettingsServerConnectionEditor: View {
                 Text(validationError ?? "Check the server details.")
             }
         }
-    }
+    
+        }}
 
     private var nameSection: some View {
         Section {
@@ -1547,6 +1556,7 @@ private struct SettingsConnectionAccountSection: View {
 
     @StateObject private var taskBag = ViewTaskBag()
     var body: some View {
+        WithPerceptionTracking {
         Section {
             HStack(spacing: 12) {
                 Circle()
@@ -1776,7 +1786,8 @@ private struct SettingsConnectionAccountSection: View {
             await refreshAuthStatusIfNeeded()
         }
         .onDisappear { taskBag.cancelAll() }
-    }
+    
+        }}
 
     private var allowsLocalEnvApiKey: Bool {
         server.isLocal
@@ -2051,6 +2062,7 @@ private struct SettingsDisconnectedAccountSection: View {
     @State private var isRestartingLocalServer = false
 
     var body: some View {
+        WithPerceptionTracking {
         Section {
             Text(appModel.isRecoveringLocalServer ? "Starting Local Codex for ChatGPT login and API key entry." : "Local Codex isn't running. ChatGPT login and API key entry require the local bridge.")
                 .litterFont(.caption)
@@ -2085,7 +2097,8 @@ private struct SettingsDisconnectedAccountSection: View {
         .task {
             appModel.ensureLocalServerConnectedIfNeeded(reason: "settingsAccount")
         }
-    }
+    
+        }}
 }
 
 private func isSettingsSlingshotURL(_ rawURL: String) -> Bool {

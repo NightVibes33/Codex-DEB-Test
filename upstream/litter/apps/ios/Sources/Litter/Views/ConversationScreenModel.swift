@@ -1,5 +1,5 @@
 import Foundation
-import Observation
+import Perception
 import UIKit
 
 struct ConversationTranscriptSnapshot: Equatable {
@@ -87,7 +87,7 @@ enum MinigameOverlayState: Equatable {
 }
 
 @MainActor
-@Observable
+@Perceptible
 final class ConversationScreenModel {
     private(set) var transcript: ConversationTranscriptSnapshot = .empty
     private(set) var pinnedContextItems: [ConversationItem] = []
@@ -102,14 +102,14 @@ final class ConversationScreenModel {
     var composerInputText: String = ""
     var composerAttachedImage: UIImage?
 
-    @ObservationIgnored private var thread: AppThreadSnapshot?
-    @ObservationIgnored private var appModel: AppModel?
-    @ObservationIgnored private var agentDirectoryVersion: UInt64 = 0
-    @ObservationIgnored private var cachedConversationItemProjections: [String: CachedConversationItemProjection] = [:]
-    @ObservationIgnored private var cachedHydratedConversationItems: [HydratedConversationItem] = []
-    @ObservationIgnored private var cachedProjectedConversationItems: [ConversationItem] = []
-    @ObservationIgnored private var transcriptRevision: Int = 0
-    @ObservationIgnored private var minigameTask: Task<Void, Never>?
+    @PerceptionIgnored private var thread: AppThreadSnapshot?
+    @PerceptionIgnored private var appModel: AppModel?
+    @PerceptionIgnored private var agentDirectoryVersion: UInt64 = 0
+    @PerceptionIgnored private var cachedConversationItemProjections: [String: CachedConversationItemProjection] = [:]
+    @PerceptionIgnored private var cachedHydratedConversationItems: [HydratedConversationItem] = []
+    @PerceptionIgnored private var cachedProjectedConversationItems: [ConversationItem] = []
+    @PerceptionIgnored private var transcriptRevision: Int = 0
+    @PerceptionIgnored private var minigameTask: Task<Void, Never>?
 
     func bind(
         thread: AppThreadSnapshot,

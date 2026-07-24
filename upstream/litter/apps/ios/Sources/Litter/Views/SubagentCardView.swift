@@ -1,5 +1,6 @@
 import SwiftUI
 import HairballUI
+import Perception
 
 struct SubagentCardView: View {
     @Environment(AppModel.self) private var appModel
@@ -21,6 +22,7 @@ struct SubagentCardView: View {
     private var isInProgress: Bool { data.isInProgress }
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 0) {
             headerRow
                 .contentShape(Rectangle())
@@ -47,7 +49,8 @@ struct SubagentCardView: View {
             SubagentDetailSheet(threadKey: resolvedKey, agentLabel: sheetAgentLabel)
                 .environment(appModel)
         }
-    }
+    
+        }}
 
     // MARK: - Header
 
@@ -339,6 +342,7 @@ private struct SubagentDetailSheet: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             Group {
                 if let threadSnapshot {
@@ -415,7 +419,8 @@ private struct SubagentDetailSheet: View {
         .task(id: threadKey.id) {
             await loadThreadIfNeeded()
         }
-    }
+    
+        }}
 
     private func parseLabel(_ label: String) -> (nickname: String, roleSuffix: String) {
         guard label.hasSuffix("]"), let openBracket = label.lastIndex(of: "[") else {

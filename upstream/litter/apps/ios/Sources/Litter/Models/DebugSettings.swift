@@ -1,5 +1,5 @@
 import Foundation
-import Observation
+import Perception
 import HairballUI
 import SwiftUI
 
@@ -58,11 +58,11 @@ enum StreamingEffectKind: String, CaseIterable, Identifiable {
     }
 }
 
-@Observable
+@Perceptible
 final class DebugSettings {
     static let shared = DebugSettings()
 
-    @ObservationIgnored private let key = "litter.debugSettings"
+    @PerceptionIgnored private let key = "litter.debugSettings"
     private var overrides: [String: Bool]
 
     private init() {

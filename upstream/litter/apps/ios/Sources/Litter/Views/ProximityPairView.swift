@@ -1,5 +1,6 @@
 import SwiftUI
 import simd
+import Perception
 
 #if !targetEnvironment(macCatalyst)
 /// Source-of-truth abstraction read by the unified view. iPhone reads from
@@ -72,6 +73,7 @@ struct ProximityPairView: View {
     @State private var lastFrame: ProximityFrame?
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             backgroundGradient
             TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { context in
@@ -131,7 +133,8 @@ struct ProximityPairView: View {
             pairing.cancel()
         }
         #endif
-    }
+    
+        }}
 
     // MARK: - Visual sub-views
 

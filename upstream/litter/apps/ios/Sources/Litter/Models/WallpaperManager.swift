@@ -1,5 +1,5 @@
 import SwiftUI
-import Observation
+import Perception
 import UIKit
 import HairballUI
 
@@ -120,7 +120,7 @@ private struct WallpaperPrefsFile: Codable {
 // MARK: - WallpaperManager
 
 @MainActor
-@Observable
+@Perceptible
 final class WallpaperManager {
     @MainActor static let shared = WallpaperManager()
 
@@ -129,13 +129,13 @@ final class WallpaperManager {
     private(set) var resolvedConfig: WallpaperConfig?
     private(set) var version: Int = 0
 
-    @ObservationIgnored
+    @PerceptionIgnored
     private var prefs = WallpaperPrefsFile()
 
-    @ObservationIgnored
+    @PerceptionIgnored
     private var imageCache: [String: UIImage] = [:]
 
-    @ObservationIgnored
+    @PerceptionIgnored
     private static let defaultChatBackgroundPresets: [ChatBackgroundPreset] = [
         ChatBackgroundPreset(slug: "aurora", name: "Aurora", backgroundHex: "#07111F", secondaryHex: "#231942", accentHex: "#6EE7F9", foregroundHex: "#ECFEFF", pattern: .waveLines),
         ChatBackgroundPreset(slug: "terminal-grid", name: "Terminal Grid", backgroundHex: "#03120B", secondaryHex: "#08251A", accentHex: "#00FF9C", foregroundHex: "#D1FAE5", pattern: .dotGrid),
@@ -149,16 +149,16 @@ final class WallpaperManager {
         ChatBackgroundPreset(slug: "forest", name: "Forest", backgroundHex: "#07140F", secondaryHex: "#123524", accentHex: "#34D399", foregroundHex: "#DCFCE7", pattern: .waveLines)
     ]
 
-    @ObservationIgnored
+    @PerceptionIgnored
     private static let prefsFileName = "wallpaper_prefs.json"
 
-    @ObservationIgnored
+    @PerceptionIgnored
     private static var prefsFileURL: URL {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         return dir.appendingPathComponent(prefsFileName)
     }
 
-    @ObservationIgnored
+    @PerceptionIgnored
     private static var documentsDir: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
     }

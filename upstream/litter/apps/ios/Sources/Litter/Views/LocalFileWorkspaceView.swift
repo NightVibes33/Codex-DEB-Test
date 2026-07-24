@@ -1,5 +1,5 @@
 import SwiftUI
-import Observation
+import Perception
 import UniformTypeIdentifiers
 import UIKit
 
@@ -28,8 +28,10 @@ struct LocalFileWorkspaceView: View {
 
     @StateObject private var taskBag = ViewTaskBag()
     var body: some View {
+        WithPerceptionTracking {
         sheetLayer
-    }
+    
+        }}
 
     private var sheetLayer: some View {
         alertLayer
@@ -1084,7 +1086,7 @@ private struct LocalFileStoredShortcut: Codable, Hashable {
 }
 
 @MainActor
-@Observable
+@Perceptible
 private final class LocalFileWorkspaceModel {
     var currentPath = HomeAnchor.path
     var entries: [LocalFileEntry] = []
@@ -1681,6 +1683,7 @@ private struct LocalFileWorkspaceOverview: View {
     let onCreateManifest: () -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
@@ -1720,7 +1723,8 @@ private struct LocalFileWorkspaceOverview: View {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(LitterTheme.border.opacity(0.32), lineWidth: 1)
         )
-    }
+    
+        }}
 }
 
 private struct LocalFileStatPill: View {
@@ -1729,6 +1733,7 @@ private struct LocalFileStatPill: View {
     let systemImage: String
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 4) {
             Image(systemName: systemImage)
                 .font(.system(size: 12, weight: .semibold))
@@ -1745,7 +1750,8 @@ private struct LocalFileStatPill: View {
         .frame(width: 72, alignment: .leading)
         .padding(8)
         .background(LitterTheme.surfaceLight.opacity(0.36), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-    }
+    
+        }}
 }
 
 private struct LocalFileActionChip: View {
@@ -1754,6 +1760,7 @@ private struct LocalFileActionChip: View {
     let action: () -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         Button(action: action) {
             Label(title, systemImage: systemImage)
                 .litterMonoFont(size: 11, weight: .semibold)
@@ -1763,7 +1770,8 @@ private struct LocalFileActionChip: View {
         .buttonStyle(.plain)
         .foregroundStyle(LitterTheme.textPrimary)
         .background(LitterTheme.surfaceLight.opacity(0.42), in: Capsule())
-    }
+    
+        }}
 }
 
 private struct LocalFileFilterBar: View {
@@ -1771,6 +1779,7 @@ private struct LocalFileFilterBar: View {
     let counts: [LocalFileFilter: Int]
 
     var body: some View {
+        WithPerceptionTracking {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 ForEach(LocalFileFilter.allCases) { filter in
@@ -1794,7 +1803,8 @@ private struct LocalFileFilterBar: View {
             }
             .padding(.vertical, 2)
         }
-    }
+    
+        }}
 }
 
 private struct LocalFileSectionHeader: View {
@@ -1802,6 +1812,7 @@ private struct LocalFileSectionHeader: View {
     let detail: String
 
     var body: some View {
+        WithPerceptionTracking {
         HStack {
             Text(title)
                 .litterFont(.caption, weight: .semibold)
@@ -1811,7 +1822,8 @@ private struct LocalFileSectionHeader: View {
                 .litterMonoFont(size: 11, weight: .medium)
                 .foregroundStyle(LitterTheme.textMuted)
         }
-    }
+    
+        }}
 }
 
 private struct LocalFileRow: View {
@@ -1822,6 +1834,7 @@ private struct LocalFileRow: View {
     let onInspect: () -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 12) {
             if showsSelection {
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
@@ -1880,7 +1893,8 @@ private struct LocalFileRow: View {
         }
         .padding(.vertical, 8)
         .contentShape(Rectangle())
-    }
+    
+        }}
 }
 
 private struct LocalFileGridItem: View {
@@ -1891,6 +1905,7 @@ private struct LocalFileGridItem: View {
     let onInspect: () -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 10) {
             ZStack(alignment: .topTrailing) {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -1944,13 +1959,15 @@ private struct LocalFileGridItem: View {
         .padding(8)
         .background(LitterTheme.surfaceLight.opacity(0.35), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-    }
+    
+        }}
 }
 
 private struct LocalFileBadge: View {
     let text: String
 
     var body: some View {
+        WithPerceptionTracking {
         Text(text)
             .litterMonoFont(size: 9, weight: .semibold)
             .foregroundStyle(LitterTheme.accent)
@@ -1958,13 +1975,15 @@ private struct LocalFileBadge: View {
             .padding(.vertical, 2)
             .background(LitterTheme.accent.opacity(0.14), in: Capsule())
             .lineLimit(1)
-    }
+    
+        }}
 }
 
 private struct LocalFileShortcutCard: View {
     let shortcut: LocalFileShortcut
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 10) {
             Image(systemName: shortcut.systemImage)
                 .font(.system(size: 18, weight: .semibold))
@@ -1988,7 +2007,8 @@ private struct LocalFileShortcutCard: View {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(LitterTheme.border.opacity(0.32), lineWidth: 1)
         )
-    }
+    
+        }}
 }
 
 private struct LocalFileEmptyState: View {
@@ -1999,6 +2019,7 @@ private struct LocalFileEmptyState: View {
     let action: () -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(spacing: 12) {
             Image(systemName: systemImage)
                 .font(.system(size: 34, weight: .semibold))
@@ -2016,7 +2037,8 @@ private struct LocalFileEmptyState: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
+    
+        }}
 }
 
 private struct LocalTextFileEditorView: View {
@@ -2031,6 +2053,7 @@ private struct LocalTextFileEditorView: View {
 
     @StateObject private var taskBag = ViewTaskBag()
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             ZStack {
                 AlleyBackdrop().ignoresSafeArea()
@@ -2073,7 +2096,8 @@ private struct LocalTextFileEditorView: View {
                 Text(errorMessage ?? "")
             }
         }
-    }
+    
+        }}
 
     private func load() async {
         isLoading = true
@@ -2111,6 +2135,7 @@ private struct LocalFilePreviewSheet: View {
     @State private var isLoading = true
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             ZStack {
                 AlleyBackdrop().ignoresSafeArea()
@@ -2138,7 +2163,8 @@ private struct LocalFilePreviewSheet: View {
             }
             .task { await load() }
         }
-    }
+    
+        }}
 
     @ViewBuilder
     private var previewHero: some View {
@@ -2199,6 +2225,7 @@ private struct LocalFileInfoPanel: View {
     let file: LocalFileEntry
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 10) {
             infoRow("Kind", file.kindLabel)
             infoRow("Path", file.path)
@@ -2217,7 +2244,8 @@ private struct LocalFileInfoPanel: View {
         }
         .padding(14)
         .background(LitterTheme.surface.opacity(0.5), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-    }
+    
+        }}
 
     private func infoRow(_ title: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 3) {
@@ -2243,6 +2271,7 @@ private struct LocalFileInspectorSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             ZStack {
                 AlleyBackdrop().ignoresSafeArea()
@@ -2285,7 +2314,8 @@ private struct LocalFileInspectorSheet: View {
                 }
             }
         }
-    }
+    
+        }}
 
     private func perform(_ action: @escaping () -> Void) {
         dismiss()
@@ -2299,6 +2329,7 @@ private struct LocalFileInspectorButton: View {
     let action: () -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         Button(action: action) {
             HStack {
                 Label(title, systemImage: systemImage)
@@ -2313,7 +2344,8 @@ private struct LocalFileInspectorButton: View {
             .background(LitterTheme.surface.opacity(0.52), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
         .buttonStyle(.plain)
-    }
+    
+        }}
 }
 
 struct LitterTerminalEntry: Identifiable, Hashable {
@@ -2369,6 +2401,7 @@ struct LitterTerminalPanel: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(spacing: 0) {
             terminalHeader
             Divider().overlay(LitterTheme.accent.opacity(0.28))
@@ -2447,7 +2480,8 @@ struct LitterTerminalPanel: View {
                     .disabled(commandHistory.isEmpty)
             }
         }
-    }
+    
+        }}
 
     private var terminalHeader: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -3038,6 +3072,7 @@ private struct LocalCommandOutputSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
+        WithPerceptionTracking {
         NavigationStack {
             ZStack {
                 AlleyBackdrop().ignoresSafeArea()
@@ -3066,5 +3101,6 @@ private struct LocalCommandOutputSheet: View {
                 }
             }
         }
-    }
+    
+        }}
 }

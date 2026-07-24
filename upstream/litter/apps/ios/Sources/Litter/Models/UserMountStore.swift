@@ -1,6 +1,5 @@
 import Foundation
-import Observation
-
+import Perception
 struct UserMount: Codable, Identifiable, Equatable {
     let id: UUID
     let name: String
@@ -21,20 +20,20 @@ enum MountStatus: Equatable {
 /// security-scope-held URLs. Scopes are acquired on add/boot and released only
 /// on user removal (or process death), per Apple's balanced start/stop rule.
 @MainActor
-@Observable
+@Perceptible
 final class UserMountStore {
     static let shared = UserMountStore()
 
     private(set) var mounts: [UserMount] = []
     private(set) var statuses: [UUID: MountStatus] = [:]
 
-    @ObservationIgnored private var heldUrls: [UUID: URL] = [:]
-    @ObservationIgnored private let storageKey = "litter.userMounts.v1"
+    @PerceptionIgnored private var heldUrls: [UUID: URL] = [:]
+    @PerceptionIgnored private let storageKey = "litter.userMounts.v1"
 
     /// Rootfs top-level directories under `apps/ios/Resources/fs/data/` plus
     /// `apps` (already used by the existing `/mnt/apps` mount). A picked
     /// folder whose `lastPathComponent` matches one of these gets auto-suffixed.
-    @ObservationIgnored private let reservedNames: Set<String> = [
+    @PerceptionIgnored private let reservedNames: Set<String> = [
         "apps", "bin", "dev", "etc", "home", "lib", "media", "mnt",
         "opt", "proc", "root", "run", "sbin", "srv", "sys", "tmp", "usr", "var",
     ]

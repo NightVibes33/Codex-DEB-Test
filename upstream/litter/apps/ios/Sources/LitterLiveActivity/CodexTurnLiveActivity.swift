@@ -1,6 +1,7 @@
 import ActivityKit
 import SwiftUI
 import WidgetKit
+import Perception
 
 struct CodexTurnLiveActivity: Widget {
     // Dynamic Island is always dark — resolve palette colors once for .dark scheme
@@ -258,6 +259,7 @@ private struct AdaptiveLiveTimer: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         Group {
             if isActive {
                 Text(timerInterval: context.attributes.startDate...Date.distantFuture, countsDown: false)
@@ -272,5 +274,6 @@ private struct AdaptiveLiveTimer: View {
         .fontWeight(.regular)
         .foregroundStyle(timerColor)
         .multilineTextAlignment(.trailing)
-    }
+    
+        }}
 }

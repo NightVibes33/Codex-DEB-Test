@@ -1,6 +1,7 @@
 #if targetEnvironment(macCatalyst)
 import SwiftUI
 import UIKit
+import Perception
 
 extension Notification.Name {
     static let litterCommandNewSession = Notification.Name("com.litter.command.newSession")
@@ -57,6 +58,7 @@ private struct SessionShortcutsMenu: View {
     let appModel: AppModel
 
     var body: some View {
+        WithPerceptionTracking {
         let summaries = appModel.snapshot?.sessionSummaries ?? []
         ForEach(0..<9, id: \.self) { index in
             let shortcutKey = KeyEquivalent(Character("\(index + 1)"))
@@ -72,7 +74,8 @@ private struct SessionShortcutsMenu: View {
             .keyboardShortcut(shortcutKey, modifiers: [.command])
             .disabled(summary == nil)
         }
-    }
+    
+        }}
 
     private func label(for summary: AppSessionSummary?, index: Int) -> String {
         guard let summary else { return "Session \(index + 1)" }

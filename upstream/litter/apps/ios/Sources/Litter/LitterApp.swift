@@ -3,6 +3,7 @@ import UIKit
 import UserNotifications
 import Combine
 import os
+import Perception
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     private var pendingPushToken: Data?
@@ -463,7 +464,8 @@ struct ContentView: View {
     }
 
     var body: some View {
-        @Bindable var bindableAppState = appState
+        WithPerceptionTracking {
+        @Perception.Bindable var bindableAppState = appState
 
         GeometryReader { geometry in
             ZStack {
@@ -585,7 +587,8 @@ struct ContentView: View {
             appState.showSettings = true
         }
         #endif
-    }
+    
+        }}
 
     private func standardHomeNavigationView(topInset: CGFloat, bottomInset: CGFloat) -> some View {
         HomeNavigationView(
@@ -1023,6 +1026,7 @@ private struct HomeNavigationView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         rootNavigationContent
         .task {
             homeDashboardModel.bind(appModel: appModel)
@@ -1173,7 +1177,8 @@ private struct HomeNavigationView: View {
             .environment(appModel)
             .environment(appState)
         }
-    }
+    
+        }}
 
     private func presentFirstRunOnboardingIfNeeded() {
         guard onboardingCompletedVersion < LitterOnboardingState.currentVersion,
@@ -2264,9 +2269,10 @@ private struct ConversationDestinationScreen: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         Group {
             if let conversationThread {
-                @Bindable var bindableScreenModel = screenModel
+                @Perception.Bindable var bindableScreenModel = screenModel
                 ConversationView(
                     thread: conversationThread,
                     activeThreadKey: resolvedThreadKey,
@@ -2366,7 +2372,8 @@ private struct ConversationDestinationScreen: View {
                 appState.currentCwd = cwd
             }
         }
-    }
+    
+        }}
 }
 
 private struct ReplayDestinationScreen: View {
@@ -2383,9 +2390,10 @@ private struct ReplayDestinationScreen: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         Group {
             if let thread = conversationThread, let key = replayThreadKey {
-                @Bindable var bindableScreenModel = screenModel
+                @Perception.Bindable var bindableScreenModel = screenModel
                 ConversationView(
                     thread: thread,
                     activeThreadKey: key,
@@ -2437,7 +2445,8 @@ private struct ReplayDestinationScreen: View {
         .onDisappear {
             recorder.stopReplay()
         }
-    }
+    
+        }}
 
     private func bindScreenModel(for thread: AppThreadSnapshot) {
         screenModel.bind(
@@ -2467,6 +2476,7 @@ private struct ApprovalPromptView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             Color.black.opacity(0.7)
                 .ignoresSafeArea()
@@ -2567,11 +2577,13 @@ private struct ApprovalPromptView: View {
             .padding(.horizontal, 16)
         }
         .transition(.opacity)
-    }
+    
+        }}
 }
 
 struct LaunchView: View {
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             AlleyBackdrop().ignoresSafeArea()
             VStack(spacing: 24) {
@@ -2581,5 +2593,6 @@ struct LaunchView: View {
                     .foregroundColor(LitterTheme.textMuted)
             }
         }
-    }
+    
+        }}
 }

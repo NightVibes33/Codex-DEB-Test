@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 /// Drop-in replacement for `Text` that applies inline formatting such as
 /// plugin-reference pills (`[@Name](plugin://plugin-name@marketplace)`).
@@ -14,6 +15,7 @@ struct FormattedText: View {
     var lineLimit: Int? = nil
 
     var body: some View {
+        WithPerceptionTracking {
         let segments = parsePluginRefs(input: text)
         if segments.count == 1, case .text(let t) = segments.first {
             Text(t)
@@ -23,7 +25,8 @@ struct FormattedText: View {
         } else {
             multiLine(segments)
         }
-    }
+    
+        }}
 
     private func singleLine(_ segments: [TitleSegment]) -> some View {
         // spacing=0: segments already carry the original whitespace, so the
@@ -90,6 +93,7 @@ struct PluginPill: View {
     let pluginName: String
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 4) {
             Image(systemName: iconName)
                 .font(.system(size: 11, weight: .semibold))
@@ -104,7 +108,8 @@ struct PluginPill: View {
             RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .fill(LitterTheme.accent.opacity(0.15))
         )
-    }
+    
+        }}
 
     private var iconName: String {
         switch pluginName {

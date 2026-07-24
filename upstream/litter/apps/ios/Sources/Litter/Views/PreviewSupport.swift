@@ -2,6 +2,7 @@ import Foundation
 
 #if DEBUG
 import SwiftUI
+import Perception
 
 enum LitterPreviewData {
     static let sampleCwd = "/Users/sigkitten/dev/codex-ios"
@@ -483,7 +484,7 @@ struct LitterPreviewScene<Content: View>: View {
     // versions of `VoiceRuntimeController`. Calling the synthesized
     // init directly (`VoiceRuntimeController()`) trips a scope-
     // resolution hiccup on Catalyst 26 + Swift 6 around the
-    // `@MainActor @Observable` class — the singleton is the safe path
+    // `@MainActor @Perceptible` class — the singleton is the safe path
     // and gives us the same environment object.
     @State private var voiceRuntime = VoiceRuntimeController.shared
 
@@ -503,6 +504,7 @@ struct LitterPreviewScene<Content: View>: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             if includeBackground {
                 AlleyBackdrop().ignoresSafeArea()
@@ -514,6 +516,7 @@ struct LitterPreviewScene<Content: View>: View {
         .environment(appState)
         .environment(ThemeManager.shared)
         .environment(WallpaperManager.shared)
-    }
+    
+        }}
 }
 #endif

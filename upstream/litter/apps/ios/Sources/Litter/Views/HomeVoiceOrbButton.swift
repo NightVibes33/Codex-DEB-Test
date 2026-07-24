@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 /// Capsule voice button matching the `+` and search buttons in
 /// `HomeBottomBar`. Size and glass treatment are identical; only the icon
@@ -59,6 +60,7 @@ struct HomeVoiceOrbButton: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         Button(action: action) {
             Group {
                 if isStarting {
@@ -85,5 +87,6 @@ struct HomeVoiceOrbButton: View {
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint("Starts a local realtime voice conversation.")
         .coachmarkAnchor(.voice)
-    }
+    
+        }}
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import Perception
 
 // MARK: - Animated splash screen with bobbing, blinking, meowing kittens
 //
@@ -41,6 +42,7 @@ struct AnimatedSplashView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             if !compact {
                 AlleyBackdrop().ignoresSafeArea()
@@ -81,7 +83,8 @@ struct AnimatedSplashView: View {
             }
         }
         .onAppear { startDate = .now }
-    }
+    
+        }}
 
     // MARK: - All animation state computed from elapsed time
 
@@ -417,6 +420,7 @@ private struct SplashCarouselText: View {
     ]
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(alignment: .center, spacing: 0) {
             SpinningWordCarousel(
                 providers: providers,
@@ -430,7 +434,8 @@ private struct SplashCarouselText: View {
                 .litterMonoFont(size: 14, weight: .regular)
                 .foregroundColor(LitterTheme.textMuted)
         }
-    }
+    
+        }}
 }
 
 private struct SpinningWordCarousel: View {
@@ -447,6 +452,7 @@ private struct SpinningWordCarousel: View {
     private let transitionFraction: Double = 0.45
 
     var body: some View {
+        WithPerceptionTracking {
         TimelineView(.periodic(from: startDate, by: Self.frameInterval)) { timeline in
             let t = timeline.date.timeIntervalSince(startDate)
             let phase = easedPhase(t: t)
@@ -478,7 +484,8 @@ private struct SpinningWordCarousel: View {
             .frame(height: itemHeight * 3)
         }
         .onAppear { startDate = .now }
-    }
+    
+        }}
 
     private func easedPhase(t: TimeInterval) -> Double {
         let n = Double(providers.count)
