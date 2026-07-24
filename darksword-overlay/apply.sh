@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$ROOT"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+TARGET="${1:-$SCRIPT_DIR/../upstream/litter}"
+cd "$TARGET"
 
 python3 <<'PY'
 from pathlib import Path
@@ -29,4 +30,4 @@ if info.exists():
     info.write_text(s)
 PY
 
-echo "DarkSword iOS 16 overlay applied."
+echo "DarkSword iOS 16 overlay applied to $TARGET."
