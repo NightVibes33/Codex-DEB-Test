@@ -10,7 +10,7 @@ It is not a small replacement UI and it does not remove Litter features. The com
 Codex-DEB-Test
 ├── upstream/litter/                   complete NightVibes33/litter snapshot
 ├── DarkSwordAI.app
-│   ├── ChatGPT login/interface        full Litter chat engine + official login link
+│   ├── ChatGPT login/interface        full Litter chat engine + real in-app OAuth
 │   ├── research workspace             jailbreak-lab navigation and experiment state
 │   ├── crash and panic viewer         indexes readable .ips/.panic/.crash reports
 │   ├── source editor                  absolute-path read and approval-gated writes
@@ -33,9 +33,9 @@ Codex-DEB-Test
 
 ## ChatGPT and Google login
 
-The native Chat tab contains the full Litter `ContentView` and its signed-in ChatGPT/Codex account transport. A visible **Google** button opens OpenAI's official `https://chatgpt.com/auth/login` page, where OpenAI presents **Continue with Google** when it is available for the account.
+The native Chat tab contains the complete Litter `ContentView`, model picker, conversation UI, streaming renderer, attachments, and tool-call cards. Its **Continue with Google** button calls Litter's real `appModel.loginLocalChatGPTAccount(serverId:)` account flow. That opens OpenAI's official ChatGPT OAuth screen inside the existing authentication process; select **Continue with Google** there. After authorization, the resulting ChatGPT account is activated for the local runtime and managed by Litter's existing secure multi-account token store.
 
-DarkSword does not request, intercept, or store a Google password or manually extract ChatGPT cookies. OpenAI does not expose ordinary ChatGPT subscription conversations as a public third-party Chat API. Therefore the supported account-powered tool loop remains Litter's official Codex sign-in transport, presented through a Chat-style interface, while the normal ChatGPT website login remains on OpenAI's origin.
+DarkSword does not request, intercept, or store a Google password, and it does not manually extract ChatGPT browser cookies. The account-powered local tool loop uses the full NightVibes Litter Codex transport and its ChatGPT-account authentication, presented through DarkSword's Chat interface.
 
 Model availability comes from the signed-in account and the imported NightVibes Codex fork. The app must not hard-code a model name that the account/server does not advertise.
 
