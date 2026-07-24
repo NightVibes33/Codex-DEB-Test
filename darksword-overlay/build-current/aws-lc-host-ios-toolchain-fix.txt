@@ -1,0 +1,5 @@
+Current rebuild includes:
+- no global IPHONEOS_DEPLOYMENT_TARGET during host UniFFI binding generation
+- target-specific Apple iPhoneOS C and C++ wrappers
+- target-specific ar and ranlib
+- deployment target scoped to actual iOS Cargo invocations
