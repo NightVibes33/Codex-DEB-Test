@@ -1,0 +1,50 @@
+name: Import Litter upstream
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/import-litter.yml
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: macos-15
+    steps:
+      - name: Checkout destination
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Clone Litter source
+        run: |
+          git clone --depth 1 https://github.com/0xSero/litter.git /tmp/litter
+          git -C /tmp/litter rev-parse HEAD > /tmp/litter-commit.txt
+
+      - name: Vendor source into this repository
+        run: |
+          mkdir -p upstream/litter
+          rsync -a --exclude .git /tmp/litter/ upstream/litter/
+          cp /tmp/litter-commit.txt upstream/litter/LITTER_UPSTREAM_COMMIT.txt
+
+      - name: Apply DarkSword iOS adaptation
+        run: |
+          chmod +x darksword-overlay/apply.sh
+          ./darksword-overlay/apply.sh upstream/litter
+
+      - name: Commit imported source
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add upstream/litter darksword-overlay
+          git commit -m "Vendor Litter and apply DarkSword iOS 16 overlay" || true
+          git push origin HEAD:main
+
+      - name: Upload import marker
+        uses: actions/upload-artifact@v4
+        with:
+          name: litter-upstream-marker
+          path: upstream/litter/LITTER_UPSTREAM_COMMIT.txt
