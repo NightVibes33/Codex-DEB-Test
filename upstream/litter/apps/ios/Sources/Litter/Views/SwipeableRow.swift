@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 /// Swipe-left-to-hide row wrapper. Shows a full-width red "hide" background
 /// whose opacity scales with drag distance. If the user drags past the
@@ -97,7 +97,7 @@ struct SwipeableRow<Content: View>: View {
                             }
                         }
                 )
-                .onChange(of: suspended) { _, nowSuspended in
+                .darkswordOnChange(of: suspended) { _, nowSuspended in
                     if nowSuspended && (isActivated || offsetX != 0) {
                         isActivated = false
                         springBack()

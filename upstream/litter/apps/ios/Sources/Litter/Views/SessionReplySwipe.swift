@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 /// Wraps a session row with a right-swipe "reply" gesture. Only commits
 /// when the user drags right past a threshold and releases — behaves like

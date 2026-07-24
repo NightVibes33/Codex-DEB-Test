@@ -1,7 +1,7 @@
+import Perception
 import Foundation
 import SwiftUI
 import UniformTypeIdentifiers
-import Perception
 
 struct BuildKitSettingsView: View {
     @State private var status: LitterBuildKitStatus?
@@ -29,7 +29,7 @@ struct BuildKitSettingsView: View {
         .navigationTitle("BuildKit")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .navigationBarTrailing) {
                 Button("Refresh") { taskBag.run { await refresh() } }
                     .disabled(isRefreshing)
             }
@@ -37,7 +37,7 @@ struct BuildKitSettingsView: View {
         .fileImporter(isPresented: $showingAssetImporter, allowedContentTypes: [.folder, .json, .zip], allowsMultipleSelection: false) { result in
             handleAssetImport(result)
         }
-        .onChange(of: downloader.installRevision) { _, _ in
+        .darkswordOnChange(of: downloader.installRevision) { _, _ in
             taskBag.run { await refresh() }
         }
         .task {

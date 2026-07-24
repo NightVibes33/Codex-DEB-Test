@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import UserNotifications
-import Perception
 
 /// 6 · Notification long-look. Driven by the real push payload the phone
 /// sent. watchOS passes us `UNNotification.request.content`; we pull title,

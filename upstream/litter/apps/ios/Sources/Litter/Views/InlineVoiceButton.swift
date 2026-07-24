@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 struct InlineVoiceButton: View {
     let session: VoiceSessionState?

@@ -1,7 +1,7 @@
+import Perception
 import SwiftUI
 import HairballUI
 import UIKit
-import Perception
 
 enum ConversationLiveDetailRetentionPolicy {
     static func retainedRichDetailItemIDs(for items: [ConversationItem]) -> Set<String> {
@@ -970,7 +970,7 @@ private struct ConversationExplorationGroupRow: View {
                     .onAppear {
                         scrollToBottom(proxy)
                     }
-                    .onChange(of: collapsedPreviewScrollSignature) { _, _ in
+                    .darkswordOnChange(of: collapsedPreviewScrollSignature) { _, _ in
                         scrollToBottom(proxy, animated: true)
                     }
                 }
@@ -981,7 +981,7 @@ private struct ConversationExplorationGroupRow: View {
         .opacity(displayMode.rendersRows ? 1 : 0)
         .frame(height: displayMode.rendersRows ? nil : 0)
         .clipped()
-        .onChange(of: showsCollapsedPreview) { _, newValue in
+        .darkswordOnChange(of: showsCollapsedPreview) { _, newValue in
             guard !newValue else { return }
             expanded = false
         }
@@ -1204,7 +1204,7 @@ private struct ConversationReasoningRow: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 7)
         .animation(.spring(duration: 0.32, bounce: 0.12), value: expanded)
-        .onChange(of: displayMode) { _, newValue in
+        .darkswordOnChange(of: displayMode) { _, newValue in
             expanded = newValue.defaultExpanded()
         }
     
@@ -1462,10 +1462,10 @@ private struct ConversationCommandExecutionRow: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .animation(.spring(duration: 0.35, bounce: 0.15), value: expanded)
-        .onChange(of: isPreferredExpanded) { _, newValue in
+        .darkswordOnChange(of: isPreferredExpanded) { _, newValue in
             expanded = newValue
         }
-        .onChange(of: displayMode) { _, newValue in
+        .darkswordOnChange(of: displayMode) { _, newValue in
             expanded = newValue == .expanded || data.isInProgress || data.status == .failed
         }
     
@@ -1638,11 +1638,11 @@ private struct ConversationCommandOutputViewport: View {
                 .onAppear {
                     scrollToBottom(proxy)
                 }
-                .onChange(of: output) { _, _ in
+                .darkswordOnChange(of: output) { _, _ in
                     expandedLongOutput = false
                     scrollToBottom(proxy, animated: true)
                 }
-                .onChange(of: expandedLongOutput) { _, _ in
+                .darkswordOnChange(of: expandedLongOutput) { _, _ in
                     scrollToBottom(proxy, animated: true)
                 }
 
@@ -2000,7 +2000,7 @@ struct ConversationPinnedContextStrip: View {
                 sections: presentedDiff.sections
             )
         }
-        .onChange(of: pinnedDiffTaskKey, initial: false) { _, _ in
+        .darkswordOnChange(of: pinnedDiffTaskKey, initial: false) { _, _ in
             cachedCombinedPinnedDiff = Self.buildCombinedPinnedDiff(from: items)
         }
     
@@ -2351,7 +2351,7 @@ private struct ConversationDiffDetailSheet: View {
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
                         dismiss()
                     }

@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import WebKit
-import Perception
 
 /// Container UIView that hosts a WKWebView but suppresses intrinsicContentSize
 /// invalidations from propagating to SwiftUI's layout system.

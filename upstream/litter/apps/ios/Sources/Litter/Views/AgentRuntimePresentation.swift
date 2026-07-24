@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 /// Bridge alias: Rust exposes agent identity as an opaque `String` (the
 /// lowercase id alleycat advertises). The legacy `AgentRuntimeKind`

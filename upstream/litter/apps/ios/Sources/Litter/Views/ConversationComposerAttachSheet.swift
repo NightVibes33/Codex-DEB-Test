@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 struct ConversationComposerAttachSheet: View {
     let onPickPhotoLibrary: () -> Void
@@ -108,7 +108,7 @@ struct ConversationRemoteFilePickerView: View {
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { dismiss() }
                         .foregroundColor(LitterTheme.accent)
                 }
@@ -117,7 +117,7 @@ struct ConversationRemoteFilePickerView: View {
         .onAppear {
             isSearchFocused = true
         }
-        .onChange(of: query) { _, next in
+        .darkswordOnChange(of: query) { _, next in
             scheduleSearch(next)
         }
         .onDisappear {

@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import simd
-import Perception
 
 #if !targetEnvironment(macCatalyst)
 /// Source-of-truth abstraction read by the unified view. iPhone reads from
@@ -117,11 +117,11 @@ struct ProximityPairView: View {
                 pairing.startForDebug()
             }
         }
-        .onChange(of: pairing.lastDistance) { _, _ in tickFrame() }
-        .onChange(of: pairing.bleEstimatedDistance) { _, _ in tickFrame() }
-        .onChange(of: pairing.dopplerVelocityMS) { _, _ in tickFrame() }
-        .onChange(of: pairing.bleProximity) { _, new in haptics.bucketChanged(to: new) }
-        .onChange(of: pairing.state) { _, new in
+        .darkswordOnChange(of: pairing.lastDistance) { _, _ in tickFrame() }
+        .darkswordOnChange(of: pairing.bleEstimatedDistance) { _, _ in tickFrame() }
+        .darkswordOnChange(of: pairing.dopplerVelocityMS) { _, _ in tickFrame() }
+        .darkswordOnChange(of: pairing.bleProximity) { _, new in haptics.bucketChanged(to: new) }
+        .darkswordOnChange(of: pairing.state) { _, new in
             switch new {
             case .paired: haptics.success()
             case .failed, .rejected: haptics.failure()

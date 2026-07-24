@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 struct RealtimeVoiceScreen: View {
     @Environment(\.colorScheme) private var colorScheme
@@ -194,7 +194,7 @@ struct RealtimeVoiceScreen: View {
                 }
             }
         }
-        .onChange(of: session?.id) { _, next in
+        .darkswordOnChange(of: session?.id) { _, next in
             if next == nil, !isRetryingAfterAuthSave {
                 onEnd()
             } else if next != nil {
@@ -254,7 +254,7 @@ struct RealtimeVoiceScreen: View {
                             .frame(maxWidth: .infinity)
                             .frame(minHeight: geometry.size.height, alignment: .center)
                         }
-                        .onChange(of: transcriptScrollSignature) { _, _ in
+                        .darkswordOnChange(of: transcriptScrollSignature) { _, _ in
                             guard let next = visibleTranscriptEntries.last?.id else { return }
                             withAnimation(.easeOut(duration: 0.18)) {
                                 proxy.scrollTo(next, anchor: .bottom)
@@ -527,7 +527,7 @@ private struct VoiceScreenPulsingDot: View {
                     scale = 1.4
                 }
             }
-            .onChange(of: isActive) { _, active in
+            .darkswordOnChange(of: isActive) { _, active in
                 if active {
                     withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
                         scale = 1.4

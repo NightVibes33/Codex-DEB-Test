@@ -1,6 +1,6 @@
+import Perception
 #if DEBUG
 import SwiftUI
-import Perception
 
 private let allCards: [(String, CodexTurnAttributes.ContentState, String)] = [
     (

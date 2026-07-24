@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 struct BrandLogo: View {
     var size: CGFloat

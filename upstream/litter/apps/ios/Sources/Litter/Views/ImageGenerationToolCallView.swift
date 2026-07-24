@@ -1,8 +1,8 @@
+import Perception
 import Nuke
 import NukeUI
 import SwiftUI
 import UIKit
-import Perception
 
 struct ImageGenerationToolCallView: View {
     let data: ConversationImageGenerationData
@@ -52,7 +52,7 @@ struct ImageGenerationToolCallView: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .animation(.spring(duration: 0.32, bounce: 0.12), value: expanded)
-        .onChange(of: externalExpanded) { _, newValue in
+        .darkswordOnChange(of: externalExpanded) { _, newValue in
             if let newValue, newValue != expanded {
                 withAnimation(.spring(duration: 0.35, bounce: 0.15)) {
                     expanded = newValue

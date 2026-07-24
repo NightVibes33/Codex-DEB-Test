@@ -174,7 +174,7 @@ struct LocalFileWorkspaceView: View {
                 fileWorkspaceInitialDirectory = HomeAnchor.path
                 await model.loadInitial(path: initialPath)
             }
-            .onChange(of: model.showHidden) { _, _ in taskBag.run { await model.reload() } }
+            .darkswordOnChange(of: model.showHidden) { _, _ in taskBag.run { await model.reload() } }
             .onDisappear { taskBag.cancelAll() }
     }
 
@@ -211,10 +211,10 @@ struct LocalFileWorkspaceView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         if model.isSelecting {
-            ToolbarItem(placement: .topBarLeading) {
+            ToolbarItem(placement: .navigationBarLeading) {
                 Button("Cancel") { model.clearSelection() }
             }
-            ToolbarItemGroup(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
                 Button { copySelectedPaths() } label: { Image(systemName: "doc.on.doc") }
                     .disabled(model.selectedPaths.isEmpty)
                     .accessibilityLabel("Copy selected paths")
@@ -226,7 +226,7 @@ struct LocalFileWorkspaceView: View {
                     .accessibilityLabel("Delete selected")
             }
         } else {
-            ToolbarItemGroup(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
                 Button { showImporter = true } label: { Image(systemName: "square.and.arrow.down") }
                     .accessibilityLabel("Import file")
                 Menu {
@@ -2069,16 +2069,16 @@ private struct LocalTextFileEditorView: View {
                         .background(LitterTheme.surface.opacity(0.42))
                         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                         .padding(12)
-                        .onChange(of: text) { _, _ in hasUnsavedChanges = true }
+                        .darkswordOnChange(of: text) { _, _ in hasUnsavedChanges = true }
                 }
             }
             .navigationTitle(file.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .navigationBarLeading) {
                     Button("Close") { dismiss(); onClose(false) }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         taskBag.run { await save() }
                     } label: {
@@ -2150,10 +2150,10 @@ private struct LocalFilePreviewSheet: View {
             .navigationTitle(file.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .navigationBarLeading) {
                     Button("Close") { dismiss() }
                 }
-                ToolbarItemGroup(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
                     Button(action: onCopyPath) { Image(systemName: "doc.on.doc") }
                     Button(action: onShare) { Image(systemName: "square.and.arrow.up") }
                     if file.isTextPreviewable {
@@ -2309,7 +2309,7 @@ private struct LocalFileInspectorSheet: View {
             .navigationTitle("Inspector")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { dismiss() }
                 }
             }
@@ -2426,12 +2426,12 @@ struct LitterTerminalPanel: View {
                     .padding(.vertical, 12)
                 }
                 .background(terminalBackground)
-                .onChange(of: history.count) { _, _ in
+                .darkswordOnChange(of: history.count) { _, _ in
                     if let last = history.last {
                         withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(last.id, anchor: .bottom) }
                     }
                 }
-                .onChange(of: isRunning) { _, running in
+                .darkswordOnChange(of: isRunning) { _, running in
                     if running {
                         withAnimation(.easeOut(duration: 0.2)) {
                             proxy.scrollTo("terminal-running-row", anchor: .bottom)
@@ -2454,10 +2454,10 @@ struct LitterTerminalPanel: View {
             loadStoredCommandHistory()
             inputFocused = true
         }
-        .onChange(of: requestedDirectory) { _, newValue in
+        .darkswordOnChange(of: requestedDirectory) { _, newValue in
             if !newValue.isEmpty { cwd = newValue }
         }
-        .onChange(of: inputFocused) { _, focused in
+        .darkswordOnChange(of: inputFocused) { _, focused in
             if !focused { keyboardHeight = 0 }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { notification in
@@ -3096,7 +3096,7 @@ private struct LocalCommandOutputSheet: View {
             .navigationTitle(output.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { dismiss() }
                 }
             }

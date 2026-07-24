@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import UIKit
-import Perception
 
 struct VoiceCallView: View {
     @Environment(AppModel.self) private var appModel
@@ -343,7 +343,7 @@ private struct VoiceCreditsTranscriptView: View {
             .onAppear {
                 scrollToBottom(proxy, animated: false)
             }
-            .onChange(of: entries) { _, _ in
+            .darkswordOnChange(of: entries) { _, _ in
                 scrollToBottom(proxy, animated: true)
             }
         }
@@ -872,7 +872,7 @@ private struct VoiceCallDebugSheet: View {
             .navigationTitle("Voice Debug")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
                         dismiss()
                     }

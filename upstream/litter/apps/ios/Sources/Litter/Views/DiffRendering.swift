@@ -1,7 +1,7 @@
+import Perception
 import SwiftUI
 import HairballUI
 import UIKit
-import Perception
 
 func isDiffLanguage(_ language: String?) -> Bool {
     guard let normalized = language?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() else {

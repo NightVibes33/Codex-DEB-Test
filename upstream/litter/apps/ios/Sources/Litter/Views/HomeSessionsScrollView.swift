@@ -1,8 +1,8 @@
+import Perception
 import AVKit
 import ImageIO
 import SwiftUI
 import UIKit
-import Perception
 
 // MARK: - SwiftUI entry point
 

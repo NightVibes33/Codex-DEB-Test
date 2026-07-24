@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import Charts
-import Perception
 
 struct ConversationInfoView: View {
     @Environment(AppModel.self) private var appModel
@@ -94,7 +94,7 @@ struct ConversationInfoView: View {
             }
         }
         .onAppear { computeData() }
-        .onChange(of: thread?.hydratedConversationItems.count) { computeData() }
+        .darkswordOnChange(of: thread?.hydratedConversationItems.count) { computeData() }
         .alert("Rename Thread", isPresented: $isRenaming) {
             TextField("Thread name", text: $renameText)
             Button("Save") { saveRename() }

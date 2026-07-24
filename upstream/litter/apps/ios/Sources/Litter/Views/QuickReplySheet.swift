@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 /// Minimal reply composer shown when the user swipes right on a home
 /// session row. Sends a turn on the targeted thread and dismisses.
@@ -86,7 +86,7 @@ struct QuickReplySheet: View {
             .navigationTitle("Reply")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Cancel") { dismiss() }
                         .tint(LitterTheme.textSecondary)
                 }

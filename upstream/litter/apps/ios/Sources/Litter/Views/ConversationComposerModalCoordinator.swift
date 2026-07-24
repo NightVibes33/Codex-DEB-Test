@@ -1,7 +1,7 @@
+import Perception
 import SwiftUI
 import PhotosUI
 import UIKit
-import Perception
 
 struct ConversationComposerModalCoordinator<Content: View>: View {
     @Environment(AppModel.self) private var appModel
@@ -187,7 +187,7 @@ struct ConversationComposerModalCoordinator<Content: View>: View {
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
             }
-            .onChange(of: selectedPhoto) { _, item in
+            .darkswordOnChange(of: selectedPhoto) { _, item in
                 guard let item else { return }
                 Task { await onLoadSelectedPhoto(item) }
             }
@@ -212,7 +212,7 @@ struct ConversationComposerModalCoordinator<Content: View>: View {
                 .presentationContentInteraction(.scrolls)
                 .presentationBackground(LitterTheme.surface)
             }
-            .onChange(of: showModelSelector) { _, isPresented in
+            .darkswordOnChange(of: showModelSelector) { _, isPresented in
                 if isPresented {
                     modelSelectorDetent = .large
                 }
@@ -379,7 +379,7 @@ struct ConversationComposerModalCoordinator<Content: View>: View {
             .navigationTitle("Permissions")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { showPermissionsSheet = false }
                         .foregroundColor(LitterTheme.accent)
                 }
@@ -593,11 +593,11 @@ struct ConversationComposerModalCoordinator<Content: View>: View {
             .navigationTitle("Experimental")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .navigationBarLeading) {
                     Button("Reload") { Task { await onLoadExperimentalFeatures() } }
                         .foregroundColor(LitterTheme.accent)
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { showExperimentalSheet = false }
                         .foregroundColor(LitterTheme.accent)
                 }
@@ -656,11 +656,11 @@ struct ConversationComposerModalCoordinator<Content: View>: View {
             .navigationTitle("Skills")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .navigationBarLeading) {
                     Button("Reload") { Task { await onLoadSkills(true, true) } }
                         .foregroundColor(LitterTheme.accent)
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { showSkillsSheet = false }
                         .foregroundColor(LitterTheme.accent)
                 }

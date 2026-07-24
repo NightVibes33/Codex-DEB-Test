@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 #if DEBUG
 struct ConversationDisplayUITestHarnessView: View {
@@ -61,7 +61,7 @@ struct ConversationDisplayUITestHarnessView: View {
             .navigationTitle("Display Harness")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         showSettings = true
                     } label: {

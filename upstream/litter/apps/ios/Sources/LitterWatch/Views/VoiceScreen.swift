@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import WatchKit
-import Perception
 
 /// 2 · Dictate — opens the native watchOS text input controller (Scribble
 /// / Dictate / Emoji). Real transcription from Apple's system dictation;

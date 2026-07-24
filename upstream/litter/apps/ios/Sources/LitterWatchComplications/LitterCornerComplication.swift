@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import WidgetKit
-import Perception
 
 /// Corner (bottom-right) graphic complication. Ginger arc follows the corner
 /// curve, with runtime + task title stacked at the inside edge.

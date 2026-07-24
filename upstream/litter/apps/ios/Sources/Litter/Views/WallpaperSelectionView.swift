@@ -1,9 +1,9 @@
+import Perception
 import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
 import Hairball
 import HairballUI
-import Perception
 
 private struct VideoTransferable: Transferable {
     let url: URL
@@ -126,7 +126,7 @@ struct WallpaperSelectionView: View {
                     applyPendingAppearance(pending.action)
                 }
                 .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
+                    ToolbarItem(placement: .navigationBarTrailing) {
                         Button("Done") { pendingProApply = nil }
                             .foregroundStyle(LitterTheme.accent)
                     }
@@ -308,7 +308,7 @@ struct WallpaperSelectionView: View {
                     }
                     .padding(.horizontal, 16)
                 }
-                .onChange(of: selectedPhoto) { _, newItem in
+                .darkswordOnChange(of: selectedPhoto) { _, newItem in
                     Task { await loadPhoto(newItem) }
                 }
 
@@ -334,7 +334,7 @@ struct WallpaperSelectionView: View {
                     .padding(.horizontal, 16)
                 }
                 .disabled(isProcessingVideo)
-                .onChange(of: selectedVideoItem) { _, newItem in
+                .darkswordOnChange(of: selectedVideoItem) { _, newItem in
                     Task { await loadVideo(newItem) }
                 }
 

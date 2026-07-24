@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 struct SSHLoginSheet: View {
     let server: DiscoveredServer
@@ -179,7 +179,7 @@ struct SSHLoginSheet: View {
             .navigationTitle("SSH Login")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
                         .foregroundColor(LitterTheme.accent)
                 }
@@ -189,7 +189,7 @@ struct SSHLoginSheet: View {
             guard autoLoadSavedCredentials else { return }
             loadSavedCredentialsIfNeeded()
         }
-        .onChange(of: useKey) { _, isUsingKey in
+        .darkswordOnChange(of: useKey) { _, isUsingKey in
             if isUsingKey {
                 isPasswordVisible = false
                 unlockMacosKeychain = false

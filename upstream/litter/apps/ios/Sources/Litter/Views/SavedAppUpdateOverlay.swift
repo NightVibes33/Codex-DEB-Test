@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 /// Composer + progress overlay shown over a `SavedAppDetailView` while the
 /// user asks for an update. The underlying widget remains visible (and

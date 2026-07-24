@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import UIKit
-import Perception
 
 private enum CatTransmissionFrames {
     static let names = [

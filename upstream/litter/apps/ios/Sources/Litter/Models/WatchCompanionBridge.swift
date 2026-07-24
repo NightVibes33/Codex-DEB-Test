@@ -1,9 +1,9 @@
+import Perception
 import Foundation
 import UserNotifications
 import WatchConnectivity
 #if canImport(WidgetKit)
 import WidgetKit
-import Perception
 #endif
 
 /// Thin transport seam over `WCSession` so unit tests can drive

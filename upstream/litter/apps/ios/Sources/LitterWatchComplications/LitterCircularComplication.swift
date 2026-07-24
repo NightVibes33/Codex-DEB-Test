@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import WidgetKit
-import Perception
 
 /// Circular complication: small donut with RUN/IDLE eyebrow + big number.
 ///

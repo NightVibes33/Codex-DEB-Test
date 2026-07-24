@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 /// Compact Alley Cat mark used in navigation chrome.
 struct AnimatedLogo: View {

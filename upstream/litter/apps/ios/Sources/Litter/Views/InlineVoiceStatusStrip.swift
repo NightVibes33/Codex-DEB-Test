@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 struct InlineVoiceStatusStrip: View {
     let session: VoiceSessionState

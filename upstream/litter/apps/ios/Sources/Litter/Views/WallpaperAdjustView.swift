@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 struct WallpaperAdjustView: View {
     @Environment(WallpaperManager.self) private var wallpaperManager
@@ -72,7 +72,7 @@ struct WallpaperAdjustView: View {
                     applyWallpaper(scope: pending.scope)
                 }
                 .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
+                    ToolbarItem(placement: .navigationBarTrailing) {
                         Button("Done") { pendingProScope = nil }
                             .foregroundStyle(LitterTheme.accent)
                     }

@@ -1,7 +1,7 @@
+import Perception
 import ActivityKit
 import SwiftUI
 import WidgetKit
-import Perception
 
 struct CodexTurnLiveActivity: Widget {
     // Dynamic Island is always dark — resolve palette colors once for .dark scheme

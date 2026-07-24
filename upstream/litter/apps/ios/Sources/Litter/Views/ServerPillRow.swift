@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 struct ServerPillRow: View {
     let servers: [HomeDashboardServer]

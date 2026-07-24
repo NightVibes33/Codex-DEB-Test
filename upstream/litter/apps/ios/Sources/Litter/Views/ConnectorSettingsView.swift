@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import Foundation
-import Perception
 
 struct ConnectorSettingsView: View {
     @AppStorage("litterConnectorRelayBaseURL") private var relayBaseURL = ""
@@ -87,7 +87,7 @@ struct ConnectorSettingsView: View {
         .navigationTitle("Connectors")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .navigationBarTrailing) {
                 Button("Reload") {
                     Task {
                         await refreshLocalBroker()

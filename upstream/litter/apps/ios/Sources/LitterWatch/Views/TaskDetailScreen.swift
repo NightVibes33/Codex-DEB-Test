@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 /// Per-task detail — shows the task's steps, subtitle, and nav links to
 /// its transcript or a reply composer. Requesting focus on this task from

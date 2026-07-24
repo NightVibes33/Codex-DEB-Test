@@ -466,7 +466,7 @@ struct DirectoryPickerView: View {
                 isLocalServer: selectedServerIsLocal
             )
         }
-        .onChange(of: servers.map(\.id)) { _, ids in
+        .darkswordOnChange(of: servers.map(\.id)) { _, ids in
             if !ids.contains(selectedServerId), let fallback = ids.first {
                 selectedServerId = fallback
             }

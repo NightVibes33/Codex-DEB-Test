@@ -1,5 +1,5 @@
-import StoreKit
 import Perception
+import StoreKit
 
 struct TipTier: Identifiable {
     let id: String

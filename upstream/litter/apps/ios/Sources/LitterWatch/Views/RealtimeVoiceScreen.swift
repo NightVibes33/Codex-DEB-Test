@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import WatchKit
-import Perception
 
 /// 2 · Realtime voice — controls the iPhone's realtime voice session and
 /// renders live transcript + audio level. Falls back to text dictation

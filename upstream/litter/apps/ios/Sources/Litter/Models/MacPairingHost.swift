@@ -1,8 +1,8 @@
+import Perception
 #if targetEnvironment(macCatalyst)
 import Foundation
 import NearbyInteraction
 import UIKit
-import Perception
 
 /// Mac-side pair host. Runs only on the unsandboxed (direct-dist) Catalyst
 /// lane alongside the Feature A local codex. Publishes a Bonjour service

@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 struct AccountView: View {
     @Environment(AppModel.self) private var appModel
@@ -56,7 +56,7 @@ private struct AccountConnectionView: View {
             .navigationTitle("Account")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { dismiss() }
                         .foregroundColor(LitterTheme.accent)
                 }
@@ -348,7 +348,7 @@ private struct AccountDisconnectedView: View {
                 appModel.ensureLocalServerConnectedIfNeeded(reason: "account")
             }
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { dismiss() }
                         .foregroundColor(LitterTheme.accent)
                 }

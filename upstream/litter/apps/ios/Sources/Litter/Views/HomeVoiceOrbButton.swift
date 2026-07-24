@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 /// Capsule voice button matching the `+` and search buttons in
 /// `HomeBottomBar`. Size and glass treatment are identical; only the icon

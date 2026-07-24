@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import UIKit
-import Perception
 
 struct ToolCallCardView: View {
     let model: ToolCallCardModel
@@ -107,7 +107,7 @@ struct ToolCallCardView: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .animation(.spring(duration: 0.32, bounce: 0.12), value: resolvedExpanded)
-        .onChange(of: model.status) { _, newStatus in
+        .darkswordOnChange(of: model.status) { _, newStatus in
             if newStatus == .failed {
                 setExpanded(true)
             }
@@ -117,7 +117,7 @@ struct ToolCallCardView: View {
                 expanded = externalExpanded
             }
         }
-        .onChange(of: externalExpanded) { _, newValue in
+        .darkswordOnChange(of: externalExpanded) { _, newValue in
             if let newValue, newValue != expanded {
                 withAnimation(.spring(duration: 0.35, bounce: 0.15)) {
                     expanded = newValue

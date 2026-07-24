@@ -1,9 +1,9 @@
+import Perception
 import SwiftUI
 import UIKit
 import UserNotifications
 import Combine
 import os
-import Perception
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     private var pendingPushToken: Data?
@@ -399,7 +399,7 @@ struct LitterApp: App {
                     // in Release builds.
                 }
         }
-        .onChange(of: scenePhase) { _, newPhase in
+        .darkswordOnChange(of: scenePhase) { _, newPhase in
             LLog.info("lifecycle", "scenePhase changed", fields: ["phase": newPhase.debugName])
             switch newPhase {
             case .background:
@@ -506,7 +506,7 @@ struct ContentView: View {
                     fallback: max(composerBottomInset, geometry.safeAreaInsets.bottom)
                 )
             }
-            .onChange(of: stableSafeAreaInsets.bottomInset) { (_: CGFloat, nextInset: CGFloat) in
+            .darkswordOnChange(of: stableSafeAreaInsets.bottomInset) { (_: CGFloat, nextInset: CGFloat) in
                 guard nextInset > 0 else { return }
                 composerBottomInset = nextInset
             }
@@ -532,7 +532,7 @@ struct ContentView: View {
                 appState.showServerPicker = true
             }
         }
-        .onChange(of: colorScheme) { _, nextColorScheme in
+        .darkswordOnChange(of: colorScheme) { _, nextColorScheme in
             // iOS toggles `colorScheme` while capturing light+dark
             // app-switcher snapshots on background. Reacting to that
             // bumps `themeManager.themeVersion`, which the navigation
@@ -543,7 +543,7 @@ struct ContentView: View {
             guard scenePhase == .active else { return }
             themeManager.syncSystemColorScheme(nextColorScheme)
         }
-        .onChange(of: scenePhase) { _, newPhase in
+        .darkswordOnChange(of: scenePhase) { _, newPhase in
             // Catch up to any colorScheme change that landed while we
             // were inactive but represents a real user-driven theme
             // toggle (e.g. system appearance changed in Settings while
@@ -552,13 +552,13 @@ struct ContentView: View {
                 themeManager.syncSystemColorScheme(colorScheme)
             }
         }
-        .onChange(of: appModel.snapshot?.activeThread) { _, _ in
+        .darkswordOnChange(of: appModel.snapshot?.activeThread) { _, _ in
             appState.selectedModel = ""
             appState.selectedAgentRuntimeKind = nil
             appState.reasoningEffort = ""
             appState.showModelSelector = false
         }
-        .onChange(of: appModel.snapshot) { _, nextSnapshot in
+        .darkswordOnChange(of: appModel.snapshot) { _, nextSnapshot in
             appRuntime.handleSnapshot(nextSnapshot)
         }
         .sheet(isPresented: $bindableAppState.showServerPicker) {
@@ -1036,28 +1036,28 @@ private struct HomeNavigationView: View {
             presentFirstRunOnboardingIfNeeded()
             await proStore.loadProducts()
         }
-        .onChange(of: appModel.snapshot?.activeThread) { _, newKey in
+        .darkswordOnChange(of: appModel.snapshot?.activeThread) { _, newKey in
             seedInitialConversationIfNeeded(activeKey: newKey)
         }
-        .onChange(of: navigationPath.count) { _, _ in
+        .darkswordOnChange(of: navigationPath.count) { _, _ in
             updateHomeDashboardActivity()
         }
         .onAppear { consumePendingMainRoute() }
-        .onChange(of: pendingMainRoute) { _, _ in consumePendingMainRoute() }
-        .onChange(of: pinnedThreadHydrationSignature) { _, _ in
+        .darkswordOnChange(of: pendingMainRoute) { _, _ in consumePendingMainRoute() }
+        .darkswordOnChange(of: pinnedThreadHydrationSignature) { _, _ in
             hydratePinnedThreadsIfNeeded()
         }
-        .onChange(of: appState.pendingThreadNavigation) { _, newKey in
+        .darkswordOnChange(of: appState.pendingThreadNavigation) { _, newKey in
             if let newKey {
                 appState.pendingThreadNavigation = nil
                 replaceTopConversation(with: newKey)
             }
         }
-        .onChange(of: onboardingReplayRequested) { _, requested in
+        .darkswordOnChange(of: onboardingReplayRequested) { _, requested in
             guard requested else { return }
             presentOnboardingReplay()
         }
-        .onChange(of: SavedAppsNavigation.shared.pendingConversationThreadId) { _, newThreadId in
+        .darkswordOnChange(of: SavedAppsNavigation.shared.pendingConversationThreadId) { _, newThreadId in
             guard let newThreadId else { return }
             _ = SavedAppsNavigation.shared.consumeConversationRequest()
             guard let key = appModel.snapshot?.threads.first(where: { $0.key.threadId == newThreadId })?.key else {
@@ -1153,7 +1153,7 @@ private struct HomeNavigationView: View {
                     completePendingProUnlock(for: feature)
                 }
                 .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
+                    ToolbarItem(placement: .navigationBarTrailing) {
                         Button("Done") {
                             pendingProFeature = nil
                             pendingProTerminalNodeId = nil
@@ -2297,19 +2297,19 @@ private struct ConversationDestinationScreen: View {
                 .onAppear {
                     bindScreenModel(for: conversationThread)
                 }
-                .onChange(of: conversationThread) { _, updatedThread in
+                .darkswordOnChange(of: conversationThread) { _, updatedThread in
                     bindScreenModel(for: updatedThread)
                 }
-                .onChange(of: appModel.snapshotRevision) { _, _ in
+                .darkswordOnChange(of: appModel.snapshotRevision) { _, _ in
                     bindScreenModel(for: conversationThread)
                 }
-                .onChange(of: pendingUserInputsForThread) { _, _ in
+                .darkswordOnChange(of: pendingUserInputsForThread) { _, _ in
                     bindScreenModel(for: conversationThread)
                 }
-                .onChange(of: relevantServerSnapshot) { _, _ in
+                .darkswordOnChange(of: relevantServerSnapshot) { _, _ in
                     bindScreenModel(for: conversationThread)
                 }
-                .onChange(of: appModel.composerPrefillRequest) { _, _ in
+                .darkswordOnChange(of: appModel.composerPrefillRequest) { _, _ in
                     bindScreenModel(for: conversationThread)
                 }
             } else {
@@ -2332,14 +2332,14 @@ private struct ConversationDestinationScreen: View {
                 ToolbarItem(placement: .principal) {
                     HeaderView(thread: conversationThread)
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     ConversationToolbarControls(
                         thread: conversationThread,
                         control: .reload
                     )
                 }
                 if onInfo != nil {
-                    ToolbarItem(placement: .topBarTrailing) {
+                    ToolbarItem(placement: .navigationBarTrailing) {
                         ConversationToolbarControls(
                             thread: conversationThread,
                             control: .info,
@@ -2409,8 +2409,8 @@ private struct ReplayDestinationScreen: View {
                     onResumeSessions: { _ in }
                 )
                 .onAppear { bindScreenModel(for: thread) }
-                .onChange(of: thread) { _, t in bindScreenModel(for: t) }
-                .onChange(of: appModel.snapshotRevision) { _, _ in
+                .darkswordOnChange(of: thread) { _, t in bindScreenModel(for: t) }
+                .darkswordOnChange(of: appModel.snapshotRevision) { _, _ in
                     if let t = conversationThread { bindScreenModel(for: t) }
                 }
             } else {

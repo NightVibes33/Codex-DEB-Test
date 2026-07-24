@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 struct AudioWaveformView: View {
     let level: Float
@@ -32,7 +32,7 @@ struct AudioWaveformView: View {
                     )
                 }
             }
-            .onChange(of: timeline.date) { _, _ in pushLevel() }
+            .darkswordOnChange(of: timeline.date) { _, _ in pushLevel() }
         }
         .onAppear { pushLevel() }
     

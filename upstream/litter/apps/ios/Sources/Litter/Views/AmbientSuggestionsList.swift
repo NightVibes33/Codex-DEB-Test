@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 /// A reusable list of ambient suggestion rows shared between the iPad hero
 /// (`NewThreadHeroView`) and the iPhone home composer (`HomeDashboardView`).

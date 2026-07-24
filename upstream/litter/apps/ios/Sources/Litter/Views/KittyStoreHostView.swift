@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import UIKit
-import Perception
 
 struct KittyStoreHostView: UIViewControllerRepresentable {
     @Environment(ThemeManager.self) private var themeManager

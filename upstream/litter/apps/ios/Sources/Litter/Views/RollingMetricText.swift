@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 struct RollingMetricText: View {
     let text: String
@@ -22,7 +22,7 @@ struct RollingMetricText: View {
                 .contentTransition(.numericText(value: visibleNumericValue))
                 .animation(animation, value: text)
                 .scaleEffect(pulse)
-                .onChange(of: text) { _, _ in
+                .darkswordOnChange(of: text) { _, _ in
                     // Quick punch up, then a softer spring back to rest so
                     // the digit visibly "thumps" when it changes instead
                     // of just sliding.

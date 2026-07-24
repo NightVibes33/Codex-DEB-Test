@@ -1,7 +1,7 @@
+import Perception
 import SwiftUI
 import UIKit
 import MachO
-import Perception
 
 struct AppIconSettingsView: View {
     @State private var proStore = ProAccessStore.shared

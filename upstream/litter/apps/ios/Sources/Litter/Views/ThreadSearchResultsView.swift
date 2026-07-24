@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 /// Scrollable list of every thread across connected servers, sorted by
 /// recency, filtered by the current query. Tapping a row calls `onAdd`.

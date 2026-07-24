@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import WatchKit
-import Perception
 
 /// 1 · Task pages — the watch's home is one full-screen page per task plus a
 /// trailing "new task" page. Crown rotation switches tasks; each page has

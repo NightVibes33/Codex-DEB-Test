@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 // MARK: - Animated splash screen with bobbing, blinking, meowing kittens
 //

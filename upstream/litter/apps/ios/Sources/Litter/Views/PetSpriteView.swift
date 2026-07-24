@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import UIKit
-import Perception
 
 private let petFrameWidth = 192
 private let petFrameHeight = 208

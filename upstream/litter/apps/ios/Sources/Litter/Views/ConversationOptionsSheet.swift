@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 /// Shared sheet for model + reasoning + plan/fast/permissions options. Used
 /// by the home composer's `HomeModelChip` (no thread yet — `threadKey` nil)

@@ -1,7 +1,7 @@
+import Perception
 #if targetEnvironment(macCatalyst)
 import SwiftUI
 import UIKit
-import Perception
 
 extension Notification.Name {
     static let litterCommandNewSession = Notification.Name("com.litter.command.newSession")

@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 enum BuildInfo {
     /// True only for installs that came from the App Store production

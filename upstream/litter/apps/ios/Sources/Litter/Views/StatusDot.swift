@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 /// Shared visual language for "this thing's current state" — used for task
 /// rows (active / hydrating / hydrated / idle) and server pills (connected /

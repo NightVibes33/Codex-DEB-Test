@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 struct ContextBadgeView: View, Equatable {
     let percent: Int

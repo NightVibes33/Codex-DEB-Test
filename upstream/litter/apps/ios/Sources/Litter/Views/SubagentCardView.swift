@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import HairballUI
-import Perception
 
 struct SubagentCardView: View {
     @Environment(AppModel.self) private var appModel
@@ -408,7 +408,7 @@ private struct SubagentDetailSheet: View {
                     )
                     .litterFont(.callout, weight: .semibold)
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { dismiss() }
                         .foregroundColor(LitterTheme.accent)
                 }

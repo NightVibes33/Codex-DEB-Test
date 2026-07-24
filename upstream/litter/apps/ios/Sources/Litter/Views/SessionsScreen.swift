@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import os
-import Perception
 
 private let sessionsScreenSignpostLog = OSLog(
     subsystem: Bundle.main.bundleIdentifier ?? "com.litter.ios",
@@ -65,7 +65,7 @@ struct SessionsScreen: View {
         let base = screenLayout(derived: derived)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 4) {
                         if let onInfo {
                             Button(action: onInfo) {
@@ -125,7 +125,7 @@ struct SessionsScreen: View {
             .onAppear {
                 scheduleActiveSessionScrollIfNeeded()
             }
-            .onChange(of: connectedServerIds) { _, ids in
+            .darkswordOnChange(of: connectedServerIds) { _, ids in
                 guard autoLoadSessions, !ids.isEmpty else { return }
                 Task { await loadSessionsIfNeeded(force: true) }
                 scheduleActiveSessionScrollIfNeeded()
@@ -149,23 +149,23 @@ struct SessionsScreen: View {
                     selectedServerFilterId = nil
                 }
             }
-            .onChange(of: activeThreadKey) { _, _ in
+            .darkswordOnChange(of: activeThreadKey) { _, _ in
                 scheduleActiveSessionScrollIfNeeded()
             }
-            .onChange(of: sessionSearchQuery) { _, next in
+            .darkswordOnChange(of: sessionSearchQuery) { _, next in
                 scheduleSessionSearchDebounce(for: next)
             }
-            .onChange(of: debouncedSessionSearchQuery) { _, next in
+            .darkswordOnChange(of: debouncedSessionSearchQuery) { _, next in
                 sessionsModel.updateSearchQuery(next)
             }
-            .onChange(of: selectedRuntimeKindFilter) { _, next in
+            .darkswordOnChange(of: selectedRuntimeKindFilter) { _, next in
                 sessionsModel.updateRuntimeKindFilter(next)
             }
-            .onChange(of: derived.workspaceGroupIDs) { _, ids in
+            .darkswordOnChange(of: derived.workspaceGroupIDs) { _, ids in
                 let idSet: Set<String> = Set(ids)
                 collapsedWorkspaceGroupIDs = collapsedWorkspaceGroupIDs.intersection(idSet)
             }
-            .onChange(of: derived.allThreadKeys) { _, keys in
+            .darkswordOnChange(of: derived.allThreadKeys) { _, keys in
                 let keySet: Set<ThreadKey> = Set(keys)
                 collapsedSessionNodeKeys = collapsedSessionNodeKeys.intersection(keySet)
             }
@@ -794,16 +794,16 @@ struct SessionsScreen: View {
             .onAppear {
                 scrollToActiveSessionIfNeeded(derived: derived, proxy: proxy)
             }
-            .onChange(of: pendingActiveSessionScroll) { _, _ in
+            .darkswordOnChange(of: pendingActiveSessionScroll) { _, _ in
                 scrollToActiveSessionIfNeeded(derived: derived, proxy: proxy)
             }
-            .onChange(of: derived.filteredThreadKeys) { _, _ in
+            .darkswordOnChange(of: derived.filteredThreadKeys) { _, _ in
                 scrollToActiveSessionIfNeeded(derived: derived, proxy: proxy)
             }
-            .onChange(of: collapsedWorkspaceGroupIDs) { _, _ in
+            .darkswordOnChange(of: collapsedWorkspaceGroupIDs) { _, _ in
                 scrollToActiveSessionIfNeeded(derived: derived, proxy: proxy)
             }
-            .onChange(of: collapsedSessionNodeKeys) { _, _ in
+            .darkswordOnChange(of: collapsedSessionNodeKeys) { _, _ in
                 scrollToActiveSessionIfNeeded(derived: derived, proxy: proxy)
             }
         }

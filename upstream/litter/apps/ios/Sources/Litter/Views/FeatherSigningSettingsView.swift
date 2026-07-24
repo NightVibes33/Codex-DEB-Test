@@ -1,7 +1,7 @@
+import Perception
 import SwiftUI
 import UniformTypeIdentifiers
 import UIKit
-import Perception
 
 struct FeatherSigningSettingsView: View {
     @State private var snapshot = FeatherSigningMaterialStore.snapshot(checkRevocation: false)
@@ -52,7 +52,7 @@ struct FeatherSigningSettingsView: View {
         .navigationTitle("Signing")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .navigationBarTrailing) {
                 Button("Reset") {
                     options = FeatherSigningOptions.defaults.normalizedForFeatherCertificate
                     options.save()
@@ -98,7 +98,7 @@ struct FeatherSigningSettingsView: View {
             refresh()
         }
         .onDisappear { options.save() }
-        .onChange(of: options) { _, newValue in newValue.normalizedForFeatherCertificate.save() }
+        .darkswordOnChange(of: options) { _, newValue in newValue.normalizedForFeatherCertificate.save() }
     
         }}
 

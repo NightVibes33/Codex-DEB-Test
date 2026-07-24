@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 /// Transcript for the currently-focused task. Each task carries its own
 /// transcript inline (see `WatchTask.transcript`), so this always reflects

@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import UIKit
-import Perception
 
 struct ConversationComposerContentView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -580,12 +580,12 @@ private struct ConversationComposerGoalRowView: View {
             animatedProgress = budgetProgress ?? 0
             if goal.status == .active { pulsing = true }
         }
-        .onChange(of: budgetProgress ?? 0) { _, new in
+        .darkswordOnChange(of: budgetProgress ?? 0) { _, new in
             withAnimation(.spring(response: 0.55, dampingFraction: 0.85)) {
                 animatedProgress = new
             }
         }
-        .onChange(of: goal.status) { _, new in
+        .darkswordOnChange(of: goal.status) { _, new in
             pulsing = (new == .active)
         }
     

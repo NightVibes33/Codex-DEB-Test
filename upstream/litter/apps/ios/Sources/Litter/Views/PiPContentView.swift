@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 /// Body rendered into the PiP sample-buffer layer on every tick.
 ///

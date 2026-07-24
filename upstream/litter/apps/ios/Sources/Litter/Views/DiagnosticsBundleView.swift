@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import UIKit
-import Perception
 
 struct DiagnosticsBundleView: View {
     @State private var bundleText = ""

@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 /// Drop-in replacement for `Text` that applies inline formatting such as
 /// plugin-reference pills (`[@Name](plugin://plugin-name@marketplace)`).

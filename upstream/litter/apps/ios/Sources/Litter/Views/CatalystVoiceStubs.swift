@@ -1,6 +1,6 @@
+import Perception
 #if targetEnvironment(macCatalyst)
 import SwiftUI
-import Perception
 
 struct HomeVoiceOrbButton: View {
     let session: VoiceSessionState?

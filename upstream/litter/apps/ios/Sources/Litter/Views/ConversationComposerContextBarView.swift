@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 struct ConversationComposerContextBarView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass

@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 struct DarkSwordResearchWorkspaceView: View {
     private let labRoot = "/var/jb/usr/share/darksword/jailbreak-lab"
@@ -103,7 +103,7 @@ struct DarkSwordCrashViewer: View {
             }
             .navigationTitle("Crashes & Panics")
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Reload", action: reload)
                 }
             }
@@ -272,7 +272,7 @@ struct DarkSwordToolApprovalView: View {
             }
             .navigationTitle("Tool Approval")
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Refresh", action: refresh)
                 }
             }

@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 struct VoiceCallLockScreenCardView: View {
     let attributes: CodexVoiceCallAttributes

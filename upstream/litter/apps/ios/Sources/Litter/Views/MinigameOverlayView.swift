@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 private struct LoadingStageText: View {
     private static let stages: [String] = [

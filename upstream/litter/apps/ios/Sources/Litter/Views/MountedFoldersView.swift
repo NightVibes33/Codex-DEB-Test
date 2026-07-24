@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import UniformTypeIdentifiers
-import Perception
 
 struct MountedFoldersView: View {
     enum PickerMode: Equatable {
@@ -25,11 +25,11 @@ struct MountedFoldersView: View {
             .navigationTitle("Mounted folders")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .navigationBarLeading) {
                     Button("Done") { dismiss() }
                         .foregroundColor(LitterTheme.accent)
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         Button {
                             Task { await mountNativeContainer() }

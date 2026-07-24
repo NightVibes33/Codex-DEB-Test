@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 struct PetSettingsView: View {
     @Environment(AppModel.self) private var appModel

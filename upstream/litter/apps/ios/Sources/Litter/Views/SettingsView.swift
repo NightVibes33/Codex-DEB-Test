@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import UIKit
-import Perception
 
 enum SettingsFeatureVisibility {
     static let showsTipJar = false
@@ -91,7 +91,7 @@ struct SettingsView: View {
                     }
                     .accessibilityElement(children: .combine)
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { dismiss() }
                         .foregroundColor(LitterTheme.accent)
                 }
@@ -139,7 +139,7 @@ struct SettingsView: View {
             }
             .onAppear { consumeRequestedSettingsRoute() }
             .task { await proStore.loadProducts() }
-            .onChange(of: requestedSettingsRoute) { _, _ in consumeRequestedSettingsRoute() }
+            .darkswordOnChange(of: requestedSettingsRoute) { _, _ in consumeRequestedSettingsRoute() }
             .sheet(item: $activeServerSheet) { sheet in
                 switch sheet {
                 case .add:
@@ -1271,7 +1271,7 @@ private struct SettingsServerConnectionEditor: View {
             .navigationTitle("Edit Server")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Cancel") { dismiss() }
                         .foregroundColor(LitterTheme.accent)
                 }
@@ -1646,7 +1646,7 @@ private struct SettingsConnectionAccountSection: View {
                 .pickerStyle(.menu)
                 .tint(LitterTheme.accent)
                 .disabled(isAuthWorking)
-                .onChange(of: selectedChatGPTAccountID) { _, newValue in
+                .darkswordOnChange(of: selectedChatGPTAccountID) { _, newValue in
                     guard !newValue.isEmpty, newValue != activeStoredChatGPTAccountID else { return }
                     taskBag.run {
                         isAuthWorking = true

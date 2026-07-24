@@ -1,7 +1,7 @@
+import Perception
 import SwiftUI
 import WatchKit
 import UserNotifications
-import Perception
 
 /// Identifiers shared with the iPhone notification scheduler. Keep in lock
 /// step with `WatchApprovalNotification` on the iOS target — copied here so
@@ -223,7 +223,7 @@ struct WatchRootView: View {
         .onOpenURL { url in
             router.handle(url)
         }
-        .onChange(of: router.pendingDeepLink) { _, destination in
+        .darkswordOnChange(of: router.pendingDeepLink) { _, destination in
             if let destination { apply(destination) }
         }
         .onAppear {

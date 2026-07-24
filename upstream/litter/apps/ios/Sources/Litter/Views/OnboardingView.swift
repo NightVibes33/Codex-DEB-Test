@@ -1,7 +1,7 @@
+import Perception
 import Combine
 import Foundation
 import SwiftUI
-import Perception
 
 struct LitterOnboardingState {
     static let currentVersion = 1
@@ -51,7 +51,7 @@ struct OnboardingView: View {
             .navigationTitle("Welcome")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .navigationBarLeading) {
                     if mode == .replay {
                         Button("Close") { onFinish() }
                             .foregroundStyle(LitterTheme.accent)
@@ -60,7 +60,7 @@ struct OnboardingView: View {
                             .foregroundStyle(LitterTheme.textSecondary)
                     }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         Task { await readiness.refresh(appModel: appModel, appState: appState) }
                     } label: {

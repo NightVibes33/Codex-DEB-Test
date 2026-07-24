@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import WatchKit
-import Perception
 
 /// 3 · Approve — real pending approval from the phone. Deny on the left,
 /// allow on the right. `handGestureShortcut(.primaryAction)` maps the

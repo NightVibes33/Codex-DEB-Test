@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 struct AIProviderSettingsView: View {
     @StateObject private var providerStore = AIProviderStore.shared
@@ -18,7 +18,7 @@ struct AIProviderSettingsView: View {
         .navigationTitle("AI Providers")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
                     showAddProvider = true
                 } label: {
@@ -187,8 +187,8 @@ private struct AddAIProviderView: View {
         .navigationTitle("Add AI Server")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() } }
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .navigationBarLeading) { Button("Cancel") { dismiss() } }
+            ToolbarItem(placement: .navigationBarTrailing) {
                 Button("Save") { save() }
                     .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || baseURL.trimmingCharacters(in: .whitespaces).isEmpty)
             }

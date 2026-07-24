@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import Network
-import Perception
 
 struct DiscoveryView: View {
     var onServerSelected: ((DiscoveredServer) -> Void)?
@@ -165,12 +165,12 @@ struct DiscoveryView: View {
                 Task { await connectAlleycatTarget(result) }
             }
         }
-        .onChange(of: showManualEntry) { _, isPresented in
+        .darkswordOnChange(of: showManualEntry) { _, isPresented in
             guard !isPresented, let pendingSSHServer else { return }
             self.pendingSSHServer = nil
             self.sshServer = pendingSSHServer
         }
-        .onChange(of: appModel.snapshot) { _, _ in
+        .darkswordOnChange(of: appModel.snapshot) { _, _ in
             guard let pendingAutoNavigateServerId else { return }
             guard let serverSnapshot = appModel.snapshot?.serverSnapshot(for: pendingAutoNavigateServerId) else {
                 return
@@ -1249,14 +1249,14 @@ struct DiscoveryView: View {
             .navigationTitle("Connected Computers")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .navigationBarLeading) {
                     Button("Refresh") {
                         Task { await loadSlingshotEnvironments() }
                     }
                     .disabled(slingshotIsLoading)
                     .foregroundColor(LitterTheme.accent)
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Cancel") { showSlingshotHosts = false }
                         .foregroundColor(LitterTheme.accent)
                 }
@@ -1462,7 +1462,7 @@ struct DiscoveryView: View {
             .navigationTitle("Add Server")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Cancel") { showManualEntry = false }
                         .foregroundColor(LitterTheme.accent)
                 }

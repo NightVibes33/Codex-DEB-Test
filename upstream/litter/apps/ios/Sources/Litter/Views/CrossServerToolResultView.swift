@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 /// Rich rendering for list_servers and list_sessions tool results.
 /// Decodes structured JSON from contentSummary and renders using the same

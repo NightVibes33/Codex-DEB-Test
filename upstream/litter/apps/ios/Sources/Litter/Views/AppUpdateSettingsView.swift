@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import UIKit
-import Perception
 
 struct AppUpdateSettingsView: View {
     @Environment(\.openURL) private var openURL
@@ -32,7 +32,7 @@ struct AppUpdateSettingsView: View {
         .navigationTitle("Updates")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
                     taskBag.run { await refreshAll() }
                 } label: {

@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import WidgetKit
-import Perception
 
 /// Smart Stack widget mirroring the iPhone's Live Activity for the
 /// currently running turn. Reads `running.turn.v1` from the App Group and

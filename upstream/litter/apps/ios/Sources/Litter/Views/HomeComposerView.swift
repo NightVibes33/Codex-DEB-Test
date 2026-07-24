@@ -1,8 +1,8 @@
+import Perception
 import SwiftUI
 import PhotosUI
 import UIKit
 import os
-import Perception
 
 /// Composer variant for the home screen. When a project is selected, typing
 /// and hitting send creates a new thread on (project.serverId, project.cwd)
@@ -141,14 +141,14 @@ struct HomeComposerView: View {
                 }
             }
         }
-        .onChange(of: inputText) { _, newValue in
+        .darkswordOnChange(of: inputText) { _, newValue in
             if ConversationAttachmentSupport.shouldExternalizeComposerText(newValue) {
                 externalizeOversizedComposerTextIfNeeded(newValue)
                 return
             }
             scheduleHomePopupRefresh(for: newValue)
         }
-        .onChange(of: isActive) { _, active in
+        .darkswordOnChange(of: isActive) { _, active in
             onActiveChange?(active)
         }
         .dropDestination(for: URL.self) { urls, _ in
@@ -201,11 +201,11 @@ struct HomeComposerView: View {
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
-        .onChange(of: selectedPhoto) { _, item in
+        .darkswordOnChange(of: selectedPhoto) { _, item in
             guard let item else { return }
             Task { await loadSelectedPhoto(item) }
         }
-        .onChange(of: capturedImage) { _, image in
+        .darkswordOnChange(of: capturedImage) { _, image in
             guard let image else { return }
             appendImageAttachment(image)
             capturedImage = nil

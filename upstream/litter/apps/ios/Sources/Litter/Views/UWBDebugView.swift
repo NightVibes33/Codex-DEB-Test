@@ -1,8 +1,8 @@
+import Perception
 #if !targetEnvironment(macCatalyst)
 import NearbyInteraction
 import SwiftUI
 import simd
-import Perception
 
 /// Debug surface for the iPhone-side UWB ranging used by the Mac pairing
 /// flow. Reuses `NearbyMacPairing.shared` in debug mode (which skips the

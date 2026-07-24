@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 /// DarkSword is the product shell. The complete NightVibes Litter ContentView
 /// remains the real chat/agent engine and is embedded without replacing its

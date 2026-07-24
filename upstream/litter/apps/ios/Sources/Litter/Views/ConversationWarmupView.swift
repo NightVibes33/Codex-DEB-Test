@@ -1,7 +1,7 @@
+import Perception
 import SwiftUI
 import UIKit
 import os
-import Perception
 
 private let conversationWarmupSignpostLog = OSLog(
     subsystem: Bundle.main.bundleIdentifier ?? "com.litter.ios",

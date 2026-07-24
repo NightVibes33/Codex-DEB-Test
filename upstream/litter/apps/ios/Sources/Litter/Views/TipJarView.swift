@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import StoreKit
-import Perception
 
 enum TipJarFeature {
     static let isVisible = false
@@ -216,7 +216,7 @@ struct SupporterBadge: View {
                 NavigationStack {
                     TipJarView()
                         .toolbar {
-                            ToolbarItem(placement: .topBarTrailing) {
+                            ToolbarItem(placement: .navigationBarTrailing) {
                                 Button("Done") { showTipJar = false }
                                     .foregroundColor(LitterTheme.accent)
                             }
@@ -263,7 +263,7 @@ struct SupporterKittyBadges: View {
                     NavigationStack {
                         TipJarView()
                             .toolbar {
-                                ToolbarItem(placement: .topBarTrailing) {
+                                ToolbarItem(placement: .navigationBarTrailing) {
                                     Button("Done") { showTipJar = false }
                                         .foregroundColor(LitterTheme.accent)
                                 }

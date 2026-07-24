@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 enum ConversationComposerPopupState {
     case none

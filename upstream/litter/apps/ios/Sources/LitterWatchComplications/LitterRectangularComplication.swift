@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import WidgetKit
-import Perception
 
 /// Modular rectangular complication (Infograph Modular hero slot). Shows
 /// the L badge + runtime header, full task title, and current tool call.

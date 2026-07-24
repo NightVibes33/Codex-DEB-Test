@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 /// Full diffs view for the focused task. One vertical page per changed file
 /// (crown switches files), each page scrolls the unified-diff content with

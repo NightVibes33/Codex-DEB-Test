@@ -1,6 +1,6 @@
+import Perception
 import SafariServices
 import SwiftUI
-import Perception
 
 struct HeaderView: View {
     @Environment(AppState.self) private var appState
@@ -138,7 +138,7 @@ struct HeaderView: View {
                 shouldPulse ? .easeInOut(duration: 0.8).repeatForever(autoreverses: true) : .default,
                 value: pulsing
             )
-            .onChange(of: shouldPulse) { _, pulse in
+            .darkswordOnChange(of: shouldPulse) { _, pulse in
                 pulsing = pulse
             }
     }
@@ -381,7 +381,7 @@ struct ConversationToolbarControls: View {
             InAppSafariView(url: session.url)
                 .ignoresSafeArea()
         }
-        .onChange(of: server?.account != nil) { _, isLoggedIn in
+        .darkswordOnChange(of: server?.account != nil) { _, isLoggedIn in
             if isLoggedIn {
                 remoteAuthSession = nil
             }
@@ -844,14 +844,14 @@ struct InlineModelSelectorView: View {
             synchronizeRuntimeFilter()
             resetModelSearchIndex()
         }
-        .onChange(of: models) { _, _ in
+        .darkswordOnChange(of: models) { _, _ in
             synchronizeRuntimeFilter()
             resetModelSearchIndex()
         }
-        .onChange(of: selectedRuntimeFilter) { _, _ in
+        .darkswordOnChange(of: selectedRuntimeFilter) { _, _ in
             resetModelSearchIndex()
         }
-        .onChange(of: selectedAgentRuntimeKind) { _, _ in
+        .darkswordOnChange(of: selectedAgentRuntimeKind) { _, _ in
             synchronizeRuntimeFilter()
         }
     

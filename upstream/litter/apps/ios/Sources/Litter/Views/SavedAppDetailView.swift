@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 /// Fullscreen host for a single saved app. Loads the widget HTML + persisted
 /// state from Rust on appear, renders through `WidgetWebView` in app-mode so
@@ -102,7 +102,7 @@ struct SavedAppDetailView: View {
             pollingTask?.cancel()
             pollingTask = nil
         }
-        .onChange(of: isUpdating) { _, updating in
+        .darkswordOnChange(of: isUpdating) { _, updating in
             if updating {
                 startPollingForUpdate()
             } else {

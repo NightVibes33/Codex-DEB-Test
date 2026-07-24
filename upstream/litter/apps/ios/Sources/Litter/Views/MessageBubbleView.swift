@@ -1,10 +1,10 @@
+import Perception
 import SwiftUI
 import Hairball
 import HairballUI
 import Nuke
 import NukeUI
 import UIKit
-import Perception
 
 extension View {
     @ViewBuilder
@@ -348,7 +348,7 @@ struct UserBubble: View {
             .modifier(GlassRectModifier(cornerRadius: compact ? 14 : 18, tint: LitterTheme.accent.opacity(0.3)))
         }
         .padding(.bottom, 14)
-        .onChange(of: text) { _, _ in
+        .darkswordOnChange(of: text) { _, _ in
             expandedLongText = false
         }
     
@@ -664,7 +664,7 @@ struct StreamingAssistantBubble: View {
                 streamingMarkdownBody
             }
         }
-        .onChange(of: text) {
+        .darkswordOnChange(of: text) {
             onSnapshotRendered?()
         }
     

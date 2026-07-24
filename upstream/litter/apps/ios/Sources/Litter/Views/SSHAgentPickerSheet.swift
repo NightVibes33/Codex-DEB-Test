@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 struct SSHBridgeAgentContext: Identifiable {
     let id: String
@@ -86,7 +86,7 @@ struct SSHAgentPickerSheet: View {
             .navigationTitle("Remote Agents")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
                         onCancel()
                         dismiss()

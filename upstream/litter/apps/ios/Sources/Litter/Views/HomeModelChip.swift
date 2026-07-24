@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 /// Small tap-to-open model picker for the home composer bar, styled to
 /// match `ProjectChip` so the two sit together above the input. Reads +
@@ -163,7 +163,7 @@ struct HomeModelChip: View {
             .presentationContentInteraction(.scrolls)
             .presentationBackground(LitterTheme.surface)
         }
-        .onChange(of: showSheet) { _, isPresented in
+        .darkswordOnChange(of: showSheet) { _, isPresented in
             onSheetStateChange(isPresented)
         }
         .task(id: serverId) {

@@ -1,9 +1,9 @@
+import Perception
 import SwiftUI
 import PhotosUI
 import UIKit
 import os
 import HairballUI
-import Perception
 
 private let conversationViewSignpostLog = OSLog(
     subsystem: Bundle.main.bundleIdentifier ?? "com.litter.ios",
@@ -216,13 +216,13 @@ struct ConversationView: View {
             os_signpost(.event, log: conversationViewSignpostLog, name: "ConversationFirstRender")
             appState.hydratePermissions(from: thread)
         }
-        .onChange(of: thread) { _, newThread in
+        .darkswordOnChange(of: thread) { _, newThread in
             appState.hydratePermissions(from: newThread)
         }
         .task(id: activeThreadKey) {
             await loadInitialTurnsIfNeeded()
         }
-        .onChange(of: thread.initialTurnsLoaded) { _, _ in
+        .darkswordOnChange(of: thread.initialTurnsLoaded) { _, _ in
             taskBag.run { await loadInitialTurnsIfNeeded() }
         }
         .onDisappear { taskBag.cancelAll() }
@@ -867,7 +867,7 @@ private struct ConversationMessageList: View {
                     requestInitialBottomScrollIfNeeded(proxy)
                 }
                 .onDisappear { cancelScrollTasks() }
-                .onChange(of: activeThreadKey) {
+                .darkswordOnChange(of: activeThreadKey) {
                     autoFollowStreaming = true
                     isNearBottom = true
                     distanceFromBottom = 0
@@ -881,25 +881,25 @@ private struct ConversationMessageList: View {
                     try? await Task.sleep(for: .seconds(1))
                     waitingForDataExpired = true
                 }
-                .onChange(of: items) { _, _ in
+                .darkswordOnChange(of: items) { _, _ in
                     syncTranscriptTurns()
                     requestInitialBottomScrollIfNeeded(proxy)
                 }
-                .onChange(of: collapseTurns) {
+                .darkswordOnChange(of: collapseTurns) {
                     syncTranscriptTurns(resetExpansion: true)
                 }
-                .onChange(of: followScrollToken) {
+                .darkswordOnChange(of: followScrollToken) {
                     guard isStreaming, autoFollowStreaming, !userIsDraggingScroll else { return }
                     scrollToBottom(proxy)
                 }
-                .onChange(of: sendScrollToken) {
+                .darkswordOnChange(of: sendScrollToken) {
                     autoFollowStreaming = true
                     isNearBottom = true
                     distanceFromBottom = 0
                     scrollToBottom(proxy)
                     scheduleBottomScrollCorrection(proxy, animated: true)
                 }
-                .onChange(of: threadStatus) { oldStatus, _ in
+                .darkswordOnChange(of: threadStatus) { oldStatus, _ in
                     syncTranscriptTurns()
                     // When streaming ends, finish active renderers so they
                     // switch to static rendering (no re-animation on view rebuild).
@@ -1650,14 +1650,14 @@ private struct ConversationInputBar: View {
         ) {
             composerSurface
         }
-        .onChange(of: inputText) { _, next in
+        .darkswordOnChange(of: inputText) { _, next in
             if ConversationAttachmentSupport.shouldExternalizeComposerText(next) {
                 externalizeOversizedComposerTextIfNeeded(next)
                 return
             }
             scheduleComposerPopupRefresh(for: next)
         }
-        .onChange(of: snapshot.composerPrefillRequest?.id) { _, _ in
+        .darkswordOnChange(of: snapshot.composerPrefillRequest?.id) { _, _ in
             guard let prefill = snapshot.composerPrefillRequest else { return }
             inputText = prefill.text
             composerSelectionRange = NSRange(location: (prefill.text as NSString).length, length: 0)
@@ -1665,12 +1665,12 @@ private struct ConversationInputBar: View {
             hideComposerPopups()
             appModel.clearComposerPrefill(id: prefill.id)
         }
-        .onChange(of: capturedImage) { _, image in
+        .darkswordOnChange(of: capturedImage) { _, image in
             guard let image else { return }
             appendImageAttachment(image)
             capturedImage = nil
         }
-        .onChange(of: isComposerFocused) { _, focused in
+        .darkswordOnChange(of: isComposerFocused) { _, focused in
             if focused {
                 guard !hasLoggedFirstFocus else { return }
                 hasLoggedFirstFocus = true

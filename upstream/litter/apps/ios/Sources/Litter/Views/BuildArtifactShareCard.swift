@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import UIKit
-import Perception
 
 struct BuildArtifactShareCard: View {
     let artifact: BuildArtifact

@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import WatchKit
-import Perception
 
 /// Lists threads the user has hidden from home. Each row exposes an Unhide
 /// action that round-trips back to the phone via

@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 struct PluginSettingsView: View {
     @Environment(AppModel.self) private var appModel
@@ -100,7 +100,7 @@ struct PluginSettingsView: View {
         .navigationTitle("Plugins")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .navigationBarTrailing) {
                 Button("Reload") { Task { await loadPlugins() } }
                     .foregroundColor(LitterTheme.accent)
                     .disabled(loading || targetServer == nil)

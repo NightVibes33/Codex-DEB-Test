@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 /// Displays a scoped wallpaper (thread → server → fallback gradient).
 struct ChatWallpaperBackground: View {

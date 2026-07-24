@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 struct ProjectPickerSheet: View {
     let projects: [AppProject]
@@ -34,11 +34,11 @@ struct ProjectPickerSheet: View {
             .navigationTitle("Projects")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .navigationBarLeading) {
                     Button("Close") { dismiss() }
                         .foregroundStyle(LitterTheme.textSecondary)
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         onCreateNew()
                     } label: {

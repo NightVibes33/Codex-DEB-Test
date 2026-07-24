@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 /// Centered "new thread" landing used as the detail pane when the user taps
 /// "+" from the sidebar on regular-width surfaces.
@@ -95,7 +95,7 @@ struct NewThreadHeroView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if let onCancel {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Cancel") { onCancel() }
                         .foregroundStyle(LitterTheme.textSecondary)
                 }

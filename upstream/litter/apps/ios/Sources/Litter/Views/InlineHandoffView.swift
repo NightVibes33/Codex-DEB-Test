@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 struct InlineHandoffView: View {
     @Environment(AppModel.self) private var appModel
@@ -49,7 +49,7 @@ struct InlineHandoffView: View {
                 }
                 .frame(height: min(contentHeight, maxHeight))
                 .onPreferenceChange(InlineHandoffContentHeightKey.self) { contentHeight = $0 }
-                .onChange(of: scrollSignature) { _, _ in
+                .darkswordOnChange(of: scrollSignature) { _, _ in
                     withAnimation(.easeOut(duration: 0.15)) {
                         proxy.scrollTo("handoff-bottom", anchor: .bottom)
                     }

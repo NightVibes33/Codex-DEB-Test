@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 struct ProPaywallView: View {
     let feature: ProFeature
@@ -31,7 +31,7 @@ struct ProPaywallView: View {
         .navigationTitle("Alley Cãt Pro")
         .navigationBarTitleDisplayMode(.inline)
         .task { await store.loadProducts() }
-        .onChange(of: store.hasProAccess) { _, unlocked in
+        .darkswordOnChange(of: store.hasProAccess) { _, unlocked in
             if unlocked { onUnlocked?() }
         }
     

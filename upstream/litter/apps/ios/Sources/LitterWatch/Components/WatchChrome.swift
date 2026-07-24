@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 /// Themed eyebrow heading — small uppercased mono text. When `color` is nil
 /// it falls back to the live `WatchThemeStore` accent so unstyled callers

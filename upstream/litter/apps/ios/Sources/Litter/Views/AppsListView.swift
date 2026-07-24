@@ -1,5 +1,5 @@
-import SwiftUI
 import Perception
+import SwiftUI
 
 /// Primary Apps surface: list of all `SavedApp`s on disk. Always-visible
 /// from the Home Dashboard's Apps toolbar button.
@@ -32,7 +32,7 @@ struct AppsListView: View {
                 detailAppId = pending
             }
         }
-        .onChange(of: navigation.pendingOpenAppId) { _, newValue in
+        .darkswordOnChange(of: navigation.pendingOpenAppId) { _, newValue in
             if let id = newValue {
                 detailAppId = id
                 navigation.consumeRequest()

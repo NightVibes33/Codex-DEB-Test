@@ -1,7 +1,7 @@
+import Perception
 import AVFoundation
 import SwiftUI
 import UIKit
-import Perception
 
 struct AlleycatConnectedTarget: Equatable {
     let serverId: String
@@ -74,7 +74,7 @@ struct AlleycatAddServerSheet: View {
             .navigationTitle("Add Remote Host")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
                         .foregroundColor(LitterTheme.accent)
                 }

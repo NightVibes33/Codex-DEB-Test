@@ -1,8 +1,8 @@
+import Perception
 import Foundation
 
 #if DEBUG
 import SwiftUI
-import Perception
 
 enum LitterPreviewData {
     static let sampleCwd = "/Users/sigkitten/dev/codex-ios"

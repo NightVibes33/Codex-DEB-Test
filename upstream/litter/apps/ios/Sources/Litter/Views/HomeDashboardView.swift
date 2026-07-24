@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import UIKit
-import Perception
 
 /// Which chrome layer the dashboard renders with.
 ///
@@ -197,7 +197,7 @@ struct HomeDashboardView: View {
         WithPerceptionTracking {
         canvas
             .onAppear { onInputModeChange?(inputMode) }
-            .onChange(of: inputMode) { _, nextMode in
+            .darkswordOnChange(of: inputMode) { _, nextMode in
                 onInputModeChange?(nextMode)
                 if nextMode != .search {
                     selectedSearchRuntimeKind = nil
@@ -209,16 +209,16 @@ struct HomeDashboardView: View {
                 }
             }
             .onAppear { autoHydrateIfNeeded() }
-            .onChange(of: visibleSessions.map { hydrationId($0.key) }) { _, _ in
+            .darkswordOnChange(of: visibleSessions.map { hydrationId($0.key) }) { _, _ in
                 autoHydrateIfNeeded()
             }
-            .onChange(of: pinnedThreadKeys) { _, _ in
+            .darkswordOnChange(of: pinnedThreadKeys) { _, _ in
                 autoHydrateIfNeeded()
             }
             // Clear a cancelled key once the snapshot says the turn is
             // actually gone. Gives the dot a brief red period while the
             // cancel is in flight, then reverts to normal indicator logic.
-            .onChange(of: visibleSessions.map { "\(hydrationId($0.key)):\($0.hasTurnActive)" }) { _, _ in
+            .darkswordOnChange(of: visibleSessions.map { "\(hydrationId($0.key)):\($0.hasTurnActive)" }) { _, _ in
                 let stillActive = Set(
                     visibleSessions
                         .filter { $0.hasTurnActive }
@@ -240,7 +240,7 @@ struct HomeDashboardView: View {
                 guard !Task.isCancelled else { return }
                 await MainActor.run { isLoadingThreadListing = false }
             }
-            .onChange(of: availableSearchRuntimeKinds) { _, kinds in
+            .darkswordOnChange(of: availableSearchRuntimeKinds) { _, kinds in
                 if let selectedSearchRuntimeKind, !kinds.contains(selectedSearchRuntimeKind) {
                     self.selectedSearchRuntimeKind = nil
                 }
@@ -308,7 +308,7 @@ struct HomeDashboardView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
+        ToolbarItem(placement: .navigationBarLeading) {
             HStack(spacing: 12) {
                 Button(action: onShowSettings) {
                     Image(systemName: "gearshape")
@@ -356,11 +356,11 @@ struct HomeDashboardView: View {
             }
         }
         if chrome == .full {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .navigationBarTrailing) {
                 zoomButton
             }
         } else {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
                     onNewThread?()
                 } label: {

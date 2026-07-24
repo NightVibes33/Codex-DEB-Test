@@ -1,6 +1,6 @@
+import Perception
 import SwiftUI
 import UIKit
-import Perception
 
 /// Full-screen terminal. The Ghostty surface fills the entire body —
 /// keystrokes go straight to the PTY via the hidden first-responder text
@@ -64,7 +64,7 @@ struct TerminalScreen: View {
         .onReceive(NotificationCenter.default.publisher(for: .litterSavedServersDidChange)) { _ in
             reconcileBackendOptions()
         }
-        .onChange(of: appSnapshotRevision) { _, _ in
+        .darkswordOnChange(of: appSnapshotRevision) { _, _ in
             reconcileBackendOptions()
         }
         .onDisappear {
@@ -82,7 +82,7 @@ struct TerminalScreen: View {
             controller.setOutputSink(nil)
             controller.close()
         }
-        .onChange(of: scenePhase) { _, newPhase in
+        .darkswordOnChange(of: scenePhase) { _, newPhase in
             switch newPhase {
             case .active:
                 ghosttyRenderer.setOccluded(false)
@@ -348,7 +348,7 @@ struct TerminalScreen: View {
                     applyConfigSettings()
                 }
             }
-            .onChange(of: contentSize) { _, size in
+            .darkswordOnChange(of: contentSize) { _, size in
                 updateTerminalContentSize(size)
             }
         }
@@ -722,7 +722,7 @@ private struct TerminalConfigSheet: View {
                         Text("Size")
                     }
                 }
-                .onChange(of: draftFontSize) { _, _ in
+                .darkswordOnChange(of: draftFontSize) { _, _ in
                     applyDraft()
                 }
                 Section("Theme") {
@@ -732,11 +732,11 @@ private struct TerminalConfigSheet: View {
                         }
                     }
                     .pickerStyle(.inline)
-                    .onChange(of: draftThemeId) { _, _ in applyDraft() }
+                    .darkswordOnChange(of: draftThemeId) { _, _ in applyDraft() }
                 }
                 Section("Cursor") {
                     Toggle("Blink", isOn: $draftCursorBlink)
-                        .onChange(of: draftCursorBlink) { _, _ in applyDraft() }
+                        .darkswordOnChange(of: draftCursorBlink) { _, _ in applyDraft() }
                 }
             }
             .scrollContentBackground(.hidden)
