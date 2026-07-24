@@ -28,7 +28,7 @@ jobs:
           set -euxo pipefail
           xcodebuild -version
           xcrun --sdk iphoneos --show-sdk-path
-          brew install ldid dpkg coreutils
+          brew install ldid dpkg
 
       - name: Clone maintained iOS-patched Node source
         run: |
@@ -43,7 +43,7 @@ jobs:
         working-directory: node-src
         run: |
           set -euxo pipefail
-          export GYP_DEFINES="target_arch=arm64 host_os=mac target_os=ios ios_deployment_target=${IOS_DEPLOYMENT_TARGET}"
+          export GYP_DEFINES="target_arch=arm64 host_os=mac target_os=ios"
           ./configure \
             --dest-os=ios \
             --dest-cpu=arm64 \
@@ -60,10 +60,37 @@ jobs:
         working-directory: node-src
         run: |
           set -euxo pipefail
-          make -j"$(sysctl -n hw.ncpu)"
-          test -f out/Release/libnode.a
+          make -j"$(getconf _NPROCESSORS_ONLN)"
+          REQUIRED_LIBS=(
+            libada.a
+            libbase64.a
+            libbase64_neon64.a
+            libbrotli.a
+            libcares.a
+            libhistogram.a
+            libllhttp.a
+            libnghttp2.a
+            libnghttp3.a
+            libngtcp2.a
+            libnode.a
+            libopenssl.a
+            libsimdutf.a
+            libuv.a
+            libuvwasi.a
+            libv8_base_without_compiler.a
+            libv8_compiler.a
+            libv8_initializers.a
+            libv8_libbase.a
+            libv8_libplatform.a
+            libv8_snapshot.a
+            libv8_zlib.a
+            libzlib.a
+            libzlib_inflate_chunk_simd.a
+          )
+          for lib in "${REQUIRED_LIBS[@]}"; do
+            test -f "out/Release/$lib"
+          done
           file out/Release/libnode.a
-          find out/Release -maxdepth 1 -name '*.a' -print | sort
 
       - name: Link jailbroken iOS CLI executable
         working-directory: node-src
@@ -79,8 +106,32 @@ jobs:
 
           SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
           TARGET="arm64-apple-ios${IOS_DEPLOYMENT_TARGET}"
-          STATIC_LIBS=( $(find out/Release -maxdepth 1 -name '*.a' -print | sort) )
-          test "${#STATIC_LIBS[@]}" -gt 0
+          LIBS=(
+            out/Release/libnode.a
+            out/Release/libada.a
+            out/Release/libbase64.a
+            out/Release/libbase64_neon64.a
+            out/Release/libbrotli.a
+            out/Release/libcares.a
+            out/Release/libhistogram.a
+            out/Release/libllhttp.a
+            out/Release/libnghttp2.a
+            out/Release/libnghttp3.a
+            out/Release/libngtcp2.a
+            out/Release/libopenssl.a
+            out/Release/libsimdutf.a
+            out/Release/libuv.a
+            out/Release/libuvwasi.a
+            out/Release/libv8_initializers.a
+            out/Release/libv8_compiler.a
+            out/Release/libv8_base_without_compiler.a
+            out/Release/libv8_libplatform.a
+            out/Release/libv8_libbase.a
+            out/Release/libv8_snapshot.a
+            out/Release/libv8_zlib.a
+            out/Release/libzlib.a
+            out/Release/libzlib_inflate_chunk_simd.a
+          )
 
           xcrun --sdk iphoneos clang++ \
             -target "$TARGET" \
@@ -91,7 +142,7 @@ jobs:
             -I./deps/v8/include \
             ios_cli_main.cc \
             -Wl,-all_load \
-            "${STATIC_LIBS[@]}" \
+            "${LIBS[@]}" \
             -Wl,-noall_load \
             -framework Foundation \
             -framework CoreFoundation \
@@ -131,7 +182,7 @@ jobs:
           printf '%s\n' \
             'Package: nodejs-mobile' \
             'Name: Node.js Mobile CLI (Rootless)' \
-            "Version: ${BUILT_VERSION}-2" \
+            "Version: ${BUILT_VERSION}-3" \
             "Architecture: ${PACKAGE_ARCH}" \
             'Description: Real iOS-patched Node.js CLI for rootless iOS 16+' \
             'Maintainer: NightVibes33' \
@@ -139,7 +190,7 @@ jobs:
             'Priority: optional' \
             'Depends: firmware (>= 16.0)' > "$ROOT/DEBIAN/control"
 
-          DEB="nodejs-mobile_${BUILT_VERSION}-2_${PACKAGE_ARCH}.deb"
+          DEB="nodejs-mobile_${BUILT_VERSION}-3_${PACKAGE_ARCH}.deb"
           dpkg-deb --root-owner-group --build "$ROOT" "$DEB"
           echo "DEB=$DEB" >> "$GITHUB_ENV"
 
