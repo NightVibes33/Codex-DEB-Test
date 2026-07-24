@@ -1,5 +1,6 @@
 name: Report Current AlleyCat Build Run
 
+# Reports the direct clone -> patch -> build workflow.
 on:
   workflow_dispatch:
   push:
