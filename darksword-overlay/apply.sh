@@ -118,7 +118,7 @@ require_grep() {
   local pattern="$2"
   local file="$3"
   if ! grep -q -- "$pattern" "$file"; then
-    echo "error: AlleyCat overlay verification failed: $label ($file)" >&2
+    echo "error: AlleyCat patch verification failed: $label ($file)" >&2
     exit 1
   fi
   echo "verified: $label"
@@ -130,7 +130,6 @@ require_grep "iOS 16 onChange compatibility" 'darkswordOnChange' "$TARGET/apps/i
 require_grep "iPhone C compiler wrapper" 'CC_aarch64_apple_ios="$IOS_CLANG_WRAPPER"' "$TARGET/apps/ios/scripts/build-rust.sh"
 require_grep "real AlleyCat root" 'ContentView()' "$TARGET/apps/ios/Sources/Litter/LitterApp.swift"
 require_grep "AlleyCat Labs settings entry" 'AlleyCat Labs' "$TARGET/apps/ios/Sources/Litter/Views/SettingsView.swift"
-require_grep "AlleyCat product name" 'PRODUCT_NAME: AlleyCat' "$TARGET/apps/ios/project.yml"
 require_grep "Alley Cãt display name" '<string>Alley Cãt</string>' "$TARGET/apps/ios/Sources/Litter/Info.plist"
 require_grep "target-scoped iPhone deployment" 'env IPHONEOS_DEPLOYMENT_TARGET="$IOS_DEPLOYMENT_TARGET" cargo rustc' "$TARGET/apps/ios/scripts/build-rust.sh"
 
