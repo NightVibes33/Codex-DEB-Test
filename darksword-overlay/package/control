@@ -1,11 +1,11 @@
 Package: com.nightvibes.darkswordai
 Name: DarkSword AI
-Version: 0.1.0
+Version: 0.2.0
 Architecture: iphoneos-arm64
-Description: Litter-based mobile coding client with a local jailbroken-iOS tool bridge.
+Description: Full NightVibes Litter ChatGPT-account client with native research workspace, crash viewer, source editor, approval-gated root tools, and bounded jailbreak lab for iPadOS 16.
 Maintainer: NightVibes33
 Author: NightVibes33
 Section: Development
 Priority: optional
-Depends: firmware (>= 16.0)
+Depends: firmware (>= 16.1)
 Homepage: https://github.com/NightVibes33/Codex-DEB-Test
