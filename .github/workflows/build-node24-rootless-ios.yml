@@ -30,20 +30,22 @@ jobs:
           xcrun --sdk iphoneos --show-sdk-path
           brew install ldid dpkg
 
-      - name: Clone maintained iOS-patched Node source
+      - name: Clone pinned iOS-patched Node source
         run: |
           set -euxo pipefail
           git clone https://github.com/nodejs-mobile/nodejs-mobile.git node-src
           cd node-src
-          git checkout "$NODEJS_MOBILE_REF"
+          git checkout --detach "$NODEJS_MOBILE_REF"
+          test "$(git rev-parse HEAD)" = "$NODEJS_MOBILE_REF"
           git submodule update --init --recursive
           grep -E '^#define NODE_(MAJOR|MINOR|PATCH)_VERSION' src/node_version.h
 
-      - name: Configure iOS arm64 build
+      - name: Configure native Node iOS executable target
         working-directory: node-src
         run: |
           set -euxo pipefail
           export GYP_DEFINES="target_arch=arm64 host_os=mac target_os=ios"
+          export IPHONEOS_DEPLOYMENT_TARGET="$IOS_DEPLOYMENT_TARGET"
           ./configure \
             --dest-os=ios \
             --dest-cpu=arm64 \
@@ -55,106 +57,50 @@ jobs:
             --without-node-code-cache \
             --without-node-snapshot
 
-      - name: Build iOS static libraries
+          python3 - <<'PY'
+          import ast
+          from pathlib import Path
+
+          text = Path('config.gypi').read_text()
+          data = ast.literal_eval('\n'.join(
+              line for line in text.splitlines()
+              if not line.lstrip().startswith('#')
+          ))
+          variables = data['variables']
+          assert variables['target_arch'] == 'arm64', variables['target_arch']
+          assert variables['host_arch'] == 'arm64', variables['host_arch']
+          assert variables['node_use_node_snapshot'] == 'false'
+          assert variables['node_use_node_code_cache'] == 'false'
+          assert variables['v8_enable_jitless'] == 1
+          print('config.gypi assertions passed')
+          PY
+
+          grep -q "'target_name': '<(node_core_target_name)'" node.gyp
+          grep -q "'type': 'executable'" node.gyp
+          grep -q "'src/node_main.cc'" node.gyp
+
+      - name: Build Node's native iOS CLI target
         working-directory: node-src
         run: |
           set -euxo pipefail
-          make -j"$(sysctl -n hw.ncpu)"
-          REQUIRED_LIBS=(
-            libnode.a
-            libada.a
-            libbase64.a
-            libbase64_neon64.a
-            libbrotli.a
-            libcares.a
-            libhistogram.a
-            libllhttp.a
-            libnghttp2.a
-            libnghttp3.a
-            libngtcp2.a
-            libopenssl.a
-            libsimdutf.a
-            libuv.a
-            libuvwasi.a
-            libv8_initializers.a
-            libv8_compiler.a
-            libv8_base_without_compiler.a
-            libv8_libplatform.a
-            libv8_libbase.a
-            libv8_snapshot.a
-            libv8_zlib.a
-            libzlib.a
-            libzlib_inflate_chunk_simd.a
-          )
-          for lib in "${REQUIRED_LIBS[@]}"; do
-            test -f "out/Release/$lib"
-          done
-          file out/Release/libnode.a
+          export IPHONEOS_DEPLOYMENT_TARGET="$IOS_DEPLOYMENT_TARGET"
+          make -j"$(sysctl -n hw.ncpu)" node
+          test -x out/Release/node
 
-      - name: Link jailbroken iOS CLI executable
+      - name: Verify native iOS binary
         working-directory: node-src
         run: |
           set -euxo pipefail
-          cat > ios_cli_main.cc <<'EOF'
-          #include "node.h"
-
-          int main(int argc, char** argv) {
-            return node::Start(argc, argv);
-          }
-          EOF
-
-          SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
-          TARGET="arm64-apple-ios${IOS_DEPLOYMENT_TARGET}"
-          LIBDIR="out/Release"
-
-          LIBS=(
-            "$LIBDIR/libada.a"
-            "$LIBDIR/libbase64.a"
-            "$LIBDIR/libbase64_neon64.a"
-            "$LIBDIR/libbrotli.a"
-            "$LIBDIR/libcares.a"
-            "$LIBDIR/libhistogram.a"
-            "$LIBDIR/libllhttp.a"
-            "$LIBDIR/libnghttp2.a"
-            "$LIBDIR/libnghttp3.a"
-            "$LIBDIR/libngtcp2.a"
-            "$LIBDIR/libopenssl.a"
-            "$LIBDIR/libsimdutf.a"
-            "$LIBDIR/libuv.a"
-            "$LIBDIR/libuvwasi.a"
-            "$LIBDIR/libv8_initializers.a"
-            "$LIBDIR/libv8_compiler.a"
-            "$LIBDIR/libv8_base_without_compiler.a"
-            "$LIBDIR/libv8_libplatform.a"
-            "$LIBDIR/libv8_libbase.a"
-            "$LIBDIR/libv8_snapshot.a"
-            "$LIBDIR/libv8_zlib.a"
-            "$LIBDIR/libzlib.a"
-            "$LIBDIR/libzlib_inflate_chunk_simd.a"
-          )
-
-          xcrun --sdk iphoneos clang++ \
-            -target "$TARGET" \
-            -isysroot "$SDKROOT" \
-            -miphoneos-version-min="$IOS_DEPLOYMENT_TARGET" \
-            -std=gnu++17 \
-            -O2 \
-            -I./src \
-            -I./deps/v8/include \
-            ios_cli_main.cc \
-            -Wl,-force_load,"$LIBDIR/libnode.a" \
-            "${LIBS[@]}" \
-            -framework Foundation \
-            -framework CoreFoundation \
-            -framework Security \
-            -framework SystemConfiguration \
-            -framework Network \
-            -lc++ -lz -liconv -lresolv \
-            -o out/Release/node
-
-          file out/Release/node
-          xcrun vtool -show-build out/Release/node | tee ../build-version.txt
+          BIN=out/Release/node
+          file "$BIN" | tee ../node-file.txt
+          file "$BIN" | grep -q 'Mach-O 64-bit executable arm64'
+          xcrun vtool -show-build "$BIN" | tee ../build-version.txt
           grep -Eq 'platform IOS|platform 2' ../build-version.txt
+          xcrun otool -L "$BIN" | tee ../linked-libraries.txt
+          ! grep -q '/usr/local/' ../linked-libraries.txt
+          ! grep -q '/opt/homebrew/' ../linked-libraries.txt
+          ! grep -q '/Library/Developer/' ../linked-libraries.txt
+          xcrun nm -m "$BIN" | grep -q 'external _main'
 
       - name: Read built version
         id: version
@@ -165,6 +111,7 @@ jobs:
           MINOR=$(awk '/NODE_MINOR_VERSION/{print $3; exit}' src/node_version.h)
           PATCH=$(awk '/NODE_PATCH_VERSION/{print $3; exit}' src/node_version.h)
           VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          test -n "$VERSION"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Package rootless DEB
@@ -174,29 +121,31 @@ jobs:
           set -euxo pipefail
           ROOT="$PWD/package-root"
           BIN="$ROOT/var/jb/usr/bin/node"
+          rm -rf "$ROOT"
           mkdir -p "$(dirname "$BIN")" "$ROOT/DEBIAN"
-          cp node-src/out/Release/node "$BIN"
-          chmod 0755 "$BIN"
+          install -m 0755 node-src/out/Release/node "$BIN"
           ldid -S "$BIN"
+          ldid -e "$BIN" >/dev/null
 
           printf '%s\n' \
             'Package: nodejs-mobile' \
             'Name: Node.js Mobile CLI (Rootless)' \
-            "Version: ${BUILT_VERSION}-6" \
+            "Version: ${BUILT_VERSION}-7" \
             "Architecture: ${PACKAGE_ARCH}" \
-            'Description: Real iOS-patched Node.js CLI for rootless iOS 16+' \
+            'Description: Native Node.js Mobile CLI for rootless iOS 16+' \
             'Maintainer: NightVibes33' \
             'Section: Development' \
             'Priority: optional' \
             'Depends: firmware (>= 16.0)' > "$ROOT/DEBIAN/control"
 
-          DEB="nodejs-mobile_${BUILT_VERSION}-6_${PACKAGE_ARCH}.deb"
+          DEB="nodejs-mobile_${BUILT_VERSION}-7_${PACKAGE_ARCH}.deb"
           dpkg-deb --root-owner-group --build "$ROOT" "$DEB"
           echo "DEB=$DEB" >> "$GITHUB_ENV"
 
-      - name: Verify package
+      - name: Verify packaged DEB
         run: |
           set -euxo pipefail
+          test -s "$DEB"
           dpkg-deb -I "$DEB"
           dpkg-deb -c "$DEB"
           rm -rf verify-root
@@ -204,10 +153,12 @@ jobs:
           dpkg-deb -x "$DEB" verify-root
           BIN=verify-root/var/jb/usr/bin/node
           test -x "$BIN"
-          file "$BIN" | grep -q arm64
+          file "$BIN" | grep -q 'Mach-O 64-bit executable arm64'
           xcrun vtool -show-build "$BIN" | tee packaged-build-version.txt
           grep -Eq 'platform IOS|platform 2' packaged-build-version.txt
           ldid -e "$BIN" >/dev/null
+          dpkg-deb -f "$DEB" Architecture | grep -qx "$PACKAGE_ARCH"
+          dpkg-deb -f "$DEB" Version | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+-7$'
 
       - uses: actions/upload-artifact@v4
         with:
