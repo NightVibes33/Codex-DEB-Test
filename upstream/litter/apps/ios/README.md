@@ -1,4 +1,32 @@
-# iOS App (Planned)
+# Litter iOS
 
-This directory is reserved for the iOS project migration from repository root.
-Current source of truth remains at root until Phase 3 migration.
+`apps/ios` contains the primary native iOS app. The Xcode project is generated from `project.yml`; edit `project.yml` and run `make xcgen` instead of hand-editing `Litter.xcodeproj`.
+
+## Main Surfaces
+
+- SwiftUI home dashboard, conversation timeline, settings, appearance/theme controls, wallpaper and typing-effect picker, local file workspace, and settings terminal.
+- Local iSH Alpine fakefs runtime rooted at `/root`; `/root/.codex` is bridged to native Codex storage, `/mnt/apps` exposes app-provided files, and `/mnt/container` exposes the native app container for diagnostics and storage inspection.
+- Shared Rust/UniFFI Codex client for local/remote sessions, SSH, Slingshot connected computers, goals, permissions, widgets, and app-server transport.
+- Embedded KittyStore surface based on SideStore/AltStore with SideStore-style News, Sources, Browse, My Apps, and Settings tabs, plus Feather-style signing inputs.
+- Optional private Nyxian BuildKit assets for on-device Swift checks, builds, tests, and unsigned IPA packaging.
+- PiP streaming cards, CarPlay voice scene support, and experimental Watch targets.
+
+## BuildKit
+
+The app installs fakefs shims such as `litter-fs-doctor`, `litter-swift-check`, `litter-swift-selftest`, `litter-swift-build`, `litter-swift-test`, `litter-ipa-build`, `litter-build-status`, and compatibility wrappers including `swift`, `swiftc`, `clang`, `ld`, `xcodebuild`, `xcrun`, `plutil`, and `code`.
+
+Full native Swift/iOS compilation requires the private `LitterBuildKitAssets.zip` bundle. That bundle contains `CoreCompiler.framework`, `CoreCompilerSupportLibs`, `LitterBuildKitNative.framework`, and a user-owned iPhoneOS SDK. Apple SDK files and compiled private assets are not committed here.
+
+Unsigned IPA packaging does not need a signing certificate. Original Nyxian run/install mode does: the installed Litter app must be signed by SideStore, AltStore, Feather, or another signer, and Settings > Signing must import the matching `.p12` certificate so built apps can be signed with the same identity. Imported developer certificates are validated for PKCS#12 password/private-key usability and optional provisioning-profile match; they do not need to pass iOS system trust.
+
+Important: if `ThirdParty/Nyxian/LitterBuildKitNative/**` changes, rebuild and upload the private BuildKit asset pack before rebuilding the unsigned IPA. The IPA embeds the framework from the asset ZIP; an IPA-only rebuild can reuse a stale native framework.
+
+## Regenerate Project
+
+```bash
+make xcgen
+```
+
+## Unsigned IPA
+
+Use `.github/workflows/ios-unsigned-ipa.yml` for SideStore/AltStore-style unsigned IPA artifacts. Dispatch it manually with `build_mode=fast-device` for the launch-safe public lane that skips private BuildKit asset preparation. Use `.github/workflows/buildkit-assets.yml` first when the private BuildKit framework or SDK payload must change.

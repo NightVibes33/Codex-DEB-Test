@@ -75,7 +75,7 @@ diff --git a/codex-rs/core/src/realtime_conversation.rs b/codex-rs/core/src/real
  use codex_protocol::error::CodexErr;
  use codex_protocol::error::Result as CodexResult;
 @@ -234,6 +236,7 @@
- 
+
  struct RealtimeStart {
      api_provider: ApiProvider,
 +    webrtc_api_fallback: Option<(ApiProvider, SharedAuthProvider)>,
@@ -99,7 +99,7 @@ diff --git a/codex-rs/core/src/realtime_conversation.rs b/codex-rs/core/src/real
                  )
                  .await?;
 @@ -664,6 +669,7 @@
- 
+
  struct PreparedRealtimeConversationStart {
      api_provider: ApiProvider,
 +    webrtc_api_fallback: Option<(ApiProvider, SharedAuthProvider)>,

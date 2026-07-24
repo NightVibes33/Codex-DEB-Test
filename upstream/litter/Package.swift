@@ -9,6 +9,9 @@ let package = Package(
     products: [
         .library(name: "Litter", targets: ["Litter"])
     ],
+    dependencies: [
+        .package(url: "https://github.com/weichsel/ZIPFoundation.git", from: "0.9.20")
+    ],
     targets: [
         .binaryTarget(
             name: "codex_bridge",
@@ -16,7 +19,7 @@ let package = Package(
         ),
         .target(
             name: "Litter",
-            dependencies: ["codex_bridge"],
+            dependencies: ["codex_bridge", .product(name: "ZIPFoundation", package: "ZIPFoundation")],
             path: "apps/ios/Sources/Litter",
             publicHeadersPath: "Bridge"
         )

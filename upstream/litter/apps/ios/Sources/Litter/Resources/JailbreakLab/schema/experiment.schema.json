@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nightvibes33.github.io/darksword/experiment.schema.json",
+  "title": "DarkSword Jailbreak Lab Experiment",
+  "type": "object",
+  "required": [
+    "id",
+    "startedAt",
+    "target",
+    "command",
+    "timeoutSeconds",
+    "authorization",
+    "result"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "startedAt": { "type": "string", "format": "date-time" },
+    "finishedAt": { "type": ["string", "null"], "format": "date-time" },
+    "target": {
+      "type": "object",
+      "required": ["device", "osVersion", "build"],
+      "properties": {
+        "device": { "type": "string" },
+        "osVersion": { "type": "string" },
+        "build": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "command": {
+      "type": "object",
+      "required": ["executable", "argv", "sha256"],
+      "properties": {
+        "executable": { "type": "string" },
+        "argv": { "type": "array", "items": { "type": "string" } },
+        "cwd": { "type": "string" },
+        "sha256": { "type": "string" }
+      }
+    },
+    "timeoutSeconds": { "type": "integer", "minimum": 1, "maximum": 300 },
+    "authorization": {
+      "type": "object",
+      "required": ["deviceOwnerApproved", "scope"],
+      "properties": {
+        "deviceOwnerApproved": { "const": true },
+        "scope": { "enum": ["diagnostic", "reproducer", "bounded-poc", "fuzz-harness"] },
+        "approvalId": { "type": ["string", "null"] }
+      }
+    },
+    "result": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": { "enum": ["pending", "passed", "failed", "crashed", "panicked", "timed-out", "blocked"] },
+        "exitCode": { "type": ["integer", "null"] },
+        "crashReports": { "type": "array", "items": { "type": "string" } },
+        "stdoutPath": { "type": ["string", "null"] },
+        "stderrPath": { "type": ["string", "null"] },
+        "notes": { "type": ["string", "null"] }
+      }
+    }
+  },
+  "additionalProperties": true
+}

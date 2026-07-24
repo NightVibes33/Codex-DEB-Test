@@ -76,7 +76,7 @@ struct DiscoveryView: View {
 
     var body: some View {
         ZStack {
-            LitterTheme.backgroundGradient.ignoresSafeArea()
+            AlleyBackdrop().ignoresSafeArea()
             chooserContent
         }
         .navigationTitle("Add Server")
@@ -433,7 +433,7 @@ struct DiscoveryView: View {
                             .litterFont(.footnote)
                             .foregroundColor(LitterTheme.textMuted)
                     }
-                    .listRowBackground(LitterTheme.surface.opacity(0.6))
+                    .listRowBackground(LitterTheme.surface.opacity(0.88))
                 } else {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("No servers found")
@@ -445,7 +445,7 @@ struct DiscoveryView: View {
                                 .foregroundColor(LitterTheme.textSecondary)
                         }
                     }
-                    .listRowBackground(LitterTheme.surface.opacity(0.6))
+                    .listRowBackground(LitterTheme.surface.opacity(0.88))
                 }
             } else {
                 ForEach(allServers) { server in
@@ -462,7 +462,7 @@ struct DiscoveryView: View {
                         .litterFont(.caption)
                         .foregroundColor(LitterTheme.textSecondary)
                 }
-                .listRowBackground(LitterTheme.surface.opacity(0.6))
+                .listRowBackground(LitterTheme.surface.opacity(0.88))
             }
         } header: {
             VStack(alignment: .leading, spacing: 6) {
@@ -495,7 +495,7 @@ struct DiscoveryView: View {
                 }
             }
         }
-        .listRowBackground(LitterTheme.surface.opacity(0.6))
+        .listRowBackground(LitterTheme.surface.opacity(0.88))
     }
 
     // MARK: - Row
@@ -888,6 +888,7 @@ struct DiscoveryView: View {
             switch target {
             case .local:
                 startedAsyncBootstrap = false
+                try await LitterPlatform.ensureLocalRuntimeReady()
                 connectedServerId = try await appModel.serverBridge.connectLocalServer(
                     serverId: server.id,
                     displayName: server.name,
@@ -1192,7 +1193,7 @@ struct DiscoveryView: View {
     private var slingshotHostsSheet: some View {
         NavigationStack {
             ZStack {
-                LitterTheme.backgroundGradient.ignoresSafeArea()
+                AlleyBackdrop().ignoresSafeArea()
                 List {
                     Section {
                         if slingshotIsLoading && slingshotEnvironments.isEmpty {
@@ -1238,7 +1239,7 @@ struct DiscoveryView: View {
                             .litterFont(.caption2)
                             .foregroundColor(LitterTheme.textMuted)
                     }
-                    .listRowBackground(LitterTheme.surface.opacity(0.6))
+                    .listRowBackground(LitterTheme.surface.opacity(0.88))
                 }
                 .scrollContentBackground(.hidden)
             }
@@ -1346,20 +1347,26 @@ struct DiscoveryView: View {
 
     private func slingshotSubtitle(for environment: AppSlingshotEnvironment) -> String {
         var parts: [String] = []
-        if let hostName = environment.hostName?.trimmingCharacters(in: .whitespacesAndNewlines),
+        if let hostName = environment.hostName?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines),
            !hostName.isEmpty {
             parts.append(hostName)
         }
-        let platform = [environment.operatingSystem, environment.architecture]
-            .compactMap { value -> String? in
-                let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines)
-                return trimmed?.isEmpty == false ? trimmed : nil
-            }
-            .joined(separator: " ")
+
+        var platformParts: [String] = []
+        let operatingSystem = environment.operatingSystem.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+        if !operatingSystem.isEmpty {
+            platformParts.append(operatingSystem)
+        }
+        if let architecture = environment.architecture?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines),
+           !architecture.isEmpty {
+            platformParts.append(architecture)
+        }
+        let platform = platformParts.joined(separator: " ")
         if !platform.isEmpty {
             parts.append(platform)
         }
-        if let version = environment.appServerVersion?.trimmingCharacters(in: .whitespacesAndNewlines),
+
+        if let version = environment.appServerVersion?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines),
            !version.isEmpty {
             parts.append("Codex \(version)")
         }
@@ -1387,7 +1394,7 @@ struct DiscoveryView: View {
     private var manualEntrySheet: some View {
         NavigationStack {
             ZStack {
-                LitterTheme.backgroundGradient.ignoresSafeArea()
+                AlleyBackdrop().ignoresSafeArea()
                 Form {
                     Section {
                         Picker("Connection Type", selection: $manualConnectionMode) {
@@ -1400,7 +1407,7 @@ struct DiscoveryView: View {
                         Text("Connection")
                             .foregroundColor(LitterTheme.textSecondary)
                     }
-                    .listRowBackground(LitterTheme.surface.opacity(0.6))
+                    .listRowBackground(LitterTheme.surface.opacity(0.88))
 
                     Section {
                         if manualConnectionMode == .codex {
@@ -1436,7 +1443,7 @@ struct DiscoveryView: View {
                                 .foregroundColor(LitterTheme.textMuted)
                         }
                     }
-                    .listRowBackground(LitterTheme.surface.opacity(0.6))
+                    .listRowBackground(LitterTheme.surface.opacity(0.88))
 
                     Section {
                         Button(manualConnectionMode.primaryButtonTitle) {
@@ -1445,7 +1452,7 @@ struct DiscoveryView: View {
                         .foregroundColor(LitterTheme.accent)
                         .litterFont(.subheadline)
                     }
-                    .listRowBackground(LitterTheme.surface.opacity(0.6))
+                    .listRowBackground(LitterTheme.surface.opacity(0.88))
                 }
                 .scrollContentBackground(.hidden)
             }

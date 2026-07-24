@@ -647,7 +647,7 @@ private enum TerminalThemeChoice: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .litterDark: return "Litter Dark"
+        case .litterDark: return "Alley Cãt Dark"
         case .catppuccinFrappe: return "Catppuccin Frappé"
         case .catppuccinFrappeLight: return "Catppuccin Frappé Light"
         case .solarizedDark: return "Solarized Dark"
@@ -735,6 +735,9 @@ private struct TerminalConfigSheet: View {
                         .onChange(of: draftCursorBlink) { _, _ in applyDraft() }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(AlleyBackdrop().ignoresSafeArea())
+            .tint(LitterTheme.accent)
             .navigationTitle("Terminal")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

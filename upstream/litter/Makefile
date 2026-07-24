@@ -43,7 +43,7 @@ ANDROID_APP_JNI := $(ANDROID_DIR)/app/src/main/jniLibs
 GENERATED_DIR := $(RUST_DIR)/generated
 PATCHES_DIR := $(ROOT)/patches/codex
 
-IOS_DEPLOYMENT_TARGET ?= 18.0
+IOS_DEPLOYMENT_TARGET ?= 16.1
 IOS_SIM_DEVICE ?= iPhone 17 Pro
 IOS_SCHEME ?= Litter
 XCODE_CONFIG ?= Debug
@@ -170,7 +170,6 @@ STAMP_SYNC := $(STAMPS)/sync
 STAMP_BINDINGS_S := $(STAMPS)/bindings-swift
 STAMP_BINDINGS_K := $(STAMPS)/bindings-kotlin
 STAMP_XCGEN := $(STAMPS)/xcgen
-
 # Pinned release tag of the prebuilt Alpine rootfs tarball (still hosted
 # on the dnakov/litter-ish releases page). The iSH kernel itself is built
 # from the `ish` Rust crate. Bump and re-run `make alpine-fs` to upgrade.
@@ -181,9 +180,10 @@ PROOT_COMMIT := ee10b279a38d34b6704345bc448d18f019ca1b49
 TALLOC_VERSION := 2.4.3
 STAMP_PROOT_ANDROID = $(STAMPS)/proot-android-$(PROOT_COMMIT)-talloc-$(TALLOC_VERSION)-$(ANDROID_ABIS_SAFE)
 GHOSTTY_DIR := $(ROOT)/shared/third_party/ghostty
-GHOSTTY_COMMIT := $(shell git -C $(GHOSTTY_DIR) rev-parse --short=12 HEAD 2>/dev/null || echo missing)
+GHOSTTY_COMMIT := $(shell if [ -e "$(GHOSTTY_DIR)/.git" ]; then git -C $(GHOSTTY_DIR) rev-parse --short=12 HEAD 2>/dev/null; else git -C $(ROOT) rev-parse --short=12 HEAD:shared/third_party/ghostty 2>/dev/null; fi || echo missing)
 GHOSTTY_PATCH_FILES := $(wildcard $(ROOT)/patches/ghostty/*.patch)
-GHOSTTY_PATCH_FINGERPRINT := $(shell cat $(GHOSTTY_PATCH_FILES) 2>/dev/null | shasum -a 256 | cut -c1-12)
+GHOSTTY_PATCH_FINGERPRINT := $(shell if command -v shasum >/dev/null 2>&1; then cat $(GHOSTTY_PATCH_FILES) 2>/dev/null | shasum -a 256 | cut -c1-12; elif command -v sha256sum >/dev/null 2>&1; then cat $(GHOSTTY_PATCH_FILES) 2>/dev/null | sha256sum | cut -c1-12; else echo missinghash; fi)
+GHOSTTY_BUILD_ZIG := $(GHOSTTY_DIR)/build.zig
 STAMP_SYNC_GHOSTTY := $(STAMPS)/sync-ghostty-$(GHOSTTY_COMMIT)-$(GHOSTTY_PATCH_FINGERPRINT)
 STAMP_GHOSTTY_IOS := $(STAMPS)/ghostty-ios-$(GHOSTTY_COMMIT)-$(GHOSTTY_PATCH_FINGERPRINT)
 
@@ -207,7 +207,7 @@ $(shell mkdir -p $(STAMPS))
 	ghostty-ios ghostty-android \
 	alleycat-main \
 	bindings bindings-swift bindings-kotlin \
-	sync patch unpatch sync-ghostty unpatch-ghostty xcgen alpine-fs \
+	sync patch unpatch sync-ghostty unpatch-ghostty xcgen alpine-fs ish-dev-random nyxian-vendor nyxian-source-verify nyxian-buildkit-assets nyxian-buildkit-assets-verify buildkit-assets-package buildkit-assets-upload sidestore-minimuxer \
 	ios-build ios-build-sim ios-build-sim-fast ios-build-device ios-build-device-fast \
 	watch watch-sim watch-sim-run watch-device watch-typecheck watch-register \
 	test test-rust test-ios test-android \
@@ -487,14 +487,17 @@ $(STAMP_SYNC_GHOSTTY): $(GHOSTTY_PATCH_FILES) apps/ios/scripts/sync-ghostty.sh M
 	@$(IOS_SCRIPTS)/sync-ghostty.sh --preserve-current
 	@touch $@
 
+$(GHOSTTY_BUILD_ZIG): $(STAMP_SYNC_GHOSTTY)
+	@test -f "$@" || { echo "error: Ghostty submodule did not provide build.zig after sync" >&2; exit 1; }
+
 ghostty-ios: $(STAMP_GHOSTTY_IOS)
-$(STAMP_GHOSTTY_IOS): $(STAMP_SYNC_GHOSTTY) shared/third_party/ghostty/build.zig apps/ios/scripts/build-ghostty.sh Makefile
+$(STAMP_GHOSTTY_IOS): $(STAMP_SYNC_GHOSTTY) $(GHOSTTY_BUILD_ZIG) apps/ios/scripts/build-ghostty.sh Makefile
 	@echo "==> Building Ghostty renderer for iOS..."
 	@cd $(ROOT) && $(IOS_SCRIPTS)/build-ghostty.sh
 	@touch $@
 
 ghostty-android: $(STAMP_GHOSTTY_ANDROID)
-$(STAMP_GHOSTTY_ANDROID): $(STAMP_SYNC_GHOSTTY) shared/third_party/ghostty/build.zig tools/scripts/build-ghostty-android.sh Makefile
+$(STAMP_GHOSTTY_ANDROID): $(STAMP_SYNC_GHOSTTY) $(GHOSTTY_BUILD_ZIG) tools/scripts/build-ghostty-android.sh Makefile
 	@echo "==> Building Ghostty renderer for Android..."
 	@cd $(ROOT) && ANDROID_ABIS="$(ANDROID_ABIS)" ./tools/scripts/build-ghostty-android.sh
 	@touch $@
@@ -588,14 +591,38 @@ $(STAMP_BINDINGS_K): $(STAMP_SYNC) $(BOUNDARY_SOURCES) | alleycat-main
 	@cd $(RUST_DIR) && ./generate-bindings.sh --kotlin-only
 	@touch $@
 
-xcgen: $(STAMP_XCGEN)
-$(STAMP_XCGEN): $(IOS_DIR)/project.yml
+ish-dev-random:
+	@tools/scripts/ensure-ish-dev-random.sh
+
+nyxian-vendor:
+	@tools/scripts/vendor-nyxian.sh
+
+nyxian-source-verify:
+	@tools/scripts/verify-nyxian-source-import.sh
+
+nyxian-buildkit-assets:
+	@tools/scripts/build-nyxian-buildkit-assets.sh
+
+nyxian-buildkit-assets-verify:
+	@tools/scripts/verify-nyxian-buildkit-assets.sh
+
+buildkit-assets-package:
+	@tools/scripts/package-buildkit-assets.sh
+
+buildkit-assets-upload:
+	@tools/scripts/upload-buildkit-assets-release.sh
+
+sidestore-minimuxer:
+	@tools/scripts/build-sidestore-minimuxer.sh
+
+xcgen:
 	@echo "==> Regenerating Xcode project..."
 	@$(IOS_SCRIPTS)/regenerate-project.sh
-	@touch $@
+	@mkdir -p $(STAMPS)
+	@touch $(STAMP_XCGEN)
 
 # Download the pinned Alpine rootfs tarball and extract into
-# apps/ios/Resources/fs. The stamp is version-keyed so bumping
+# apps/ios/Resources/fs.tar.gz. The stamp is version-keyed so bumping
 # ALPINE_FS_VERSION re-runs the download. The iSH kernel itself is
 # compiled from the `ish` Rust crate via cargo.
 alpine-fs: $(STAMP_ALPINE_FS)
@@ -844,6 +871,7 @@ clean-ios:
 	@echo "==> Cleaning iOS artifacts..."
 	@rm -rf $(IOS_FW_DIR)/codex_mobile_client.xcframework $(IOS_FW_DIR)/GhosttyKit.xcframework $(IOS_GENERATED)
 	@rm -rf $(IOS_DIR)/Resources/fs
+	@rm -f $(IOS_DIR)/Resources/fs.tar.gz $(IOS_DIR)/Resources/fs.version
 	@rm -f $(STAMP_XCGEN) $(STAMP_BINDINGS_S) $(STAMPS)/alpine-fs-* $(STAMPS)/ghostty-ios-*
 
 clean-android:

@@ -63,20 +63,27 @@ impl TryFrom<AppDynamicToolSpec> for codex_protocol::dynamic_tools::DynamicToolS
     type Error = RpcClientError;
 
     fn try_from(value: AppDynamicToolSpec) -> Result<Self, Self::Error> {
-        Ok(Self {
+        Ok(Self::Function(codex_protocol::dynamic_tools::DynamicToolFunctionSpec {
             name: value.name,
             description: value.description,
             input_schema: serde_json::from_str(&value.input_schema_json).map_err(|e| {
                 RpcClientError::Serialization(format!("invalid input_schema JSON: {e}"))
             })?,
-            namespace: None,
             defer_loading: value.defer_loading,
-        })
+        }))
     }
 }
 
 impl From<codex_protocol::dynamic_tools::DynamicToolSpec> for AppDynamicToolSpec {
     fn from(value: codex_protocol::dynamic_tools::DynamicToolSpec) -> Self {
+        let codex_protocol::dynamic_tools::DynamicToolSpec::Function(value) = value else {
+            return Self {
+                name: "namespace".to_string(),
+                description: "Dynamic tool namespace".to_string(),
+                input_schema_json: "{}".to_string(),
+                defer_loading: true,
+            };
+        };
         Self {
             name: value.name,
             description: value.description,
@@ -511,6 +518,9 @@ impl From<upstream::AuthMode> for AuthMode {
             upstream::AuthMode::Chatgpt => Self::Chatgpt,
             upstream::AuthMode::ChatgptAuthTokens => Self::ChatgptAuthTokens,
             upstream::AuthMode::AgentIdentity => Self::AgentIdentity,
+            upstream::AuthMode::Headers => Self::ApiKey,
+            upstream::AuthMode::PersonalAccessToken => Self::ApiKey,
+            upstream::AuthMode::BedrockApiKey => Self::ApiKey,
         }
     }
 }
@@ -856,7 +866,6 @@ impl From<upstream::AskForApproval> for AppAskForApproval {
     fn from(value: upstream::AskForApproval) -> Self {
         match value {
             upstream::AskForApproval::UnlessTrusted => Self::UnlessTrusted,
-            upstream::AskForApproval::OnFailure => Self::OnFailure,
             upstream::AskForApproval::OnRequest => Self::OnRequest,
             upstream::AskForApproval::Granular {
                 sandbox_approval,
@@ -1139,9 +1148,9 @@ impl From<upstream::Account> for Account {
     fn from(value: upstream::Account) -> Self {
         match value {
             upstream::Account::ApiKey {} => Self::ApiKey,
-            upstream::Account::AmazonBedrock {} => Self::ApiKey,
+            upstream::Account::AmazonBedrock { .. } => Self::ApiKey,
             upstream::Account::Chatgpt { email, plan_type } => Self::Chatgpt {
-                email,
+                email: email.unwrap_or_default(),
                 plan_type: plan_type.into(),
             },
         }
@@ -1336,7 +1345,43 @@ impl From<upstream::PluginInstallPolicy> for PluginInstallPolicy {
     }
 }
 
-/// Subset of upstream PluginInterface useful in mobile composer rows.
+/// Public plugin auth policy used by mobile plugin management UI.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, uniffi::Enum)]
+pub enum PluginAuthPolicy {
+    #[serde(rename = "ON_INSTALL")]
+    OnInstall,
+    #[serde(rename = "ON_USE")]
+    OnUse,
+}
+
+impl From<upstream::PluginAuthPolicy> for PluginAuthPolicy {
+    fn from(value: upstream::PluginAuthPolicy) -> Self {
+        match value {
+            upstream::PluginAuthPolicy::OnInstall => Self::OnInstall,
+            upstream::PluginAuthPolicy::OnUse => Self::OnUse,
+        }
+    }
+}
+
+/// Public plugin availability used by mobile plugin management UI.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, uniffi::Enum)]
+pub enum PluginAvailability {
+    #[serde(rename = "AVAILABLE")]
+    Available,
+    #[serde(rename = "DISABLED_BY_ADMIN")]
+    DisabledByAdmin,
+}
+
+impl From<upstream::PluginAvailability> for PluginAvailability {
+    fn from(value: upstream::PluginAvailability) -> Self {
+        match value {
+            upstream::PluginAvailability::Available => Self::Available,
+            upstream::PluginAvailability::DisabledByAdmin => Self::DisabledByAdmin,
+        }
+    }
+}
+
+/// Subset of upstream PluginInterface useful in mobile composer and settings rows.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 #[derive(uniffi::Record)]
@@ -1353,6 +1398,29 @@ pub struct PluginInterface {
     #[serde(default)]
     #[uniffi(default = None)]
     pub developer_name: Option<String>,
+    #[serde(default)]
+    #[uniffi(default = None)]
+    pub long_description: Option<String>,
+    pub capabilities: Vec<String>,
+    #[serde(default)]
+    #[uniffi(default = None)]
+    pub website_url: Option<String>,
+    #[serde(default)]
+    #[uniffi(default = None)]
+    pub privacy_policy_url: Option<String>,
+    #[serde(default)]
+    #[uniffi(default = None)]
+    pub terms_of_service_url: Option<String>,
+    #[serde(default)]
+    #[uniffi(default = None)]
+    pub brand_color: Option<String>,
+    #[serde(default)]
+    #[uniffi(default = None)]
+    pub composer_icon_url: Option<String>,
+    #[serde(default)]
+    #[uniffi(default = None)]
+    pub logo_url: Option<String>,
+    pub screenshot_urls: Vec<String>,
 }
 
 impl From<upstream::PluginInterface> for PluginInterface {
@@ -1362,18 +1430,33 @@ impl From<upstream::PluginInterface> for PluginInterface {
             short_description: value.short_description,
             category: value.category,
             developer_name: value.developer_name,
+            long_description: value.long_description,
+            capabilities: value.capabilities,
+            website_url: value.website_url,
+            privacy_policy_url: value.privacy_policy_url,
+            terms_of_service_url: value.terms_of_service_url,
+            brand_color: value.brand_color,
+            composer_icon_url: value.composer_icon_url,
+            logo_url: value.logo_url,
+            screenshot_urls: value.screenshot_urls,
         }
     }
 }
 
-/// Public plugin metadata used by mobile composer UI. Marketplace context is
-/// attached at flatten time and `mention_path` is precomputed so platform code
-/// never has to assemble `plugin://name@marketplace` itself.
+/// Public plugin metadata used by mobile composer UI and plugin management UI.
+/// Marketplace context is attached at flatten time and `mention_path` is
+/// precomputed so platform code never has to assemble `plugin://name@marketplace` itself.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 #[derive(uniffi::Record)]
 pub struct PluginSummary {
     pub id: String,
+    #[serde(default)]
+    #[uniffi(default = None)]
+    pub remote_plugin_id: Option<String>,
+    #[serde(default)]
+    #[uniffi(default = None)]
+    pub local_version: Option<String>,
     pub name: String,
     pub marketplace_name: String,
     #[serde(default)]
@@ -1382,9 +1465,12 @@ pub struct PluginSummary {
     pub installed: bool,
     pub enabled: bool,
     pub install_policy: PluginInstallPolicy,
+    pub auth_policy: PluginAuthPolicy,
+    pub availability: PluginAvailability,
     #[serde(default)]
     #[uniffi(default = None)]
     pub interface: Option<PluginInterface>,
+    pub keywords: Vec<String>,
     /// Canonical mention path (`plugin://name@marketplace`) used both as the
     /// outgoing `AppUserInput::Mention.path` and as a dedupe key.
     pub mention_path: String,
@@ -1409,13 +1495,18 @@ impl PluginSummary {
         let mention_path = format!("plugin://{}@{}", value.name, marketplace_name);
         Self {
             id: value.id,
+            remote_plugin_id: value.remote_plugin_id,
+            local_version: value.local_version,
             name: value.name,
             marketplace_name,
             marketplace_path,
             installed: value.installed,
             enabled: value.enabled,
             install_policy: value.install_policy.into(),
+            auth_policy: value.auth_policy.into(),
+            availability: value.availability.into(),
             interface,
+            keywords: value.keywords,
             mention_path,
             display_title,
         }
@@ -1427,6 +1518,54 @@ impl PluginSummary {
         self.installed
             || self.enabled
             || matches!(self.install_policy, PluginInstallPolicy::InstalledByDefault)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+#[derive(uniffi::Record)]
+pub struct PluginAuthAppSummary {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    #[uniffi(default = None)]
+    pub description: Option<String>,
+    #[serde(default)]
+    #[uniffi(default = None)]
+    pub install_url: Option<String>,
+    pub needs_auth: bool,
+}
+
+impl From<upstream::AppSummary> for PluginAuthAppSummary {
+    fn from(value: upstream::AppSummary) -> Self {
+        Self {
+            id: value.id,
+            name: value.name,
+            description: value.description,
+            install_url: value.install_url,
+            needs_auth: false,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+#[derive(uniffi::Record)]
+pub struct AppPluginInstallResponse {
+    pub auth_policy: PluginAuthPolicy,
+    pub apps_needing_auth: Vec<PluginAuthAppSummary>,
+}
+
+impl From<upstream::PluginInstallResponse> for AppPluginInstallResponse {
+    fn from(value: upstream::PluginInstallResponse) -> Self {
+        Self {
+            auth_policy: value.auth_policy.into(),
+            apps_needing_auth: value
+                .apps_needing_auth
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+        }
     }
 }
 

@@ -35,6 +35,11 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         OpenAIApiKeyStore.shared.applyToEnvironment()
         LitterPlatform.bootstrapLocalRuntimeIfNeeded()
         LLog.bootstrap()
+        if AppDistributionCapabilities.includesKittyStore {
+            Task { @MainActor in
+                KittyStoreEmbeddedBridge.bootstrap()
+            }
+        }
 
         #if targetEnvironment(macCatalyst)
         // On unsandboxed Mac Catalyst, send the spawned codex child a
@@ -71,7 +76,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         DispatchQueue.global(qos: .userInitiated).async {
             AppModel.prewarmRustBridges()
         }
-        application.registerForRemoteNotifications()
+        if !AppDistributionCapabilities.isAppStoreSafe {
+            application.registerForRemoteNotifications()
+        }
         UNUserNotificationCenter.current().delegate = self
         UNUserNotificationCenter.current().setNotificationCategories([
             UNNotificationCategory(
@@ -198,6 +205,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     }
 
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        guard !AppDistributionCapabilities.isAppStoreSafe else { return }
         let hex = deviceToken.map { String(format: "%02x", $0) }.joined()
         LLog.info("push", "device token received", fields: ["bytes": deviceToken.count, "hex": hex])
         if let appRuntime {
@@ -208,6 +216,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     }
 
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        guard !AppDistributionCapabilities.isAppStoreSafe else { return }
         LLog.error("push", "registration failed", error: error)
     }
 
@@ -232,6 +241,10 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     }
 
     func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        if AppDistributionCapabilities.isAppStoreSafe {
+            completionHandler(.noData)
+            return
+        }
         LLog.info(
             "push",
             "background push received",
@@ -359,7 +372,7 @@ struct LitterApp: App {
 
     private var mainWindowGroup: some Scene {
         WindowGroup {
-            ContentView()
+            DarkSwordRootView()
                 .environment(appModel)
                 .environment(appRuntime)
                 .environment(voiceRuntime)
@@ -371,6 +384,7 @@ struct LitterApp: App {
                     appRuntime.bind(appModel: appModel, voiceRuntime: voiceRuntime)
                     appDelegate.appRuntime = appRuntime
                     appRuntime.appDidBecomeActive()
+                    appModel.ensureLocalServerConnectedIfNeeded(reason: "launch")
                     #if targetEnvironment(macCatalyst)
                     LocalCodexBootstrap.shared.startIfNeeded(appModel: appModel)
                     #endif
@@ -442,7 +456,7 @@ struct ContentView: View {
     @State private var splashDismissed = false
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.scenePhase) private var scenePhase
-    @AppStorage("conversationTextSizeStep") private var textSizeStep = ConversationTextSize.large.rawValue
+    @AppStorage("conversationTextSizeStep") private var textSizeStep = ConversationTextSize.tiny.rawValue
 
     private var textScale: CGFloat {
         ConversationTextSize.clamped(rawValue: textSizeStep).scale
@@ -453,7 +467,7 @@ struct ContentView: View {
 
         GeometryReader { geometry in
             ZStack {
-                LitterTheme.backgroundGradient.ignoresSafeArea()
+                AlleyBackdrop().ignoresSafeArea()
 
                 #if DEBUG
                 if ConversationDisplayUITestHarnessView.isEnabled {
@@ -683,9 +697,17 @@ private struct HomeNavigationView: View {
     @Environment(ConversationWarmupCoordinator.self) private var conversationWarmup
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @AppStorage("workDir") private var workDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.path ?? "/"
+    @AppStorage(LitterOnboardingState.completedVersionKey) private var onboardingCompletedVersion = 0
+    @AppStorage(LitterOnboardingState.replayRequestedKey) private var onboardingReplayRequested = false
+    @AppStorage(LitterOnboardingState.fileWorkspaceInitialDirectoryKey) private var fileWorkspaceInitialDirectory = HomeAnchor.path
+    @AppStorage("litterSettingsRequestedRoute") private var requestedSettingsRoute = ""
+    @AppStorage("litterPendingMainRoute") private var pendingMainRoute = ""
+    @AppStorage("litterTerminalInitialDirectory") private var terminalInitialDirectory = HomeAnchor.path
+    @AppStorage("developerToolsEnabled") private var developerToolsEnabled = false
     @State private var experimentalFeatures = ExperimentalFeatures.shared
     @State private var homeDashboardModel = HomeDashboardModel()
     @State private var savedAppsStore = SavedAppsStore.shared
+    @State private var proStore = ProAccessStore.shared
     @State private var navigationPath: [HomeNavigationRoute] = []
     @State private var directoryPickerSheet: SessionLaunchSupport.DirectoryPickerSheetModel?
     @State private var showProjectPicker = false
@@ -699,6 +721,11 @@ private struct HomeNavigationView: View {
     @State private var hasSeededInitialConversationRoute = false
     @State private var pendingWallpaperConfig: WallpaperConfig?
     @State private var pendingWallpaperImage: UIImage?
+    @State private var pendingWallpaperVideoURL: URL?
+    @State private var showOnboarding = false
+    @State private var pendingProFeature: ProFeature?
+    @State private var pendingProTerminalNodeId: String?
+    @State private var onboardingPresentationMode: LitterOnboardingPresentationMode = .firstRun
     let topInset: CGFloat
     let bottomInset: CGFloat
 
@@ -718,6 +745,12 @@ private struct HomeNavigationView: View {
         /// with `.conversation(key)` so the bottom composer visually
         /// inherits the hero composer's position.
         case newThread
+        /// KittyLitter-branded sideload/update source.
+        case kittyStore
+        /// EmexDE on-device development environment.
+        case emexDE
+        /// Real local iSH file workspace.
+        case filesWorkspace
         /// Saved apps list — always-visible.
         case appsList
         /// Saved-app detail, pushed when the user taps a home-screen thread
@@ -746,7 +779,7 @@ private struct HomeNavigationView: View {
         return nil
         #else
         guard experimentalFeatures.isEnabled(.terminal) else { return nil }
-        return { navigationPath.append(.terminal(preferredAlleycatNodeId: nil)) }
+        return { requestTerminalAccess(preferredAlleycatNodeId: nil) }
         #endif
     }
 
@@ -780,13 +813,9 @@ private struct HomeNavigationView: View {
     private var splitRoot: some View {
         NavigationSplitView {
             sidebarDashboard
-                // Apply Liquid Glass material explicitly to the sidebar
-                // column. Catalyst 26 doesn't automatically paint the
-                // sidebar with glass the way iPadOS does, so the column
-                // comes through flat unless we install the material
-                // ourselves. `.ultraThinMaterial` gives the proper
-                // sidebar frosted-glass look with subtle vibrancy.
-                .containerBackground(.ultraThinMaterial, for: .navigation)
+                // Apply the Alley surface explicitly to the sidebar
+                // so iPadOS and Catalyst share the same navigation identity.
+                .containerBackground(LitterTheme.surface.opacity(0.94), for: .navigation)
         } detail: {
             primaryNavigationStack
         }
@@ -810,7 +839,7 @@ private struct HomeNavigationView: View {
                         homeDashboard
                     }
                 } else {
-                    LitterTheme.backgroundGradient.ignoresSafeArea()
+                    AlleyBackdrop().ignoresSafeArea()
                 }
             }
             .overlay(alignment: .bottomLeading) {
@@ -834,7 +863,7 @@ private struct HomeNavigationView: View {
                         .navigationTitle(title)
                         .navigationBarTitleDisplayMode(.inline)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(LitterTheme.backgroundGradient.ignoresSafeArea())
+                        .background(AlleyBackdrop().ignoresSafeArea())
                         .onAppear {
                             appState.sessionsSelectedServerFilterId = serverId
                             appState.sessionsShowOnlyForks = false
@@ -883,7 +912,7 @@ private struct HomeNavigationView: View {
                         }
                     )
                     .toolbar(.hidden, for: .navigationBar)
-                    .background(LitterTheme.backgroundGradient.ignoresSafeArea())
+                    .background(AlleyBackdrop().ignoresSafeArea())
                 case let .conversationInfo(threadKey):
                     ConversationInfoView(
                         threadKey: threadKey,
@@ -894,9 +923,10 @@ private struct HomeNavigationView: View {
                 case let .wallpaperSelection(threadKey):
                     WallpaperSelectionView(
                         threadKey: threadKey,
-                        onSelectWallpaper: { config, image in
+                        onSelectWallpaper: { config, image, videoURL in
                             pendingWallpaperConfig = config
                             pendingWallpaperImage = image
+                            pendingWallpaperVideoURL = videoURL
                             navigationPath.append(.wallpaperAdjust(threadKey))
                         },
                         onClose: {
@@ -905,19 +935,20 @@ private struct HomeNavigationView: View {
                         }
                     )
                     .toolbar(.hidden, for: .navigationBar)
-                    .background(LitterTheme.backgroundGradient.ignoresSafeArea())
+                    .background(AlleyBackdrop().ignoresSafeArea())
                 case let .wallpaperAdjust(threadKey):
                     WallpaperAdjustView(
                         threadKey: threadKey,
                         initialConfig: pendingWallpaperConfig ?? WallpaperConfig(),
                         customImage: pendingWallpaperImage,
+                        stagedVideoURL: pendingWallpaperVideoURL,
                         onDone: {
                             // Pop back to conversation info
                             popToConversationInfo()
                         }
                     )
                     .toolbar(.hidden, for: .navigationBar)
-                    .background(LitterTheme.backgroundGradient.ignoresSafeArea())
+                    .background(AlleyBackdrop().ignoresSafeArea())
                 case let .serverInfo(serverId):
                     ConversationInfoView(
                         threadKey: nil,
@@ -929,9 +960,10 @@ private struct HomeNavigationView: View {
                     WallpaperSelectionView(
                         threadKey: nil,
                         serverId: serverId,
-                        onSelectWallpaper: { config, image in
+                        onSelectWallpaper: { config, image, videoURL in
                             pendingWallpaperConfig = config
                             pendingWallpaperImage = image
+                            pendingWallpaperVideoURL = videoURL
                             navigationPath.append(.serverWallpaperAdjust(serverId: serverId))
                         },
                         onClose: {
@@ -939,29 +971,52 @@ private struct HomeNavigationView: View {
                         }
                     )
                     .toolbar(.hidden, for: .navigationBar)
-                    .background(LitterTheme.backgroundGradient.ignoresSafeArea())
+                    .background(AlleyBackdrop().ignoresSafeArea())
                 case let .serverWallpaperAdjust(serverId):
                     WallpaperAdjustView(
                         threadKey: nil,
                         serverId: serverId,
                         initialConfig: pendingWallpaperConfig ?? WallpaperConfig(),
                         customImage: pendingWallpaperImage,
+                        stagedVideoURL: pendingWallpaperVideoURL,
                         onDone: {
                             popToServerInfo()
                         }
                     )
                     .toolbar(.hidden, for: .navigationBar)
-                    .background(LitterTheme.backgroundGradient.ignoresSafeArea())
+                    .background(AlleyBackdrop().ignoresSafeArea())
+                case .kittyStore:
+                    if AppDistributionCapabilities.includesKittyStore {
+                        KittyStoreRouteView()
+                    } else {
+                        AlleyBackdrop().ignoresSafeArea()
+                    }
+                case .emexDE:
+                    if AppDistributionCapabilities.includesEmexDE {
+                        EmexDERouteView()
+                    } else {
+                        AlleyBackdrop().ignoresSafeArea()
+                    }
+                case .filesWorkspace:
+                    if proStore.hasProAccess {
+                        LocalFileWorkspaceView()
+                    } else {
+                        ProPaywallView(feature: .fileBrowser)
+                    }
                 case .appsList:
                     AppsListView()
                 case .savedApp(let appId):
                     SavedAppDetailView(appId: appId)
                 case let .terminal(preferredAlleycatNodeId):
-                    TerminalScreen(
-                        cwd: preferredTerminalWorkingDirectory(),
-                        preferredAlleycatNodeId: preferredAlleycatNodeId
-                    )
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    if proStore.hasProAccess {
+                        TerminalScreen(
+                            cwd: preferredTerminalWorkingDirectory(),
+                            preferredAlleycatNodeId: preferredAlleycatNodeId
+                        )
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        ProPaywallView(feature: .terminal)
+                    }
                 }
             }
         }
@@ -974,6 +1029,8 @@ private struct HomeNavigationView: View {
             updateHomeDashboardActivity()
             hydratePinnedThreadsIfNeeded()
             seedInitialConversationIfNeeded(activeKey: appModel.snapshot?.activeThread)
+            presentFirstRunOnboardingIfNeeded()
+            await proStore.loadProducts()
         }
         .onChange(of: appModel.snapshot?.activeThread) { _, newKey in
             seedInitialConversationIfNeeded(activeKey: newKey)
@@ -981,6 +1038,8 @@ private struct HomeNavigationView: View {
         .onChange(of: navigationPath.count) { _, _ in
             updateHomeDashboardActivity()
         }
+        .onAppear { consumePendingMainRoute() }
+        .onChange(of: pendingMainRoute) { _, _ in consumePendingMainRoute() }
         .onChange(of: pinnedThreadHydrationSignature) { _, _ in
             hydratePinnedThreadsIfNeeded()
         }
@@ -989,6 +1048,10 @@ private struct HomeNavigationView: View {
                 appState.pendingThreadNavigation = nil
                 replaceTopConversation(with: newKey)
             }
+        }
+        .onChange(of: onboardingReplayRequested) { _, requested in
+            guard requested else { return }
+            presentOnboardingReplay()
         }
         .onChange(of: SavedAppsNavigation.shared.pendingConversationThreadId) { _, newThreadId in
             guard let newThreadId else { return }
@@ -1080,6 +1143,85 @@ private struct HomeNavigationView: View {
         } message: {
             Text(actionErrorMessage ?? "Unknown error")
         }
+        .sheet(item: $pendingProFeature) { feature in
+            NavigationStack {
+                ProPaywallView(feature: feature) {
+                    completePendingProUnlock(for: feature)
+                }
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Done") {
+                            pendingProFeature = nil
+                            pendingProTerminalNodeId = nil
+                        }
+                        .foregroundStyle(LitterTheme.accent)
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showOnboarding, onDismiss: {
+            onboardingReplayRequested = false
+        }) {
+            OnboardingView(
+                mode: onboardingPresentationMode,
+                onFinish: completeOnboarding,
+                onOpenFiles: openOnboardingFiles,
+                onOpenTerminal: openOnboardingTerminal,
+                onOpenServerPicker: openOnboardingServerPicker,
+                onOpenSettingsRoute: openOnboardingSettingsRoute
+            )
+            .environment(appModel)
+            .environment(appState)
+        }
+    }
+
+    private func presentFirstRunOnboardingIfNeeded() {
+        guard onboardingCompletedVersion < LitterOnboardingState.currentVersion,
+              !showOnboarding,
+              !onboardingReplayRequested else { return }
+        onboardingPresentationMode = .firstRun
+        showOnboarding = true
+    }
+
+    private func presentOnboardingReplay() {
+        onboardingPresentationMode = .replay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            showOnboarding = true
+        }
+    }
+
+    private func completeOnboarding() {
+        onboardingCompletedVersion = max(onboardingCompletedVersion, LitterOnboardingState.currentVersion)
+        onboardingReplayRequested = false
+        showOnboarding = false
+    }
+
+    private func openOnboardingFiles(path: String) {
+        fileWorkspaceInitialDirectory = path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? HomeAnchor.path : path
+        requestFilesWorkspace()
+    }
+
+    private func openOnboardingTerminal(path: String) {
+        terminalInitialDirectory = path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? HomeAnchor.path : path
+        requestTerminalAccess(preferredAlleycatNodeId: nil)
+    }
+
+    private func openOnboardingServerPicker() {
+        appState.showServerPicker = true
+    }
+
+    private func openOnboardingSettingsRoute(_ route: String) {
+        if route == SettingsRoute.buildKit.rawValue || route == "emexDE" {
+            guard AppDistributionCapabilities.includesEmexDE else { return }
+            developerToolsEnabled = true
+            openEmexDE()
+            return
+        }
+        if let settingsRoute = SettingsRoute(rawValue: route) {
+            guard settingsRoute.isAvailableInCurrentBuild else { return }
+        }
+        requestedSettingsRoute = route
+        appState.showSettings = true
     }
 
     private func defaultNewSessionServerId(preferredServerId: String? = nil) -> String? {
@@ -1193,7 +1335,7 @@ private struct HomeNavigationView: View {
             return nil
         }
         return {
-            navigationPath.append(.terminal(preferredAlleycatNodeId: nodeId))
+            requestTerminalAccess(preferredAlleycatNodeId: nodeId)
         }
     }
 
@@ -1460,6 +1602,126 @@ private struct HomeNavigationView: View {
         navigationPath.append(.newThread)
     }
 
+    private func requestFilesWorkspace() {
+        guard proStore.hasProAccess else {
+            pendingProFeature = .fileBrowser
+            return
+        }
+        openFilesWorkspace()
+    }
+
+    private func requestTerminalAccess(preferredAlleycatNodeId nodeId: String?) {
+        guard proStore.hasProAccess else {
+            pendingProTerminalNodeId = nodeId
+            pendingProFeature = .terminal
+            return
+        }
+        openTerminalRoute(preferredAlleycatNodeId: nodeId)
+    }
+
+    private func completePendingProUnlock(for feature: ProFeature) {
+        guard proStore.hasProAccess else { return }
+        let pendingNodeId = pendingProTerminalNodeId
+        pendingProFeature = nil
+        pendingProTerminalNodeId = nil
+        switch feature {
+        case .fileBrowser:
+            openFilesWorkspace()
+        case .terminal:
+            openTerminalRoute(preferredAlleycatNodeId: pendingNodeId)
+        case .appearance, .all:
+            break
+        }
+    }
+
+    private func openTerminalRoute(preferredAlleycatNodeId nodeId: String?) {
+        appState.showModelSelector = false
+        appState.showSettings = false
+        showProjectPicker = false
+        directoryPickerSheet = nil
+        navigationPath.append(.terminal(preferredAlleycatNodeId: nodeId))
+    }
+
+    /// Opens the real local iSH file workspace from the dashboard toolbar.
+    /// Keep this route single-instance; duplicate pushes can render as a
+    /// blank nested navigation surface on compact devices.
+    private func openFilesWorkspace() {
+        appState.showModelSelector = false
+        appState.showSettings = false
+        showProjectPicker = false
+        directoryPickerSheet = nil
+
+        if navigationPath.contains(where: { route in
+            if case .filesWorkspace = route { return true }
+            return false
+        }) {
+            while let last = navigationPath.last {
+                if case .filesWorkspace = last { break }
+                navigationPath.removeLast()
+            }
+            return
+        }
+
+        navigationPath.append(.filesWorkspace)
+    }
+
+    /// Opens the KittyLitter-branded sideload source and update store.
+    private func openKittyStore() {
+        guard AppDistributionCapabilities.includesKittyStore else { return }
+        appState.showModelSelector = false
+        appState.showSettings = false
+        showProjectPicker = false
+        directoryPickerSheet = nil
+
+        if navigationPath.contains(where: { route in
+            if case .kittyStore = route { return true }
+            return false
+        }) {
+            while let last = navigationPath.last {
+                if case .kittyStore = last { break }
+                navigationPath.removeLast()
+            }
+            return
+        }
+
+        navigationPath.append(.kittyStore)
+    }
+
+    private func openEmexDE() {
+        guard AppDistributionCapabilities.includesEmexDE else { return }
+        appState.showModelSelector = false
+        appState.showSettings = false
+        showProjectPicker = false
+        directoryPickerSheet = nil
+
+        if navigationPath.contains(where: { route in
+            if case .emexDE = route { return true }
+            return false
+        }) {
+            while let last = navigationPath.last {
+                if case .emexDE = last { break }
+                navigationPath.removeLast()
+            }
+            return
+        }
+
+        navigationPath.append(.emexDE)
+    }
+
+    private func consumePendingMainRoute() {
+        let raw = pendingMainRoute.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !raw.isEmpty else { return }
+        pendingMainRoute = ""
+        switch raw {
+        case "emexDE":
+            openEmexDE()
+        case "kittyStore":
+            openKittyStore()
+        default:
+            break
+        }
+    }
+
     /// Swap the hero composer out for the freshly-created conversation in
     /// a single animation frame so the composer's apparent position is
     /// preserved by the glass morph.
@@ -1498,7 +1760,9 @@ private struct HomeNavigationView: View {
             onOpenProjectPicker: { showProjectPicker = true },
             onThreadCreated: { key in homeDashboardModel.pinThread(key) },
             onShowSettings: { appState.showSettings = true },
+            onShowStore: AppDistributionCapabilities.includesKittyStore ? openKittyStore : nil,
             onShowApps: savedAppsStore.apps.isEmpty ? nil : { navigationPath.append(.appsList) },
+            onShowFiles: requestFilesWorkspace,
             onShowTerminal: terminalLauncher,
             onPinThread: pinThread,
             onUnpinThread: unpinThread,
@@ -1541,7 +1805,9 @@ private struct HomeNavigationView: View {
             onOpenProjectPicker: { showProjectPicker = true },
             onThreadCreated: { key in homeDashboardModel.pinThread(key) },
             onShowSettings: { appState.showSettings = true },
+            onShowStore: AppDistributionCapabilities.includesKittyStore ? openKittyStore : nil,
             onShowApps: savedAppsStore.apps.isEmpty ? nil : { navigationPath.append(.appsList) },
+            onShowFiles: requestFilesWorkspace,
             onShowTerminal: terminalLauncher,
             onPinThread: pinThread,
             onUnpinThread: unpinThread,
@@ -2051,7 +2317,7 @@ private struct ConversationDestinationScreen: View {
                     Spacer()
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(LitterTheme.backgroundGradient.ignoresSafeArea())
+                .background(AlleyBackdrop().ignoresSafeArea())
             }
         }
         .navigationBarTitleDisplayMode(.inline)
@@ -2150,7 +2416,7 @@ private struct ReplayDestinationScreen: View {
                     Spacer()
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(LitterTheme.backgroundGradient.ignoresSafeArea())
+                .background(AlleyBackdrop().ignoresSafeArea())
             }
         }
         .navigationTitle("Replay")
@@ -2307,7 +2573,7 @@ private struct ApprovalPromptView: View {
 struct LaunchView: View {
     var body: some View {
         ZStack {
-            LitterTheme.backgroundGradient.ignoresSafeArea()
+            AlleyBackdrop().ignoresSafeArea()
             VStack(spacing: 24) {
                 BrandLogo(size: 132)
                 Text("AI coding agent on iOS")

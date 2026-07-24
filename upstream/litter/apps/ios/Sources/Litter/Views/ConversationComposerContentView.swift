@@ -3,8 +3,7 @@ import UIKit
 
 struct ConversationComposerContentView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    let attachedImage: UIImage?
-    let attachedFiles: [ComposerFileAttachment]
+    let attachments: [ConversationAttachment]
     let collaborationMode: AppModeKind
     let activePlanProgress: AppPlanProgressSnapshot?
     let pendingUserInputRequest: PendingUserInputRequest?
@@ -21,8 +20,7 @@ struct ConversationComposerContentView: View {
     let voiceManager: VoiceTranscriptionManager
     let allowsVoiceInput: Bool
     @Binding var showAttachMenu: Bool
-    let onClearAttachment: () -> Void
-    let onRemoveFileAttachment: (ComposerFileAttachment) -> Void
+    let onRemoveAttachment: (ConversationAttachment.ID) -> Void
     let onRespondToPendingUserInput: ([String: [String]]) -> Void
     let onDismissPendingUserInput: () -> Void
     let onImplementPlan: () -> Void
@@ -41,8 +39,7 @@ struct ConversationComposerContentView: View {
     @Binding var composerSelectionRange: NSRange
 
     init(
-        attachedImage: UIImage?,
-        attachedFiles: [ComposerFileAttachment] = [],
+        attachments: [ConversationAttachment],
         collaborationMode: AppModeKind,
         activePlanProgress: AppPlanProgressSnapshot?,
         pendingUserInputRequest: PendingUserInputRequest?,
@@ -59,8 +56,7 @@ struct ConversationComposerContentView: View {
         voiceManager: VoiceTranscriptionManager,
         allowsVoiceInput: Bool = true,
         showAttachMenu: Binding<Bool>,
-        onClearAttachment: @escaping () -> Void,
-        onRemoveFileAttachment: @escaping (ComposerFileAttachment) -> Void = { _ in },
+        onRemoveAttachment: @escaping (ConversationAttachment.ID) -> Void,
         onRespondToPendingUserInput: @escaping ([String: [String]]) -> Void,
         onDismissPendingUserInput: @escaping () -> Void = {},
         onImplementPlan: @escaping () -> Void = {},
@@ -78,8 +74,7 @@ struct ConversationComposerContentView: View {
         isComposerFocused: Binding<Bool>,
         composerSelectionRange: Binding<NSRange> = .constant(NSRange(location: 0, length: 0))
     ) {
-        self.attachedImage = attachedImage
-        self.attachedFiles = attachedFiles
+        self.attachments = attachments
         self.collaborationMode = collaborationMode
         self.activePlanProgress = activePlanProgress
         self.pendingUserInputRequest = pendingUserInputRequest
@@ -96,8 +91,7 @@ struct ConversationComposerContentView: View {
         self.voiceManager = voiceManager
         self.allowsVoiceInput = allowsVoiceInput
         _showAttachMenu = showAttachMenu
-        self.onClearAttachment = onClearAttachment
-        self.onRemoveFileAttachment = onRemoveFileAttachment
+        self.onRemoveAttachment = onRemoveAttachment
         self.onRespondToPendingUserInput = onRespondToPendingUserInput
         self.onDismissPendingUserInput = onDismissPendingUserInput
         self.onImplementPlan = onImplementPlan
@@ -118,38 +112,21 @@ struct ConversationComposerContentView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if let attachedImage {
-                HStack {
-                    ZStack(alignment: .topTrailing) {
-                        Image(uiImage: attachedImage)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 60, height: 60)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                        Button(action: onClearAttachment) {
-                            Image(systemName: "xmark.circle.fill")
-                                .litterFont(.body)
-                                .foregroundColor(.white)
-                                .background(Circle().fill(Color.black.opacity(0.6)))
+            if !attachments.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(attachments) { attachment in
+                            ConversationAttachmentPreviewChip(
+                                attachment: attachment,
+                                onRemove: { onRemoveAttachment(attachment.id) }
+                            )
                         }
-                        .offset(x: 4, y: -4)
                     }
-
-                    Spacer()
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
             }
 
-            if !attachedFiles.isEmpty {
-                ConversationComposerFileChipStrip(
-                    files: attachedFiles,
-                    onRemove: onRemoveFileAttachment
-                )
-                .padding(.horizontal, 16)
-                .padding(.top, attachedImage == nil ? 8 : 6)
-            }
 
             VStack(alignment: .trailing, spacing: 0) {
                 if let goal {
@@ -216,7 +193,7 @@ struct ConversationComposerContentView: View {
                     composerSelectionRange: $composerSelectionRange,
                     voiceManager: voiceManager,
                     isTurnActive: isTurnActive,
-                    hasAttachment: attachedImage != nil || !attachedFiles.isEmpty,
+                    hasAttachment: !attachments.isEmpty,
                     allowsVoiceInput: allowsVoiceInput,
                     onPasteImage: onPasteImage,
                     onSendText: onSendText,
@@ -236,50 +213,53 @@ struct ConversationComposerContentView: View {
     }
 }
 
-private struct ConversationComposerFileChipStrip: View {
-    let files: [ComposerFileAttachment]
-    let onRemove: (ComposerFileAttachment) -> Void
+
+private struct ConversationAttachmentPreviewChip: View {
+    let attachment: ConversationAttachment
+    let onRemove: () -> Void
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                ForEach(files) { file in
-                    HStack(spacing: 5) {
-                        Image(systemName: "doc")
-                            .litterFont(size: 10, weight: .semibold)
-                            .foregroundStyle(LitterTheme.accent)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(file.label)
-                                .litterFont(.caption, weight: .semibold)
-                                .foregroundStyle(LitterTheme.textPrimary)
-                                .lineLimit(1)
-                            Text(file.path)
-                                .litterFont(size: 10)
-                                .foregroundStyle(LitterTheme.textMuted)
-                                .lineLimit(1)
-                        }
-                        .frame(maxWidth: 180, alignment: .leading)
-                        Button {
-                            onRemove(file)
-                        } label: {
-                            Image(systemName: "xmark")
-                                .litterFont(size: 9, weight: .bold)
-                                .foregroundStyle(LitterTheme.accent)
-                                .padding(3)
-                                .background(Circle().fill(LitterTheme.accent.opacity(0.18)))
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Remove file \(file.label)")
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(LitterTheme.surfaceLight.opacity(0.72))
-                    )
+        HStack(spacing: 8) {
+            Group {
+                if let image = attachment.image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    Image(systemName: attachment.kind.iconName)
+                        .font(LitterFont.styled(size: 18, weight: .semibold))
+                        .foregroundStyle(attachment.kind == .archive ? LitterTheme.warning : LitterTheme.accent)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
+            .frame(width: 42, height: 42)
+            .background(LitterTheme.surface.opacity(0.7))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(attachment.displayName)
+                    .litterFont(.caption, weight: .semibold)
+                    .foregroundStyle(LitterTheme.textPrimary)
+                    .lineLimit(1)
+                Text(attachment.fakefsPath ?? attachment.detail)
+                    .litterMonoFont(size: 10, weight: .regular)
+                    .foregroundStyle(LitterTheme.textMuted)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: 190, alignment: .leading)
+
+            Button(action: onRemove) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(LitterFont.styled(size: 16, weight: .bold))
+                    .foregroundStyle(LitterTheme.textMuted)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Remove attachment")
         }
+        .padding(.leading, 8)
+        .padding(.trailing, 6)
+        .padding(.vertical, 6)
+        .modifier(GlassRoundedRectModifier(cornerRadius: 18))
     }
 }
 
@@ -546,6 +526,7 @@ private struct ConversationComposerGoalRowView: View {
                 budgetGauge(progress: progress)
             }
 
+
             if hasUsageMetrics {
                 usageMetricsRow
             }
@@ -712,8 +693,9 @@ private struct ConversationComposerGoalRowView: View {
 
     private var canTogglePause: Bool {
         switch goal.status {
-        case .active, .paused, .blocked, .usageLimited, .budgetLimited: return true
+        case .active, .paused, .budgetLimited: return true
         case .complete: return false
+        default: return true
         }
     }
 
@@ -721,10 +703,9 @@ private struct ConversationComposerGoalRowView: View {
         switch goal.status {
         case .active: return "Pause goal"
         case .paused: return "Resume goal"
-        case .blocked: return "Resume goal (override block)"
-        case .usageLimited: return "Resume goal (override usage cap)"
         case .budgetLimited: return "Resume goal (override budget cap)"
         case .complete: return "Goal complete"
+        default: return "Resume goal"
         }
     }
 
@@ -732,10 +713,9 @@ private struct ConversationComposerGoalRowView: View {
         switch goal.status {
         case .active: return ("Pause Goal", "pause.circle")
         case .paused: return ("Resume Goal", "play.circle")
-        case .blocked: return ("Resume Goal (override block)", "play.circle")
-        case .usageLimited: return ("Resume Goal (override usage cap)", "play.circle")
         case .budgetLimited: return ("Resume Goal (override cap)", "play.circle")
         case .complete: return nil
+        default: return ("Resume Goal", "play.circle")
         }
     }
 
@@ -743,8 +723,9 @@ private struct ConversationComposerGoalRowView: View {
         switch goal.status {
         case .active: return LitterTheme.accent
         case .paused: return LitterTheme.textMuted
-        case .blocked, .usageLimited, .budgetLimited: return LitterTheme.warning
+        case .budgetLimited: return LitterTheme.warning
         case .complete: return LitterTheme.success
+        default: return LitterTheme.warning
         }
     }
 
@@ -752,10 +733,9 @@ private struct ConversationComposerGoalRowView: View {
         switch goal.status {
         case .active: return "active"
         case .paused: return "paused"
-        case .blocked: return "blocked"
-        case .usageLimited: return "usage limit"
         case .budgetLimited: return "limited"
         case .complete: return "complete"
+        default: return "limited"
         }
     }
 
@@ -793,6 +773,7 @@ private struct ConversationComposerGoalRowView: View {
         }
         return "\(value)"
     }
+
 
     private var hasUsageMetrics: Bool {
         goal.tokensUsed > 0 || goal.timeUsedSeconds > 0
@@ -849,34 +830,18 @@ private struct GoalCardChromeModifier: ViewModifier {
     let cornerRadius: CGFloat
 
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
-            content
-                .glassEffect(
-                    .regular.tint(statusTint.opacity(0.14)).interactive(),
-                    in: .rect(cornerRadius: cornerRadius)
+        content
+            .background(
+                LinearGradient(
+                    colors: [
+                        LitterTheme.surface.opacity(0.96),
+                        statusTint.opacity(0.09)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
                 )
-                .overlay(
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .stroke(statusTint.opacity(0.20), lineWidth: 0.5)
-                )
-        } else {
-            content
-                .background(
-                    LinearGradient(
-                        colors: [
-                            LitterTheme.codeBackground.opacity(0.92),
-                            statusTint.opacity(0.08)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .stroke(statusTint.opacity(0.28), lineWidth: 1)
-                )
-        }
+            )
+            .alleyPanel(tint: statusTint, cornerRadius: min(cornerRadius, 10))
     }
 }
 

@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   prepare-release-assets:
-    runs-on: macos-26
+    runs-on: macos-26-intel
     timeout-minutes: 90
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
@@ -57,6 +57,11 @@ jobs:
         with:
           targets: aarch64-apple-ios-macabi,x86_64-apple-ios-macabi,i686-unknown-linux-musl
 
+      - name: Setup Zig (libghostty build)
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.2
+
       - name: Setup sccache
         uses: mozilla-actions/sccache-action@v0.0.9
 
@@ -75,7 +80,8 @@ jobs:
         run: |
           mkdir -p .ci-prep/mac
           tar -czf .ci-prep/mac/mac-release-prep.tgz -C . \
-            apps/ios/Resources/fs \
+            apps/ios/Resources/fs.tar.gz \
+            apps/ios/Resources/fs.version \
             apps/ios/GeneratedRust \
             apps/ios/Sources/Litter/Bridge/UniFFICodexClient.generated.swift
 
@@ -88,7 +94,7 @@ jobs:
 
   build-and-notarize:
     needs: prepare-release-assets
-    runs-on: macos-26
+    runs-on: macos-26-intel
     timeout-minutes: 90
     environment: release
     env:

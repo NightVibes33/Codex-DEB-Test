@@ -22,15 +22,17 @@ struct HomeComposerView: View {
     @Environment(AppState.self) private var appState
 
     @State private var inputText = ""
-    @State private var attachedImage: UIImage?
-    @State private var attachedFiles: [ComposerFileAttachment] = []
+    @State private var attachments: [ConversationAttachment] = []
+    @State private var capturedImage: UIImage?
     @State private var showAttachMenu = false
     @State private var showPhotoPicker = false
     @State private var showCamera = false
     @State private var showFileImporter = false
+    @State private var showRemoteFilePicker = false
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var voiceManager = VoiceTranscriptionManager()
     @State private var isSubmitting = false
+    @State private var isExternalizingOversizedPaste = false
     @State private var errorMessage: String?
     @State private var pluginCacheByCwd: [String: [PluginSummary]] = [:]
     @State private var pluginUnsupportedCwds: Set<String> = []
@@ -54,18 +56,20 @@ struct HomeComposerView: View {
     }
 
     private var attachSheetDetentHeight: CGFloat {
+        let showsFile = true
+        let showsComputerFile = project != nil
         let showsCamera = !LitterPlatform.isCatalyst
-        let count = 2 + (showsCamera ? 1 : 0)
-        return count >= 3 ? 260 : 210
+        let count = 1 + (showsFile ? 1 : 0) + (showsComputerFile ? 1 : 0) + (showsCamera ? 1 : 0)
+        return count >= 4 ? 320 : (count >= 3 ? 260 : 210)
     }
 
     private var isActive: Bool {
         isComposerFocused
             || !inputText.isEmpty
-            || attachedImage != nil
-            || !attachedFiles.isEmpty
+            || !attachments.isEmpty
             || voiceManager.isRecording
             || voiceManager.isTranscribing
+            || isExternalizingOversizedPaste
     }
 
     var body: some View {
@@ -93,8 +97,7 @@ struct HomeComposerView: View {
             }
 
             ConversationComposerContentView(
-                attachedImage: attachedImage,
-                attachedFiles: attachedFiles,
+                attachments: attachments,
                 collaborationMode: .default,
                 activePlanProgress: nil,
                 pendingUserInputRequest: nil,
@@ -104,20 +107,17 @@ struct HomeComposerView: View {
                 pluginMentions: pluginMentionSelections,
                 rateLimits: nil,
                 contextPercent: nil,
-                isTurnActive: isSubmitting,
+                isTurnActive: isSubmitting || isExternalizingOversizedPaste,
                 showModeChip: false,
                 voiceManager: voiceManager,
                 allowsVoiceInput: project != nil,
                 showAttachMenu: $showAttachMenu,
-                onClearAttachment: { attachedImage = nil },
-                onRemoveFileAttachment: { file in
-                    attachedFiles.removeAll { $0 == file }
-                },
+                onRemoveAttachment: { id in attachments.removeAll { $0.id == id } },
                 onRespondToPendingUserInput: { _ in },
                 onSteerQueuedFollowUp: { _ in },
                 onDeleteQueuedFollowUp: { _ in },
                 onRemovePluginMention: removePluginMention,
-                onPasteImage: { image in attachedImage = image },
+                onPasteImage: appendImageAttachment,
                 onOpenModePicker: {},
                 onSendText: handleSend,
                 onStopRecording: stopVoiceRecording,
@@ -140,23 +140,24 @@ struct HomeComposerView: View {
             }
         }
         .onChange(of: inputText) { _, newValue in
+            if ConversationAttachmentSupport.shouldExternalizeComposerText(newValue) {
+                externalizeOversizedComposerTextIfNeeded(newValue)
+                return
+            }
             scheduleHomePopupRefresh(for: newValue)
         }
         .onChange(of: isActive) { _, active in
             onActiveChange?(active)
         }
         .dropDestination(for: URL.self) { urls, _ in
-            guard let picked = urls.lazy.compactMap({ ConversationAttachmentSupport.loadPickedFile(at: $0) }).first else {
-                return false
-            }
-            applyPickedFile(picked)
-            return true
+            Task { await importSelectedFiles(urls) }
+            return !urls.isEmpty
         }
         .dropDestination(for: Data.self) { items, _ in
-            guard let image = items.lazy.compactMap({ UIImage(data: $0) }).first else {
+            guard let image = items.lazy.compactMap({ ConversationAttachmentSupport.loadImageData($0) }).first else {
                 return false
             }
-            attachedImage = image
+            appendImageAttachment(image)
             return true
         }
         .sheet(isPresented: $showAttachMenu) {
@@ -169,6 +170,10 @@ struct HomeComposerView: View {
                     showAttachMenu = false
                     showFileImporter = true
                 },
+                onChooseComputerFile: project == nil ? nil : {
+                    showAttachMenu = false
+                    showRemoteFilePicker = true
+                },
                 onTakePhoto: LitterPlatform.isCatalyst ? nil : {
                     showAttachMenu = false
                     showCamera = true
@@ -180,25 +185,36 @@ struct HomeComposerView: View {
         .photosPicker(isPresented: $showPhotoPicker, selection: $selectedPhoto, matching: .images)
         .fileImporter(
             isPresented: $showFileImporter,
-            allowedContentTypes: ConversationAttachmentSupport.supportedFileContentTypes,
-            allowsMultipleSelection: false
+            allowedContentTypes: [.item, .folder],
+            allowsMultipleSelection: true
         ) { result in
-            guard case let .success(urls) = result,
-                  let url = urls.first else { return }
-            guard let picked = ConversationAttachmentSupport.loadPickedFile(at: url) else { return }
-            applyPickedFile(picked)
+            guard case let .success(urls) = result else { return }
+            Task { await importSelectedFiles(urls) }
+        }
+        .sheet(isPresented: $showRemoteFilePicker) {
+            ConversationRemoteFilePickerView(
+                onSearch: searchProjectFiles,
+                onAttach: appendRemoteFileAttachment
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
         }
         .onChange(of: selectedPhoto) { _, item in
             guard let item else { return }
             Task { await loadSelectedPhoto(item) }
         }
+        .onChange(of: capturedImage) { _, image in
+            guard let image else { return }
+            appendImageAttachment(image)
+            capturedImage = nil
+        }
         .fullScreenCover(isPresented: $showCamera) {
-            CameraView(image: $attachedImage)
+            CameraView(image: $capturedImage)
                 .ignoresSafeArea()
         }
         .task {
             // Focus as early as possible so the keyboard rises in parallel
-            // with the glass-morph spring — the two animations then feel
+            // with the Alley control spring — the two animations then feel
             // like one fluid motion. A tiny 40ms yield lets the view land
             // in the window tree; the UIViewRepresentable picks up focus on
             // its next `updateUIView` pass. Re-issue once after the spring
@@ -216,9 +232,12 @@ struct HomeComposerView: View {
 
     private func handleSend() {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let image = attachedImage
-        let files = attachedFiles
-        guard !text.isEmpty || image != nil || !files.isEmpty else { return }
+        let pendingAttachments = attachments
+        guard !text.isEmpty || !pendingAttachments.isEmpty else { return }
+        guard !isExternalizingOversizedPaste else {
+            errorMessage = "Finishing pasted text attachment."
+            return
+        }
         guard !isSubmitting else { return }
         guard let project else {
             errorMessage = "Pick a project before sending."
@@ -235,8 +254,7 @@ struct HomeComposerView: View {
                     return
                 }
                 inputText = ""
-                attachedImage = nil
-                attachedFiles = []
+                attachments.removeAll()
                 composerSelectionRange = NSRange(location: 0, length: 0)
                 isComposerFocused = false
 
@@ -261,7 +279,6 @@ struct HomeComposerView: View {
                     )
                 )
                 RecentDirectoryStore.shared.record(path: project.cwd, for: project.serverId)
-                let preparedAttachment = image.flatMap(ConversationAttachmentSupport.prepareImage)
                 var additionalInputs: [AppUserInput] = []
                 let mentionsToSend = collectPluginMentionsForSubmission(text)
                 pluginMentionSelections = []
@@ -272,13 +289,11 @@ struct HomeComposerView: View {
                         AppUserInput.mention(name: mention.name, path: mention.path)
                     )
                 }
-                if let preparedAttachment {
-                    additionalInputs.append(preparedAttachment.userInput)
-                }
+                additionalInputs.append(contentsOf: ConversationAttachmentSupport.buildTurnInputs(attachments: pendingAttachments))
                 let payload = AppComposerPayload(
                     text: text,
                     additionalInputs: additionalInputs,
-                    fileAttachments: files,
+                    fileAttachments: [],
                     approvalPolicy: appState.launchApprovalPolicy(for: threadKey),
                     sandboxPolicy: appState.turnSandboxPolicy(for: threadKey),
                     model: modelOverride,
@@ -294,6 +309,86 @@ struct HomeComposerView: View {
         }
     }
 
+    private func externalizeOversizedComposerTextIfNeeded(_ value: String) {
+        guard !isExternalizingOversizedPaste,
+              ConversationAttachmentSupport.shouldExternalizeComposerText(value) else { return }
+        guard let project else {
+            inputText = ConversationAttachmentSupport.truncatedComposerPlaceholder(for: value)
+            composerSelectionRange = NSRange(location: (inputText as NSString).length, length: 0)
+            errorMessage = "Oversized paste was truncated because no project is selected."
+            return
+        }
+
+        let pastedText = value
+        isExternalizingOversizedPaste = true
+        errorMessage = nil
+        Task { @MainActor in
+            do {
+                let attachment = try await ConversationAttachmentSupport.importPastedTextToFakeFS(
+                    text: pastedText,
+                    destinationDirectory: project.cwd
+                )
+                if inputText == pastedText {
+                    inputText = ConversationAttachmentSupport.oversizedPastePlaceholder(
+                        fileName: attachment.displayName,
+                        originalCharacterCount: pastedText.count,
+                        text: pastedText
+                    )
+                    composerSelectionRange = NSRange(location: (inputText as NSString).length, length: 0)
+                }
+                if !attachments.contains(where: { $0.fakefsPath == attachment.fakefsPath }) {
+                    attachments.append(attachment)
+                }
+                isExternalizingOversizedPaste = false
+            } catch {
+                inputText = ConversationAttachmentSupport.truncatedComposerPlaceholder(for: pastedText)
+                composerSelectionRange = NSRange(location: (inputText as NSString).length, length: 0)
+                errorMessage = "Oversized paste was truncated: \(error.localizedDescription)"
+                isExternalizingOversizedPaste = false
+            }
+        }
+    }
+
+    private func appendImageAttachment(_ image: UIImage) {
+        if let attachment = ConversationAttachmentSupport.imageAttachment(image) {
+            attachments.append(attachment)
+        }
+    }
+
+    private func importSelectedFiles(_ urls: [URL]) async {
+        guard let project else {
+            errorMessage = "Pick a project before importing files."
+            return
+        }
+        do {
+            for url in urls {
+                let attachment = try await ConversationAttachmentSupport.importURLToFakeFS(url: url, destinationDirectory: project.cwd)
+                attachments.append(attachment)
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func searchProjectFiles(_ query: String) async throws -> [FileSearchResult] {
+        guard let project else { return [] }
+        return try await appModel.client.searchFiles(
+            serverId: project.serverId,
+            params: AppSearchFilesRequest(
+                query: query,
+                roots: [project.cwd],
+                cancellationToken: "ios-home-composer-file-search"
+            )
+        )
+    }
+
+    private func appendRemoteFileAttachment(_ result: FileSearchResult) {
+        guard let attachment = ConversationAttachmentSupport.attachment(from: result) else { return }
+        if !attachments.contains(where: { $0.fakefsPath == attachment.fakefsPath }) {
+            attachments.append(attachment)
+        }
+    }
+
     private func startVoiceRecording() {
         Task {
             let granted = await voiceManager.requestMicPermission()
@@ -304,8 +399,8 @@ struct HomeComposerView: View {
 
     private func loadSelectedPhoto(_ item: PhotosPickerItem) async {
         if let data = try? await item.loadTransferable(type: Data.self),
-           let image = UIImage(data: data) {
-            attachedImage = image
+           let image = ConversationAttachmentSupport.loadImageData(data) {
+            appendImageAttachment(image)
         }
         selectedPhoto = nil
     }
@@ -313,11 +408,16 @@ struct HomeComposerView: View {
     private func applyPickedFile(_ picked: PickedComposerFile) {
         switch picked {
         case .image(let image):
-            attachedImage = image
+            appendImageAttachment(image)
         case .file(let file):
-            if !attachedFiles.contains(file) {
-                attachedFiles.append(file)
-            }
+            attachments.append(
+                ConversationAttachment(
+                    kind: .file,
+                    displayName: file.label,
+                    detail: file.path,
+                    fakefsPath: file.path
+                )
+            )
         }
     }
 

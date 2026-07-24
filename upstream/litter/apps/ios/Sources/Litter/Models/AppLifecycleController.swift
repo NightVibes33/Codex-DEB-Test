@@ -48,12 +48,13 @@ final class AppLifecycleController {
     private static let longResumeThreshold: TimeInterval = 15
 
     func setDevicePushToken(_ token: Data) {
+        guard !AppDistributionCapabilities.isAppStoreSafe else { return }
         devicePushToken = token
     }
 
     func reconnectSavedServers(appModel: AppModel) async {
-        let servers = SavedServerStore.reconnectRecords(
-            localDisplayName: appModel.resolvedLocalServerDisplayName(),
+        let servers = await reconnectRecords(
+            appModel: appModel,
             rememberedOnly: true
         )
         appModel.reconnectController.setMultiClankerAndQuicEnabled(enabled: true)
@@ -85,6 +86,15 @@ final class AppLifecycleController {
         let servers = SavedServerStore.reconnectRecords(
             localDisplayName: appModel.resolvedLocalServerDisplayName()
         )
+        if let record = servers.first(where: { $0.id == serverId }), isLocalReconnectRecord(record) {
+            do {
+                try await LitterPlatform.ensureLocalRuntimeReady()
+            } catch {
+                logLocalRuntimeUnavailable(error, fields: ["serverId": serverId])
+                await appModel.refreshSnapshot()
+                return
+            }
+        }
         appModel.reconnectController.setMultiClankerAndQuicEnabled(enabled: true)
         appModel.reconnectController.syncSavedServers(servers: servers)
         let result = await appModel.reconnectController.reconnectServer(serverId: serverId)
@@ -101,6 +111,7 @@ final class AppLifecycleController {
         hasActiveVoiceSession: Bool,
         liveActivities: TurnLiveActivityController
     ) {
+        if AppDistributionCapabilities.isAppStoreSafe { return }
         let signpostID = OSSignpostID(log: appLifecycleSignpostLog)
         os_signpost(.begin, log: appLifecycleSignpostLog, name: "AppDidEnterBackground", signpostID: signpostID)
         defer { os_signpost(.end, log: appLifecycleSignpostLog, name: "AppDidEnterBackground", signpostID: signpostID) }
@@ -148,6 +159,7 @@ final class AppLifecycleController {
         hasActiveVoiceSession: Bool,
         liveActivities: TurnLiveActivityController
     ) {
+        if AppDistributionCapabilities.isAppStoreSafe { return }
         let signpostID = OSSignpostID(log: appLifecycleSignpostLog)
         os_signpost(.begin, log: appLifecycleSignpostLog, name: "AppDidBecomeActive", signpostID: signpostID)
         defer { os_signpost(.end, log: appLifecycleSignpostLog, name: "AppDidBecomeActive", signpostID: signpostID) }
@@ -201,6 +213,7 @@ final class AppLifecycleController {
         appModel: AppModel,
         liveActivities: TurnLiveActivityController
     ) async {
+        if AppDistributionCapabilities.isAppStoreSafe { return }
         let signpostID = OSSignpostID(log: appLifecycleSignpostLog)
         os_signpost(.begin, log: appLifecycleSignpostLog, name: "HandleBackgroundPush", signpostID: signpostID)
         defer { os_signpost(.end, log: appLifecycleSignpostLog, name: "HandleBackgroundPush", signpostID: signpostID) }
@@ -302,6 +315,7 @@ final class AppLifecycleController {
     }
 
     func requestNotificationPermissionIfNeeded() {
+        guard !AppDistributionCapabilities.isAppStoreSafe else { return }
         guard !notificationPermissionRequested else { return }
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--ui-test-conversation-display") {
@@ -409,11 +423,18 @@ final class AppLifecycleController {
                 "refreshKeys": Array(keysToRefresh).map(\.debugLabel)
             ]
         )
+        if LitterPlatform.supportsLocalRuntime {
+            do {
+                try await LitterPlatform.ensureLocalRuntimeReady()
+            } catch {
+                logLocalRuntimeUnavailable(error, fields: ["phase": "foregroundRecovery"])
+            }
+        }
         // Always attempt to reconnect saved servers on foreground return.
         // The ReconnectController skips servers whose health != .disconnected,
         // so this is cheap when everything is still connected.
-        let servers = SavedServerStore.reconnectRecords(
-            localDisplayName: appModel.resolvedLocalServerDisplayName(),
+        let servers = await reconnectRecords(
+            appModel: appModel,
             rememberedOnly: true
         )
         appModel.reconnectController.setMultiClankerAndQuicEnabled(enabled: true)
@@ -620,6 +641,7 @@ final class AppLifecycleController {
     }
 
     private func registerPushProxy() {
+        guard !AppDistributionCapabilities.isAppStoreSafe else { return }
         guard let tokenData = devicePushToken else { return }
         guard pushProxyRegistrationId == nil else { return }
         let token = tokenData.map { String(format: "%02x", $0) }.joined()
@@ -640,6 +662,7 @@ final class AppLifecycleController {
     }
 
     private func deregisterPushProxy() {
+        guard !AppDistributionCapabilities.isAppStoreSafe else { return }
         guard let regId = pushProxyRegistrationId else { return }
         pushProxyRegistrationId = nil
         LLog.info("push", "deregistering push proxy", fields: ["registrationId": regId])
@@ -660,6 +683,41 @@ final class AppLifecycleController {
                 }
             }
         }
+    }
+
+    private func reconnectRecords(
+        appModel: AppModel,
+        rememberedOnly: Bool = false
+    ) async -> [SavedServerRecord] {
+        let records = SavedServerStore.reconnectRecords(
+            localDisplayName: appModel.resolvedLocalServerDisplayName(),
+            rememberedOnly: rememberedOnly
+        )
+#if targetEnvironment(macCatalyst)
+        return records
+#else
+        guard records.contains(where: isLocalReconnectRecord) else { return records }
+        do {
+            try await LitterPlatform.ensureLocalRuntimeReady()
+            return records
+        } catch {
+            logLocalRuntimeUnavailable(error)
+            return records.filter { !isLocalReconnectRecord($0) }
+        }
+#endif
+    }
+
+    private func isLocalReconnectRecord(_ record: SavedServerRecord) -> Bool {
+        record.id == "local" || record.source == "local"
+    }
+
+    private func logLocalRuntimeUnavailable(_ error: Error, fields: [String: Any] = [:]) {
+        LLog.error(
+            "ish",
+            "Local shell unavailable: iSH runtime is not bootstrapped",
+            error: error,
+            fields: fields
+        )
     }
 
     private func endBackgroundTaskIfNeeded() {

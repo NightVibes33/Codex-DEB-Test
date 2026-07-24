@@ -77,13 +77,10 @@ mod tests {
             prompt: Some("Review the changes".into()),
             model: None,
             reasoning_effort: None,
-            agents_states: HashMap::from([(
-                "sub-thread-1".into(),
-                upstream::CollabAgentState {
-                    status: upstream::CollabAgentStatus::Running,
-                    message: Some("Working".into()),
-                },
-            )]),
+            agents_states: HashMap::from([("sub-thread-1".into(), upstream::CollabAgentState {
+                status: upstream::CollabAgentStatus::Running,
+                message: Some("Working".into()),
+            })]),
         };
 
         let upstream::ThreadItem::CollabAgentToolCall { agents_states, .. } = item else {
@@ -299,9 +296,7 @@ mod tests {
             }),
         );
 
-        assert!(!should_preserve_thread_item_update_boundary(
-            &current, &next
-        ));
+        assert!(!should_preserve_thread_item_update_boundary(&current, &next));
     }
 
     fn hydrated_item(
@@ -604,7 +599,6 @@ impl AppStore {
         }
         Ok(())
     }
-
     /// Open a new terminal session whose strong handle lives on the
     /// shared `MobileClient`. The reducer-side
     /// `AppSnapshot.terminal_sessions` entry mirrors lifecycle and holds

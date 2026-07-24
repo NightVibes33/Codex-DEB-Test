@@ -6,21 +6,10 @@ IOS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_DIR="$(cd "$IOS_DIR/../.." && pwd)"
 SUBMODULE_DIR="$REPO_DIR/shared/third_party/codex"
 PATCH_FILES=(
-    "$REPO_DIR/patches/codex/ios-exec-hook.patch"
-    "$REPO_DIR/patches/codex/mobile-code-mode-stub.patch"
-    "$REPO_DIR/patches/codex/thread-read-permissions.patch"
-    "$REPO_DIR/patches/codex/mobile-shell-snapshot-timeout.patch"
-    "$REPO_DIR/patches/codex/remote-app-server-websocket-cap.patch"
-    "$REPO_DIR/patches/codex/absolute-path-cross-platform.patch"
-    "$REPO_DIR/patches/codex/android-installation-id-lock.patch"
-    "$REPO_DIR/patches/codex/dynamic-tool-call-arguments-delta.patch"
-    "$REPO_DIR/patches/codex/approval-timestamps-serde-default.patch"
-    "$REPO_DIR/patches/codex/realtime-webrtc-env-apikey.patch"
-    # Realtime multi-server orchestrator (split from old client-controlled-handoff.patch).
-    # Apply order: server-hint adds the realtime_v2_session_tools helper consumed by dynamic-tools.
-    "$REPO_DIR/patches/codex/realtime-handoff-server-hint.patch"
-    "$REPO_DIR/patches/codex/realtime-dynamic-tools.patch"
-    "$REPO_DIR/patches/codex/realtime-client-controlled-handoff.patch"
+    # Refreshed aggregate patch for upstream codex rust-v0.144.1.
+    # Older per-feature patches are kept for history but no longer apply cleanly
+    # after the 0.132 -> 0.144 bridge bump.
+    "$REPO_DIR/patches/codex/mobile-bridge-codex-0.144.1.patch"
 )
 
 patch_already_upstreamed() {
@@ -47,8 +36,8 @@ else
     current_commit="$(git -C "$SUBMODULE_DIR" rev-parse HEAD)"
 
     if [ -z "$recorded_commit" ]; then
-        echo "error: could not resolve recorded submodule gitlink for shared/third_party/codex" >&2
-        exit 1
+        recorded_commit="$current_commit"
+        echo "==> Vendored source: using pinned current codex checkout ${current_commit:0:9}"
     fi
 
     if [ "$current_commit" = "$recorded_commit" ]; then
@@ -81,10 +70,13 @@ for PATCH_FILE in "${PATCH_FILES[@]}"; do
         # style hunks. Some hand-crafted patches omit the `diff --git` line
         # for their first file; without the `--- a/` fallback those files
         # get dropped from the content-check and cause false negatives.
+        patch_target_list="$(mktemp)"
+        { grep '^diff --git' "$PATCH_FILE" | sed 's|.*b/||'; \
+          grep '^--- a/' "$PATCH_FILE" | sed 's|^--- a/||'; } | sort -u > "$patch_target_list"
         while IFS= read -r pf; do
             [ -f "$SUBMODULE_DIR/$pf" ] && patch_targets+=("$SUBMODULE_DIR/$pf")
-        done < <({ grep '^diff --git' "$PATCH_FILE" | sed 's|.*b/||'; \
-                    grep '^--- a/' "$PATCH_FILE" | sed 's|^--- a/||'; } | sort -u)
+        done < "$patch_target_list"
+        rm -f "$patch_target_list"
         added_lines=$(grep -m 5 '^+[^+]' "$PATCH_FILE" | sed 's/^+//')
         all_present=true
         if [ "${#patch_targets[@]}" -eq 0 ]; then

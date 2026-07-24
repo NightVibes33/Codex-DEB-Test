@@ -342,17 +342,15 @@ mod tests {
         tx.send(TerminalBackendEvent::Exit(0)).await.unwrap();
         tokio::time::sleep(std::time::Duration::from_millis(25)).await;
 
-        assert_eq!(
-            backend.writes.lock().unwrap().as_slice(),
-            &[b"echo hi\n".to_vec()]
-        );
-        assert_eq!(
-            backend.resizes.lock().unwrap().as_slice(),
-            &[TerminalSize {
+        assert_eq!(backend.writes.lock().unwrap().as_slice(), &[
+            b"echo hi\n".to_vec()
+        ]);
+        assert_eq!(backend.resizes.lock().unwrap().as_slice(), &[
+            TerminalSize {
                 cols: 100,
                 rows: 40
-            }]
-        );
+            }
+        ]);
         assert_eq!(bytes.lock().unwrap().as_slice(), &[b"hi\n".to_vec()]);
         assert_eq!(exits.lock().unwrap().as_slice(), &[0]);
 

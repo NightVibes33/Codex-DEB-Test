@@ -137,20 +137,23 @@ trap cleanup_patch EXIT
 
 mkdir -p "$FRAMEWORKS_DIR" "$GENERATED_HEADERS_DIR" "$GENERATED_DEVICE_DIR" "$GENERATED_SIM_DIR" "$GENERATED_MACABI_DIR"
 
-if [ -z "${RUSTC_WRAPPER:-}" ] && [ "${CARGO_INCREMENTAL:-}" != "1" ] && command -v sccache >/dev/null 2>&1; then
+if [ "${SCCACHE_DISABLE:-0}" != "1" ] && [ -z "${RUSTC_WRAPPER:-}" ] && command -v sccache >/dev/null 2>&1; then
   export RUSTC_WRAPPER="$(command -v sccache)"
 fi
 
 "$REPO_DIR/tools/scripts/update-alleycat-main.sh" --shared
 
 # libghostty static libs + headers must exist before the Rust crate is
-# compiled (codex-mobile-client links against them). Build them on demand
-# when missing so this script is self-sufficient for CI workflows that
-# invoke it directly (without going through the Makefile's stamp dep).
+# compiled because the iOS terminal renderer links against them. Build them
+# on demand so direct CI invocations of build-rust.sh are self-contained.
 LIBGHOSTTY_DEVICE_LIB="$GENERATED_DEVICE_DIR/libghostty.a"
 LIBGHOSTTY_SIM_LIB="$GENERATED_SIM_DIR/libghostty.a"
 LIBGHOSTTY_MACABI_LIB="$GENERATED_MACABI_DIR/libghostty.a"
+LIBGHOSTTY_HEADER="$GENERATED_HEADERS_DIR/ghostty.h"
 NEEDS_GHOSTTY=0
+if [ ! -f "$LIBGHOSTTY_HEADER" ]; then
+  NEEDS_GHOSTTY=1
+fi
 if [ "$DEVICE_ONLY" -eq 1 ] && [ ! -f "$LIBGHOSTTY_DEVICE_LIB" ]; then
   NEEDS_GHOSTTY=1
 elif [ "$SIM_ONLY" -eq 1 ] && [ ! -f "$LIBGHOSTTY_SIM_LIB" ]; then
@@ -162,8 +165,16 @@ elif [ "$DEVICE_ONLY" -eq 0 ] && [ "$SIM_ONLY" -eq 0 ] && [ "$MACABI_ONLY" -eq 0
   NEEDS_GHOSTTY=1
 fi
 if [ "$NEEDS_GHOSTTY" -eq 1 ]; then
-  echo "==> libghostty artifacts missing; building (use 'make ghostty-ios' to invoke with stamp caching)"
-  "$REPO_DIR/apps/ios/scripts/build-ghostty.sh"
+  echo "==> libghostty artifacts missing; building"
+  ghostty_args=()
+  if [ "$DEVICE_ONLY" -eq 1 ]; then
+    ghostty_args+=(--device-only)
+  elif [ "$SIM_ONLY" -eq 1 ]; then
+    ghostty_args+=(--sim-only)
+  elif [ "$MACABI_ONLY" -eq 1 ]; then
+    ghostty_args+=(--macabi-only)
+  fi
+  "$REPO_DIR/apps/ios/scripts/build-ghostty.sh" "${ghostty_args[@]}"
 fi
 
 ensure_host_llvm_on_path() {

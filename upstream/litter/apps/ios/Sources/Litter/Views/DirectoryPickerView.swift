@@ -84,7 +84,7 @@ private final class DirectoryPickerSheetModel {
     var recentEntries: [RecentDirectoryEntry] = []
     var isLoading = true
     var errorMessage: String?
-    var showHiddenDirectories = false
+    var showHiddenDirectories = true
     var searchQuery = ""
     var homePath = ""
 
@@ -104,10 +104,6 @@ private final class DirectoryPickerSheetModel {
 
     var canNavigateUp: Bool {
         guard !currentPath.isEmpty, !RemotePath.parse(path: currentPath).isRoot() else { return false }
-        // Clamp the local picker at the user-facing `~` anchor. Everything
-        // above it is iOS container internals the user has no business
-        // poking at.
-        if isLocal, currentPath == HomeAnchor.path { return false }
         return true
     }
 
@@ -133,6 +129,7 @@ private final class DirectoryPickerSheetModel {
         // relabel the anchor segment itself to "~" so the trail reads
         // `~ / projects / foo` instead of `var / mobile / … / codex / projects / foo`.
         let home = HomeAnchor.path
+        guard currentPath == home || currentPath.hasPrefix(home + "/") else { return raw }
         let homeRoot = DirectoryPathBreadcrumb(id: home, label: "~", path: home)
         let suffix = raw.drop { $0.path != home }.dropFirst()
         return [homeRoot] + Array(suffix)
@@ -447,7 +444,7 @@ struct DirectoryPickerView: View {
 
     var body: some View {
         ZStack {
-            LitterTheme.backgroundGradient.ignoresSafeArea()
+            AlleyBackdrop().ignoresSafeArea()
             VStack(spacing: 0) {
                 controls
                 Divider().background(LitterTheme.separator)
@@ -681,7 +678,7 @@ struct DirectoryPickerView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(.ultraThinMaterial)
+        .background(LitterTheme.surface.opacity(0.96))
     }
 
     @ViewBuilder
@@ -751,7 +748,7 @@ struct DirectoryPickerView: View {
                         }
                     }
                 }
-                .listRowBackground(LitterTheme.surface.opacity(0.6))
+                .listRowBackground(LitterTheme.surface.opacity(0.88))
             }
 
             if showRecentDirectories {
@@ -791,7 +788,7 @@ struct DirectoryPickerView: View {
                                 Label(String(localized: "directory_picker_remove_recent"), systemImage: "trash")
                             }
                         }
-                        .listRowBackground(LitterTheme.surface.opacity(0.6))
+                        .listRowBackground(LitterTheme.surface.opacity(0.88))
                     }
                 } header: {
                     HStack {
@@ -820,7 +817,7 @@ struct DirectoryPickerView: View {
                 Text(model.emptyMessage())
                     .litterFont(.caption)
                     .foregroundColor(LitterTheme.textMuted)
-                    .listRowBackground(LitterTheme.surface.opacity(0.6))
+                    .listRowBackground(LitterTheme.surface.opacity(0.88))
             } else {
                 ForEach(visibleEntries, id: \.self) { entry in
                     Button {
@@ -847,7 +844,7 @@ struct DirectoryPickerView: View {
                                 .litterFont(.caption)
                         }
                     }
-                    .listRowBackground(LitterTheme.surface.opacity(0.6))
+                    .listRowBackground(LitterTheme.surface.opacity(0.88))
                 }
             }
         }
@@ -911,7 +908,7 @@ struct DirectoryPickerView: View {
         .padding(.horizontal, 16)
         .padding(.top, 8)
         .padding(.bottom, 8)
-        .background(.ultraThinMaterial)
+        .background(LitterTheme.surface.opacity(0.96))
     }
 
     private func selectNextServer() {

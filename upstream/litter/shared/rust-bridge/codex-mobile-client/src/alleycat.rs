@@ -473,13 +473,10 @@ pub async fn list_agents(
     params: ParsedPairPayload,
 ) -> Result<Vec<AgentInfo>, AlleycatError> {
     let (conn, mut send, mut recv) = open_stream_on(endpoint, &params).await?;
-    write_json_frame(
-        &mut send,
-        &Request::ListAgents {
-            v: ALLEYCAT_PROTOCOL_VERSION,
-            token: params.token.clone(),
-        },
-    )
+    write_json_frame(&mut send, &Request::ListAgents {
+        v: ALLEYCAT_PROTOCOL_VERSION,
+        token: params.token.clone(),
+    })
     .await?;
     let response: Response = read_json_frame(&mut recv).await?;
     validate_response(&response)?;
@@ -506,14 +503,11 @@ pub async fn restart_agent(
     agent: String,
 ) -> Result<(), AlleycatError> {
     let (conn, mut send, mut recv) = open_stream_on(endpoint, &params).await?;
-    write_json_frame(
-        &mut send,
-        &Request::RestartAgent {
-            v: ALLEYCAT_PROTOCOL_VERSION,
-            token: params.token.clone(),
-            agent,
-        },
-    )
+    write_json_frame(&mut send, &Request::RestartAgent {
+        v: ALLEYCAT_PROTOCOL_VERSION,
+        token: params.token.clone(),
+        agent,
+    })
     .await?;
     let response: Response = read_json_frame(&mut recv).await?;
     validate_response(&response)?;
@@ -530,15 +524,12 @@ pub async fn connect_app_server_client(
     resume_from: Option<u64>,
 ) -> Result<(AppServerClient, Arc<AlleycatSession>), AlleycatError> {
     let (connection, mut send, mut recv) = open_stream_on(endpoint, &params).await?;
-    write_json_frame(
-        &mut send,
-        &Request::Connect {
-            v: ALLEYCAT_PROTOCOL_VERSION,
-            token: params.token.clone(),
-            agent: agent.clone(),
-            resume: resume_from.map(|last_seq| Resume { last_seq }),
-        },
-    )
+    write_json_frame(&mut send, &Request::Connect {
+        v: ALLEYCAT_PROTOCOL_VERSION,
+        token: params.token.clone(),
+        agent: agent.clone(),
+        resume: resume_from.map(|last_seq| Resume { last_seq }),
+    })
     .await?;
     let response: Response = read_json_frame(&mut recv).await?;
     validate_response(&response)?;
@@ -552,6 +543,7 @@ pub async fn connect_app_server_client(
         client_name: "Litter".to_string(),
         client_version: "1.0".to_string(),
         experimental_api: true,
+        mcp_server_openai_form_elicitation: true,
         opt_out_notification_methods: Vec::new(),
         channel_capacity: 256,
     };
@@ -583,19 +575,15 @@ pub(crate) async fn connect_jsonl_agent_stream(
     agent: String,
 ) -> Result<(AlleycatStream, Arc<AlleycatSession>), AlleycatError> {
     let (connection, mut send, mut recv) = open_stream_on(endpoint, &params).await?;
-    write_json_frame(
-        &mut send,
-        &Request::Connect {
-            v: ALLEYCAT_PROTOCOL_VERSION,
-            token: params.token.clone(),
-            agent: agent.clone(),
-            resume: None,
-        },
-    )
+    write_json_frame(&mut send, &Request::Connect {
+        v: ALLEYCAT_PROTOCOL_VERSION,
+        token: params.token.clone(),
+        agent: agent.clone(),
+        resume: None,
+    })
     .await?;
     let response: Response = read_json_frame(&mut recv).await?;
     validate_response(&response)?;
-    log_session_info(&params, &agent, response.session.as_ref(), None);
     let session = Arc::new(AlleycatSession {
         connection,
         params,

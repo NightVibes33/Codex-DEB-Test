@@ -6,12 +6,308 @@
 	<array>
 		<string>com.nightvibes.darkswordai.turn-check</string>
 	</array>
+	<key>CFBundleDisplayName</key>
+	<string>Alley Cãt</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleName</key>
 	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundleIcons</key>
+	<dict>
+		<key>CFBundlePrimaryIcon</key>
+		<dict>
+			<key>CFBundleIconFiles</key>
+			<array>
+				<string>AppIcon</string>
+			</array>
+			<key>CFBundleIconName</key>
+			<string>AppIcon</string>
+		</dict>
+		<key>CFBundleAlternateIcons</key>
+		<dict>
+			<key>AppIconOriginal</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIconOriginal</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconOriginal</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIconShinobi</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIconShinobi</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconShinobi</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIconElectricPulse</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIconElectricPulse</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconElectricPulse</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIconOceanConnect</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIconOceanConnect</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconOceanConnect</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIconDevinePurple</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIconDevinePurple</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconDevinePurple</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIconGreenTerminal</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIconGreenTerminal</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconGreenTerminal</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIconCosmicForum</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIconCosmicForum</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconCosmicForum</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIconCrystalFrost</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIconCrystalFrost</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconCrystalFrost</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIconCyberDistrict</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIconCyberDistrict</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconCyberDistrict</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIconMidnightAMOLED</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIconMidnightAMOLED</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconMidnightAMOLED</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIconRGBArena</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIconRGBArena</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconRGBArena</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIconNeuralCore</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIconNeuralCore</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconNeuralCore</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+		</dict>
+	</dict>
+	<key>CFBundleIcons~ipad</key>
+	<dict>
+		<key>CFBundlePrimaryIcon</key>
+		<dict>
+			<key>CFBundleIconFiles</key>
+			<array>
+				<string>AppIcon</string>
+			</array>
+			<key>CFBundleIconName</key>
+			<string>AppIcon</string>
+		</dict>
+		<key>CFBundleAlternateIcons</key>
+		<dict>
+			<key>AppIconOriginal</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIconOriginal</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconOriginal</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIconShinobi</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIconShinobi</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconShinobi</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIconElectricPulse</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIconElectricPulse</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconElectricPulse</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIconOceanConnect</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIconOceanConnect</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconOceanConnect</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIconDevinePurple</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIconDevinePurple</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconDevinePurple</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIconGreenTerminal</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIconGreenTerminal</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconGreenTerminal</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIconCosmicForum</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIconCosmicForum</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconCosmicForum</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIconCrystalFrost</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIconCrystalFrost</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconCrystalFrost</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIconCyberDistrict</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIconCyberDistrict</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconCyberDistrict</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIconMidnightAMOLED</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIconMidnightAMOLED</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconMidnightAMOLED</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIconRGBArena</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIconRGBArena</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconRGBArena</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>AppIconNeuralCore</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>AppIconNeuralCore</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>AppIconNeuralCore</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+		</dict>
+	</dict>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleURLTypes</key>
@@ -29,11 +325,27 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LitterReleaseOwner</key>
+	<string>$(LITTER_RELEASE_OWNER)</string>
+	<key>LitterReleaseRepo</key>
+	<string>$(LITTER_RELEASE_REPO)</string>
+	<key>LitterReleaseManifestAssetName</key>
+	<string>$(LITTER_RELEASE_MANIFEST_ASSET_NAME)</string>
+	<key>LitterReleaseSourceAssetName</key>
+	<string>$(LITTER_RELEASE_SOURCE_ASSET_NAME)</string>
+	<key>LitterReleaseStableTag</key>
+	<string>$(LITTER_RELEASE_STABLE_TAG)</string>
+	<key>LitterReleaseTagPrefix</key>
+	<string>$(LITTER_RELEASE_TAG_PREFIX)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>tailscale</string>
+		<string>kittystore</string>
+		<string>sidestore</string>
+		<string>altstore</string>
+		<string>localdevvpn</string>
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
@@ -61,16 +373,20 @@
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>DarkSword AI discovers coding agents and SSH servers on your local network.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>DarkSword AI uses the camera to capture photos for conversations.</string>
+	<string>Alley Cãt uses the camera to capture photos for conversations.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>DarkSword AI uses the microphone for voice-to-text input.</string>
+	<string>Alley Cãt uses the microphone for voice-to-text input.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>DarkSword AI uses Bluetooth to detect when your iPhone is near your paired Mac.</string>
+	<string>Alley Cãt uses Bluetooth to detect when your iPhone is near your paired Mac.</string>
 	<key>NSNearbyInteractionUsageDescription</key>
-	<string>DarkSword AI uses Nearby Interaction to confirm your iPhone and Mac are close before pairing.</string>
+	<string>Alley Cãt uses Nearby Interaction to confirm your iPhone and Mac are close before pairing.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>NSSupportsLiveActivitiesFrequentUpdates</key>
+	<true/>
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
 	<key>UIAppFonts</key>
 	<array>
@@ -124,5 +440,85 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>UTImportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.zip-archive</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>iOS App Archive</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.nightvibes.darkswordai.ipa</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>ipa</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>PKCS#12 Signing Identity</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.rsa.pkcs-12</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>p12</string>
+					<string>pfx</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/x-pkcs12</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>iOS Provisioning Profile</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.apple.mobileprovision</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>mobileprovision</string>
+					<string>provisionprofile</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>KittyStore Pairing File</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.apple.mobiledevicepairing</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>mobiledevicepairing</string>
+					<string>pairing</string>
+					<string>plist</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+
 </dict>
 </plist>

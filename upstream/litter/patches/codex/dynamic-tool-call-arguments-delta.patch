@@ -49,7 +49,7 @@ index 2c3a926c91..7dcf5e0837 100644
 @@ -1150,6 +1150,20 @@ pub struct AgentMessageDeltaNotification {
      pub delta: String,
  }
- 
+
 +/// Streaming delta for a dynamic tool call's argument JSON.
 +#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, JsonSchema, TS)]
 +#[serde(rename_all = "camelCase")]
@@ -107,7 +107,7 @@ index 4e949e43ae..8793b06118 100644
 +        );
 +        assert_matches!(&events[2], ResponseEvent::Completed { .. });
      }
- 
+
      #[tokio::test]
 diff --git a/codex-rs/protocol/src/protocol.rs b/codex-rs/protocol/src/protocol.rs
 index 30e33abe43..bb203abfc6 100644
@@ -115,7 +115,7 @@ index 30e33abe43..bb203abfc6 100644
 +++ b/codex-rs/protocol/src/protocol.rs
 @@ -1425,6 +1425,7 @@ pub enum EventMsg {
      HookCompleted(HookCompletedEvent),
- 
+
      AgentMessageContentDelta(AgentMessageContentDeltaEvent),
 +    DynamicToolCallArgumentsDelta(DynamicToolCallArgumentsDeltaEvent),
      PlanDelta(PlanDeltaEvent),
@@ -124,7 +124,7 @@ index 30e33abe43..bb203abfc6 100644
 @@ -1827,6 +1828,17 @@ pub struct AgentMessageContentDeltaEvent {
      pub delta: String,
  }
- 
+
 +#[derive(Debug, Clone, Deserialize, Serialize, TS, JsonSchema)]
 +pub struct DynamicToolCallArgumentsDeltaEvent {
 +    pub thread_id: String,
@@ -309,4 +309,4 @@ diff --git a/codex-rs/tui/src/chatwidget/protocol.rs b/codex-rs/tui/src/chatwidg
 +            ServerNotification::DynamicToolCallArgumentsDelta(_) => {}
          }
      }
- 
+

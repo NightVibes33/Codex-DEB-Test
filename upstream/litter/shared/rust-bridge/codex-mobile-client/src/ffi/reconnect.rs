@@ -639,9 +639,9 @@ mod tests {
     #[test]
     fn local_display_name_prefers_snapshot_name() {
         let mut snapshot = empty_snapshot();
-        snapshot.servers.insert(
-            "local".to_string(),
-            ServerSnapshot {
+        snapshot
+            .servers
+            .insert("local".to_string(), ServerSnapshot {
                 server_id: "local".to_string(),
                 display_name: "Desk Mac".to_string(),
                 host: "127.0.0.1".to_string(),
@@ -659,8 +659,7 @@ mod tests {
                 transport: ServerTransportDiagnostics::default(),
                 codex_version: None,
                 supports_turn_pagination: true,
-            },
-        );
+            });
 
         assert_eq!(
             resolved_local_display_name(&snapshot, &[], "local"),
@@ -703,9 +702,9 @@ mod tests {
     #[test]
     fn local_display_name_ignores_legacy_placeholder() {
         let mut snapshot = empty_snapshot();
-        snapshot.servers.insert(
-            "local".to_string(),
-            ServerSnapshot {
+        snapshot
+            .servers
+            .insert("local".to_string(), ServerSnapshot {
                 server_id: "local".to_string(),
                 display_name: "This Device".to_string(),
                 host: "127.0.0.1".to_string(),
@@ -723,8 +722,7 @@ mod tests {
                 transport: ServerTransportDiagnostics::default(),
                 codex_version: None,
                 supports_turn_pagination: true,
-            },
-        );
+            });
 
         let saved = SavedServerRecord {
             id: "local".to_string(),

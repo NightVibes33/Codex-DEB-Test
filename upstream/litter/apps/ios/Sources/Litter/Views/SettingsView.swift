@@ -1,4 +1,11 @@
 import SwiftUI
+import UIKit
+
+enum SettingsFeatureVisibility {
+    static let showsTipJar = false
+    static let showsPlugins = false
+    static let showsConnectors = false
+}
 
 struct SettingsView: View {
     @Environment(AppModel.self) private var appModel
@@ -7,11 +14,19 @@ struct SettingsView: View {
     @Environment(\.textScale) private var textScale
     @AppStorage("fontFamily") private var fontFamily = FontFamilyOption.mono.rawValue
     @AppStorage("collapseTurns") private var collapseTurns = false
+    @AppStorage("developerToolsEnabled") private var developerToolsEnabled = false
+    @AppStorage("litterSettingsRequestedRoute") private var requestedSettingsRoute = ""
+    @AppStorage("litterTerminalInitialDirectory") private var terminalInitialDirectory = HomeAnchor.path
     @AppStorage(ConversationDisplayPreferenceKey.reasoning) private var reasoningDisplayMode = ConversationDetailDisplayMode.collapsed.rawValue
     @AppStorage(ConversationDisplayPreferenceKey.commands) private var commandDisplayMode = ConversationDetailDisplayMode.collapsed.rawValue
     @AppStorage(ConversationDisplayPreferenceKey.tools) private var toolDisplayMode = ConversationDetailDisplayMode.collapsed.rawValue
     @State private var activeServerSheet: SettingsServerSheet?
     @State private var serverEditError: String?
+    @State private var navigationPath: [SettingsRoute] = []
+    @State private var proStore = ProAccessStore.shared
+
+    @StateObject private var taskBag = ViewTaskBag()
+    private static var showsEmexDESettingsEntry: Bool { AppDistributionCapabilities.includesEmexDE }
 
     private var localServer: AppServerSnapshot? {
         // Account management (ChatGPT login / API key) is local-only, always.
@@ -29,16 +44,33 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             ZStack {
-                LitterTheme.backgroundGradient.ignoresSafeArea()
+                AlleyBackdrop().ignoresSafeArea()
                 Form {
-                    supportSection
+                    if SettingsFeatureVisibility.showsTipJar {
+                        supportSection
+                    }
+                    gettingStartedSection
+                    proSection
+                    if !AppDistributionCapabilities.isAppStoreSafe {
+                        updatesSection
+                    }
+                    if AppDistributionCapabilities.includesKittyStore {
+                        signingSection
+                    }
                     appearanceSection
+                    iconSwitcherSection
                     fontSection
                     conversationSection
+                    localToolsSection
                     petSection
                     experimentalSection
+                    aiProvidersSection
+                    diagnosticsSection
+                    if developerToolsEnabled && Self.showsEmexDESettingsEntry {
+                        buildKitSection
+                    }
                     accountSection
                     serversSection
                 }
@@ -47,11 +79,65 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    HStack(spacing: 8) {
+                        AlleyCatMark(size: 24)
+                        Text("SETTINGS")
+                            .litterFont(size: 12, weight: .bold)
+                            .tracking(1.5)
+                            .foregroundStyle(LitterTheme.textPrimary)
+                    }
+                    .accessibilityElement(children: .combine)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
                         .foregroundColor(LitterTheme.accent)
                 }
             }
+            .navigationDestination(for: SettingsRoute.self) { route in
+                if route.isAvailableInCurrentBuild {
+                    switch route {
+                case .terminal:
+                    if proStore.hasProAccess {
+                        SettingsTerminalView(initialDirectory: terminalInitialDirectory)
+                    } else {
+                        ProPaywallView(feature: .terminal)
+                    }
+                case .appearance:
+                    AppearanceSettingsView()
+                case .appIcon:
+                    AppIconSettingsView()
+                case .conversation:
+                    ConversationSettingsRouteView()
+                case .updates:
+                    AppUpdateSettingsView()
+                case .signing:
+                    FeatherSigningSettingsView()
+                case .connectors:
+                    if SettingsFeatureVisibility.showsConnectors {
+                        ConnectorSettingsView()
+                    } else {
+                        EmptyView()
+                    }
+                case .plugins:
+                    if SettingsFeatureVisibility.showsPlugins {
+                        PluginSettingsView()
+                    } else {
+                        EmptyView()
+                    }
+                case .aiProviders:
+                    AIProviderSettingsView()
+                case .buildKit:
+                    Color.clear
+                        .onAppear { openMainAppRoute("emexDE") }
+                }
+                } else {
+                    EmptyView()
+                }
+            }
+            .onAppear { consumeRequestedSettingsRoute() }
+            .task { await proStore.loadProducts() }
+            .onChange(of: requestedSettingsRoute) { _, _ in consumeRequestedSettingsRoute() }
             .sheet(item: $activeServerSheet) { sheet in
                 switch sheet {
                 case .add:
@@ -93,6 +179,94 @@ struct SettingsView: View {
             } message: {
                 Text(serverEditError ?? "Unable to update this server.")
             }
+            .environment(appModel)
+            .environment(appState)
+            .environment(\.textScale, textScale)
+        }
+        .onDisappear { taskBag.cancelAll() }
+    }
+
+    // MARK: - Getting Started Section
+
+    private var gettingStartedSection: some View {
+        Section {
+            Button {
+                UserDefaults.standard.set(true, forKey: LitterOnboardingState.replayRequestedKey)
+                dismiss()
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "sparkles")
+                        .foregroundColor(LitterTheme.accent)
+                        .frame(width: 20)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Replay Onboarding")
+                            .litterFont(.subheadline)
+                            .foregroundColor(LitterTheme.textPrimary)
+                        Text("Review setup, files, terminal, and runtimes")
+                            .litterFont(.caption)
+                            .foregroundColor(LitterTheme.textSecondary)
+                    }
+                }
+            }
+            .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
+        } header: {
+            Text("Getting Started")
+                .foregroundColor(LitterTheme.textSecondary)
+        }
+    }
+
+    // MARK: - Updates Section
+
+    private var updatesSection: some View {
+        Section {
+            NavigationLink(value: SettingsRoute.updates) {
+                HStack(spacing: 10) {
+                    Image(systemName: "arrow.down.circle.fill")
+                        .foregroundColor(LitterTheme.accent)
+                        .frame(width: 20)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Updates")
+                            .litterFont(.subheadline)
+                            .foregroundColor(LitterTheme.textPrimary)
+                        Text(AppDistributionCapabilities.isAppStoreSafe ? "Check app versions and runtime assets" : "Check app versions, sideload IPAs, and runtime assets")
+                            .litterFont(.caption)
+                            .foregroundColor(LitterTheme.textSecondary)
+                    }
+                }
+            }
+            .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
+        } header: {
+            Text("Updates")
+                .foregroundColor(LitterTheme.textSecondary)
+        }
+    }
+
+    private var signingSection: some View {
+        Section {
+            NavigationLink(value: SettingsRoute.signing) {
+                HStack(spacing: 10) {
+                    Image(systemName: "signature")
+                        .foregroundColor(LitterTheme.accent)
+                        .frame(width: 20)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Signing")
+                            .litterFont(.subheadline)
+                            .foregroundColor(LitterTheme.textPrimary)
+                        Text("Feather certificates and IPA signing")
+                            .litterFont(.caption)
+                            .foregroundColor(LitterTheme.textSecondary)
+                    }
+                }
+            }
+            .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
+        } header: {
+            if !AppDistributionCapabilities.isAppStoreSafe {
+                Text("KittyStore")
+                    .foregroundColor(LitterTheme.textSecondary)
+            }
         }
     }
 
@@ -100,23 +274,156 @@ struct SettingsView: View {
 
     private var appearanceSection: some View {
         Section {
-            NavigationLink {
-                AppearanceSettingsView()
-            } label: {
+            NavigationLink(value: SettingsRoute.appearance) {
                 HStack(spacing: 10) {
                     Image(systemName: "paintbrush")
                         .foregroundColor(LitterTheme.accent)
                         .frame(width: 20)
-                    Text("Appearance")
-                        .litterFont(.subheadline)
-                        .foregroundColor(LitterTheme.textPrimary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Appearance")
+                            .litterFont(.subheadline)
+                            .foregroundColor(LitterTheme.textPrimary)
+                        Text("Themes, chat backgrounds, and typing effects")
+                            .litterFont(.caption)
+                            .foregroundColor(LitterTheme.textSecondary)
+                    }
                 }
             }
-            .listRowBackground(LitterTheme.surface.opacity(0.6))
+            .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
         } header: {
             Text("Theme")
                 .foregroundColor(LitterTheme.textSecondary)
         }
+    }
+
+    // MARK: - Icon Switcher Section
+
+    private var iconSwitcherSection: some View {
+        Section {
+            NavigationLink(value: SettingsRoute.appIcon) {
+                HStack(spacing: 10) {
+                    Image("app_icon_current")
+                        .resizable()
+                        .interpolation(.high)
+                        .scaledToFit()
+                        .frame(width: 30, height: 30)
+                        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                .stroke(LitterTheme.border.opacity(0.45), lineWidth: 1)
+                        }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Icon Switcher")
+                            .litterFont(.subheadline, weight: .semibold)
+                            .foregroundColor(LitterTheme.textPrimary)
+                        Text(proStore.hasProAccess ? "Switch between Alley Cãt icons" : "Pro icon switching")
+                            .litterFont(.caption)
+                            .foregroundColor(LitterTheme.textSecondary)
+                    }
+                    Spacer(minLength: 8)
+                    if !proStore.hasProAccess {
+                        Image(systemName: "lock.fill")
+                            .foregroundColor(LitterTheme.textMuted)
+                    }
+                }
+            }
+            .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
+        } header: {
+            Text("Icon Switcher")
+                .foregroundColor(LitterTheme.textSecondary)
+        }
+    }
+
+    // MARK: - Local Tools Section
+
+    private var localToolsSection: some View {
+        Section {
+            NavigationLink(value: SettingsRoute.terminal) {
+                HStack(spacing: 10) {
+                    Image(systemName: "terminal")
+                        .foregroundColor(LitterTheme.accent)
+                        .frame(width: 20)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Terminal")
+                            .litterFont(.subheadline)
+                            .foregroundColor(LitterTheme.textPrimary)
+                        Text("Run commands in the same local iSH runtime used by bots")
+                            .litterFont(.caption)
+                            .foregroundColor(LitterTheme.textSecondary)
+                    }
+                }
+            }
+            .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
+
+            if SettingsFeatureVisibility.showsConnectors {
+                NavigationLink(value: SettingsRoute.connectors) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "link.badge.plus")
+                            .foregroundColor(LitterTheme.accent)
+                            .frame(width: 20)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Connectors")
+                                .litterFont(.subheadline)
+                                .foregroundColor(LitterTheme.textPrimary)
+                            Text("Manage local broker and hosted relay access for bots")
+                                .litterFont(.caption)
+                                .foregroundColor(LitterTheme.textSecondary)
+                        }
+                    }
+                }
+                .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
+            }
+
+            if SettingsFeatureVisibility.showsPlugins {
+                NavigationLink(value: SettingsRoute.plugins) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "puzzlepiece.extension")
+                            .foregroundColor(LitterTheme.accent)
+                            .frame(width: 20)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Plugins")
+                                .litterFont(.subheadline)
+                                .foregroundColor(LitterTheme.textPrimary)
+                            Text("Install and remove Codex plugins and connector packs")
+                                .litterFont(.caption)
+                                .foregroundColor(LitterTheme.textSecondary)
+                        }
+                    }
+                }
+                .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
+            }
+        } header: {
+            Text("Local Tools")
+                .foregroundColor(LitterTheme.textSecondary)
+        }
+    }
+
+    private func openMainAppRoute(_ route: String) {
+        UserDefaults.standard.set(route, forKey: "litterPendingMainRoute")
+        appState.showSettings = false
+        dismiss()
+    }
+
+    private func consumeRequestedSettingsRoute() {
+        let raw = requestedSettingsRoute.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !raw.isEmpty else { return }
+        requestedSettingsRoute = ""
+        if raw == SettingsRoute.buildKit.rawValue || raw == "emexDE" {
+            guard AppDistributionCapabilities.includesEmexDE else { return }
+            developerToolsEnabled = true
+            openMainAppRoute("emexDE")
+            return
+        }
+        guard let route = SettingsRoute(rawValue: raw) else { return }
+        guard route.isAvailableInCurrentBuild else { return }
+        if route == .connectors && !SettingsFeatureVisibility.showsConnectors { return }
+        if route == .plugins && !SettingsFeatureVisibility.showsPlugins { return }
+        navigationPath = [route]
     }
 
     // MARK: - Conversation Section
@@ -139,7 +446,8 @@ struct SettingsView: View {
                 }
             }
             .tint(LitterTheme.accent)
-            .listRowBackground(LitterTheme.surface.opacity(0.6))
+            .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
 
             transcriptDisplayPicker(
                 title: "Internal Thinking",
@@ -194,7 +502,8 @@ struct SettingsView: View {
         }
         .pickerStyle(.menu)
         .tint(LitterTheme.accent)
-        .listRowBackground(LitterTheme.surface.opacity(0.6))
+        .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
     }
 
     // MARK: - Font Section
@@ -223,7 +532,8 @@ struct SettingsView: View {
                         }
                     }
                 }
-                .listRowBackground(LitterTheme.surface.opacity(0.6))
+                .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
             }
         } header: {
             Text("Font")
@@ -254,7 +564,8 @@ struct SettingsView: View {
                     }
                 }
             }
-            .listRowBackground(LitterTheme.surface.opacity(0.6))
+            .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
         } header: {
             Text("Pet")
                 .foregroundColor(LitterTheme.textSecondary)
@@ -277,10 +588,70 @@ struct SettingsView: View {
                         .foregroundColor(LitterTheme.textPrimary)
                 }
             }
-            .listRowBackground(LitterTheme.surface.opacity(0.6))
+            .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
+
+            if Self.showsEmexDESettingsEntry {
+                Toggle(isOn: $developerToolsEnabled) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "wrench.and.screwdriver")
+                            .foregroundColor(LitterTheme.accent)
+                            .frame(width: 20)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Developer Tools")
+                                .litterFont(.subheadline)
+                                .foregroundColor(LitterTheme.textPrimary)
+                            Text("Show advanced local build controls")
+                                .litterFont(.caption)
+                                .foregroundColor(LitterTheme.textSecondary)
+                        }
+                    }
+                }
+                .tint(LitterTheme.accent)
+                .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
+            }
         } header: {
             Text("Experimental")
                 .foregroundColor(LitterTheme.textSecondary)
+        }
+    }
+
+    // MARK: - Pro Section
+
+    private var proSection: some View {
+        Section {
+            NavigationLink {
+                ProPaywallView(feature: .all)
+            } label: {
+                HStack(spacing: 10) {
+                    if proStore.hasProAccess {
+                        Image(systemName: "checkmark.seal.fill")
+                            .foregroundStyle(LitterTheme.accent)
+                            .frame(width: 20)
+                    } else {
+                        Image("app_icon_current")
+                            .resizable()
+                            .interpolation(.high)
+                            .scaledToFit()
+                            .frame(width: 24, height: 24)
+                            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(proStore.hasProAccess ? "Alley Cãt Pro Unlocked" : "Unlock Alley Cãt Pro")
+                            .litterFont(.subheadline, weight: .semibold)
+                            .foregroundStyle(LitterTheme.textPrimary)
+                        Text(proStore.hasProAccess ? "Terminal and full file browser are available" : "Terminal, files, and app icons for \(proStore.displayPrice)")
+                            .litterFont(.caption)
+                            .foregroundStyle(LitterTheme.textSecondary)
+                    }
+                }
+            }
+            .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
+        } header: {
+            Text("Pro")
+                .foregroundStyle(LitterTheme.textSecondary)
         }
     }
 
@@ -295,14 +666,106 @@ struct SettingsView: View {
                     Image(systemName: "pawprint.fill")
                         .foregroundColor(LitterTheme.accent)
                         .frame(width: 20)
-                    Text("Tip the Kitty")
+                    Text("Tip the Alley Cãt")
                         .litterFont(.subheadline)
                         .foregroundColor(LitterTheme.textPrimary)
                 }
             }
-            .listRowBackground(LitterTheme.surface.opacity(0.6))
+            .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
         } header: {
             Text("Support")
+                .foregroundColor(LitterTheme.textSecondary)
+        }
+    }
+
+
+    // MARK: - AI Providers Section
+
+    private var aiProvidersSection: some View {
+        Section {
+            NavigationLink {
+                AIProviderSettingsView()
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "brain.head.profile")
+                        .foregroundColor(LitterTheme.accent)
+                        .frame(width: 20)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("AI Providers")
+                            .litterFont(.subheadline)
+                            .foregroundColor(LitterTheme.textPrimary)
+                        Text("OpenAI and PC-hosted Ollama/LM Studio servers")
+                            .litterFont(.caption)
+                            .foregroundColor(LitterTheme.textSecondary)
+                    }
+                }
+            }
+            .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
+        } header: {
+            Text("AI")
+                .foregroundColor(LitterTheme.textSecondary)
+        }
+    }
+
+
+
+    private var diagnosticsSection: some View {
+        Section {
+            NavigationLink {
+                DiagnosticsBundleView()
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "cross.case.fill")
+                        .foregroundColor(LitterTheme.accent)
+                        .frame(width: 20)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Diagnostics")
+                            .litterFont(.subheadline)
+                            .foregroundColor(LitterTheme.textPrimary)
+                        Text("Copy or share a redacted recovery bundle")
+                            .litterFont(.caption)
+                            .foregroundColor(LitterTheme.textSecondary)
+                    }
+                }
+            }
+            .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
+        } header: {
+            Text("Recovery")
+                .foregroundColor(LitterTheme.textSecondary)
+        }
+    }
+
+    private var buildKitSection: some View {
+        Section {
+            Button {
+                openMainAppRoute("emexDE")
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "hammer.fill")
+                        .foregroundColor(LitterTheme.accent)
+                        .frame(width: 20)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("emexDE")
+                            .litterFont(.subheadline)
+                            .foregroundColor(LitterTheme.textPrimary)
+                        Text("Open the embedded replacement for Nyxian BuildKit")
+                            .litterFont(.caption)
+                            .foregroundColor(LitterTheme.textSecondary)
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right")
+                        .litterFont(size: 13, weight: .semibold)
+                        .foregroundColor(LitterTheme.textSecondary)
+                }
+            }
+            .buttonStyle(.plain)
+            .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
+        } header: {
+            Text("Developer")
                 .foregroundColor(LitterTheme.textSecondary)
         }
     }
@@ -327,7 +790,8 @@ struct SettingsView: View {
                 Text("No servers connected")
                     .litterFont(.footnote)
                     .foregroundColor(LitterTheme.textMuted)
-                    .listRowBackground(LitterTheme.surface.opacity(0.6))
+                    .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
             } else {
                 ForEach(connectedServers, id: \.id) { conn in
                     HStack {
@@ -357,7 +821,8 @@ struct SettingsView: View {
                         .foregroundColor(LitterTheme.danger)
                         .buttonStyle(.borderless)
                     }
-                    .listRowBackground(LitterTheme.surface.opacity(0.6))
+                    .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
                 }
             }
 
@@ -374,7 +839,8 @@ struct SettingsView: View {
                     Spacer()
                 }
             }
-            .listRowBackground(LitterTheme.surface.opacity(0.6))
+            .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
         } header: {
             Text("Servers")
                 .foregroundColor(LitterTheme.textSecondary)
@@ -383,7 +849,7 @@ struct SettingsView: View {
 
     private func removeServer(_ server: HomeDashboardServer) {
         SavedServerStore.remove(serverId: server.id)
-        Task { await SshSessionStore.shared.close(serverId: server.id, ssh: appModel.ssh) }
+        taskBag.run { await SshSessionStore.shared.close(serverId: server.id, ssh: appModel.ssh) }
         appModel.serverBridge.disconnectServer(serverId: server.id)
     }
 
@@ -552,6 +1018,89 @@ struct SettingsView: View {
 
 }
 
+enum SettingsRoute: String, Hashable {
+    case terminal
+    case appearance
+    case appIcon
+    case conversation
+    case updates
+    case signing
+    case connectors
+    case plugins
+    case aiProviders
+    case buildKit
+
+    var isAvailableInCurrentBuild: Bool {
+        switch self {
+        case .updates:
+            return !AppDistributionCapabilities.isAppStoreSafe
+        case .signing:
+            return AppDistributionCapabilities.includesKittyStore
+        case .connectors:
+            return SettingsFeatureVisibility.showsConnectors
+        case .buildKit:
+            return AppDistributionCapabilities.includesEmexDE
+        default:
+            return true
+        }
+    }
+}
+
+private struct ConversationSettingsRouteView: View {
+    @AppStorage("collapseTurns") private var collapseTurns = false
+    @AppStorage(ConversationDisplayPreferenceKey.reasoning) private var reasoningDisplayMode = ConversationDetailDisplayMode.collapsed.rawValue
+    @AppStorage(ConversationDisplayPreferenceKey.commands) private var commandDisplayMode = ConversationDetailDisplayMode.collapsed.rawValue
+    @AppStorage(ConversationDisplayPreferenceKey.tools) private var toolDisplayMode = ConversationDetailDisplayMode.collapsed.rawValue
+
+    var body: some View {
+        ZStack {
+            AlleyBackdrop().ignoresSafeArea()
+            Form {
+                Toggle("Collapse Turns", isOn: $collapseTurns)
+                    .tint(LitterTheme.accent)
+                    .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
+                Picker("Internal Thinking", selection: $reasoningDisplayMode) {
+                    ForEach(ConversationDetailDisplayMode.allCases) { mode in
+                        Text(mode.displayName).tag(mode.rawValue)
+                    }
+                }
+                .pickerStyle(.menu)
+                .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
+                Picker("Commands", selection: $commandDisplayMode) {
+                    ForEach(ConversationDetailDisplayMode.allCases) { mode in
+                        Text(mode.displayName).tag(mode.rawValue)
+                    }
+                }
+                .pickerStyle(.menu)
+                .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
+                Picker("Tools", selection: $toolDisplayMode) {
+                    ForEach(ConversationDetailDisplayMode.allCases) { mode in
+                        Text(mode.displayName).tag(mode.rawValue)
+                    }
+                }
+                .pickerStyle(.menu)
+                .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
+            }
+            .scrollContentBackground(.hidden)
+        }
+        .navigationTitle("Conversation")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private struct SettingsTerminalView: View {
+    let initialDirectory: String
+
+    var body: some View {
+        TerminalScreen(cwd: initialDirectory)
+            .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
 private enum SettingsServerSheet: Identifiable {
     case add
     case edit(HomeDashboardServer)
@@ -703,7 +1252,7 @@ private struct SettingsServerConnectionEditor: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                LitterTheme.backgroundGradient.ignoresSafeArea()
+                AlleyBackdrop().ignoresSafeArea()
                 Form {
                     nameSection
                     connectionSection
@@ -739,7 +1288,8 @@ private struct SettingsServerConnectionEditor: View {
             Text("Name")
                 .foregroundColor(LitterTheme.textSecondary)
         }
-        .listRowBackground(LitterTheme.surface.opacity(0.6))
+        .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
     }
 
     private var connectionSection: some View {
@@ -799,7 +1349,8 @@ private struct SettingsServerConnectionEditor: View {
                     .foregroundColor(LitterTheme.textMuted)
             }
         }
-        .listRowBackground(LitterTheme.surface.opacity(0.6))
+        .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
     }
 
     private var hostField: some View {
@@ -826,7 +1377,8 @@ private struct SettingsServerConnectionEditor: View {
                 .litterFont(.subheadline)
             }
         }
-        .listRowBackground(LitterTheme.surface.opacity(0.6))
+        .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
     }
 
     private func submit(reconnect: Bool) {
@@ -990,8 +1542,10 @@ private struct SettingsConnectionAccountSection: View {
     @State private var authError: String?
     @State private var hasStoredApiKey = OpenAIApiKeyStore.shared.hasStoredKey
     @State private var hasStoredBaseURL = OpenAIApiKeyStore.shared.hasStoredBaseURL
-    @State private var hasStoredChatGPTTokens = false
+    @State private var storedChatGPTAccounts: [StoredChatGPTAccountSummary] = []
+    @State private var selectedChatGPTAccountID = ""
 
+    @StateObject private var taskBag = ViewTaskBag()
     var body: some View {
         Section {
             HStack(spacing: 12) {
@@ -1011,34 +1565,37 @@ private struct SettingsConnectionAccountSection: View {
                 Spacer()
                 if server.isLocal, server.account != nil {
                     Button("Logout") {
-                        Task { await logout() }
+                        taskBag.run { await logout() }
                     }
                     .litterFont(.caption)
                     .foregroundColor(LitterTheme.danger)
                 }
             }
-            .listRowBackground(LitterTheme.surface.opacity(0.6))
+            .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
 
             if server.isLocal, hasStoredApiKey {
                 Text("Local OpenAI API key is saved.")
                     .litterFont(.caption)
                     .foregroundColor(LitterTheme.accent)
-                    .listRowBackground(LitterTheme.surface.opacity(0.6))
+                    .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
             }
 
             if server.isLocal, hasStoredBaseURL {
                 Text("OpenAI-compatible base URL is saved.")
                     .litterFont(.caption)
                     .foregroundColor(LitterTheme.accent)
-                    .listRowBackground(LitterTheme.surface.opacity(0.6))
+                    .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
             }
 
-            if server.isLocal, !isChatGPTAccount {
+            if server.isLocal {
                 Button {
-                    Task {
+                    taskBag.run {
                         isAuthWorking = true
+                        defer { isAuthWorking = false }
                         await loginWithChatGPT()
-                        isAuthWorking = false
                     }
                 } label: {
                     HStack {
@@ -1046,13 +1603,77 @@ private struct SettingsConnectionAccountSection: View {
                             ProgressView().tint(LitterTheme.textPrimary).scaleEffect(0.8)
                         }
                         Image(systemName: "person.crop.circle.badge.checkmark")
-                        Text("Login with ChatGPT")
+                        Text(hasStoredChatGPTTokens ? "Add ChatGPT Account" : "Login with ChatGPT")
                             .litterFont(.subheadline)
                     }
                     .foregroundColor(LitterTheme.accent)
                 }
                 .disabled(isAuthWorking)
-                .listRowBackground(LitterTheme.surface.opacity(0.6))
+                .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
+            }
+
+            if server.isLocal, hasStoredChatGPTTokens {
+                Picker(selection: $selectedChatGPTAccountID) {
+                    ForEach(storedChatGPTAccounts) { account in
+                        Text(account.displayName).tag(account.accountID)
+                    }
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "person.2.crop.square.stack")
+                            .foregroundColor(LitterTheme.accent)
+                            .frame(width: 20)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Active ChatGPT Account")
+                                .litterFont(.subheadline)
+                                .foregroundColor(LitterTheme.textPrimary)
+                            Text("Choose which saved account the local runtime uses")
+                                .litterFont(.caption)
+                                .foregroundColor(LitterTheme.textSecondary)
+                        }
+                    }
+                }
+                .pickerStyle(.menu)
+                .tint(LitterTheme.accent)
+                .disabled(isAuthWorking)
+                .onChange(of: selectedChatGPTAccountID) { _, newValue in
+                    guard !newValue.isEmpty, newValue != activeStoredChatGPTAccountID else { return }
+                    taskBag.run {
+                        isAuthWorking = true
+                        defer { isAuthWorking = false }
+                        await switchToChatGPTAccount(newValue)
+                    }
+                }
+                .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Alley Cãt keeps saved accounts separate. If a turn fails because the active account is out of credits or temporarily limited, chat can offer Switch & Retry.")
+                        .litterFont(.caption)
+                        .foregroundColor(LitterTheme.textSecondary)
+                    Button("Switch to Next Account") {
+                        taskBag.run {
+                            isAuthWorking = true
+                            defer { isAuthWorking = false }
+                            await switchToNextChatGPTAccount()
+                        }
+                    }
+                    .litterFont(.caption)
+                    .foregroundColor(LitterTheme.accent)
+                    .disabled(isAuthWorking || storedChatGPTAccounts.count < 2)
+                    Button("Remove Selected ChatGPT Account") {
+                        taskBag.run {
+                            isAuthWorking = true
+                            defer { isAuthWorking = false }
+                            await removeSelectedChatGPTAccount()
+                        }
+                    }
+                    .litterFont(.caption)
+                    .foregroundColor(LitterTheme.danger)
+                    .disabled(isAuthWorking || selectedChatGPTAccountID.isEmpty)
+                }
+                .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
             }
 
             if server.isLocal, allowsLocalEnvApiKey {
@@ -1076,10 +1697,10 @@ private struct SettingsConnectionAccountSection: View {
                     Button {
                         let key = apiKey.trimmingCharacters(in: .whitespaces)
                         guard !key.isEmpty else { return }
-                        Task {
+                        taskBag.run {
                             isAuthWorking = true
+                            defer { isAuthWorking = false }
                             await saveApiKey(key)
-                            isAuthWorking = false
                         }
                     } label: {
                         Text(hasStoredApiKey ? "Update API Key" : "Save API Key")
@@ -1088,7 +1709,8 @@ private struct SettingsConnectionAccountSection: View {
                     .foregroundColor(LitterTheme.accent)
                     .disabled(apiKey.trimmingCharacters(in: .whitespaces).isEmpty || isAuthWorking)
                 }
-                .listRowBackground(LitterTheme.surface.opacity(0.6))
+                .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
 
                 VStack(alignment: .leading, spacing: 8) {
                     if hasStoredBaseURL {
@@ -1096,7 +1718,7 @@ private struct SettingsConnectionAccountSection: View {
                             .litterFont(.caption)
                             .foregroundColor(LitterTheme.textSecondary)
                     } else {
-                        Text("Optional OpenAI-compatible endpoint for local models.")
+                        Text("Optional OpenAI-compatible endpoint for a PC-hosted model server.")
                             .litterFont(.caption)
                             .foregroundColor(LitterTheme.textSecondary)
                     }
@@ -1134,14 +1756,16 @@ private struct SettingsConnectionAccountSection: View {
                         .disabled(isAuthWorking)
                     }
                 }
-                .listRowBackground(LitterTheme.surface.opacity(0.6))
+                .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
             }
 
             if let authError {
                 Text(authError)
                     .litterFont(.caption)
                     .foregroundColor(LitterTheme.danger)
-                    .listRowBackground(LitterTheme.surface.opacity(0.6))
+                    .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
             }
         } header: {
             Text("Account")
@@ -1151,6 +1775,7 @@ private struct SettingsConnectionAccountSection: View {
             refreshStoredCredentialFlags()
             await refreshAuthStatusIfNeeded()
         }
+        .onDisappear { taskBag.cancelAll() }
     }
 
     private var allowsLocalEnvApiKey: Bool {
@@ -1162,6 +1787,21 @@ private struct SettingsConnectionAccountSection: View {
             return true
         }
         return false
+    }
+
+    private var hasStoredChatGPTTokens: Bool {
+        !storedChatGPTAccounts.isEmpty
+    }
+
+    private var activeStoredChatGPTAccountID: String? {
+        storedChatGPTAccounts.first(where: \.isActive)?.accountID
+    }
+
+    private var activeStoredChatGPTAccount: StoredChatGPTAccountSummary? {
+        if let activeStoredChatGPTAccountID {
+            return storedChatGPTAccounts.first(where: { $0.accountID == activeStoredChatGPTAccountID })
+        }
+        return storedChatGPTAccounts.first
     }
 
     private var hasStoredLocalCredentials: Bool {
@@ -1190,7 +1830,7 @@ private struct SettingsConnectionAccountSection: View {
         case .apiKey?:
             return "API Key"
         case nil where server.isLocal && hasStoredChatGPTTokens:
-            return "ChatGPT"
+            return activeStoredChatGPTAccount?.displayName ?? "ChatGPT"
         case nil where server.isLocal && hasStoredApiKey:
             return "API Key"
         case nil:
@@ -1221,6 +1861,7 @@ private struct SettingsConnectionAccountSection: View {
         do {
             authError = nil
             try await appModel.loginLocalChatGPTAccount(serverId: server.serverId)
+            refreshStoredCredentialFlags()
         } catch ChatGPTOAuthError.cancelled {
             return
         } catch {
@@ -1232,11 +1873,61 @@ private struct SettingsConnectionAccountSection: View {
         hasStoredApiKey = OpenAIApiKeyStore.shared.hasStoredKey
         hasStoredBaseURL = OpenAIApiKeyStore.shared.hasStoredBaseURL
         do {
-            hasStoredChatGPTTokens = try ChatGPTOAuthTokenStore.shared.load() != nil
+            storedChatGPTAccounts = try ChatGPTOAuthTokenStore.shared.storedAccounts()
+            selectedChatGPTAccountID = activeStoredChatGPTAccount?.accountID ?? ""
         } catch let error as ChatGPTOAuthError where error.isTransientKeychainAvailabilityFailure {
-            hasStoredChatGPTTokens = false
+            storedChatGPTAccounts = []
+            selectedChatGPTAccountID = ""
         } catch {
-            hasStoredChatGPTTokens = false
+            storedChatGPTAccounts = []
+            selectedChatGPTAccountID = ""
+        }
+    }
+
+    private func switchToChatGPTAccount(_ accountID: String) async {
+        guard server.isLocal else {
+            authError = "Settings account switching is only available for the local server."
+            return
+        }
+        do {
+            authError = nil
+            try await appModel.activateStoredLocalChatGPTAccount(serverId: server.serverId, accountID: accountID)
+            refreshStoredCredentialFlags()
+        } catch {
+            authError = error.localizedDescription
+            refreshStoredCredentialFlags()
+        }
+    }
+
+    private func switchToNextChatGPTAccount() async {
+        guard server.isLocal else {
+            authError = "Settings account switching is only available for the local server."
+            return
+        }
+        do {
+            authError = nil
+            _ = try await appModel.switchToNextStoredLocalChatGPTAccount(serverId: server.serverId)
+            refreshStoredCredentialFlags()
+        } catch {
+            authError = error.localizedDescription
+            refreshStoredCredentialFlags()
+        }
+    }
+
+    private func removeSelectedChatGPTAccount() async {
+        guard server.isLocal else {
+            authError = "Settings account removal is only available for the local server."
+            return
+        }
+        let accountID = selectedChatGPTAccountID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !accountID.isEmpty else { return }
+        do {
+            authError = nil
+            try await appModel.removeStoredLocalChatGPTAccount(serverId: server.serverId, accountID: accountID)
+            refreshStoredCredentialFlags()
+        } catch {
+            authError = error.localizedDescription
+            refreshStoredCredentialFlags()
         }
     }
 
@@ -1340,8 +2031,11 @@ private struct SettingsConnectionAccountSection: View {
             return
         }
         do {
-            try? ChatGPTOAuthTokenStore.shared.clear()
-            try? OpenAIApiKeyStore.shared.clear()
+            if isChatGPTAccount {
+                try? ChatGPTOAuthTokenStore.shared.clearActiveAccount()
+            } else if case .apiKey? = server.account {
+                try? OpenAIApiKeyStore.shared.clear()
+            }
             _ = try await appModel.client.logoutAccount(serverId: server.serverId)
             try await appModel.restartLocalServer()
             refreshStoredCredentialFlags()
@@ -1353,15 +2047,43 @@ private struct SettingsConnectionAccountSection: View {
 }
 
 private struct SettingsDisconnectedAccountSection: View {
+    @Environment(AppModel.self) private var appModel
+    @State private var isRestartingLocalServer = false
+
     var body: some View {
         Section {
-            Text("Local Codex isn't running. ChatGPT login and API key entry require the local bridge.")
+            Text(appModel.isRecoveringLocalServer ? "Starting Local Codex for ChatGPT login and API key entry." : "Local Codex isn't running. ChatGPT login and API key entry require the local bridge.")
                 .litterFont(.caption)
                 .foregroundColor(LitterTheme.textMuted)
-                .listRowBackground(LitterTheme.surface.opacity(0.6))
+                .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
+
+            Button {
+                Task {
+                    isRestartingLocalServer = true
+                    defer { isRestartingLocalServer = false }
+                    try? await appModel.restartLocalServer()
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    if isRestartingLocalServer || appModel.isRecoveringLocalServer {
+                        ProgressView()
+                            .tint(LitterTheme.accent)
+                    }
+                    Text((isRestartingLocalServer || appModel.isRecoveringLocalServer) ? "Starting Local Server" : "Restart Local Server")
+                        .litterFont(.caption)
+                }
+            }
+            .foregroundColor(LitterTheme.accent)
+            .disabled(isRestartingLocalServer || appModel.isRecoveringLocalServer)
+            .listRowBackground(LitterTheme.surface.opacity(0.88))
+            .listRowSeparatorTint(LitterTheme.border.opacity(0.5))
         } header: {
             Text("Account")
                 .foregroundColor(LitterTheme.textSecondary)
+        }
+        .task {
+            appModel.ensureLocalServerConnectedIfNeeded(reason: "settingsAccount")
         }
     }
 }
@@ -1377,3 +2099,4 @@ private func isSettingsSlingshotURL(_ rawURL: String) -> Bool {
     }
 }
 #endif
+

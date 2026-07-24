@@ -4,7 +4,7 @@ import UIKit
 struct VoiceCallView: View {
     @Environment(AppModel.self) private var appModel
     @Environment(VoiceRuntimeController.self) private var voiceRuntime
-    @AppStorage("conversationTextSizeStep") private var conversationTextSizeStep = VoiceConversationTextSize.medium.rawValue
+    @AppStorage("conversationTextSizeStep") private var conversationTextSizeStep = VoiceConversationTextSize.xSmall.rawValue
     @State private var screenModel = ConversationScreenModel()
 #if DEBUG
     @State private var showDebugSheet = false
@@ -24,7 +24,7 @@ struct VoiceCallView: View {
 
     var body: some View {
         ZStack {
-            LitterTheme.backgroundGradient
+            AlleyBackdrop()
                 .ignoresSafeArea()
 
             if let context = voiceContext {
@@ -250,7 +250,7 @@ private enum VoiceConversationTextSize: Int {
 
     static func clamped(rawValue: Int) -> VoiceConversationTextSize {
         let bounded = min(max(rawValue, xSmall.rawValue), xLarge.rawValue)
-        return VoiceConversationTextSize(rawValue: bounded) ?? .medium
+        return VoiceConversationTextSize(rawValue: bounded) ?? .xSmall
     }
 }
 
@@ -854,7 +854,7 @@ private struct VoiceCallDebugSheet: View {
                     .listRowBackground(Color.black)
             }
             .scrollContentBackground(.hidden)
-            .background(LitterTheme.backgroundGradient.ignoresSafeArea())
+            .background(AlleyBackdrop().ignoresSafeArea())
             .navigationTitle("Voice Debug")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

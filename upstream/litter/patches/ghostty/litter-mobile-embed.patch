@@ -11,12 +11,12 @@ index 8ef7701e2..655656786 100644
 +        "litter-ios-static",
 +        "Build only the static iOS library artifact needed by Litter.",
 +    ) orelse false;
- 
+
      // Ghostty dependencies used by many artifacts.
      const deps = try buildpkg.SharedDeps.init(b, &config);
 @@ -114,42 +119,44 @@ pub fn build(b: *std.Build) !void {
      }
- 
+
      // libghostty-vt
 -    const libghostty_vt_shared = shared: {
 -        if (config.target.result.cpu.arch.isWasm()) {
@@ -37,7 +37,7 @@ index 8ef7701e2..655656786 100644
 -        }
 +        };
 +        libghostty_vt_shared.install(b.getInstallStep());
- 
+
 -        break :shared try buildpkg.GhosttyLibVt.initShared(
 +        // libghostty-vt static lib
 +        const libghostty_vt_static = try buildpkg.GhosttyLibVt.initStatic(
@@ -86,7 +86,7 @@ index 8ef7701e2..655656786 100644
 +            ).step);
 +        }
      }
- 
+
      // libghostty-vt xcframework (Apple only, universal binary).
 @@ -186,19 +193,25 @@ pub fn build(b: *std.Build) !void {
          // This is NOT libghostty (even though its named that for historical
@@ -137,12 +137,12 @@ index fbfe3ee2c..18770dcec 100644
    GHOSTTY_PLATFORM_IOS,
 +  GHOSTTY_PLATFORM_ANDROID,
  } ghostty_platform_e;
- 
+
  typedef enum {
 @@ -445,6 +446,10 @@ typedef struct {
    const char* value;
  } ghostty_env_var_s;
- 
+
 +typedef void (*ghostty_surface_external_write_fn)(void* userdata,
 +                                                  const uint8_t* data,
 +                                                  uintptr_t len);
@@ -153,7 +153,7 @@ index fbfe3ee2c..18770dcec 100644
 @@ -453,9 +458,14 @@ typedef struct {
    void* uiview;
  } ghostty_platform_ios_s;
- 
+
 +typedef struct {
 +  void* native_window;
 +} ghostty_platform_android_s;
@@ -163,7 +163,7 @@ index fbfe3ee2c..18770dcec 100644
    ghostty_platform_ios_s ios;
 +  ghostty_platform_android_s android;
  } ghostty_platform_u;
- 
+
  typedef enum {
 @@ -476,6 +486,8 @@ typedef struct {
    size_t env_var_count;
@@ -173,7 +173,7 @@ index fbfe3ee2c..18770dcec 100644
 +  ghostty_surface_external_write_fn external_pty_write;
    ghostty_surface_context_e context;
  } ghostty_surface_config_s;
- 
+
 @@ -1110,6 +1122,7 @@ GHOSTTY_API bool ghostty_surface_needs_confirm_quit(ghostty_surface_t);
  GHOSTTY_API bool ghostty_surface_process_exited(ghostty_surface_t);
  GHOSTTY_API void ghostty_surface_refresh(ghostty_surface_t);
@@ -197,7 +197,7 @@ index 5b005665b..8a1bd81e1 100644
 @@ -116,6 +116,35 @@ pub fn addPaths(b: *std.Build, step: *std.Build.Step.Compile) !void {
      step.root_module.addLibraryPath(value.lib);
  }
- 
+
 +pub fn addTranslateCPaths(b: *std.Build, step: *std.Build.Step.TranslateC) !void {
 +    const target = step.target.result;
 +    if (!target.abi.isAndroid()) return;
@@ -251,7 +251,7 @@ index 95d0120e1..67a30c097 100644
 +++ b/pkg/dcimgui/build.zig.zon
 @@ -21,6 +21,7 @@
          },
- 
+
          .apple_sdk = .{ .path = "../apple-sdk" },
 +        .android_ndk = .{ .path = "../android-ndk" },
          .freetype = .{ .path = "../freetype" },
@@ -277,7 +277,7 @@ index b1387b87e..0a5606718 100644
 --- a/pkg/fontconfig/build.zig.zon
 +++ b/pkg/fontconfig/build.zig.zon
 @@ -12,5 +12,6 @@
- 
+
          .freetype = .{ .path = "../freetype", .lazy = true },
          .libxml2 = .{ .path = "../libxml2", .lazy = true },
 +        .android_ndk = .{ .path = "../android-ndk" },
@@ -304,7 +304,7 @@ index 8ed1516b1..d19446ee6 100644
 +++ b/pkg/freetype/build.zig.zon
 @@ -12,6 +12,7 @@
          },
- 
+
          .apple_sdk = .{ .path = "../apple-sdk" },
 +        .android_ndk = .{ .path = "../android-ndk" },
          .libpng = .{ .path = "../libpng" },
@@ -331,7 +331,7 @@ index 252237e58..f2e92d3cd 100644
 +++ b/pkg/glslang/build.zig.zon
 @@ -12,5 +12,6 @@
          },
- 
+
          .apple_sdk = .{ .path = "../apple-sdk" },
 +        .android_ndk = .{ .path = "../android-ndk" },
      },
@@ -382,7 +382,7 @@ index b5153ff74..ff14abea4 100644
 --- a/pkg/libpng/build.zig.zon
 +++ b/pkg/libpng/build.zig.zon
 @@ -13,5 +13,6 @@
- 
+
          .zlib = .{ .path = "../zlib", .lazy = true },
          .apple_sdk = .{ .path = "../apple-sdk" },
 +        .android_ndk = .{ .path = "../android-ndk" },
@@ -400,7 +400,7 @@ index a9b3e4b1a..340ee35a5 100644
 +        const android_ndk = @import("android_ndk");
 +        try android_ndk.addPaths(b, lib);
 +    }
- 
+
      if (upstream_) |upstream| lib.addIncludePath(upstream.path("include"));
      lib.addIncludePath(b.path("override/include"));
 diff --git a/pkg/libxml2/build.zig.zon b/pkg/libxml2/build.zig.zon
@@ -426,7 +426,7 @@ index d142e5eb1..bfa69f9e7 100644
 +        const android_ndk = @import("android_ndk");
 +        try android_ndk.addPaths(b, lib);
 +    }
- 
+
      if (target.result.os.tag.isDarwin()) {
          const apple_sdk = @import("apple_sdk");
 diff --git a/pkg/oniguruma/build.zig.zon b/pkg/oniguruma/build.zig.zon
@@ -435,7 +435,7 @@ index 10ec786cb..556136c4c 100644
 +++ b/pkg/oniguruma/build.zig.zon
 @@ -12,5 +12,6 @@
          },
- 
+
          .apple_sdk = .{ .path = "../apple-sdk" },
 +        .android_ndk = .{ .path = "../android-ndk" },
      },
@@ -461,7 +461,7 @@ index 30eea9501..9e3eb7353 100644
 +++ b/pkg/spirv-cross/build.zig.zon
 @@ -12,5 +12,6 @@
          },
- 
+
          .apple_sdk = .{ .path = "../apple-sdk" },
 +        .android_ndk = .{ .path = "../android-ndk" },
      },
@@ -487,7 +487,7 @@ index 0f75bca75..82ab6faa8 100644
 +++ b/pkg/zlib/build.zig.zon
 @@ -12,5 +12,6 @@
          },
- 
+
          .apple_sdk = .{ .path = "../apple-sdk" },
 +        .android_ndk = .{ .path = "../android-ndk" },
      },
@@ -524,12 +524,12 @@ index 5d16f3326..81268f140 100644
 +                    std.process.EnvMap.init(alloc);
 +            };
 +            errdefer env.deinit();
- 
+
 -        // don't leak GHOSTTY_LOG to any subprocesses
 -        env.remove("GHOSTTY_LOG");
 +            // don't leak GHOSTTY_LOG to any subprocesses
 +            env.remove("GHOSTTY_LOG");
- 
+
 -        var buf: [18]u8 = undefined;
 -        try env.put(
 -            "GHOSTTY_SURFACE_ID",
@@ -540,7 +540,7 @@ index 5d16f3326..81268f140 100644
 +                "GHOSTTY_SURFACE_ID",
 +                std.fmt.bufPrint(&buf, "0x{x:0>16}", .{self.id}) catch unreachable,
 +            );
- 
+
 -        // Initialize our IO backend
 -        var io_exec = try termio.Exec.init(alloc, .{
 -            .command = command,
@@ -574,7 +574,7 @@ index 5d16f3326..81268f140 100644
 +            break :backend .{ .exec = io_exec };
 +        };
 +        errdefer io_backend.deinit();
- 
+
          // Initialize our IO mailbox
          var io_mailbox = try termio.Mailbox.initSPSC(alloc);
 @@ -678,7 +691,7 @@ pub fn init(
@@ -588,7 +588,7 @@ index 5d16f3326..81268f140 100644
              .renderer_wakeup = render_thread.wakeup,
 @@ -1312,9 +1325,11 @@ fn childExitedAbnormally(
      const alloc = arena.allocator();
- 
+
      // Build up our command for the error message
 -    const command = try std.mem.join(alloc, " ", switch (self.io.backend) {
 +    const command_args: []const []const u8 = switch (self.io.backend) {
@@ -598,7 +598,7 @@ index 5d16f3326..81268f140 100644
 +    };
 +    const command = try std.mem.join(alloc, " ", command_args);
      const runtime_str = try std.fmt.allocPrint(alloc, "{d} ms", .{info.runtime_ms});
- 
+
      self.renderer_state.mutex.lock();
 diff --git a/src/apprt/embedded.zig b/src/apprt/embedded.zig
 index 7310159cc..b8f7aa7d3 100644
@@ -613,9 +613,9 @@ index 7310159cc..b8f7aa7d3 100644
  const CoreInspector = @import("../inspector/main.zig").Inspector;
  const CoreSurface = @import("../Surface.zig");
 @@ -26,6 +27,13 @@ const log = std.log.scoped(.embedded_window);
- 
+
  pub const resourcesDir = internal_os.resourcesDir;
- 
+
 +/// Android embeds Ghostty into a host-owned EGL window surface. That context
 +/// is bound on the app thread by the JNI bridge, so OpenGL draw calls must
 +/// be routed back through the app mailbox instead of running on the renderer
@@ -631,13 +631,13 @@ index 7310159cc..b8f7aa7d3 100644
      macos: MacOS,
      ios: IOS,
 +    android: Android,
- 
+
      // If our build target for libghostty is not darwin then we do
      // not include macos support at all.
 @@ -358,6 +367,11 @@ pub const Platform = union(PlatformTag) {
          uiview: objc.Object,
      } else void;
- 
+
 +    pub const Android = if (builtin.target.os.tag == .linux and builtin.target.abi.isAndroid()) struct {
 +        /// The ANativeWindow-compatible surface provided by the embedding host.
 +        native_window: *anyopaque,
@@ -655,7 +655,7 @@ index 7310159cc..b8f7aa7d3 100644
 +            native_window: ?*anyopaque,
 +        },
      };
- 
+
      /// Initialize a Platform a tag and configuration from the C ABI.
 @@ -387,6 +405,13 @@ pub const Platform = union(PlatformTag) {
                      break :ios error.UIViewMustBeSet);
@@ -672,12 +672,12 @@ index 7310159cc..b8f7aa7d3 100644
      }
  };
 @@ -397,6 +422,7 @@ pub const PlatformTag = enum(c_int) {
- 
+
      macos = 1,
      ios = 2,
 +    android = 3,
  };
- 
+
  pub const EnvVar = extern struct {
 @@ -411,6 +437,8 @@ pub const Surface = struct {
      app: *App,
@@ -691,7 +691,7 @@ index 7310159cc..b8f7aa7d3 100644
 @@ -460,6 +488,15 @@ pub const Surface = struct {
          /// Wait after the command exits
          wait_after_command: bool = false,
- 
+
 +        /// When true, the embedder owns the pty/process lifecycle and Ghostty
 +        /// only parses, renders, and translates input. PTY output is delivered
 +        /// with ghostty_surface_write.
@@ -716,7 +716,7 @@ index 7310159cc..b8f7aa7d3 100644
 @@ -482,6 +521,10 @@ pub const Surface = struct {
          try app.core_app.addSurface(self);
          errdefer app.core_app.deleteSurface(self);
- 
+
 +        if (opts.external_pty and opts.external_pty_write == null) {
 +            return error.MissingExternalPtyWriteCallback;
 +        }
@@ -727,7 +727,7 @@ index 7310159cc..b8f7aa7d3 100644
 @@ -594,6 +637,19 @@ pub const Surface = struct {
          }
      }
- 
+
 +    pub const ExternalPtyOptions = struct {
 +        userdata: ?*anyopaque,
 +        write: termio.backend.ExternalPtyWriteFn,
@@ -747,7 +747,7 @@ index 7310159cc..b8f7aa7d3 100644
 @@ -1692,6 +1748,23 @@ pub const CAPI = struct {
          surface.draw();
      }
- 
+
 +    /// Synchronously rebuild frame data from terminal state and draw it.
 +    ///
 +    /// Embedders that feed an externally-owned PTY may not have a platform
@@ -771,7 +771,7 @@ index 7310159cc..b8f7aa7d3 100644
 @@ -1823,6 +1896,20 @@ pub const CAPI = struct {
          surface.textCallback(ptr[0..len]);
      }
- 
+
 +    /// Process raw output bytes from an embedder-owned pty.
 +    ///
 +    /// This is the output-side companion to external_pty mode. The bytes are
@@ -800,7 +800,7 @@ index b762da8bb..9f179c51e 100644
 +    if (lib.rootModuleTarget().abi.isAndroid()) {
 +        try @import("android_ndk").addPaths(b, lib);
 +    }
- 
+
      // These must be bundled since we're compiling into a static lib.
      // Otherwise, you get undefined symbol errors.
 @@ -88,6 +91,9 @@ pub fn initShared(
@@ -810,7 +810,7 @@ index b762da8bb..9f179c51e 100644
 +    if (lib.rootModuleTarget().abi.isAndroid()) {
 +        try @import("android_ndk").addPaths(b, lib);
 +    }
- 
+
      // On Windows with MSVC, building a DLL requires the full CRT library
      // chain. linkLibC() (called via deps.add) provides msvcrt.lib, but
 diff --git a/src/build/SharedDeps.zig b/src/build/SharedDeps.zig
@@ -847,7 +847,7 @@ index 6c7432d21..254cea8ea 100644
 +                .android => return error.UnsupportedPlatformForMetal,
              },
          },
- 
+
 diff --git a/src/renderer/OpenGL.zig b/src/renderer/OpenGL.zig
 index 4b01da0c5..18f5caffd 100644
 --- a/src/renderer/OpenGL.zig
@@ -855,7 +855,7 @@ index 4b01da0c5..18f5caffd 100644
 @@ -12,6 +12,17 @@ const configpkg = @import("../config.zig");
  const rendererpkg = @import("../renderer.zig");
  const Renderer = rendererpkg.GenericRenderer(OpenGL);
- 
+
 +const android_egl = if (builtin.target.os.tag == .linux and builtin.target.abi.isAndroid()) struct {
 +    const c = @cImport({
 +        @cInclude("EGL/egl.h");
@@ -872,7 +872,7 @@ index 4b01da0c5..18f5caffd 100644
  pub const Frame = @import("opengl/Frame.zig");
 @@ -170,9 +181,9 @@ pub fn surfaceInit(surface: *apprt.Surface) !void {
          => try prepareContext(null),
- 
+
          apprt.embedded => {
 -            // TODO(mitchellh): this does nothing today to allow libghostty
 -            // to compile for OpenGL targets but libghostty is strictly
@@ -882,7 +882,7 @@ index 4b01da0c5..18f5caffd 100644
 +            }
          },
      }
- 
+
 diff --git a/src/termio/backend.zig b/src/termio/backend.zig
 index c29009acb..6904e527b 100644
 --- a/src/termio/backend.zig
@@ -890,7 +890,7 @@ index c29009acb..6904e527b 100644
 @@ -10,29 +10,135 @@ const ProcessInfo = @import("../pty.zig").ProcessInfo;
  // enough to satisfy most write requests. It must be a power of 2.
  const WRITE_REQ_PREALLOC = std.math.pow(usize, 2, 5);
- 
+
 +/// Callback used by the external backend to hand encoded terminal input
 +/// back to the embedding host.
 +pub const ExternalPtyWriteFn = *const fn (?*anyopaque, [*]const u8, usize) callconv(.c) void;
@@ -898,7 +898,7 @@ index c29009acb..6904e527b 100644
  /// The kinds of backends.
 -pub const Kind = enum { exec };
 +pub const Kind = enum { exec, external };
- 
+
  /// Configuration for the various backend types.
  pub const Config = union(Kind) {
      /// Exec uses posix exec to run a command with a pty.
@@ -1003,27 +1003,27 @@ index c29009acb..6904e527b 100644
 +        return null;
 +    }
  };
- 
+
  /// Backend implementations. A backend is responsible for owning the pty
  /// behavior and providing read/write capabilities.
  pub const Backend = union(Kind) {
      exec: termio.Exec,
 +    external: External,
- 
+
      pub fn deinit(self: *Backend) void {
          switch (self.*) {
              .exec => |*exec| exec.deinit(),
 +            .external => |*external| external.deinit(),
          }
      }
- 
+
      pub fn initTerminal(self: *Backend, t: *terminal.Terminal) void {
          switch (self.*) {
              .exec => |*exec| exec.initTerminal(t),
 +            .external => |*external| external.initTerminal(t),
          }
      }
- 
+
 @@ -44,12 +150,14 @@ pub const Backend = union(Kind) {
      ) !void {
          switch (self.*) {
@@ -1031,14 +1031,14 @@ index c29009acb..6904e527b 100644
 +            .external => |*external| try external.threadEnter(alloc, io, td),
          }
      }
- 
+
      pub fn threadExit(self: *Backend, td: *termio.Termio.ThreadData) void {
          switch (self.*) {
              .exec => |*exec| exec.threadExit(td),
 +            .external => |*external| external.threadExit(td),
          }
      }
- 
+
 @@ -60,6 +168,7 @@ pub const Backend = union(Kind) {
      ) !void {
          switch (self.*) {
@@ -1046,7 +1046,7 @@ index c29009acb..6904e527b 100644
 +            .external => |*external| try external.focusGained(td, focused),
          }
      }
- 
+
 @@ -70,6 +179,7 @@ pub const Backend = union(Kind) {
      ) !void {
          switch (self.*) {
@@ -1054,7 +1054,7 @@ index c29009acb..6904e527b 100644
 +            .external => |*external| try external.resize(grid_size, screen_size),
          }
      }
- 
+
 @@ -82,6 +192,7 @@ pub const Backend = union(Kind) {
      ) !void {
          switch (self.*) {
@@ -1062,7 +1062,7 @@ index c29009acb..6904e527b 100644
 +            .external => |*external| try external.queueWrite(alloc, td, data, linefeed),
          }
      }
- 
+
 @@ -99,6 +210,12 @@ pub const Backend = union(Kind) {
                  exit_code,
                  runtime_ms,
@@ -1075,7 +1075,7 @@ index c29009acb..6904e527b 100644
 +            ),
          }
      }
- 
+
 @@ -108,6 +225,7 @@ pub const Backend = union(Kind) {
      pub fn getProcessInfo(self: *Backend, comptime info: ProcessInfo) ?ProcessInfo.Type(info) {
          return switch (self.*) {
@@ -1089,14 +1089,14 @@ index c29009acb..6904e527b 100644
  pub const ThreadData = union(Kind) {
      exec: termio.Exec.ThreadData,
 +    external: External.ThreadData,
- 
+
      pub fn deinit(self: *ThreadData, alloc: Allocator) void {
          switch (self.*) {
              .exec => |*exec| exec.deinit(alloc),
 +            .external => |*external| external.deinit(alloc),
          }
      }
- 
+
      pub fn changeConfig(self: *ThreadData, config: *termio.DerivedConfig) void {
 -        _ = self;
 -        _ = config;

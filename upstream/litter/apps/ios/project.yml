@@ -2,7 +2,7 @@ name: Litter
 options:
   bundleIdPrefix: com.litter
   deploymentTarget:
-    iOS: "16.0"
+    iOS: "16.1"
     watchOS: "11.0"
   xcodeVersion: "16.0"
   generateEmptyDirectories: true
@@ -23,21 +23,28 @@ settings:
   base:
     SWIFT_VERSION: "5.9"
     SWIFT_STRICT_CONCURRENCY: targeted
-    MARKETING_VERSION: "1.5.0"
+    MARKETING_VERSION: "1.5.3"
     CURRENT_PROJECT_VERSION: "1"
-    SWIFT_OBJC_BRIDGING_HEADER: Sources/Litter/Bridge/codex_bridge_objc.h
-    OTHER_LDFLAGS: "$(inherited) -lc++ -lz -lresolv -lcodex_mobile_client"
+    LITTER_RELEASE_OWNER: NightVibes33
+    LITTER_RELEASE_REPO: litter
+    LITTER_RELEASE_MANIFEST_ASSET_NAME: litter-update.json
+    LITTER_RELEASE_SOURCE_ASSET_NAME: litter-altstore-source.json
+    LITTER_RELEASE_STABLE_TAG: app-source
+    LITTER_RELEASE_TAG_PREFIX: litter-v
+    OTHER_LDFLAGS: "$(inherited) -lc++ -lz -lresolv -lcodex_mobile_client -lghostty"
     HEADER_SEARCH_PATHS: "$(inherited) $(PROJECT_DIR)/GeneratedRust/Headers"
     SWIFT_INCLUDE_PATHS: "$(inherited) $(PROJECT_DIR)/GeneratedRust/Headers"
+    OTHER_SWIFT_FLAGS: "$(inherited)"
+    CLANG_CXX_LANGUAGE_STANDARD: "gnu++17"
     "LIBRARY_SEARCH_PATHS[sdk=iphoneos*]": "$(inherited) $(PROJECT_DIR)/GeneratedRust/ios-device"
     "LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]": "$(inherited) $(PROJECT_DIR)/GeneratedRust/ios-sim"
-    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "16.1"
     DEVELOPMENT_TEAM: UH66Q8ZAYG
-    # Xcode 15+ explicit-module builds. First clean build is slightly
-    # slower, but module graphs are cached per-target after that, so
-    # incremental Swift compiles in the app target drop substantially.
-    SWIFT_ENABLE_EXPLICIT_MODULES: "YES"
-    CLANG_ENABLE_EXPLICIT_MODULES: "YES"
+    # GitHub's iOS 26 runner can fail while generating Swift explicit
+    # system PCMs for Foundation, so the unsigned IPA lane stays on the
+    # normal module path and relies on the workflow caches above.
+    SWIFT_ENABLE_EXPLICIT_MODULES: "NO"
+    CLANG_ENABLE_EXPLICIT_MODULES: "NO"
 
 packages:
   Hairball:
@@ -46,27 +53,538 @@ packages:
   WebRTC:
     url: https://github.com/stasel/WebRTC.git
     exactVersion: "147.0.0"
+  ZIPFoundation:
+    url: https://github.com/weichsel/ZIPFoundation.git
+    exactVersion: "0.9.20"
   Nuke:
     url: https://github.com/kean/Nuke.git
     from: "12.8.0"
+  SemanticVersion:
+    url: https://github.com/SwiftPackageIndex/SemanticVersion.git
+    exactVersion: "0.4.0"
+  Starscream:
+    url: https://github.com/daltoniam/Starscream.git
+    from: "4.0.8"
+  KeychainAccess:
+    url: https://github.com/kishikawakatsumi/KeychainAccess.git
+    branch: master
+  MarkdownKit:
+    url: https://github.com/bmoliveira/MarkdownKit.git
+    from: "1.7.1"
+  AltSign:
+    path: ../../ThirdParty/SideStore/AltSign
+  EmexDERunestone:
+    url: https://github.com/emexlab/Runestone
+    exactVersion: "0.0.2"
+  EmexDESwiftTerm:
+    url: https://github.com/migueldeicaza/SwiftTerm
+    exactVersion: "1.13.0"
+  EmexDETreeSitterObjc:
+    url: https://github.com/tree-sitter-grammars/tree-sitter-objc.git
+    branch: master
+  EmexDETreeSitterC:
+    url: https://github.com/tree-sitter/tree-sitter-c.git
+    exactVersion: "0.20.2"
+  EmexDETreeSitterCPP:
+    url: https://github.com/tree-sitter/tree-sitter-cpp.git
+    exactVersion: "0.23.4"
+  EmexDETreeSitterXML:
+    url: https://github.com/tree-sitter-grammars/tree-sitter-xml.git
+    branch: master
+  EmexDETreeSitterSwift:
+    url: https://github.com/emexlab/tree-sitter-swift
+    branch: main
+  EmexDEUIOnboarding:
+    url: https://github.com/lascic/UIOnboarding.git
+    exactVersion: "2.0.5"
 targets:
+  Roxas:
+    type: framework
+    platform: iOS
+    deploymentTarget: "16.1"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nightvibes.darkswordai.Roxas
+        INFOPLIST_FILE: ../../ThirdParty/SideStore/Source/Dependencies/Roxas/Roxas/Info.plist
+        DEFINES_MODULE: "YES"
+        CLANG_ENABLE_MODULES: "YES"
+        HEADER_SEARCH_PATHS: "$(inherited) $(SRCROOT)/../../ThirdParty/SideStore/Source/Dependencies/Roxas/Roxas"
+        GCC_PREFIX_HEADER: ../../ThirdParty/SideStore/Source/Dependencies/Roxas/Roxas/Roxas-Prefix.pch
+        GCC_PRECOMPILE_PREFIX_HEADER: "YES"
+    sources:
+      - path: ../../ThirdParty/SideStore/Source/Dependencies/Roxas/Roxas
+        excludes:
+          - Info.plist
+
+  AltStoreCore:
+    type: framework
+    platform: iOS
+    deploymentTarget: "16.1"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nightvibes.darkswordai.AltStoreCore
+        INFOPLIST_FILE: ../../ThirdParty/SideStore/Source/AltStoreCore/Info.plist
+        DEFINES_MODULE: "YES"
+        CLANG_ENABLE_MODULES: "YES"
+        HEADER_SEARCH_PATHS: "$(inherited) $(SRCROOT)/../../ThirdParty/SideStore/Source/AltStoreCore $(SRCROOT)/../../ThirdParty/SideStore/Source/AltStoreCore/Types $(SRCROOT)/../../ThirdParty/SideStore/Source/Shared $(SRCROOT)/../../ThirdParty/SideStore/Source/Shared/Connections $(SRCROOT)/../../ThirdParty/SideStore/Source/Shared/Errors $(SRCROOT)/../../ThirdParty/SideStore/Source/Shared/Categories"
+    sources:
+      - path: ../../ThirdParty/SideStore/Source/AltStoreCore
+        excludes:
+          - Info.plist
+          - Intents/**
+      - path: ../../ThirdParty/SideStore/Source/Shared
+    dependencies:
+      - target: Roxas
+      - package: SemanticVersion
+        product: SemanticVersion
+      - package: KeychainAccess
+        product: KeychainAccess
+      - package: AltSign
+        product: AltSign-Dynamic
+
+  RustBridge:
+    type: framework
+    platform: iOS
+    deploymentTarget: "16.1"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nightvibes.darkswordai.RustBridge
+        GENERATE_INFOPLIST_FILE: "YES"
+        DEFINES_MODULE: "YES"
+        CLANG_ENABLE_MODULES: "YES"
+        OTHER_LDFLAGS: "$(inherited) -lrust_bridge -lminimuxer-ios -liconv -lsqlite3 -framework Security -framework CoreFoundation -framework SystemConfiguration -framework CFNetwork"
+        "LIBRARY_SEARCH_PATHS[sdk=iphoneos*]": "$(inherited) $(SRCROOT)/../../ThirdParty/SideStore/Source/Dependencies/minimuxer/RustBridge/lib/RustBridge.xcframework/ios-arm64"
+        "LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]": "$(inherited) $(SRCROOT)/../../ThirdParty/SideStore/Source/Dependencies/minimuxer/RustBridge/lib/RustBridge.xcframework/ios-arm64-simulator"
+    sources:
+      - path: ../../ThirdParty/SideStore/Source/Dependencies/minimuxer/RustBridge
+        excludes:
+          - Cargo.toml
+          - Cargo.lock
+          - Makefile
+          - src/**
+          - target/**
+          - lib/**
+
+  Minimuxer:
+    type: framework
+    platform: iOS
+    deploymentTarget: "16.1"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nightvibes.darkswordai.Minimuxer
+        GENERATE_INFOPLIST_FILE: "YES"
+        DEFINES_MODULE: "YES"
+        CLANG_ENABLE_MODULES: "YES"
+        OTHER_LDFLAGS: "$(inherited) -lminimuxer-ios -liconv -lsqlite3 -framework Security -framework CoreFoundation -framework SystemConfiguration -framework CFNetwork"
+    sources:
+      - path: ../../ThirdParty/SideStore/Source/Dependencies/minimuxer/Sources
+    dependencies:
+      - target: RustBridge
+      - package: ZIPFoundation
+        product: ZIPFoundation
+
+  SideStore:
+    type: framework
+    platform: iOS
+    deploymentTarget: "16.1"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nightvibes.darkswordai.KittyStore
+        PRODUCT_MODULE_NAME: SideStore
+        DEFINES_MODULE: "YES"
+        CLANG_ENABLE_MODULES: "YES"
+        HEADER_SEARCH_PATHS: "$(inherited) $(SRCROOT)/../../ThirdParty/SideStore/Source/AltStore $(SRCROOT)/../../ThirdParty/SideStore/Source/AltStoreCore $(SRCROOT)/../../ThirdParty/SideStore/Source/Shared"
+    sources:
+      - path: Sources/KittyStoreEmbedded
+      - path: ../../ThirdParty/SideStore/Source/AltStore
+        excludes:
+          - AppDelegate.swift
+          - SceneDelegate.swift
+          - Info.plist
+          - AltStore-Bridging-Header.h
+          - Intents/**
+          - Extensions/INInteraction+AltStore.swift
+          - Base.lproj/**
+          - Authentication/*.storyboard
+          - Components/*.xib
+          - My Apps/*.xib
+          - News/*.xib
+          - Resources/**
+          - Settings/*.storyboard
+          - Settings/*.xib
+          - Sources/*.storyboard
+          - Sources/Components/*.xib
+      - path: ../../ThirdParty/SideStore/Source/SideStore
+        excludes:
+          - Tests/**
+          - Utils/misc/**
+          - EMProxyWrapper.swift
+      - path: ../../ThirdParty/SideStore/Source/AltStore/Base.lproj/Main.storyboard
+        buildPhase: resources
+      - path: ../../ThirdParty/SideStore/Source/AltStore/Authentication/Authentication.storyboard
+        buildPhase: resources
+      - path: ../../ThirdParty/SideStore/Source/AltStore/Components/AppBannerView.xib
+        buildPhase: resources
+      - path: ../../ThirdParty/SideStore/Source/AltStore/My Apps/InstalledAppsCollectionHeaderView.xib
+        buildPhase: resources
+      - path: ../../ThirdParty/SideStore/Source/AltStore/My Apps/UpdateCollectionViewCell.xib
+        buildPhase: resources
+      - path: ../../ThirdParty/SideStore/Source/AltStore/News/NewsCollectionViewCell.xib
+        buildPhase: resources
+      - path: ../../ThirdParty/SideStore/Source/AltStore/Resources/Assets.xcassets
+        buildPhase: resources
+      - path: ../../ThirdParty/SideStore/Source/AltStore/Resources/Icons.xcassets
+        buildPhase: resources
+      - path: ../../ThirdParty/SideStore/Source/AltStore/Resources/AltIcons.plist
+        buildPhase: resources
+      - path: ../../ThirdParty/SideStore/Source/AltStore/Resources/ReleaseEntitlements.plist
+        buildPhase: resources
+      - path: ../../ThirdParty/SideStore/Source/AltStore/Resources/Silence.m4a
+        buildPhase: resources
+      - path: ../../ThirdParty/SideStore/Source/AltStore/Settings/AboutPatreonHeaderView.xib
+        buildPhase: resources
+      - path: ../../ThirdParty/SideStore/Source/AltStore/Settings/Settings.storyboard
+        buildPhase: resources
+      - path: ../../ThirdParty/SideStore/Source/AltStore/Settings/SettingsHeaderFooterView.xib
+        buildPhase: resources
+      - path: ../../ThirdParty/SideStore/Source/AltStore/Sources/Sources.storyboard
+        buildPhase: resources
+      - path: ../../ThirdParty/SideStore/Source/AltStore/Sources/Components/SourceHeaderView.xib
+        buildPhase: resources
+    dependencies:
+      - target: AltStoreCore
+      - target: Roxas
+      - sdk: AVFoundation.framework
+      - sdk: CoreHaptics.framework
+      - sdk: Intents.framework
+      - sdk: IntentsUI.framework
+      - sdk: MessageUI.framework
+      - sdk: QuickLook.framework
+      - sdk: SafariServices.framework
+      - sdk: UniformTypeIdentifiers.framework
+      - sdk: WidgetKit.framework
+      - package: AltSign
+        product: AltSign-Dynamic
+      - package: SemanticVersion
+        product: SemanticVersion
+      - package: Starscream
+        product: Starscream
+      - package: KeychainAccess
+        product: KeychainAccess
+      - package: MarkdownKit
+        product: MarkdownKit
+      - package: Nuke
+        product: Nuke
+      - target: Minimuxer
+
+  CoreCompiler:
+    type: framework
+    platform: iOS
+    deploymentTarget: "16.1"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nightvibes.darkswordai.emexde.CoreCompiler
+        PRODUCT_MODULE_NAME: CoreCompiler
+        GENERATE_INFOPLIST_FILE: "YES"
+        DEFINES_MODULE: "YES"
+        CLANG_ENABLE_MODULES: "YES"
+        CLANG_CXX_LANGUAGE_STANDARD: "gnu++20"
+        SWIFT_VERSION: "6.0"
+        SWIFT_INSTALL_OBJC_HEADER: "NO"
+        APPLICATION_EXTENSION_API_ONLY: "YES"
+        HEADER_SEARCH_PATHS: "$(inherited) $(SRCROOT)/../../ThirdParty/EmexDE/Source/CoreCompiler $(SRCROOT)/../../ThirdParty/EmexDE/Source/CoreCompiler/Support $(SRCROOT)/../../ThirdParty/EmexDE/Source/CoreCompiler/Tools $(SRCROOT)/../../ThirdParty/EmexDE/Source/CoreCompiler/Tools/Compiler $(SRCROOT)/../../ThirdParty/EmexDE/Source/CoreCompiler/Tools/Linker $(SRCROOT)/../../ThirdParty/EmexDE/Source/CoreCompiler/CoreCompilerSupportLibs/LLVM.xcframework/ios-arm64/Headers $(TOOLCHAIN_DIR)/usr/include"
+        LIBRARY_SEARCH_PATHS: "$(inherited) $(SRCROOT)/../../ThirdParty/EmexDE/Source/CoreCompiler/CoreCompilerSupportLibs $(SRCROOT)/../../ThirdParty/EmexDE/Source/CoreCompiler/CoreCompilerSupportLibs/LLVM.xcframework/ios-arm64"
+        OTHER_LDFLAGS: "$(inherited) -lc++ -lz"
+    sources:
+      - path: ../../ThirdParty/EmexDE/Source/CoreCompiler
+        headerVisibility: public
+        excludes:
+          - CCBaseSwift.swift
+          - CoreCompiler.docc/**
+          - CoreCompilerSupportLibs/**
+    dependencies:
+      - framework: ../../ThirdParty/EmexDE/Source/CoreCompiler/CoreCompilerSupportLibs/LLVM.xcframework
+      - framework: ../../ThirdParty/EmexDE/Source/CoreCompiler/CoreCompilerSupportLibs/lib_CompilerSwiftBasicFormat.dylib
+      - framework: ../../ThirdParty/EmexDE/Source/CoreCompiler/CoreCompilerSupportLibs/lib_CompilerSwiftCompilerPluginMessageHandling.dylib
+      - framework: ../../ThirdParty/EmexDE/Source/CoreCompiler/CoreCompilerSupportLibs/lib_CompilerSwiftDiagnostics.dylib
+      - framework: ../../ThirdParty/EmexDE/Source/CoreCompiler/CoreCompilerSupportLibs/lib_CompilerSwiftIDEUtils.dylib
+      - framework: ../../ThirdParty/EmexDE/Source/CoreCompiler/CoreCompilerSupportLibs/lib_CompilerSwiftIfConfig.dylib
+      - framework: ../../ThirdParty/EmexDE/Source/CoreCompiler/CoreCompilerSupportLibs/lib_CompilerSwiftLexicalLookup.dylib
+      - framework: ../../ThirdParty/EmexDE/Source/CoreCompiler/CoreCompilerSupportLibs/lib_CompilerSwiftOperators.dylib
+      - framework: ../../ThirdParty/EmexDE/Source/CoreCompiler/CoreCompilerSupportLibs/lib_CompilerSwiftParser.dylib
+      - framework: ../../ThirdParty/EmexDE/Source/CoreCompiler/CoreCompilerSupportLibs/lib_CompilerSwiftParserDiagnostics.dylib
+      - framework: ../../ThirdParty/EmexDE/Source/CoreCompiler/CoreCompilerSupportLibs/lib_CompilerSwiftSyntax.dylib
+      - framework: ../../ThirdParty/EmexDE/Source/CoreCompiler/CoreCompilerSupportLibs/lib_CompilerSwiftSyntaxBuilder.dylib
+      - framework: ../../ThirdParty/EmexDE/Source/CoreCompiler/CoreCompilerSupportLibs/lib_CompilerSwiftSyntaxMacroExpansion.dylib
+      - framework: ../../ThirdParty/EmexDE/Source/CoreCompiler/CoreCompilerSupportLibs/lib_CompilerSwiftSyntaxMacros.dylib
+
+  MobileDevelopmentKit:
+    type: framework
+    platform: iOS
+    deploymentTarget: "16.1"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nightvibes.darkswordai.emexde.MobileDevelopmentKit
+        PRODUCT_MODULE_NAME: MobileDevelopmentKit
+        GENERATE_INFOPLIST_FILE: "YES"
+        DEFINES_MODULE: "YES"
+        CLANG_ENABLE_MODULES: "YES"
+        CLANG_CXX_LANGUAGE_STANDARD: "gnu++20"
+        SWIFT_VERSION: "6.0"
+        APPLICATION_EXTENSION_API_ONLY: "YES"
+        HEADER_SEARCH_PATHS: "$(inherited) $(SRCROOT)/../../ThirdParty/EmexDE/Source/MobileDevelopmentKit $(SRCROOT)/../../ThirdParty/EmexDE/Source/MobileDevelopmentKit/PhaseEngine $(SRCROOT)/../../ThirdParty/EmexDE/Source/MobileDevelopmentKit/Support $(SRCROOT)/../../ThirdParty/EmexDE/Source/MobileDevelopmentKit/Tools $(SRCROOT)/../../ThirdParty/EmexDE/Source/MobileDevelopmentKit/Tools/Compiler $(SRCROOT)/../../ThirdParty/EmexDE/Source/MobileDevelopmentKit/Tools/Linker $(BUILT_PRODUCTS_DIR)/CoreCompiler.framework/Headers"
+    sources:
+      - path: ../../ThirdParty/EmexDE/Source/MobileDevelopmentKit
+        headerVisibility: public
+        excludes:
+          - MobileDevelopmentKit.docc/**
+    dependencies:
+      - target: CoreCompiler
+
+  emexDE:
+    type: framework
+    platform: iOS
+    deploymentTarget: "16.1"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nightvibes.darkswordai.emexde
+        PRODUCT_MODULE_NAME: emexDE
+        GENERATE_INFOPLIST_FILE: "YES"
+        DEFINES_MODULE: "YES"
+        CLANG_ENABLE_MODULES: "YES"
+        CLANG_CXX_LANGUAGE_STANDARD: "gnu++20"
+        SWIFT_VERSION: "5.0"
+        SWIFT_OBJC_BRIDGING_HEADER: ../../ThirdParty/EmexDE/Source/Nyxian/bridge.h
+        SWIFT_OBJC_INTERFACE_HEADER_NAME: emexDE-Swift.h
+        GCC_PREPROCESSOR_DEFINITIONS: "$(inherited) HOST_ENV=1 CHAR_BIT=8 INT_MAX=2147483647 LONG_MAX=9223372036854775807L ULONG_MAX=18446744073709551615UL"
+        OTHER_LDFLAGS: "$(inherited) -lc++ -lz -larchive -framework OpenSSL -framework FrontBoard -framework FrontBoardServices -framework RunningBoardServices -framework BackBoardServices"
+        HEADER_SEARCH_PATHS: "$(inherited) $(SRCROOT)/../../ThirdParty/EmexDE/Source/Nyxian $(SRCROOT)/../../ThirdParty/EmexDE/Source/Nyxian/LindChain $(SRCROOT)/../../ThirdParty/EmexDE/Source/Nyxian/LindChain/Synpush $(SRCROOT)/../../ThirdParty/EmexDE/Source/Nyxian/LindChain/JBSupport $(SRCROOT)/../../ThirdParty/EmexDE/Source/LiveProcess $(SRCROOT)/../../ThirdParty/EmexDE/Source/LiveProcess/LindChain $(BUILT_PRODUCTS_DIR)/CoreCompiler.framework/Headers $(BUILT_PRODUCTS_DIR)/MobileDevelopmentKit.framework/Headers"
+        LIBRARY_SEARCH_PATHS: "$(inherited) $(SRCROOT)/../../ThirdParty/EmexDE/Source/Nyxian $(SRCROOT)/../../ThirdParty/EmexDE/Source/Nyxian/LindChain $(SRCROOT)/../../ThirdParty/EmexDE/Source/Nyxian/LindChain/Synpush $(SRCROOT)/../../ThirdParty/EmexDE/Source/Nyxian/LindChain/JBSupport $(SRCROOT)/../../ThirdParty/EmexDE/Source/CoreCompiler/CoreCompilerSupportLibs"
+        "FRAMEWORK_SEARCH_PATHS[sdk=iphoneos*]": "$(inherited) $(SRCROOT)/../../ThirdParty/SideStore/AltSign/Dependencies/OpenSSL.xcframework/ios-arm64 $(SRCROOT)/../../ThirdParty/EmexDE/Source/Nyxian/LindChain/Private/Frameworks"
+        "FRAMEWORK_SEARCH_PATHS[sdk=iphonesimulator*]": "$(inherited) $(SRCROOT)/../../ThirdParty/SideStore/AltSign/Dependencies/OpenSSL.xcframework/ios-arm64_x86_64-simulator $(SRCROOT)/../../ThirdParty/EmexDE/Source/Nyxian/LindChain/Private/Frameworks"
+    sources:
+      - path: Sources/EmexDEEmbedded
+      - path: ../../ThirdParty/EmexDE/Source/CoreCompiler/CCBaseSwift.swift
+      - path: ../../ThirdParty/EmexDE/Source/LiveProcess/LindChain/Services/applicationmgmtd/LDEApplicationObject.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/LiveProcess/LindChain/Services/applicationmgmtd/LDEApplicationWorkspace.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/LiveProcess/LindChain/Services/containerd/PEContainer.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian
+        headerVisibility: project
+        excludes:
+          - UI/AppDelegate.swift
+          - Preview Content/**
+          - Nyxian.entitlements
+          - bridge-jb.h
+          - LindChain/JBSupport/Shell.m
+          - LindChain/JBSupport/tshelper
+          - LindChain/LiveContainer/LCBootstrap.m
+          - LindChain/LiveContainer/Tweaks/Dead10ccFix.m
+          - LindChain/LiveContainer/Tweaks/Dyld.m
+          - LindChain/LiveContainer/Tweaks/NSFileManager+GuestHooks.m
+          - LindChain/LiveContainer/Tweaks/NSUserDefaults.m
+          - LindChain/LiveContainer/Tweaks/SecItem.m
+          - LindChain/LiveContainer/Tweaks/UIKit+GuestHooksInit.m
+          - LindChain/ProcEnvironment/application.m
+          - LindChain/ProcEnvironment/cred.c
+          - LindChain/ProcEnvironment/ioctl.c
+          - LindChain/ProcEnvironment/libproc.m
+          - LindChain/ProcEnvironment/posix_spawn.m
+          - LindChain/ProcEnvironment/proxy.m
+          - LindChain/ProcEnvironment/syscall.c
+          - LindChain/ProcEnvironment/sysctl.c
+          - LindChain/ProcEnvironment/tfp.c
+          - LindChain/ProcEnvironment/vfork.c
+          - LindChain/ProcEnvironment/Surface/limits.h
+          - LindChain/ProcEnvironment/posix_spawn.h
+          - LindChain/ProcEnvironment/syscall.h
+          - LindChain/ProcEnvironment/sysctl.h
+          - LindChain/ProcEnvironment/Surface/sys/syscall.h
+          - LindChain/ProcEnvironment/Surface/sys/host/sysctl.h
+          - LindChain/Private/Frameworks/**
+          - LindChain/OpenSSL.xcframework/**
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/Assets.xcassets
+        buildPhase: resources
+    resources:
+      - path: ../../ThirdParty/EmexDE/Source/Shared
+        type: folder
+    dependencies:
+      - target: CoreCompiler
+      - target: MobileDevelopmentKit
+      - sdk: MobileCoreServices.framework
+      - sdk: UniformTypeIdentifiers.framework
+      - sdk: libarchive.tbd
+      - sdk: libz.tbd
+      - package: EmexDERunestone
+        product: Runestone
+      - package: EmexDESwiftTerm
+        product: SwiftTerm
+      - package: EmexDETreeSitterObjc
+        product: TreeSitterObjc
+      - package: EmexDETreeSitterC
+        product: TreeSitterC
+      - package: EmexDETreeSitterCPP
+        product: TreeSitterCPP
+      - package: EmexDETreeSitterXML
+        product: TreeSitterXML
+      - package: EmexDETreeSitterSwift
+        product: TreeSitterSwift
+      - package: EmexDEUIOnboarding
+        product: UIOnboarding
+
+  LiveProcess:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "16.1"
+    entitlements:
+      path: ../../ThirdParty/EmexDE/Source/LiveProcess/LiveProcess.entitlements
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nightvibes.darkswordai.39A8Q3T3TR.liveprocess
+        PRODUCT_NAME: LiveProcess
+        INFOPLIST_FILE: ../../ThirdParty/EmexDE/Source/LiveProcess/Info.plist
+        INFOPLIST_KEY_CFBundleIdentifier: "$(PRODUCT_BUNDLE_IDENTIFIER)"
+        INFOPLIST_KEY_CFBundleExecutable: "$(EXECUTABLE_NAME)"
+        INFOPLIST_KEY_CFBundleDisplayName: LiveProcess
+        INFOPLIST_KEY_CFBundleName: LiveProcess
+        INFOPLIST_KEY_CFBundlePackageType: XPC!
+        INFOPLIST_KEY_CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        INFOPLIST_KEY_CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        APPLICATION_EXTENSION_API_ONLY: "YES"
+        DEAD_CODE_STRIPPING: "NO"
+        CLANG_ENABLE_MODULES: "YES"
+        CLANG_CXX_LANGUAGE_STANDARD: "gnu++20"
+        OTHER_CFLAGS: "$(inherited) -DCLIENT_ENV"
+        OTHER_LDFLAGS: "$(inherited) -Wl,-U,_OBJC_CLASS_$_FBSSceneParameters -Wl,-U,_OBJC_CLASS_$_LSApplicationWorkspace -lc++ -lz -larchive -framework OpenSSL"
+        HEADER_SEARCH_PATHS: "$(inherited) $(SRCROOT)/../../ThirdParty/EmexDE/Source/Nyxian $(SRCROOT)/../../ThirdParty/EmexDE/Source/Nyxian/LindChain $(SRCROOT)/../../ThirdParty/EmexDE/Source/LiveProcess $(SRCROOT)/../../ThirdParty/EmexDE/Source/LiveProcess/LindChain $(BUILT_PRODUCTS_DIR)/CoreCompiler.framework/Headers $(BUILT_PRODUCTS_DIR)/MobileDevelopmentKit.framework/Headers"
+        "FRAMEWORK_SEARCH_PATHS[sdk=iphoneos*]": "$(inherited) $(SRCROOT)/../../ThirdParty/SideStore/AltSign/Dependencies/OpenSSL.xcframework/ios-arm64"
+        "FRAMEWORK_SEARCH_PATHS[sdk=iphonesimulator*]": "$(inherited) $(SRCROOT)/../../ThirdParty/SideStore/AltSign/Dependencies/OpenSSL.xcframework/ios-arm64_x86_64-simulator"
+      configs:
+        Debug:
+          CODE_SIGN_STYLE: "$(LIVEPROCESS_CODE_SIGN_STYLE)"
+          LIVEPROCESS_CODE_SIGN_STYLE: Automatic
+          PROVISIONING_PROFILE_SPECIFIER: "$(LIVEPROCESS_PROVISIONING_PROFILE_SPECIFIER)"
+          LIVEPROCESS_PROVISIONING_PROFILE_SPECIFIER: ""
+        Release:
+          CODE_SIGN_STYLE: "$(LIVEPROCESS_CODE_SIGN_STYLE)"
+          LIVEPROCESS_CODE_SIGN_STYLE: Automatic
+          CODE_SIGN_IDENTITY: "$(LIVEPROCESS_CODE_SIGN_IDENTITY)"
+          LIVEPROCESS_CODE_SIGN_IDENTITY: ""
+          PROVISIONING_PROFILE_SPECIFIER: "$(LIVEPROCESS_PROVISIONING_PROFILE_SPECIFIER)"
+          LIVEPROCESS_PROVISIONING_PROFILE_SPECIFIER: ""
+    sources:
+      - path: ../../ThirdParty/EmexDE/Source/LiveProcess/main.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/LiveProcess/ResecureDecoder.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/LiveProcess/LindChain/ServiceKit/Service.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/LiveProcess/LindChain/Services/applicationmgmtd/LDEApplicationObject.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/LiveProcess/LindChain/Services/applicationmgmtd/LDEApplicationWorkspaceInternal.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/LiveProcess/LindChain/Services/containerd/PEContainerService.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/Debugger/Utils.c
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/litehook/litehook.c
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/LiveContainer/LCBootstrap.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/LiveContainer/LCMachOUtils.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/LiveContainer/Tweaks/Dead10ccFix.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/LiveContainer/Tweaks/Dyld.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/LiveContainer/Tweaks/NSFileManager+GuestHooks.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/LiveContainer/Tweaks/NSUserDefaults.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/LiveContainer/Tweaks/SecItem.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/LiveContainer/Tweaks/UIKit+GuestHooksInit.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/LiveContainer/utils.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/LiveContainer/ZSign/Utils.mm
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/Private/mach/fileport.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/ProcEnvironment/application.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/ProcEnvironment/attrstrnilfix.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/ProcEnvironment/cred.c
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/ProcEnvironment/environment.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/ProcEnvironment/ioctl.c
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/ProcEnvironment/libproc.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/ProcEnvironment/Object/ArchiveObject.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/ProcEnvironment/Object/FDMapObject.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/ProcEnvironment/Object/FDObject.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/ProcEnvironment/Object/PEMachPort.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/ProcEnvironment/Object/PEObject.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/ProcEnvironment/panic.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/ProcEnvironment/posix_spawn.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/ProcEnvironment/proxy.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/ProcEnvironment/Surface/extra/relax.c
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/ProcEnvironment/syscall.c
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/ProcEnvironment/Syscall/mach_syscall_client.c
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/ProcEnvironment/sysctl.c
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/ProcEnvironment/tfp.c
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/ProcEnvironment/Utils/fd.c
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/ProcEnvironment/Utils/ktfp.c
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/ProcEnvironment/vfork.c
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/Utils/CFTools.c
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/Utils/Swizzle.m
+        headerVisibility: project
+      - path: ../../ThirdParty/EmexDE/Source/Nyxian/LindChain/Utils/Zip.m
+        headerVisibility: project
+    resources:
+      - path: ../../ThirdParty/EmexDE/Source/LiveProcess/Media.xcassets
+    dependencies:
+      - target: CoreCompiler
+      - target: MobileDevelopmentKit
+      - sdk: libarchive.tbd
+      - sdk: libz.tbd
+
   Litter:
     type: application
     platform: iOS
-    deploymentTarget: "16.0"
+    deploymentTarget: "16.1"
     entitlements:
       path: Sources/Litter/Litter.entitlements
       properties:
         aps-environment: production
-        com.apple.developer.carplay-voice-based-conversation: true
         # iCloud KVS sync (Feature C). Re-add when the iCloud container
-        # `iCloud.com.nightvibes.darkswordai` exists in the Apple Developer Portal
+        # `iCloud.com.nightvibes.darkswordai.39A8Q3T3TR` exists in the Apple Developer Portal
         # AND is enabled on the iOS app's provisioning profile. Without
         # both, archive fails: "Provisioning profile doesn't include the
         # iCloud capability."
-        # com.apple.developer.ubiquity-kvstore-identifier: $(TeamIdentifierPrefix)iCloud.com.nightvibes.darkswordai
-        com.apple.security.application-groups:
-          - group.com.nightvibes.darkswordai
+        # com.apple.developer.ubiquity-kvstore-identifier: $(TeamIdentifierPrefix)iCloud.com.nightvibes.darkswordai.39A8Q3T3TR
     attributes:
       SystemCapabilities:
         com.apple.BackgroundModes:
@@ -74,11 +592,11 @@ targets:
     sources:
       - path: Sources/Litter
         excludes:
+          - AppIcon.icon/**
+          - Generated/Minimuxer/**
+          - Resources/BuildKitAssets/**
           - "**/*.h"
       - path: Sources/Litter/Bridge/UniFFICodexClient.generated.swift
-      - path: Resources/fs
-        type: folder
-        buildPhase: resources
       - path: Sources/LitterLiveActivity/CodexTurnLiveActivity.swift
       - path: Sources/LitterWatch/Models/WatchModels.swift
       - path: Sources/LitterWatch/Models/WatchSize.swift
@@ -91,6 +609,9 @@ targets:
     resources:
       - path: Sources/Litter/Resources/Fonts
       - path: Sources/Litter/Resources/Themes
+      - path: Sources/Litter/Resources/BuildKit
+      - path: Resources/fs.tar.gz
+      - path: Resources/fs.version
       - path: Sources/Litter/Resources/TipJarProducts.storekit
       - path: Sources/Litter/Resources/home_cat.png
       - path: Sources/Litter/Resources/home_cat_entrance.png
@@ -106,31 +627,495 @@ targets:
       - sdk: CoreText.framework
       - sdk: CoreVideo.framework
       - sdk: IOSurface.framework
-      - sdk: Metal.framework
-      - sdk: QuartzCore.framework
       - sdk: Security.framework
       - sdk: SystemConfiguration.framework
       - sdk: Network.framework
+      - sdk: Metal.framework
+      - sdk: MetalKit.framework
+      - sdk: QuartzCore.framework
+      - sdk: Accelerate.framework
       - package: Hairball
         product: HairballUI
       - package: WebRTC
         product: WebRTC
+      - package: ZIPFoundation
+        product: ZIPFoundation
       - package: Nuke
         product: Nuke
       - package: Nuke
         product: NukeUI
+      - package: AltSign
+        product: AltSign-Dynamic
+        embed: true
+      - target: SideStore
+        embed: true
+      - target: CoreCompiler
+        embed: true
+        link: false
+      - target: MobileDevelopmentKit
+        embed: true
+        link: false
+      - target: emexDE
+        embed: true
+        link: false
+      - target: LiveProcess
+        embed: true
       - target: LitterLiveActivity
         embed: true
       - target: LitterWatch
         embed: true
+    postBuildScripts:
+      - name: Embed AltSign Dynamic Framework
+        basedOnDependencyAnalysis: false
+        script: |
+          set -eu
+          if [ "${PLATFORM_NAME:-}" != "iphoneos" ]; then
+            exit 0
+          fi
+          mkdir -p "$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH"
+          sign_if_requested() {
+            item="$1"
+            if [ "${CODE_SIGNING_ALLOWED:-NO}" = "YES" ] && [ -n "${EXPANDED_CODE_SIGN_IDENTITY:-}" ]; then
+              /usr/bin/codesign --force --sign "$EXPANDED_CODE_SIGN_IDENTITY" --timestamp=none "$item"
+            fi
+          }
+          embed_framework_if_present() {
+            name="$1"
+            required="$2"
+            source=""
+            checked=""
+            for candidate in \
+              "$BUILT_PRODUCTS_DIR/PackageFrameworks/$name.framework" \
+              "$CONFIGURATION_BUILD_DIR/PackageFrameworks/$name.framework" \
+              "$PROJECT_TEMP_DIR/../UninstalledProducts/$PLATFORM_NAME/$name.framework" \
+              "$CONFIGURATION_TEMP_DIR/../../UninstalledProducts/$PLATFORM_NAME/$name.framework" \
+              "$TARGET_TEMP_DIR/../../../UninstalledProducts/$PLATFORM_NAME/$name.framework" \
+              "$TARGET_BUILD_DIR/PackageFrameworks/$name.framework" \
+              "$BUILT_PRODUCTS_DIR/$name.framework" \
+              "$CONFIGURATION_BUILD_DIR/$name.framework" \
+              "$TARGET_BUILD_DIR/$name.framework"
+            do
+              if [ ! -d "$candidate" ]; then
+                continue
+              fi
+              checked="${checked} ${candidate}"
+              if [ -f "$candidate/Info.plist" ] && [ -f "$candidate/$name" ]; then
+                source="$candidate"
+                break
+              fi
+              echo "warning: skipping incomplete $name.framework candidate at $candidate" >&2
+            done
+            if [ -z "$source" ]; then
+              if [ "$required" = "1" ]; then
+                echo "error: required framework $name.framework was not built as a complete framework bundle" >&2
+                printf 'Checked candidates:%s\n' "$checked" >&2
+                exit 1
+              fi
+              return 0
+            fi
+            destination="$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH/$name.framework"
+            rm -rf "$destination"
+            /usr/bin/ditto "$source" "$destination"
+            if [ ! -f "$destination/Info.plist" ] || [ ! -f "$destination/$name" ]; then
+              echo "error: copied $name.framework is incomplete at $destination" >&2
+              exit 1
+            fi
+            sign_if_requested "$destination"
+            echo "Embedded $name.framework from $source"
+          }
+          embed_framework_with_prefix() {
+            prefix="$1"
+            required="$2"
+            source=""
+            checked=""
+            for base in \
+              "$BUILT_PRODUCTS_DIR" \
+              "$BUILT_PRODUCTS_DIR/PackageFrameworks" \
+              "$CONFIGURATION_BUILD_DIR" \
+              "$CONFIGURATION_BUILD_DIR/PackageFrameworks" \
+              "$PROJECT_TEMP_DIR/../UninstalledProducts/$PLATFORM_NAME" \
+              "$CONFIGURATION_TEMP_DIR/../../UninstalledProducts/$PLATFORM_NAME" \
+              "$TARGET_TEMP_DIR/../../../UninstalledProducts/$PLATFORM_NAME" \
+              "$TARGET_BUILD_DIR/PackageFrameworks" \
+              "$TARGET_BUILD_DIR"
+            do
+              if [ ! -d "$base" ]; then
+                continue
+              fi
+              for candidate in "$base"/$prefix*.framework; do
+                if [ ! -d "$candidate" ]; then
+                  continue
+                fi
+                checked="${checked} ${candidate}"
+                name="$(/usr/bin/basename "$candidate" .framework)"
+                if [ -f "$candidate/Info.plist" ] && [ -f "$candidate/$name" ]; then
+                  source="$candidate"
+                  break 2
+                fi
+                echo "warning: skipping incomplete $name.framework candidate at $candidate" >&2
+              done
+            done
+            if [ -z "$source" ]; then
+              if [ "$required" = "1" ]; then
+                echo "error: required package framework with prefix $prefix was not built as a complete framework bundle" >&2
+                printf 'Checked candidates:%s\n' "$checked" >&2
+                exit 1
+              fi
+              return 0
+            fi
+            name="$(/usr/bin/basename "$source" .framework)"
+            destination="$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH/$name.framework"
+            rm -rf "$destination"
+            /usr/bin/ditto "$source" "$destination"
+            if [ ! -f "$destination/Info.plist" ] || [ ! -f "$destination/$name" ]; then
+              echo "error: copied $name.framework is incomplete at $destination" >&2
+              exit 1
+            fi
+            sign_if_requested "$destination"
+            echo "Embedded $name.framework from $source"
+          }
+          embed_emexde_corecompiler_artifacts() {
+            support_source="$SRCROOT/../../ThirdParty/EmexDE/Source/CoreCompiler/CoreCompilerSupportLibs"
+            if ! find "$support_source" -maxdepth 1 -type f -name 'lib_Compiler*.dylib' -print -quit | grep -q .; then
+              echo "error: missing emexDE CoreCompilerSupportLibs at $support_source" >&2
+              exit 1
+            fi
+            mkdir -p "$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH"
+            find "$support_source" -maxdepth 1 -type f -name '*.dylib' -print | while IFS= read -r dylib; do
+              destination="$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH/$(/usr/bin/basename "$dylib")"
+              rm -f "$destination"
+              /usr/bin/ditto "$dylib" "$destination"
+              sign_if_requested "$destination"
+            done
+            echo "Embedded emexDE CoreCompiler support dylibs"
+          }
+          embed_emexde_corecompiler_artifacts
+          embed_framework_if_present CoreCompiler 1
+          embed_framework_if_present AltSign-Dynamic 1
+          embed_framework_if_present AltStoreCore 1
+          embed_framework_if_present Roxas 1
+          embed_framework_if_present Minimuxer 1
+          embed_framework_if_present RustBridge 1
+          embed_framework_if_present OpenSSL 0
+          embed_framework_with_prefix SemanticVersion_ 1
+          embed_framework_with_prefix KeychainAccess_ 1
+      - name: Embed Upstream Store Sources
+        basedOnDependencyAnalysis: false
+        script: |
+          set -eu
+          if [ "${LITTER_EMBED_UPSTREAM_SOURCE_TREES:-0}" != "1" ]; then
+            echo "Skipping expanded upstream source embedding for sideload-safe IPA packaging"
+            exit 0
+          fi
+          RESOURCES_DIR="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH"
+          DEST_ROOT="$RESOURCES_DIR/UpstreamApps"
+          copy_upstream_source() {
+            label="$1"
+            source="$2"
+            destination="$DEST_ROOT/$label"
+            if [ ! -d "$source" ]; then
+              echo "error: missing upstream source folder: $source" >&2
+              exit 1
+            fi
+            rm -rf "$destination"
+            mkdir -p "$DEST_ROOT"
+            /usr/bin/ditto "$source" "$destination"
+            find "$destination" \( \
+              -path '*/target' -o \
+              -path '*/.build' -o \
+              -path '*/DerivedData' \
+            \) -type d -prune -exec rm -rf {} +
+            if [ ! -d "$destination" ]; then
+              echo "error: failed to embed upstream source folder: $label" >&2
+              exit 1
+            fi
+            echo "Embedded upstream $label source at $destination"
+          }
+          copy_upstream_source KittyStore "$SRCROOT/../../ThirdParty/SideStore/Source"
+          copy_upstream_source Feather "$SRCROOT/../../ThirdParty/Feather/Source"
+          copy_upstream_source LocalDevVPN "$SRCROOT/../../ThirdParty/SideStore/LocalDevVPN-Source"
+          copy_upstream_source emexDE "$SRCROOT/../../ThirdParty/EmexDE/Source"
+      - name: Embed Bundled iSH Filesystem
+        basedOnDependencyAnalysis: false
+        script: |
+          set -eu
+          if [ "${PLATFORM_NAME:-}" != "iphoneos" ]; then
+            exit 0
+          fi
+          RESOURCES_DIR="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH"
+          SRC_ROOTFS="$SRCROOT/Resources/fs.tar.gz"
+          SRC_VERSION="$SRCROOT/Resources/fs.version"
+          if [ ! -s "$SRC_ROOTFS" ]; then
+            echo "error: missing bundled iSH filesystem at $SRC_ROOTFS" >&2
+            exit 1
+          fi
+          mkdir -p "$RESOURCES_DIR"
+          /usr/bin/ditto "$SRC_ROOTFS" "$RESOURCES_DIR/fs.tar.gz"
+          if [ -s "$SRC_VERSION" ]; then
+            /usr/bin/ditto "$SRC_VERSION" "$RESOURCES_DIR/fs.version"
+          else
+            printf '%s\n' unknown > "$RESOURCES_DIR/fs.version"
+          fi
+          if [ ! -s "$RESOURCES_DIR/fs.tar.gz" ]; then
+            echo "error: bundled iSH filesystem copy failed" >&2
+            exit 1
+          fi
+          echo "Embedded bundled iSH filesystem archive"
+      - name: Sign Alpine FS Native Modules
+        basedOnDependencyAnalysis: false
+        script: |
+          set -eu
+          if [ "${PLATFORM_NAME:-}" != "iphoneos" ]; then
+            exit 0
+          fi
+          if [ "${CODE_SIGNING_ALLOWED:-NO}" != "YES" ] || [ -z "${EXPANDED_CODE_SIGN_IDENTITY:-}" ]; then
+            echo "Skipping Alpine fs module signing because code signing is disabled"
+            exit 0
+          fi
+          FS_ROOT="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/fs"
+          if [ ! -d "$FS_ROOT" ]; then
+            exit 0
+          fi
+          find "$FS_ROOT" -type f \( -name '*.so' -o -name '*.dylib' \) -print | while IFS= read -r item; do
+            if /usr/bin/file "$item" 2>/dev/null | /usr/bin/grep -q 'Mach-O'; then
+              /usr/bin/codesign --force --sign "$EXPANDED_CODE_SIGN_IDENTITY" --timestamp=none "$item"
+              echo "Signed Alpine fs native module: $item"
+            else
+              /bin/mv "$item" "$item.litter-elf"
+              echo "Hid Alpine fs non-Mach-O module from Apple code signing scan: $item"
+            fi
+          done
+      - name: Embed emexDE Runtime Resources
+        basedOnDependencyAnalysis: false
+        script: |
+          set -eu
+          RESOURCES_DIR="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH"
+          EMEXDE_ROOT="$SRCROOT/../../ThirdParty/EmexDE/Source"
+          if [ ! -d "$EMEXDE_ROOT/Shared" ]; then
+            echo "error: missing emexDE Shared runtime resources" >&2
+            exit 1
+          fi
+          rm -rf "$RESOURCES_DIR/Shared"
+          /usr/bin/ditto "$EMEXDE_ROOT/Shared" "$RESOURCES_DIR/Shared"
+          if [ -f "$EMEXDE_ROOT/Nyxian/LindChain/JBSupport/tshelper" ]; then
+            /usr/bin/ditto "$EMEXDE_ROOT/Nyxian/LindChain/JBSupport/tshelper" "$RESOURCES_DIR/tshelper"
+            /bin/chmod 755 "$RESOURCES_DIR/tshelper" || true
+          fi
+          EMEXDE_FRAMEWORK="$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH/emexDE.framework"
+          if [ -d "$EMEXDE_FRAMEWORK/Frameworks" ]; then
+            for private_framework in               FrontBoard.framework               FrontBoardServices.framework               RunningBoardServices.framework               BackBoardServices.framework
+            do
+              if [ -e "$EMEXDE_FRAMEWORK/Frameworks/$private_framework" ]; then
+                rm -rf "$EMEXDE_FRAMEWORK/Frameworks/$private_framework"
+                echo "Removed nested emexDE private framework stub: $private_framework"
+              fi
+            done
+            rmdir "$EMEXDE_FRAMEWORK/Frameworks" 2>/dev/null || true
+          fi
+          echo "Embedded emexDE Shared runtime resources"
+      - name: Package Private BuildKit Assets
+        basedOnDependencyAnalysis: false
+        script: |
+          set -eu
+          ASSET_ROOT="$SRCROOT/Sources/Litter/Resources/BuildKitAssets"
+          if [ ! -f "$ASSET_ROOT/manifest.json" ]; then
+            exit 0
+          fi
+          RESOURCES_DIR="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH"
+          DEST="$RESOURCES_DIR/LitterBuildKitAssets.zip"
+          TMP_DIR="$(mktemp -d)"
+          trap 'rm -rf "$TMP_DIR"' EXIT
+          rm -rf "$RESOURCES_DIR/BuildKitAssets" "$DEST"
+          mkdir -p "$RESOURCES_DIR"
+          cp -R -L "$ASSET_ROOT" "$TMP_DIR/BuildKitAssets"
+          (cd "$TMP_DIR" && ditto -c -k --norsrc --keepParent BuildKitAssets "$DEST")
+      - name: Embed Private BuildKit Frameworks
+        basedOnDependencyAnalysis: false
+        script: |
+          set -eu
+          if [ "${PLATFORM_NAME:-}" != "iphoneos" ]; then
+            exit 0
+          fi
+          MANIFEST="$SRCROOT/Sources/Litter/Resources/BuildKitAssets/manifest.json"
+          ASSET_ROOT="$SRCROOT/Sources/Litter/Resources/BuildKitAssets/Toolchains/Nyxian"
+          if [ ! -f "$MANIFEST" ] || [ ! -d "$ASSET_ROOT" ]; then
+            exit 0
+          fi
+          mkdir -p "$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH"
+          is_buildkit_support_dylib_name() {
+            case "$1" in
+              lib_Compiler*.dylib|libLLVM*.dylib|libllvm*.dylib) return 0 ;;
+              *) return 1 ;;
+            esac
+          }
+          is_macho_stub_dylib() {
+            /usr/bin/file "$1" 2>/dev/null | /usr/bin/grep -Eiq 'Mach-O.*stub|stub.*Mach-O'
+          }
+          buildkit_framework_install_name() {
+            binary="$1"
+            parent="$(basename "$(dirname "$binary")")"
+            base="$(basename "$binary")"
+            case "$parent/$base" in
+              CoreCompiler.framework/CoreCompiler|LitterBuildKitNative.framework/LitterBuildKitNative)
+                printf '%s\n' "@rpath/$parent/$base"
+                ;;
+            esac
+          }
+          is_buildkit_corecompiler_reference() {
+            case "$1" in
+              *CoreCompiler.framework/CoreCompiler) return 0 ;;
+              *) return 1 ;;
+            esac
+          }
+          set_buildkit_install_name() {
+            binary="$1"
+            base="$(basename "$binary")"
+            framework_id="$(buildkit_framework_install_name "$binary")"
+            if [ -n "$framework_id" ]; then
+              /usr/bin/install_name_tool -id "$framework_id" "$binary"
+            elif is_buildkit_support_dylib_name "$base"; then
+              /usr/bin/install_name_tool -id "@rpath/$base" "$binary"
+            fi
+          }
+          rewrite_buildkit_dylib_references() {
+            binary="$1"
+            if [ ! -f "$binary" ]; then
+              return 0
+            fi
+            set_buildkit_install_name "$binary"
+            /usr/bin/otool -L "$binary" | /usr/bin/awk 'NR > 1 { print $1 }' | while IFS= read -r dependency; do
+              base="$(basename "$dependency")"
+              if is_buildkit_corecompiler_reference "$dependency" && [ "$dependency" != "@rpath/CoreCompiler.framework/CoreCompiler" ]; then
+                /usr/bin/install_name_tool -change "$dependency" "@rpath/CoreCompiler.framework/CoreCompiler" "$binary" 2>/dev/null || true
+              elif is_buildkit_support_dylib_name "$base" && [ "$dependency" != "@rpath/$base" ]; then
+                /usr/bin/install_name_tool -change "$dependency" "@rpath/$base" "$binary" 2>/dev/null || true
+              fi
+            done
+          }
+          buildkit_binary_needs_rpath() {
+            binary="$1"
+            /usr/bin/otool -L "$binary" | /usr/bin/grep -Eq 'CoreCompiler\.framework/CoreCompiler|lib_Compiler|libLLVM|libllvm'
+          }
+          has_usable_frameworks_rpath() {
+            binary="$1"
+            rpath="$2"
+            /usr/bin/otool -l "$binary" | /usr/bin/grep -F -q "$rpath" || \
+              /usr/bin/otool -l "$binary" | /usr/bin/grep -F -q '@executable_path/Frameworks'
+          }
+          ensure_rpath() {
+            binary="$1"
+            rpath="$2"
+            if has_usable_frameworks_rpath "$binary" "$rpath"; then
+              return 0
+            fi
+            /usr/bin/install_name_tool -add_rpath "$rpath" "$binary"
+            if ! has_usable_frameworks_rpath "$binary" "$rpath"; then
+              echo "error: failed to add a usable Frameworks rpath to $binary" >&2
+              exit 1
+            fi
+          }
+          repair_buildkit_rpath() {
+            binary="$1"
+            rpath="$2"
+            if [ ! -f "$binary" ]; then
+              return 0
+            fi
+            if is_macho_stub_dylib "$binary"; then
+              return 0
+            fi
+            rewrite_buildkit_dylib_references "$binary"
+            if buildkit_binary_needs_rpath "$binary"; then
+              ensure_rpath "$binary" "$rpath"
+            fi
+          }
+          sign_if_requested() {
+            item="$1"
+            if ! command -v codesign >/dev/null 2>&1; then
+              return 0
+            fi
+            if [ "${CODE_SIGNING_ALLOWED:-NO}" = "YES" ] && [ -n "${EXPANDED_CODE_SIGN_IDENTITY:-}" ]; then
+              codesign --force --sign "$EXPANDED_CODE_SIGN_IDENTITY" --timestamp=none "$item"
+            else
+              codesign --force --sign - --timestamp=none "$item"
+            fi
+          }
+          for framework in CoreCompiler.framework LitterBuildKitNative.framework; do
+            if [ -d "$ASSET_ROOT/$framework" ]; then
+              destination="$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH/$framework"
+              executable="${framework%.framework}"
+              rm -rf "$destination"
+              cp -R "$ASSET_ROOT/$framework" "$destination"
+              rm -rf "$destination/CoreCompilerSupportLibs"
+              if [ ! -f "$destination/$executable" ]; then
+                echo "error: $framework is missing executable $executable" >&2
+                if [ -f "$destination/$executable.tbd" ]; then
+                  echo "error: found $executable.tbd instead; rebuild BuildKit assets from the real framework product, not EagerLinkingTBDs" >&2
+                fi
+                exit 1
+              fi
+              if [ ! -f "$destination/Info.plist" ]; then
+                cat > "$destination/Info.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleDevelopmentRegion</key>
+            <string>en</string>
+            <key>CFBundleExecutable</key>
+            <string>$executable</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.nightvibes.darkswordai.$executable</string>
+            <key>CFBundleInfoDictionaryVersion</key>
+            <string>6.0</string>
+            <key>CFBundleName</key>
+            <string>$executable</string>
+            <key>CFBundlePackageType</key>
+            <string>FMWK</string>
+            <key>CFBundleShortVersionString</key>
+            <string>1.0</string>
+            <key>CFBundleVersion</key>
+            <string>1</string>
+            <key>MinimumOSVersion</key>
+            <string>18.0</string>
+          </dict>
+          </plist>
+          PLIST
+              fi
+              repair_buildkit_rpath "$destination/$executable" "@loader_path/.."
+              sign_if_requested "$destination"
+            fi
+          done
+          copy_buildkit_support_dylibs_from() {
+            root="$1"
+            if [ ! -d "$root" ]; then
+              return 0
+            fi
+            find "$root" -type f \( -name 'lib_Compiler*.dylib' -o -name 'libLLVM*.dylib' -o -name 'libllvm*.dylib' \) -print | while IFS= read -r library; do
+              if is_macho_stub_dylib "$library"; then
+                continue
+              fi
+              destination="$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH/$(basename "$library")"
+              rm -f "$destination"
+              cp "$library" "$destination"
+              repair_buildkit_rpath "$destination" "@loader_path"
+              sign_if_requested "$destination"
+            done
+          }
+          SUPPORT_ROOT="$ASSET_ROOT/CoreCompilerSupportLibs"
+          SDK_ROOT="$SRCROOT/Sources/Litter/Resources/BuildKitAssets/SDK"
+          copy_buildkit_support_dylibs_from "$SUPPORT_ROOT"
+          copy_buildkit_support_dylibs_from "$SDK_ROOT"
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.nightvibes.darkswordai
-        PRODUCT_NAME: DarkSwordAI
+        PRODUCT_NAME: "Alley Cat"
+        PRODUCT_BUNDLE_IDENTIFIER: com.nightvibes.darkswordai.39A8Q3T3TR
         INFOPLIST_FILE: Sources/Litter/Info.plist
         SWIFT_OBJC_BRIDGING_HEADER: Sources/Litter/Bridge/codex_bridge_objc.h
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        INFOPLIST_KEY_UIBackgroundModes: "audio fetch remote-notification picture-in-picture"
+        ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES: "AppIconOriginal AppIconShinobi AppIconElectricPulse AppIconOceanConnect AppIconDevinePurple AppIconGreenTerminal AppIconCosmicForum AppIconCrystalFrost AppIconCyberDistrict AppIconMidnightAMOLED AppIconRGBArena AppIconNeuralCore"
+        INFOPLIST_KEY_UIBackgroundModes: "audio fetch remote-notification"
+        INFOPLIST_KEY_LitterEmbedsSideStore: "YES"
+        INFOPLIST_KEY_LitterEmbedsEmexDE: "YES"
       configs:
         Debug:
           CODE_SIGN_STYLE: "$(APP_CODE_SIGN_STYLE)"
@@ -156,13 +1141,11 @@ targets:
       properties:
         aps-environment: production
         # iCloud KVS sync (Feature C). Re-add when the iCloud container
-        # `iCloud.com.nightvibes.darkswordai` exists in the Apple Developer Portal
+        # `iCloud.com.nightvibes.darkswordai.39A8Q3T3TR` exists in the Apple Developer Portal
         # AND the Mac App Store profile is regenerated to include the iCloud
         # capability. Direct-dist (DeveloperID entitlements) keeps the key
         # because Developer ID apps validate iCloud at runtime, not via profile.
-        # com.apple.developer.ubiquity-kvstore-identifier: $(TeamIdentifierPrefix)iCloud.com.nightvibes.darkswordai
-        com.apple.security.application-groups:
-          - group.com.nightvibes.darkswordai
+        # com.apple.developer.ubiquity-kvstore-identifier: $(TeamIdentifierPrefix)iCloud.com.nightvibes.darkswordai.39A8Q3T3TR
         com.apple.security.app-sandbox: true
         com.apple.security.device.bluetooth: true
         com.apple.security.files.user-selected.read-write: true
@@ -171,6 +1154,7 @@ targets:
     sources:
       - path: Sources/Litter
         excludes:
+          - AppIcon.icon/**
           - CarPlay/**
           - Info.plist
           - Litter.entitlements
@@ -189,6 +1173,8 @@ targets:
           - Models/VoiceSessionModels.swift
           - Models/WatchCompanionBridge.swift
           - Models/WatchProjection.swift
+          - Resources/BuildKitAssets/**
+          - Generated/Minimuxer/**
           - Views/HomeVoiceOrbButton.swift
           - Views/InlineVoiceButton.swift
           - Views/InlineVoiceStatusStrip.swift
@@ -201,6 +1187,7 @@ targets:
     resources:
       - path: Sources/Litter/Resources/Fonts
       - path: Sources/Litter/Resources/Themes
+      - path: Sources/Litter/Resources/BuildKit
       - path: Sources/Litter/Resources/TipJarProducts.storekit
       - path: Sources/Litter/Resources/home_cat.png
       - path: Sources/Litter/Resources/home_cat_entrance.png
@@ -214,16 +1201,19 @@ targets:
       - sdk: Security.framework
       - sdk: SystemConfiguration.framework
       - sdk: Network.framework
+      - sdk: Metal.framework
       - package: Hairball
         product: HairballUI
+      - package: ZIPFoundation
+        product: ZIPFoundation
       - package: Nuke
         product: Nuke
       - package: Nuke
         product: NukeUI
     settings:
       base:
-        PRODUCT_NAME: Litter
-        PRODUCT_BUNDLE_IDENTIFIER: com.nightvibes.darkswordai
+        PRODUCT_NAME: "Alley Cat"
+        PRODUCT_BUNDLE_IDENTIFIER: com.nightvibes.darkswordai.39A8Q3T3TR
         DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER: NO
         INFOPLIST_FILE: Sources/Litter/Info-Catalyst.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIconMac
@@ -265,12 +1255,9 @@ targets:
   LitterLiveActivity:
     type: app-extension
     platform: iOS
-    deploymentTarget: "16.0"
+    deploymentTarget: "16.1"
     entitlements:
       path: Sources/LitterLiveActivity/LitterLiveActivity.entitlements
-      properties:
-        com.apple.security.application-groups:
-          - group.com.nightvibes.darkswordai
     sources:
       - path: Sources/LitterLiveActivity
       - path: Sources/Litter/Models/CodexTurnAttributes.swift
@@ -282,8 +1269,13 @@ targets:
       - path: Sources/LitterLiveActivity/Assets.xcassets
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.nightvibes.darkswordai.liveactivity
+        PRODUCT_BUNDLE_IDENTIFIER: com.nightvibes.darkswordai.39A8Q3T3TR.liveactivity
         INFOPLIST_FILE: Sources/LitterLiveActivity/Info.plist
+        OTHER_LDFLAGS: ""
+        SWIFT_OBJC_BRIDGING_HEADER: ""
+        HEADER_SEARCH_PATHS: "$(inherited)"
+        SWIFT_INCLUDE_PATHS: "$(inherited)"
+        OTHER_SWIFT_FLAGS: "$(inherited)"
       configs:
         Debug:
           CODE_SIGN_STYLE: "$(LIVE_ACTIVITY_CODE_SIGN_STYLE)"
@@ -306,13 +1298,10 @@ targets:
       path: Sources/LitterWatch/LitterWatch.entitlements
       properties:
         aps-environment: production
-        com.apple.security.application-groups:
-          - group.com.nightvibes.darkswordai
     sources:
       - path: Sources/LitterWatch
         excludes:
           - "Assets.xcassets"
-      - path: Sources/Litter/AppIcon.icon
     resources:
       - path: Sources/Litter/Resources/Fonts
       - path: Sources/LitterWatch/Assets.xcassets
@@ -321,7 +1310,7 @@ targets:
         embed: true
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.nightvibes.darkswordai.watchkitapp
+        PRODUCT_BUNDLE_IDENTIFIER: com.nightvibes.darkswordai.39A8Q3T3TR.watchkitapp
         INFOPLIST_FILE: Sources/LitterWatch/Info.plist
         TARGETED_DEVICE_FAMILY: "4"
         WATCHOS_DEPLOYMENT_TARGET: "11.0"
@@ -353,9 +1342,6 @@ targets:
     deploymentTarget: "11.0"
     entitlements:
       path: Sources/LitterWatchComplications/LitterWatchComplications.entitlements
-      properties:
-        com.apple.security.application-groups:
-          - group.com.nightvibes.darkswordai
     sources:
       - path: Sources/LitterWatchComplications
         excludes:
@@ -364,7 +1350,7 @@ targets:
       - path: Sources/LitterWatchComplications/Assets.xcassets
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.nightvibes.darkswordai.watchkitapp.complications
+        PRODUCT_BUNDLE_IDENTIFIER: com.nightvibes.darkswordai.39A8Q3T3TR.watchkitapp.complications
         INFOPLIST_FILE: Sources/LitterWatchComplications/Info.plist
         GENERATE_INFOPLIST_FILE: NO
         TARGETED_DEVICE_FAMILY: "4"
@@ -391,7 +1377,7 @@ targets:
   LitterTests:
     type: bundle.unit-test
     platform: iOS
-    deploymentTarget: "16.0"
+    deploymentTarget: "16.1"
     sources:
       - path: Tests/LitterTests
     dependencies:
@@ -399,12 +1385,14 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: true
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Alley Cat.app/Alley Cat"
         CODE_SIGNING_ALLOWED: false
         CODE_SIGNING_REQUIRED: false
   LitterUITests:
     type: bundle.ui-testing
     platform: iOS
-    deploymentTarget: "16.0"
+    deploymentTarget: "16.1"
     sources:
       - path: Tests/LitterUITests
       - path: SnapshotHelper.swift

@@ -919,38 +919,17 @@ extension HomeSessionsScrollUIView: UIScrollViewDelegate {
 private struct HomeCatFooterView: View {
     let playEntrance: Bool
 
-    @State private var showingLoop: Bool
-
-    private let entranceURL = Bundle.main.url(forResource: "home_cat_entrance", withExtension: "png")
-    private let loopURL = Bundle.main.url(forResource: "home_cat", withExtension: "png")
-
-    init(playEntrance: Bool) {
-        self.playEntrance = playEntrance
-        self._showingLoop = State(initialValue: !playEntrance)
-    }
-
     var body: some View {
-        GeometryReader { proxy in
-            if let imageURL = showingLoop ? loopURL : (entranceURL ?? loopURL) {
-                let width = min(max(0, proxy.size.width - 48), 340)
-                VStack {
-                    CatTransmissionPressView {
-                        AlphaAnimatedImageView(
-                            fileURL: imageURL,
-                            repeatCount: showingLoop ? 0 : 1,
-                            onFinished: showingLoop ? nil : {
-                                showingLoop = true
-                            }
-                        )
-                    }
-                        .frame(width: width, height: width * 9.0 / 16.0)
-                        .accessibilityHidden(true)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .padding(.top, 12)
-                .padding(.bottom, 20)
-            }
+        HStack(spacing: 10) {
+            Rectangle().fill(LitterTheme.border.opacity(0.28)).frame(height: AlleyVisual.hairline)
+            Circle().fill(LitterTheme.accent.opacity(0.55)).frame(width: 4, height: 4)
+            Rectangle().fill(LitterTheme.border.opacity(0.28)).frame(height: AlleyVisual.hairline)
         }
+        .frame(maxWidth: 180)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .padding(.top, 28)
+        .padding(.bottom, 20)
+        .accessibilityHidden(true)
     }
 }
 
@@ -1849,13 +1828,38 @@ struct HomeSessionRowContent: View {
     let onShowPiP: () -> Void
 
     var body: some View {
-        SessionCanvasLine(
-            session: session,
-            isOpening: isOpening,
-            isHydrating: isHydrating,
-            isCancelling: isCancelling,
-            zoomLevel: zoomLevel
-        )
+        ZStack(alignment: .topTrailing) {
+            SessionCanvasLine(
+                session: session,
+                isOpening: isOpening,
+                isHydrating: isHydrating,
+                isCancelling: isCancelling,
+                zoomLevel: zoomLevel
+            )
+            if zoomLevel >= 4, AVPictureInPictureController.isPictureInPictureSupported() {
+                Button { onShowPiP() } label: {
+                    Image(systemName: "pip")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 42, height: 42)
+                        .background(.black.opacity(0.48), in: Circle())
+                        .overlay(Circle().stroke(.white.opacity(0.18), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 12)
+                .padding(.trailing, 12)
+                .accessibilityLabel("Show in Picture in Picture")
+            }
+        }
+        .background(LitterTheme.surface.opacity(session.hasTurnActive ? 0.92 : 0.72))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            .stroke(
+                session.hasTurnActive ? LitterTheme.accent.opacity(0.5) : LitterTheme.border.opacity(0.42),
+                lineWidth: AlleyVisual.hairline
+            )
+        }
         .contentShape(Rectangle())
         .onTapGesture { onTap() }
         .contextMenu(menuItems: {

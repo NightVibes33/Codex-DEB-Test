@@ -9,6 +9,7 @@ struct WallpaperAdjustView: View {
     var serverId: String? = nil
     let initialConfig: WallpaperConfig
     var customImage: UIImage?
+    var stagedVideoURL: URL?
     var onDone: (() -> Void)?
 
     private var isServerOnly: Bool { threadKey == nil }
@@ -18,6 +19,9 @@ struct WallpaperAdjustView: View {
     @State private var motionEnabled: Bool = false
     @State private var brightness: Double = 1.0
     @State private var hasLoaded = false
+    @State private var proStore = ProAccessStore.shared
+    @State private var pendingProScope: PendingWallpaperApplyScope?
+    @State private var applyErrorMessage: String?
 
     var body: some View {
         ZStack {
@@ -59,6 +63,28 @@ struct WallpaperAdjustView: View {
                 .ignoresSafeArea()
         }
         .navigationBarBackButtonHidden(true)
+        .task { await proStore.loadProducts() }
+        .sheet(item: $pendingProScope) { pending in
+            NavigationStack {
+                ProPaywallView(feature: .appearance) {
+                    applyWallpaper(scope: pending.scope)
+                }
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Done") { pendingProScope = nil }
+                            .foregroundStyle(LitterTheme.accent)
+                    }
+                }
+            }
+        }
+        .alert("Appearance Error", isPresented: Binding(
+            get: { applyErrorMessage != nil },
+            set: { if !$0 { applyErrorMessage = nil } }
+        )) {
+            Button("OK") { applyErrorMessage = nil }
+        } message: {
+            Text(applyErrorMessage ?? "")
+        }
         .onAppear {
             guard !hasLoaded else { return }
             hasLoaded = true
@@ -73,6 +99,15 @@ struct WallpaperAdjustView: View {
     @ViewBuilder
     private var wallpaperPreview: some View {
         switch initialConfig.type {
+        case .preset:
+            if let slug = initialConfig.presetSlug,
+               let image = wallpaperManager.generatePresetWallpaper(presetSlug: slug) {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                LitterTheme.backgroundGradient
+            }
         case .theme:
             if let slug = initialConfig.themeSlug,
                let image = wallpaperManager.generateWallpaper(themeSlug: slug, themeManager: themeManager) {
@@ -91,9 +126,7 @@ struct WallpaperAdjustView: View {
                 }
                 return nil
             }() {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
+                FittedWallpaperImage(image: image)
             } else {
                 LitterTheme.backgroundGradient
             }
@@ -104,15 +137,18 @@ struct WallpaperAdjustView: View {
                 LitterTheme.backgroundGradient
             }
         case .customVideo, .videoUrl:
-            let fileURL: URL = {
+            let fileURL: URL? = {
+                if let stagedVideoURL, FileManager.default.fileExists(atPath: stagedVideoURL.path) {
+                    return stagedVideoURL
+                }
                 if let threadKey {
                     return wallpaperManager.videoFileURL(for: .thread(threadKey))
                 } else if let resolvedServerId {
                     return wallpaperManager.videoFileURL(for: .server(resolvedServerId))
                 }
-                return URL(fileURLWithPath: "/dev/null")
+                return nil
             }()
-            if FileManager.default.fileExists(atPath: fileURL.path) {
+            if let fileURL, FileManager.default.fileExists(atPath: fileURL.path) {
                 VideoWallpaperPlayerView(fileURL: fileURL)
             } else {
                 LitterTheme.backgroundGradient
@@ -186,7 +222,7 @@ struct WallpaperAdjustView: View {
             VStack(spacing: 10) {
                 if let threadKey {
                     Button {
-                        applyWallpaper(scope: .thread(threadKey))
+                        requestApplyWallpaper(scope: .thread(threadKey))
                     } label: {
                         Text("Apply for This Thread")
                             .litterFont(size: 15, weight: .semibold)
@@ -200,7 +236,7 @@ struct WallpaperAdjustView: View {
 
                 if let resolvedServerId {
                     Button {
-                        applyWallpaper(scope: .server(resolvedServerId))
+                        requestApplyWallpaper(scope: .server(resolvedServerId))
                     } label: {
                         Text("Apply for This Server")
                             .litterFont(size: 15, weight: .medium)
@@ -238,12 +274,47 @@ struct WallpaperAdjustView: View {
 
     // MARK: - Apply
 
+    private func requestApplyWallpaper(scope: WallpaperScope) {
+        guard proStore.hasProAccess else {
+            pendingProScope = PendingWallpaperApplyScope(scope: scope)
+            return
+        }
+        applyWallpaper(scope: scope)
+    }
+
     private func applyWallpaper(scope: WallpaperScope) {
+        pendingProScope = nil
+
         var config = initialConfig
         config.blur = isBlurred ? 0.5 : 0.0
         config.brightness = brightness
         config.motionEnabled = motionEnabled
-        wallpaperManager.setWallpaper(config, scope: scope)
-        onDone?()
+
+        do {
+            switch config.type {
+            case .customImage:
+                if let customImage {
+                    wallpaperManager.setCustomImage(customImage, config: config, scope: scope)
+                } else {
+                    wallpaperManager.setWallpaper(config, scope: scope)
+                }
+            case .customVideo, .videoUrl:
+                if let stagedVideoURL {
+                    try wallpaperManager.setCustomVideo(from: stagedVideoURL, config: config, scope: scope)
+                } else {
+                    wallpaperManager.setWallpaper(config, scope: scope)
+                }
+            default:
+                wallpaperManager.setWallpaper(config, scope: scope)
+            }
+            onDone?()
+        } catch {
+            applyErrorMessage = error.localizedDescription
+        }
     }
+}
+
+private struct PendingWallpaperApplyScope: Identifiable {
+    let id = UUID()
+    let scope: WallpaperScope
 }

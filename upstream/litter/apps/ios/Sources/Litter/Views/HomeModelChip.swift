@@ -105,6 +105,10 @@ struct HomeModelChip: View {
                     .litterMonoFont(size: 12, weight: .semibold)
                     .foregroundStyle(disabled ? LitterTheme.textSecondary : LitterTheme.textPrimary)
                     .lineLimit(1)
+                    .truncationMode(.tail)
+                    .minimumScaleFactor(0.82)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .layoutPriority(1)
                 if !reasoningLabel.isEmpty {
                     Text(reasoningLabel)
                         .litterMonoFont(size: 11, weight: .regular)
@@ -147,6 +151,7 @@ struct HomeModelChip: View {
                 selectedModel: selectedModelBinding,
                 selectedAgentRuntimeKind: selectedAgentRuntimeKindBinding,
                 reasoningEffort: reasoningEffortBinding,
+                serverId: serverId,
                 threadKey: nil
             )
             .environment(appModel)

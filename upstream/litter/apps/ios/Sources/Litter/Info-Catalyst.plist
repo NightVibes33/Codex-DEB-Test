@@ -25,6 +25,18 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LitterReleaseOwner</key>
+	<string>$(LITTER_RELEASE_OWNER)</string>
+	<key>LitterReleaseRepo</key>
+	<string>$(LITTER_RELEASE_REPO)</string>
+	<key>LitterReleaseManifestAssetName</key>
+	<string>$(LITTER_RELEASE_MANIFEST_ASSET_NAME)</string>
+	<key>LitterReleaseSourceAssetName</key>
+	<string>$(LITTER_RELEASE_SOURCE_ASSET_NAME)</string>
+	<key>LitterReleaseStableTag</key>
+	<string>$(LITTER_RELEASE_STABLE_TAG)</string>
+	<key>LitterReleaseTagPrefix</key>
+	<string>$(LITTER_RELEASE_TAG_PREFIX)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSApplicationCategoryType</key>
@@ -32,6 +44,9 @@
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>tailscale</string>
+		<string>sidestore</string>
+		<string>altstore</string>
+		<string>localdevvpn</string>
 	</array>
 	<key>NSAppTransportSecurity</key>
 	<dict>
@@ -55,15 +70,15 @@
 		<string>_litter-pair._tcp</string>
 	</array>
 	<key>NSCameraUsageDescription</key>
-	<string>Litter can import image files for conversations.</string>
+	<string>Alley Cãt can import image files for conversations.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Codex discovers coding agents and SSH servers on your local network.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Litter uses the microphone for voice-to-text input.</string>
+	<string>Alley Cãt uses the microphone for voice-to-text input.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Litter advertises a short-range Bluetooth beacon so nearby iPhones can find this Mac to pair with.</string>
+	<string>Alley Cãt advertises a short-range Bluetooth beacon so nearby iPhones can find this Mac to pair with.</string>
 	<key>NSNearbyInteractionUsageDescription</key>
-	<string>Litter uses Nearby Interaction to confirm your iPhone and Mac are close before pairing.</string>
+	<string>Alley Cãt uses Nearby Interaction to confirm your iPhone and Mac are close before pairing.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>BerkeleyMono-Regular.otf</string>
@@ -88,5 +103,85 @@
 	</dict>
 	<key>UILaunchScreen</key>
 	<dict/>
+	<key>UTImportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.zip-archive</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>iOS App Archive</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.sigkitten.litter.ipa</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>ipa</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>PKCS#12 Signing Identity</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.rsa.pkcs-12</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>p12</string>
+					<string>pfx</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/x-pkcs12</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>iOS Provisioning Profile</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.apple.mobileprovision</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>mobileprovision</string>
+					<string>provisionprofile</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>KittyStore Pairing File</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.apple.mobiledevicepairing</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>mobiledevicepairing</string>
+					<string>pairing</string>
+					<string>plist</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+
 </dict>
 </plist>

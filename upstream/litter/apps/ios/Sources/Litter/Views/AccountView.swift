@@ -33,7 +33,7 @@ private struct AccountConnectionView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                LitterTheme.backgroundGradient.ignoresSafeArea()
+                AlleyBackdrop().ignoresSafeArea()
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
                         currentAccountSection
@@ -96,7 +96,7 @@ private struct AccountConnectionView: View {
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 14)
-            .background(.ultraThinMaterial)
+            .background(LitterTheme.surface.opacity(0.96))
             .cornerRadius(10)
             .padding(.horizontal, 16)
 
@@ -307,32 +307,54 @@ private struct AccountConnectionView: View {
 }
 
 private struct AccountDisconnectedView: View {
+    @Environment(AppModel.self) private var appModel
     let dismiss: DismissAction
 
     var body: some View {
         NavigationStack {
             ZStack {
-                LitterTheme.backgroundGradient.ignoresSafeArea()
+                AlleyBackdrop().ignoresSafeArea()
                 VStack(spacing: 16) {
-                    Text("Local Codex isn't running")
+                    Text(appModel.isRecoveringLocalServer ? "Starting Local Codex" : "Local Codex isn't running")
                         .litterFont(.subheadline)
                         .foregroundColor(LitterTheme.textPrimary)
-                    Text("ChatGPT login and API key entry require the local Codex bridge.")
+                    Text(appModel.isRecoveringLocalServer ? "Preparing the local bridge for ChatGPT login and API key entry." : "ChatGPT login and API key entry require the local Codex bridge.")
                         .litterFont(.caption)
                         .foregroundColor(LitterTheme.textSecondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 24)
+                    Button {
+                        Task { await restartLocalServer() }
+                    } label: {
+                        Label(appModel.isRecoveringLocalServer ? "Starting Local Server" : "Restart Local Server", systemImage: "arrow.clockwise")
+                            .litterFont(.caption)
+                    }
+                    .foregroundColor(LitterTheme.accent)
+                    .buttonStyle(.borderedProminent)
+                    .tint(LitterTheme.accent)
+                    .disabled(appModel.isRecoveringLocalServer)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .navigationTitle("Account")
             .navigationBarTitleDisplayMode(.inline)
+            .task {
+                appModel.ensureLocalServerConnectedIfNeeded(reason: "account")
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
                         .foregroundColor(LitterTheme.accent)
                 }
             }
+        }
+    }
+
+    private func restartLocalServer() async {
+        do {
+            try await appModel.restartLocalServer()
+        } catch {
+            // Keep the disconnected state; user can retry.
         }
     }
 }

@@ -41,8 +41,6 @@ import com.litter.android.ui.BerkeleyMono
 import com.litter.android.ui.LitterTextStyle
 import com.litter.android.ui.LitterTheme
 import com.litter.android.ui.scaled
-import com.litter.android.util.LLog
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import uniffi.codex_mobile_client.AppStore
 import uniffi.codex_mobile_client.ApprovalDecisionValue
@@ -63,32 +61,6 @@ fun ApprovalOverlay(
     onDismissUserInput: ((String) -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
-    var submittingRequestId by remember { mutableStateOf<String?>(null) }
-    var submitError by remember { mutableStateOf<String?>(null) }
-
-    fun submitResponse(requestId: String, kind: String, action: suspend () -> Unit) {
-        scope.launch {
-            submittingRequestId = requestId
-            submitError = null
-            try {
-                action()
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                LLog.e(
-                    TAG,
-                    "$kind response failed",
-                    error,
-                    fields = mapOf("requestId" to requestId),
-                )
-                submitError = responseSubmissionErrorMessage(error)
-            } finally {
-                if (submittingRequestId == requestId) {
-                    submittingRequestId = null
-                }
-            }
-        }
-    }
 
     Box(
         modifier = Modifier
@@ -105,20 +77,11 @@ fun ApprovalOverlay(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            submitError?.let { message ->
-                Text(
-                    text = message,
-                    color = Color(0xFFFF6B6B),
-                    fontSize = LitterTextStyle.caption.scaled,
-                )
-            }
-
             for (approval in approvals) {
                 ApprovalCard(
                     approval = approval,
-                    isSubmitting = submittingRequestId == approval.id,
                     onDecision = { decision ->
-                        submitResponse(approval.id, "approval") {
+                        scope.launch {
                             appStore.respondToApproval(approval.id, decision)
                         }
                     },
@@ -128,9 +91,8 @@ fun ApprovalOverlay(
             for (input in userInputs) {
                 UserInputCard(
                     request = input,
-                    isSubmitting = submittingRequestId == input.id,
                     onSubmit = { answers ->
-                        submitResponse(input.id, "user input") {
+                        scope.launch {
                             appStore.respondToUserInput(input.id, answers)
                         }
                     },
@@ -144,7 +106,6 @@ fun ApprovalOverlay(
 @Composable
 private fun ApprovalCard(
     approval: PendingApproval,
-    isSubmitting: Boolean,
     onDecision: (ApprovalDecisionValue) -> Unit,
 ) {
     val appModel = com.litter.android.ui.LocalAppModel.current
@@ -215,21 +176,18 @@ private fun ApprovalCard(
         ) {
             OutlinedButton(
                 onClick = { onDecision(ApprovalDecisionValue.DECLINE) },
-                enabled = !isSubmitting,
                 modifier = Modifier.weight(1f),
             ) {
                 Text("Deny")
             }
             OutlinedButton(
                 onClick = { onDecision(ApprovalDecisionValue.ACCEPT_FOR_SESSION) },
-                enabled = !isSubmitting,
                 modifier = Modifier.weight(1f),
             ) {
                 Text("Allow session")
             }
             Button(
                 onClick = { onDecision(ApprovalDecisionValue.ACCEPT) },
-                enabled = !isSubmitting,
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = LitterTheme.accent,
@@ -246,7 +204,6 @@ private fun ApprovalCard(
 @Composable
 private fun UserInputCard(
     request: PendingUserInputRequest,
-    isSubmitting: Boolean,
     onSubmit: (List<PendingUserInputAnswer>) -> Unit,
     onDismiss: (() -> Unit)? = null,
 ) {
@@ -350,7 +307,6 @@ private fun UserInputCard(
                 }
                 onSubmit(answerList)
             },
-            enabled = !isSubmitting,
             colors = ButtonDefaults.buttonColors(
                 containerColor = LitterTheme.accent,
                 contentColor = Color.Black,
@@ -361,5 +317,3 @@ private fun UserInputCard(
         }
     }
 }
-
-private const val TAG = "ApprovalOverlay"

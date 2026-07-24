@@ -43,34 +43,41 @@ struct AnimatedSplashView: View {
     var body: some View {
         ZStack {
             if !compact {
-                LitterTheme.backgroundGradient.ignoresSafeArea()
+                AlleyBackdrop().ignoresSafeArea()
             }
 
-            TimelineView(.periodic(from: startDate, by: Self.frameInterval)) { timeline in
-                let t = timeline.date.timeIntervalSince(startDate)
-
-                Canvas { context, size in
-                    let factor: CGFloat = compact ? 1.0 : 0.55
-                    let s = min(size.width, size.height) * factor
-                    let scale = s / 500
-                    let ox = (size.width - s) / 2
-                    let oy = compact ? (size.height - s) / 2 : (size.height - s) / 2 - size.height * 0.05
-                    let anim = KittenAnimState(t: t, amplified: compact)
-
-                    drawLeftKitten(context: context, scale: scale, ox: ox, oy: oy, anim: anim)
-                    drawRightKitten(context: context, scale: scale, ox: ox, oy: oy, anim: anim)
-                    drawCenterKitten(context: context, scale: scale, ox: ox, oy: oy, anim: anim)
-                    drawBox(context: context, scale: scale, ox: ox, oy: oy)
-                    drawPaws(context: context, scale: scale, ox: ox, oy: oy)
-                }
-            }
-
-            if !compact {
-                VStack {
+            if compact {
+                AlleyCatMark(size: min(44, 44))
+            } else {
+                VStack(spacing: 22) {
                     Spacer()
-                    SplashCarouselText()
-                        .padding(.bottom, 80)
+                    AlleyCatMark(size: 156)
+                        .shadow(color: LitterTheme.accent.opacity(0.18), radius: 28)
+                    VStack(spacing: 7) {
+                        Text("ALLEY C\u{00C3}T")
+                            .litterFont(size: 28, weight: .bold)
+                            .tracking(1.2)
+                            .foregroundStyle(LitterTheme.textPrimary)
+                        Text("Local coding workspace")
+                            .litterFont(.subheadline)
+                            .tracking(0.2)
+                            .foregroundStyle(LitterTheme.accent)
+                    }
+                    Spacer()
+                    HStack(spacing: 8) {
+                        if appReady {
+                            Circle().fill(LitterTheme.success).frame(width: 6, height: 6)
+                        } else {
+                            ProgressView().controlSize(.small).tint(LitterTheme.accent)
+                        }
+                        Text(appReady ? "Ready" : "Starting local runtime")
+                            .litterFont(.caption, weight: .medium)
+                            .foregroundStyle(LitterTheme.textMuted)
+                    }
+                    .animation(.easeInOut(duration: 0.25), value: appReady)
+                    .padding(.bottom, 54)
                 }
+                .padding(.horizontal, 32)
             }
         }
         .onAppear { startDate = .now }
@@ -499,7 +506,7 @@ private struct SpinningWordCarousel: View {
 #if DEBUG
 #Preview("Animated Carousel Text") {
     ZStack {
-        LitterTheme.backgroundGradient.ignoresSafeArea()
+        AlleyBackdrop().ignoresSafeArea()
         SplashCarouselText()
             .padding(24)
     }

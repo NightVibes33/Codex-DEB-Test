@@ -9,7 +9,8 @@
 //!    command (`LANG`, `TMPDIR`, `CODEX_HOME`, …).
 //! 5. Snapshot host DNS into `/etc/resolv.conf` inside the fakefs.
 //! 6. Mount `<documents>/Apps/` at `/mnt/apps/` via iSH's `realfs` driver.
-//! 7. Register the `codex_core` exec hook (`ish_exec::install()`).
+//! 7. Mount native Codex home at `/mnt/codex` and bridge `/root/.codex`.
+//! 8. Register the `codex_core` exec hook (`ish_exec::install()`).
 //!
 //! After `bootstrap`, `run(cmd, cwd)` dispatches command strings through the
 //! persistent `/bin/sh` the same way `codex_ish_run` did in Obj-C.
@@ -21,8 +22,11 @@ use std::io;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
+use std::time::{Duration, Instant};
 
+use flate2::read::GzDecoder;
 use ish_embed_host::IshInstance;
+use tar::Archive;
 
 use crate::ish_types::IshBootstrapError;
 
@@ -39,6 +43,7 @@ pub const ISH_E_TIMEOUT: i32 = -8;
 pub const ISH_E_NOMEM: i32 = -9;
 pub const ISH_E_ARGS: i32 = -10;
 const BOOTSTRAP_COMMAND_TIMEOUT_MS: u64 = 10_000;
+const INSTANCE_WAIT_TIMEOUT: Duration = Duration::from_secs(60);
 const ROOTFS_STAMP_FILE: &str = ".litter-rootfs-id";
 const ROOTFS_ARCH_FILE: &str = "data/etc/apk/arch";
 const ROOTFS_ALPINE_RELEASE_FILE: &str = "data/etc/alpine-release";
@@ -51,6 +56,7 @@ impl From<ish_embed_host::IshError> for IshBootstrapError {
 }
 
 static INSTANCE: OnceLock<IshInstance> = OnceLock::new();
+static READY: OnceLock<()> = OnceLock::new();
 
 pub(crate) fn instance() -> Option<&'static IshInstance> {
     INSTANCE.get()
@@ -61,14 +67,67 @@ pub(crate) fn instance() -> Option<&'static IshInstance> {
 /// Used by the terminal session opener so a UI tap that races the on-launch
 /// bootstrap doesn't surface a misleading "iSH has not been bootstrapped"
 /// error to the user.
-pub(crate) async fn instance_or_wait(timeout: std::time::Duration) -> Option<&'static IshInstance> {
+pub(crate) async fn instance_or_wait(timeout: Duration) -> Option<&'static IshInstance> {
     if let Some(instance) = INSTANCE.get() {
         return Some(instance);
     }
-    let deadline = std::time::Instant::now() + timeout;
-    let poll = std::time::Duration::from_millis(100);
-    while std::time::Instant::now() < deadline {
+    let deadline = Instant::now() + timeout;
+    let poll = Duration::from_millis(100);
+    while Instant::now() < deadline {
         tokio::time::sleep(poll).await;
+        if let Some(instance) = INSTANCE.get() {
+            return Some(instance);
+        }
+    }
+    None
+}
+
+pub(crate) async fn ready_or_wait(timeout: Duration) -> bool {
+    if READY.get().is_some() {
+        return true;
+    }
+    let deadline = Instant::now() + timeout;
+    let poll = Duration::from_millis(100);
+    while Instant::now() < deadline {
+        tokio::time::sleep(poll).await;
+        if READY.get().is_some() {
+            return true;
+        }
+    }
+    false
+}
+
+pub(crate) async fn ready_instance_or_wait(timeout: Duration) -> Option<&'static IshInstance> {
+    if ready_or_wait(timeout).await {
+        INSTANCE.get()
+    } else {
+        None
+    }
+}
+
+fn ready_or_wait_blocking(timeout: Duration) -> bool {
+    if READY.get().is_some() {
+        return true;
+    }
+    let deadline = Instant::now() + timeout;
+    let poll = Duration::from_millis(100);
+    while Instant::now() < deadline {
+        std::thread::sleep(poll);
+        if READY.get().is_some() {
+            return true;
+        }
+    }
+    false
+}
+
+fn instance_or_wait_blocking(timeout: Duration) -> Option<&'static IshInstance> {
+    if let Some(instance) = INSTANCE.get() {
+        return Some(instance);
+    }
+    let deadline = Instant::now() + timeout;
+    let poll = Duration::from_millis(100);
+    while Instant::now() < deadline {
+        std::thread::sleep(poll);
         if let Some(instance) = INSTANCE.get() {
             return Some(instance);
         }
@@ -97,6 +156,8 @@ pub fn bootstrap(
 
     let dest = application_support_dir.join("fs");
     extract_rootfs_if_needed(bundle_fs_path, &dest)?;
+    ensure_root_home(&dest)?;
+    sanitize_root_home_volatiles(&dest)?;
 
     let meta_db = dest.join("meta.db");
     if meta_db.exists() {
@@ -119,14 +180,16 @@ pub fn bootstrap(
         .set(instance)
         .map_err(|_| IshBootstrapError::AlreadyBootstrapped)?;
 
-    // Now that INSTANCE is published, the post-init setup goes through the
-    // normal run() path, which takes the shared lock and honors the same
-    // ordering guarantees as regular command dispatch.
+    // Now that INSTANCE is published, bootstrap setup can run inside the
+    // fakefs. Public command dispatch waits for READY below so normal user
+    // commands cannot race this setup window.
     runtime_setup();
+    mount_codex_home(application_support_dir);
     write_resolv_conf();
     mount_apps_dir(documents_dir);
 
     crate::ish_exec::install();
+    let _ = READY.set(());
 
     Ok(())
 }
@@ -135,6 +198,17 @@ pub fn bootstrap(
 /// `codex_ish_default_cwd` — always `/root` (Alpine's root home).
 pub fn default_cwd() -> &'static str {
     "/root"
+}
+
+/// Diagnostic readiness check. This is available for explicit diagnostics; app launch
+/// does not gate startup on it.
+pub fn preflight() -> (i32, Vec<u8>) {
+    if READY.get().is_none() {
+        eprintln!("[ish] preflight called before bootstrap completed");
+        return (ISH_E_NOT_RUNNING, b"iSH runtime is not ready\n".to_vec());
+    }
+
+    run("true", None, Some(BOOTSTRAP_COMMAND_TIMEOUT_MS))
 }
 
 /// Run `cmd` through the persistent `/bin/sh`. When `cwd` is non-empty the
@@ -158,20 +232,53 @@ where
 {
     if crate::darksword_host_runtime::is_available() {
         return crate::darksword_host_runtime::run_streaming(
-            cmd, cwd, timeout_ms, &mut on_output,
+            cmd,
+            cwd,
+            timeout_ms,
+            &mut on_output,
         );
     }
-    let Some(instance) = INSTANCE.get() else {
+    run_streaming_inner(cmd, cwd, timeout_ms, true, on_output)
+}
+
+fn run_bootstrap_command(cmd: &str, timeout_ms: Option<u64>) -> (i32, Vec<u8>) {
+    run_streaming_inner(cmd, None, timeout_ms, false, |_| {})
+}
+
+fn run_streaming_inner<F>(
+    cmd: &str,
+    cwd: Option<&str>,
+    timeout_ms: Option<u64>,
+    require_ready: bool,
+    mut on_output: F,
+) -> (i32, Vec<u8>)
+where
+    F: FnMut(&[u8]),
+{
+    if require_ready && !ready_or_wait_blocking(INSTANCE_WAIT_TIMEOUT) {
+        eprintln!("[ish] run() called before bootstrap completed");
+        let output = b"iSH runtime is not ready\n".to_vec();
+        on_output(&output);
+        return (ISH_E_NOT_RUNNING, output);
+    }
+
+    let Some(instance) = instance_or_wait_blocking(INSTANCE_WAIT_TIMEOUT) else {
         eprintln!("[ish] run() called before bootstrap succeeded");
-        return (ISH_E_NOT_RUNNING, Vec::new());
+        let output = b"iSH runtime is not bootstrapped\n".to_vec();
+        on_output(&output);
+        return (ISH_E_NOT_RUNNING, output);
     };
 
-    // The previous embed library funnelled every command through a single
-    // persistent `/bin/sh`, so `cd` between calls leaked. The new architecture
-    // forks a fresh shell per call, so an explicit `cd && cmd` wrapper is
-    // still the right way to honour caller-supplied cwd.
+    // A restored session can point at a deleted fakefs directory. Fall back to
+    // /root instead of failing basic commands such as `pwd` before they run.
     let wrapped = match cwd {
-        Some(c) if !c.is_empty() => format!("cd {} && {}", shell_quote(c), cmd),
+        Some(c) if !c.is_empty() => format!(
+            "if cd {} 2>/dev/null; then {}; else cd {} && {}; fi",
+            shell_quote(c),
+            cmd,
+            shell_quote(default_cwd()),
+            cmd
+        ),
         _ => cmd.to_string(),
     };
 
@@ -183,13 +290,20 @@ where
 
 // ── post-init setup helpers ──────────────────────────────────────────────
 // These mirror codex_ish_runtime_setup / codex_ish_write_resolv_conf /
-// codex_ish_mount_apps_dir from IshBridge.m. They call run() internally; the
-// ish crate's own lock serializes the actual dispatches.
+// codex_ish_mount_apps_dir from IshBridge.m. They bypass the public ready
+// latch because they are the work that makes the runtime ready.
 
 const RUNTIME_SETUP_SCRIPT: &str = concat!(
-    "mkdir -p /root/.codex /tmp ;",
-    "chmod 700 /root/.codex ;",
-    "chmod 1777 /tmp",
+    "mkdir -p /dev /tmp /var/tmp /usr/local/bin /root/litter ",
+    "/root/.litter/buildkit/requests /root/.litter/builds ;",
+    "chmod 1777 /tmp /var/tmp 2>/dev/null || true ;",
+    "ensure_char_device() { path=\"$1\"; major=\"$2\"; minor=\"$3\"; mode=\"$4\"; ",
+    "if [ -c \"$path\" ]; then chmod \"$mode\" \"$path\" || true; return; fi; ",
+    "if [ -e \"$path\" ]; then rm -f \"$path\"; fi; ",
+    "mknod -m \"$mode\" \"$path\" c \"$major\" \"$minor\" 2>/dev/null || true; };",
+    "ensure_char_device /dev/null 1 3 666 ;",
+    "ensure_char_device /dev/random 1 8 666 ;",
+    "ensure_char_device /dev/urandom 1 9 666",
 );
 
 pub(crate) fn runtime_env() -> HashMap<String, String> {
@@ -209,27 +323,74 @@ pub(crate) fn runtime_env() -> HashMap<String, String> {
         ("PAGER".to_string(), "cat".to_string()),
         ("EDITOR".to_string(), "vi".to_string()),
         ("HOSTNAME".to_string(), "litter".to_string()),
-        // Symmetric with the native CODEX_HOME used by the Rust process.
-        // Tools inside iSH need a fakefs-local config path.
+        // This fakefs path is symlinked to the app's native Codex home
+        // during bootstrap, so shell-installed skills are visible to Codex.
         ("CODEX_HOME".to_string(), "/root/.codex".to_string()),
     ])
 }
 
 fn runtime_setup() {
-    let (rc, _) = run(
-        RUNTIME_SETUP_SCRIPT,
-        None,
-        Some(BOOTSTRAP_COMMAND_TIMEOUT_MS),
-    );
+    let (rc, _) = run_bootstrap_command(RUNTIME_SETUP_SCRIPT, Some(BOOTSTRAP_COMMAND_TIMEOUT_MS));
     if rc != 0 {
         eprintln!("[ish] runtime setup failed rc={rc}");
     }
 }
 
+fn mount_codex_home(application_support_dir: &Path) {
+    let codex_home = application_support_dir.join("codex");
+    if let Err(err) = fs::create_dir_all(codex_home.join("skills")) {
+        eprintln!("[ish] could not create {}: {err}", codex_home.display());
+        return;
+    }
+    let Some(codex_home_str) = codex_home.to_str() else {
+        eprintln!("[ish] CODEX_HOME dir not utf-8: {}", codex_home.display());
+        return;
+    };
+
+    let cmd = codex_home_bridge_script(codex_home_str);
+    let (rc, output) = run_bootstrap_command(&cmd, Some(BOOTSTRAP_COMMAND_TIMEOUT_MS));
+    if rc != 0 {
+        let message = String::from_utf8_lossy(&output);
+        eprintln!("[ish] mount /root/.codex bridge failed rc={rc}: {message}");
+    } else {
+        eprintln!("[ish] /root/.codex bridged to '{}'", codex_home_str);
+    }
+}
+
+fn codex_home_bridge_script(codex_home: &str) -> String {
+    format!(
+        concat!(
+            "mkdir -p /mnt/codex /tmp ;",
+            "chmod 1777 /tmp 2>/dev/null || true ;",
+            "backup= ;",
+            "if ! mount | grep ' /mnt/codex ' | grep ' type real ' >/dev/null 2>&1; then ",
+            "if [ -L /root/.codex ] && [ \"$(readlink /root/.codex 2>/dev/null || true)\" = /mnt/codex ] && [ -d /mnt/codex ]; then ",
+            "backup=\"/root/.codex.fakefs.$(date +%s)\" ; mkdir -p \"$backup\" ; cp -a /mnt/codex/. \"$backup\"/ 2>/dev/null || true ; ",
+            "elif [ -d /root/.codex ] && [ ! -L /root/.codex ]; then ",
+            "backup=\"/root/.codex.fakefs.$(date +%s)\" ; mv /root/.codex \"$backup\" 2>/dev/null || true ; ",
+            "fi ;",
+            "mount -t real {} /mnt/codex || exit $? ;",
+            "if [ -n \"$backup\" ]; then cp -a \"$backup\"/. /mnt/codex/ 2>/dev/null || true ; fi ;",
+            "fi ;",
+            "if [ -L /root/.codex ]; then rm /root/.codex; fi ;",
+            "if [ -e /root/.codex ]; then ",
+            "backup=\"/root/.codex.fakefs.$(date +%s)\" ;",
+            "mv /root/.codex \"$backup\" 2>/dev/null || rm -rf /root/.codex ;",
+            "cp -a \"$backup\"/. /mnt/codex/ 2>/dev/null || true ;",
+            "fi ;",
+            "ln -s /mnt/codex /root/.codex ;",
+            "mkdir -p /root/.codex/skills /root/.codex/skills/.system /root/.codex/plugins/cache/openai-curated ;",
+            "chmod 700 /root/.codex ;",
+            "mount | grep ' /mnt/codex ' | grep ' type real ' >/dev/null"
+        ),
+        shell_quote(codex_home)
+    )
+}
+
 fn write_resolv_conf() {
     let body = resolv_conf_body();
     let cmd = format!("printf %s {} > /etc/resolv.conf", shell_quote(&body));
-    let (rc, _) = run(&cmd, None, Some(BOOTSTRAP_COMMAND_TIMEOUT_MS));
+    let (rc, _) = run_bootstrap_command(&cmd, Some(BOOTSTRAP_COMMAND_TIMEOUT_MS));
     if rc != 0 {
         eprintln!("[ish] failed to write /etc/resolv.conf rc={rc}");
     } else {
@@ -251,7 +412,7 @@ fn mount_apps_dir(documents_dir: &Path) {
         "mkdir -p /mnt/apps && mount -t real {} /mnt/apps",
         shell_quote(apps_str)
     );
-    let (rc, _) = run(&cmd, None, Some(BOOTSTRAP_COMMAND_TIMEOUT_MS));
+    let (rc, _) = run_bootstrap_command(&cmd, Some(BOOTSTRAP_COMMAND_TIMEOUT_MS));
     if rc != 0 {
         eprintln!("[ish] mount /mnt/apps failed rc={rc}");
     } else {
@@ -262,14 +423,14 @@ fn mount_apps_dir(documents_dir: &Path) {
 // ── bundled rootfs extraction ────────────────────────────────────────────
 
 fn extract_rootfs_if_needed(source: &Path, dest: &Path) -> Result<(), IshBootstrapError> {
-    if !source.is_dir() {
+    if !source.is_dir() && !source.is_file() {
         return Err(IshBootstrapError::BundledRootfsMissing(
             source.display().to_string(),
         ));
     }
 
     if dest.is_dir() {
-        let source_identity = rootfs_identity(source)?;
+        let source_identity = bundled_rootfs_identity(source)?;
         let dest_identity = rootfs_identity(dest)?;
         if rootfs_identity_matches(source_identity.as_ref(), dest_identity.as_ref()) {
             return Ok(());
@@ -287,8 +448,21 @@ fn extract_rootfs_if_needed(source: &Path, dest: &Path) -> Result<(), IshBootstr
             dest.display()
         );
     }
-    replace_dir_recursive(source, dest)?;
+    replace_rootfs(source, dest)?;
     Ok(())
+}
+
+fn bundled_rootfs_identity(source: &Path) -> io::Result<Option<String>> {
+    if source.is_dir() {
+        return rootfs_identity(source);
+    }
+
+    if let Some(stamp) = read_trimmed_file(source.with_file_name("fs.version"))? {
+        return Ok(Some(format!("stamp:{stamp}")));
+    }
+
+    let metadata = fs::metadata(source)?;
+    Ok(Some(format!("archive-bytes:{}", metadata.len())))
 }
 
 fn rootfs_identity(root: &Path) -> io::Result<Option<String>> {
@@ -355,6 +529,14 @@ fn detect_musl_arch(root: &Path) -> Option<String> {
     None
 }
 
+fn replace_rootfs(src: &Path, dst: &Path) -> io::Result<()> {
+    if src.is_dir() {
+        replace_dir_recursive(src, dst)
+    } else {
+        replace_archive_rootfs(src, dst)
+    }
+}
+
 fn replace_dir_recursive(src: &Path, dst: &Path) -> io::Result<()> {
     if let Some(parent) = dst.parent() {
         fs::create_dir_all(parent)?;
@@ -371,6 +553,78 @@ fn replace_dir_recursive(src: &Path, dst: &Path) -> io::Result<()> {
     preserve_root_home(dst, &tmp)?;
     remove_path_if_exists(dst)?;
     fs::rename(&tmp, dst)?;
+    Ok(())
+}
+
+fn replace_archive_rootfs(src: &Path, dst: &Path) -> io::Result<()> {
+    if let Some(parent) = dst.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    let name = dst
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("fs");
+    let tmp = dst.with_file_name(format!(".{name}.tmp-{}", std::process::id()));
+
+    remove_path_if_exists(&tmp)?;
+    fs::create_dir_all(&tmp)?;
+    extract_tar_gz(src, &tmp)?;
+
+    let extracted_root = if tmp.join("fs/data").is_dir() {
+        tmp.join("fs")
+    } else {
+        tmp.clone()
+    };
+
+    preserve_root_home(dst, &extracted_root)?;
+    remove_path_if_exists(dst)?;
+    if extracted_root == tmp {
+        fs::rename(&tmp, dst)?;
+    } else {
+        fs::rename(&extracted_root, dst)?;
+        remove_path_if_exists(&tmp)?;
+    }
+
+    if let Some(stamp) = read_trimmed_file(src.with_file_name("fs.version"))? {
+        fs::write(dst.join(ROOTFS_STAMP_FILE), stamp)?;
+    }
+
+    Ok(())
+}
+
+fn extract_tar_gz(archive_path: &Path, dest: &Path) -> io::Result<()> {
+    let file = fs::File::open(archive_path)?;
+    let decoder = GzDecoder::new(file);
+    let mut archive = Archive::new(decoder);
+    let entries = archive.entries().map_err(|error| {
+        io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("reading rootfs archive {}: {error}", archive_path.display()),
+        )
+    })?;
+
+    for entry in entries {
+        let mut entry = entry.map_err(|error| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("reading rootfs archive entry: {error}"),
+            )
+        })?;
+        let unpacked = entry.unpack_in(dest).map_err(|error| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("unpacking rootfs archive into {}: {error}", dest.display()),
+            )
+        })?;
+        if !unpacked {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "rootfs archive entry attempted to unpack outside the destination",
+            ));
+        }
+    }
+
     Ok(())
 }
 
@@ -391,7 +645,54 @@ fn preserve_root_home(old_root: &Path, new_root: &Path) -> io::Result<()> {
         fs::create_dir_all(parent)?;
     }
     copy_dir_recursive(&old_home, &new_home)?;
+    quarantine_root_home_volatiles(&new_home)?;
     eprintln!("[ish] preserved /root across rootfs replacement");
+    Ok(())
+}
+
+fn ensure_root_home(rootfs: &Path) -> io::Result<()> {
+    let home = rootfs.join(ROOTFS_ROOT_HOME_DIR);
+    if !home.exists() {
+        eprintln!("[ish] extracted rootfs was missing /root; creating it before kernel boot");
+        fs::create_dir_all(&home)?;
+    }
+    if home.is_dir() {
+        let mut perms = fs::metadata(&home)?.permissions();
+        perms.set_mode(0o700);
+        if let Err(err) = fs::set_permissions(&home, perms) {
+            eprintln!("[ish] chmod 0700 on /root failed: {err}");
+        }
+    }
+    Ok(())
+}
+
+fn sanitize_root_home_volatiles(rootfs: &Path) -> io::Result<()> {
+    let home = rootfs.join(ROOTFS_ROOT_HOME_DIR);
+    if home.is_dir() {
+        quarantine_root_home_volatiles(&home)?;
+    }
+    Ok(())
+}
+
+fn quarantine_root_home_volatiles(home: &Path) -> io::Result<()> {
+    let quarantine = home.join(".litter").join("preserved-root");
+    for volatile in [".litter-buildkit", "builds", "litter"] {
+        let path = home.join(volatile);
+        if fs::symlink_metadata(&path).is_err() {
+            continue;
+        }
+        fs::create_dir_all(&quarantine)?;
+        let mut target = quarantine.join(volatile);
+        if target.exists() {
+            target = quarantine.join(format!("{}-{}", volatile, std::process::id()));
+        }
+        if let Err(err) = fs::rename(&path, &target) {
+            eprintln!("[ish] failed to quarantine /root/{volatile}: {err}; removing");
+            remove_path_if_exists(&path)?;
+        } else {
+            eprintln!("[ish] quarantined /root/{volatile} before fakefs boot");
+        }
+    }
     Ok(())
 }
 
@@ -555,5 +856,20 @@ mod tests {
     #[test]
     fn shell_quote_path_with_spaces() {
         assert_eq!(shell_quote("/var/Documents/Apps"), "'/var/Documents/Apps'");
+    }
+
+    #[test]
+    fn codex_home_bridge_script_mounts_and_preserves_existing_home() {
+        let script = codex_home_bridge_script("/var/mobile/Application Support/codex");
+
+        assert!(script.contains(
+            "mount -t real '/var/mobile/Application Support/codex' /mnt/codex"
+        ));
+        assert!(script.contains("mount | grep ' /mnt/codex ' | grep ' type real '"));
+        assert!(script.contains("readlink /root/.codex"));
+        assert!(script.contains("cp -a /mnt/codex/. \"$backup\"/"));
+        assert!(script.contains("cp -a \"$backup\"/. /mnt/codex/"));
+        assert!(script.contains("ln -s /mnt/codex /root/.codex"));
+        assert!(script.contains("mkdir -p /root/.codex/skills"));
     }
 }

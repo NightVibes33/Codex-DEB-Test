@@ -1433,6 +1433,10 @@ private struct ConversationCommandExecutionRow: View {
                     status: data.status.toolCallStatus,
                     durationText: nil
                 )
+
+                ForEach(ipaArtifacts) { artifact in
+                    BuildArtifactShareCard(artifact: artifact)
+                }
             }
         }
         .padding(.horizontal, 12)
@@ -1501,6 +1505,11 @@ private struct ConversationCommandExecutionRow: View {
             return trimmed
         }
         return data.isInProgress ? "Waiting for output…" : "No output"
+    }
+
+    private var ipaArtifacts: [BuildArtifact] {
+        guard !data.isInProgress else { return [] }
+        return BuildArtifactDetector.ipaArtifacts(in: renderedOutput)
     }
 
     private var displayedCommand: String {
@@ -1882,9 +1891,9 @@ private struct ConversationCodeReviewFindingCard: View {
             }
         }
         .padding(20)
-        .background(LitterTheme.surface.opacity(0.72), in: RoundedRectangle(cornerRadius: 22))
+        .background(LitterTheme.surface.opacity(0.72), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 22)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(LitterTheme.border.opacity(0.7), lineWidth: 1)
         )
     }
@@ -2306,7 +2315,7 @@ private struct ConversationDiffDetailSheet: View {
                     .padding(.bottom, 16)
                 }
             }
-            .background(LitterTheme.backgroundGradient.ignoresSafeArea())
+            .background(AlleyBackdrop().ignoresSafeArea())
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -2374,7 +2383,7 @@ private struct ConversationDiffDetailSheet: View {
             .contentShape(Rectangle())
             .padding(.vertical, 6)
             .padding(.horizontal, 12)
-            .background(LitterTheme.backgroundGradient)
+            .background(AlleyBackdrop())
         }
         .buttonStyle(.plain)
     }

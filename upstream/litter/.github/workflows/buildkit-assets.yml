@@ -1,0 +1,293 @@
+name: Build Private BuildKit Assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      xcode_version:
+        description: "Xcode version on the macOS runner"
+        required: true
+        default: "26.4"
+        type: string
+      swift_branch:
+        description: "Swift source release tag for the iOS toolchain build"
+        required: true
+        default: "swift-6.3.1-RELEASE"
+        type: string
+      upload_private_release:
+        description: "Upload LitterBuildKitAssets.zip to the private asset release"
+        required: true
+        default: true
+        type: boolean
+      upload_workflow_artifact:
+        description: "Also upload a short-retention Actions artifact for debugging"
+        required: true
+        default: false
+        type: boolean
+      asset_owner:
+        description: "Private GitHub owner for the asset release"
+        required: true
+        default: "NightVibes33"
+        type: string
+      asset_repo:
+        description: "Private GitHub repo for the asset release"
+        required: true
+        default: "litter-buildkit-assets"
+        type: string
+      asset_tag:
+        description: "Release tag to create/update"
+        required: true
+        default: "buildkit-ios26.4-v1"
+        type: string
+      rebuild_unsigned_ipa:
+        description: "After uploading assets, update IPA asset secrets and dispatch unsigned IPA rebuild"
+        required: true
+        default: true
+        type: boolean
+      use_existing_private_release:
+        description: "Reuse an existing verified private release asset before rebuilding Swift/LLVM"
+        required: true
+        default: true
+        type: boolean
+      force_rebuild:
+        description: "Force the multi-hour Swift/LLVM compiler rebuild when no reusable asset/cache is available"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  build-private-assets:
+    name: Build private BuildKit asset pack
+    runs-on: macos-26-intel
+    timeout-minutes: 360
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      SWIFT_BRANCH: ${{ inputs.swift_branch }}
+      IOS_DEPLOYMENT_TARGET: "18.0"
+      LITTER_BUILDKIT_NATIVE_MODE: inprocess
+      LITTER_BUILDKIT_ASSET_OWNER: ${{ inputs.asset_owner }}
+      LITTER_BUILDKIT_ASSET_REPO: ${{ inputs.asset_repo }}
+      LITTER_BUILDKIT_ASSET_TAG: ${{ inputs.asset_tag }}
+      LITTER_BUILDKIT_ASSET_RELEASE_NAME: Litter BuildKit Assets ${{ inputs.asset_tag }}
+      LITTER_BUILDKIT_ASSET_NAME: LitterBuildKitAssets-${{ github.run_id }}-${{ github.run_attempt }}.zip
+      LITTER_BUILDKIT_ASSET_PREFIX: LitterBuildKitAssets
+      LITTER_BUILDKIT_ASSET_TOKEN: ${{ secrets.LITTER_BUILDKIT_ASSET_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ inputs.xcode_version }}
+
+      - name: Show toolchain
+        id: toolchain
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          swift --version
+          SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path)"
+          SDK_VERSION="$(xcrun --sdk iphoneos --show-sdk-version)"
+          echo "sdk_path=$SDK_PATH" >> "$GITHUB_OUTPUT"
+          echo "sdk_version=$SDK_VERSION" >> "$GITHUB_OUTPUT"
+          echo "IPHONEOS_SDK_PATH=$SDK_PATH" >> "$GITHUB_ENV"
+          echo "LITTER_BUILDKIT_SDK_VERSION=$SDK_VERSION" >> "$GITHUB_ENV"
+          echo "Using iPhoneOS SDK $SDK_VERSION at $SDK_PATH"
+
+      - name: Verify Nyxian source import
+        run: |
+          set -euo pipefail
+          tools/scripts/verify-nyxian-source-import.sh
+
+      - name: Reuse existing private BuildKit release
+        id: existing_assets
+        if: inputs.use_existing_private_release == true && inputs.force_rebuild != true && inputs.upload_private_release == true
+        run: |
+          set -euo pipefail
+          if tools/scripts/download-buildkit-assets-release.sh; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            status=$?
+            if [ "$status" -eq 1 ]; then
+              exit "$status"
+            fi
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "No verified reusable private BuildKit release asset is available."
+          fi
+
+      - name: Install build dependencies
+        if: steps.existing_assets.outputs.available != 'true'
+        run: |
+          set -euo pipefail
+          brew list cmake >/dev/null 2>&1 || brew install cmake
+          brew list ninja >/dev/null 2>&1 || brew install ninja
+
+      - name: Restore finished BuildKit asset cache
+        if: steps.existing_assets.outputs.available != 'true' && inputs.force_rebuild != true
+        id: buildkit_cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ThirdParty/LLVM-On-iOS/SwiftToolchain-iphoneos
+            ThirdParty/LLVM-On-iOS/SwiftToolchain.zip
+            ThirdParty/LLVM-On-iOS/CoreCompilerSupportLibs
+            ThirdParty/LLVM-On-iOS/LLVM.xcframework
+            ThirdParty/LLVM-On-iOS/build
+            ThirdParty/Nyxian/LLVM-On-iOS/SwiftToolchain-iphoneos
+            ThirdParty/Nyxian/LLVM-On-iOS/SwiftToolchain.zip
+            ThirdParty/Nyxian/LLVM-On-iOS/CoreCompilerSupportLibs
+            ThirdParty/Nyxian/LLVM-On-iOS/LLVM.xcframework
+            ThirdParty/Nyxian/LLVM-On-iOS/build
+            ThirdParty/Nyxian/CoreCompiler/CoreCompilerSupportLibs
+            artifacts/buildkit/DerivedData-Nyxian
+            artifacts/buildkit/LitterBuildKitNative.framework
+            artifacts/buildkit/LitterBuildKitAssets
+            artifacts/buildkit/LitterBuildKitAssets.zip
+          key: buildkit-assets-${{ runner.os }}-xcode-${{ inputs.xcode_version }}-sdk-${{ steps.toolchain.outputs.sdk_version }}-swift-${{ inputs.swift_branch }}-${{ hashFiles('ThirdParty/LLVM-On-iOS/**', 'ThirdParty/Nyxian/CoreCompiler/**', 'ThirdParty/Nyxian/MobileDevelopmentKit/**', 'ThirdParty/Nyxian/LitterBuildKitNative/**', 'ThirdParty/Feather/Zsign-Package/**', 'ThirdParty/Nyxian/Nyxian.xcodeproj/project.pbxproj', 'tools/scripts/build-nyxian-buildkit-assets.sh', 'tools/scripts/build-litter-buildkit-native.sh', 'tools/scripts/package-buildkit-assets.sh', 'tools/scripts/verify-nyxian-buildkit-assets.sh', 'tools/scripts/buildkit-native-source-fingerprint.sh') }}
+          restore-keys: |
+            buildkit-assets-${{ runner.os }}-xcode-${{ inputs.xcode_version }}-sdk-${{ steps.toolchain.outputs.sdk_version }}-swift-${{ inputs.swift_branch }}-
+            buildkit-partial-${{ runner.os }}-xcode-${{ inputs.xcode_version }}-sdk-${{ steps.toolchain.outputs.sdk_version }}-swift-${{ inputs.swift_branch }}-
+
+      - name: Restore partial BuildKit compiler cache
+        if: steps.existing_assets.outputs.available != 'true' && inputs.force_rebuild == true
+        id: buildkit_partial_cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ThirdParty/LLVM-On-iOS/SwiftToolchain-iphoneos
+            ThirdParty/LLVM-On-iOS/SwiftToolchain.zip
+            ThirdParty/LLVM-On-iOS/CoreCompilerSupportLibs
+            ThirdParty/LLVM-On-iOS/LLVM.xcframework
+            ThirdParty/LLVM-On-iOS/build
+            ThirdParty/Nyxian/LLVM-On-iOS/SwiftToolchain-iphoneos
+            ThirdParty/Nyxian/LLVM-On-iOS/SwiftToolchain.zip
+            ThirdParty/Nyxian/LLVM-On-iOS/CoreCompilerSupportLibs
+            ThirdParty/Nyxian/LLVM-On-iOS/LLVM.xcframework
+            ThirdParty/Nyxian/LLVM-On-iOS/build
+            ThirdParty/Nyxian/CoreCompiler/CoreCompilerSupportLibs
+            artifacts/buildkit/DerivedData-Nyxian
+            artifacts/buildkit/LitterBuildKitNative.framework
+            artifacts/buildkit/LitterBuildKitAssets
+            artifacts/buildkit/LitterBuildKitAssets.zip
+          key: buildkit-partial-${{ runner.os }}-xcode-${{ inputs.xcode_version }}-sdk-${{ steps.toolchain.outputs.sdk_version }}-swift-${{ inputs.swift_branch }}-${{ hashFiles('ThirdParty/LLVM-On-iOS/**', 'ThirdParty/Nyxian/CoreCompiler/**', 'ThirdParty/Nyxian/MobileDevelopmentKit/**', 'ThirdParty/Nyxian/LitterBuildKitNative/**', 'ThirdParty/Feather/Zsign-Package/**', 'ThirdParty/Nyxian/Nyxian.xcodeproj/project.pbxproj', 'tools/scripts/build-nyxian-buildkit-assets.sh', 'tools/scripts/build-litter-buildkit-native.sh', 'tools/scripts/package-buildkit-assets.sh', 'tools/scripts/verify-nyxian-buildkit-assets.sh', 'tools/scripts/buildkit-native-source-fingerprint.sh') }}
+          restore-keys: |
+            buildkit-partial-${{ runner.os }}-xcode-${{ inputs.xcode_version }}-sdk-${{ steps.toolchain.outputs.sdk_version }}-swift-${{ inputs.swift_branch }}-
+
+      - name: Check cached asset pack
+        id: cached_assets
+        if: steps.existing_assets.outputs.available != 'true' && inputs.force_rebuild != true
+        run: |
+          set -euo pipefail
+          if [ -f artifacts/buildkit/LitterBuildKitAssets.zip ]; then
+            tools/scripts/verify-nyxian-buildkit-assets.sh artifacts/buildkit/LitterBuildKitAssets.zip
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fail when BuildKit assets are unavailable and rebuild is disabled
+        if: steps.existing_assets.outputs.available != 'true' && steps.cached_assets.outputs.available != 'true' && inputs.force_rebuild != true
+        run: |
+          set -euo pipefail
+          echo "::error::No verified private BuildKit release asset or cache is available, and force_rebuild=false."
+          echo "Re-run this workflow with force_rebuild=true to build the private Swift/LLVM assets."
+          {
+            echo "### BuildKit assets unavailable"
+            echo
+            echo "No verified private release asset or cache was available, and `force_rebuild=false` prevented rebuilding."
+            echo "Re-run with `force_rebuild=true` to build the private Swift/LLVM assets."
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+      - name: Build private BuildKit assets
+        id: build_assets
+        if: steps.existing_assets.outputs.available != 'true' && steps.cached_assets.outputs.available != 'true' && inputs.force_rebuild == true
+        run: |
+          set -euo pipefail
+          time tools/scripts/build-nyxian-buildkit-assets.sh
+
+      - name: Save partial BuildKit compiler cache
+        if: always() && !cancelled() && inputs.force_rebuild == true && steps.existing_assets.outputs.available != 'true' && steps.cached_assets.outputs.available != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ThirdParty/LLVM-On-iOS/SwiftToolchain-iphoneos
+            ThirdParty/LLVM-On-iOS/SwiftToolchain.zip
+            ThirdParty/LLVM-On-iOS/CoreCompilerSupportLibs
+            ThirdParty/LLVM-On-iOS/LLVM.xcframework
+            ThirdParty/LLVM-On-iOS/build
+            ThirdParty/Nyxian/LLVM-On-iOS/SwiftToolchain-iphoneos
+            ThirdParty/Nyxian/LLVM-On-iOS/SwiftToolchain.zip
+            ThirdParty/Nyxian/LLVM-On-iOS/CoreCompilerSupportLibs
+            ThirdParty/Nyxian/LLVM-On-iOS/LLVM.xcframework
+            ThirdParty/Nyxian/LLVM-On-iOS/build
+            ThirdParty/Nyxian/CoreCompiler/CoreCompilerSupportLibs
+            artifacts/buildkit/DerivedData-Nyxian
+            artifacts/buildkit/LitterBuildKitNative.framework
+            artifacts/buildkit/LitterBuildKitAssets
+            artifacts/buildkit/LitterBuildKitAssets.zip
+          key: buildkit-partial-${{ runner.os }}-xcode-${{ inputs.xcode_version }}-sdk-${{ steps.toolchain.outputs.sdk_version }}-swift-${{ inputs.swift_branch }}-${{ hashFiles('ThirdParty/LLVM-On-iOS/**', 'ThirdParty/Nyxian/CoreCompiler/**', 'ThirdParty/Nyxian/MobileDevelopmentKit/**', 'ThirdParty/Nyxian/LitterBuildKitNative/**', 'ThirdParty/Feather/Zsign-Package/**', 'ThirdParty/Nyxian/Nyxian.xcodeproj/project.pbxproj', 'tools/scripts/build-nyxian-buildkit-assets.sh', 'tools/scripts/build-litter-buildkit-native.sh', 'tools/scripts/package-buildkit-assets.sh', 'tools/scripts/verify-nyxian-buildkit-assets.sh', 'tools/scripts/buildkit-native-source-fingerprint.sh') }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Verify private BuildKit assets
+        if: steps.existing_assets.outputs.available == 'true' || steps.cached_assets.outputs.available == 'true' || steps.build_assets.outcome == 'success'
+        run: |
+          set -euo pipefail
+          tools/scripts/verify-nyxian-buildkit-assets.sh artifacts/buildkit/LitterBuildKitAssets.zip
+          shasum -a 256 artifacts/buildkit/LitterBuildKitAssets.zip | tee artifacts/buildkit/LitterBuildKitAssets.zip.sha256
+          du -sh artifacts/buildkit/LitterBuildKitAssets artifacts/buildkit/LitterBuildKitAssets.zip
+
+      - name: Upload short-retention workflow artifact
+        if: inputs.upload_workflow_artifact == true && (steps.existing_assets.outputs.available == 'true' || steps.cached_assets.outputs.available == 'true' || steps.build_assets.outcome == 'success')
+        uses: actions/upload-artifact@v4
+        with:
+          name: LitterBuildKitAssets-${{ steps.toolchain.outputs.sdk_version }}
+          path: |
+            artifacts/buildkit/LitterBuildKitAssets.zip
+            artifacts/buildkit/LitterBuildKitAssets.zip.sha256
+          retention-days: 1
+
+      - name: Upload private release assets
+        if: inputs.upload_private_release == true && steps.existing_assets.outputs.available != 'true' && (steps.cached_assets.outputs.available == 'true' || steps.build_assets.outcome == 'success')
+        run: |
+          set -euo pipefail
+          if [ -z "${LITTER_BUILDKIT_ASSET_TOKEN:-}" ]; then
+            echo "error: upload_private_release=true requires the LITTER_BUILDKIT_ASSET_TOKEN secret." >&2
+            exit 1
+          fi
+          tools/scripts/upload-buildkit-assets-release.sh | tee artifacts/buildkit/private-release-upload.txt
+
+      - name: Link private assets to unsigned IPA workflow
+        if: inputs.upload_private_release == true && inputs.rebuild_unsigned_ipa == true && (steps.existing_assets.outputs.available == 'true' || steps.cached_assets.outputs.available == 'true' || steps.build_assets.outcome == 'success')
+        env:
+          GH_TOKEN: ${{ secrets.LITTER_BUILDKIT_ASSET_TOKEN }}
+        run: |
+          set -euo pipefail
+          ASSET_URL="$(awk -F= '/LITTER_BUILDKIT_ASSET_URL=/{print $2}' artifacts/buildkit/private-release-upload.txt | tail -n 1)"
+          ASSET_SHA256="$(awk -F= '/LITTER_BUILDKIT_ASSET_SHA256=/{print $2}' artifacts/buildkit/private-release-upload.txt | tail -n 1)"
+          if [ -z "$ASSET_URL" ] || [ -z "$ASSET_SHA256" ]; then
+            echo "error: upload step did not print asset URL/SHA values" >&2
+            cat artifacts/buildkit/private-release-upload.txt >&2
+            exit 1
+          fi
+          gh secret set LITTER_BUILDKIT_ASSET_URL --repo "$GITHUB_REPOSITORY" --body "$ASSET_URL"
+          gh secret set LITTER_BUILDKIT_ASSET_SHA256 --repo "$GITHUB_REPOSITORY" --body "$ASSET_SHA256"
+          DISPATCH_REF="${GITHUB_REF_NAME:-main}"
+          gh workflow run ios-unsigned-ipa.yml --repo "$GITHUB_REPOSITORY" --ref "$DISPATCH_REF" -f build_mode=nyxian-private
+          echo "Linked BuildKit assets and dispatched nyxian-private unsigned IPA rebuild on $DISPATCH_REF."
+
+      - name: Print unsigned IPA secret values
+        if: inputs.upload_private_release == true && (steps.existing_assets.outputs.available == 'true' || steps.cached_assets.outputs.available == 'true' || steps.build_assets.outcome == 'success')
+        run: |
+          set -euo pipefail
+          echo "Private BuildKit release upload output:"
+          cat artifacts/buildkit/private-release-upload.txt
+          echo "Required unsigned IPA workflow secrets:"
+          echo "- LITTER_BUILDKIT_ASSET_URL"
+          echo "- LITTER_BUILDKIT_ASSET_SHA256"
+          echo "- LITTER_BUILDKIT_ASSET_TOKEN"

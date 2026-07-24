@@ -1,8 +1,24 @@
 use std::collections::HashMap;
+use std::io;
 use std::path::Path;
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
+
+use base64::Engine as _;
+use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
+use codex_exec_server::CopyOptions;
+use codex_exec_server::CreateDirectoryOptions;
+use codex_exec_server::ExecutorFileSystem;
+use codex_exec_server::FileMetadata;
+use codex_exec_server::FileSystemReadStream;
+use codex_exec_server::FileSystemResult;
+use codex_exec_server::FileSystemSandboxContext;
+use codex_exec_server::ReadDirectoryEntry;
+use codex_exec_server::RemoveOptions;
+use codex_utils_absolute_path::AbsolutePathBuf;
+use codex_utils_path_uri::PathUri;
 
 use crate::mobile_exec_command::mobile_system_command;
+use crate::shell_quoting::posix_quote;
 
 static ISH_EXEC_HOOK_INSTALLED: OnceLock<()> = OnceLock::new();
 
@@ -21,72 +37,15 @@ pub(crate) fn run_command(
     timeout_ms: Option<u64>,
 ) -> (i32, Vec<u8>) {
     // Run apply_patch in-process since iSH cannot exec the app binary.
-    if argv
-        .iter()
-        .any(|arg| arg == codex_apply_patch::CODEX_CORE_APPLY_PATCH_ARG1)
-    {
-        let patch_arg = argv
-            .iter()
-            .skip_while(|arg| *arg != codex_apply_patch::CODEX_CORE_APPLY_PATCH_ARG1)
-            .nth(1);
-        if let Some(patch) = patch_arg {
-            eprintln!("[ish-exec] apply_patch in-process (cwd={})", cwd.display());
-            let cwd_abs = match codex_utils_absolute_path::AbsolutePathBuf::from_absolute_path(cwd)
-            {
-                Ok(abs) => abs,
-                Err(err) => {
-                    let msg = format!("invalid cwd for apply_patch: {err}\n");
-                    eprintln!("[ish-exec] apply_patch setup error: {err}");
-                    return (1, msg.into_bytes());
-                }
-            };
-            let mut stdout_buf = Vec::new();
-            let mut stderr_buf = Vec::new();
-            let fs = codex_exec_server::LOCAL_FS.clone();
-            let runtime = match tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build()
-            {
-                Ok(rt) => rt,
-                Err(err) => {
-                    let msg = format!("build tokio runtime for apply_patch: {err}\n");
-                    eprintln!("[ish-exec] apply_patch runtime error: {err}");
-                    return (1, msg.into_bytes());
-                }
-            };
-            let result = runtime.block_on(codex_apply_patch::apply_patch(
-                patch,
-                &cwd_abs,
-                &mut stdout_buf,
-                &mut stderr_buf,
-                fs.as_ref(),
-                None,
-            ));
-            let code = match result {
-                Ok(_) => 0,
-                Err(err) => {
-                    eprintln!("[ish-exec] apply_patch error: {err}");
-                    if stderr_buf.is_empty() {
-                        stderr_buf = format!("{err}\n").into_bytes();
-                    }
-                    1
-                }
-            };
-            let mut output = stdout_buf;
-            output.extend_from_slice(&stderr_buf);
-            eprintln!(
-                "[ish-exec] apply_patch exit={code} output_len={}",
-                output.len()
-            );
-            return (code, output);
-        }
+    if is_apply_patch_invocation(argv) {
+        return run_apply_patch_in_process(argv, cwd);
     }
 
     let cmd = mobile_system_command(argv);
     eprintln!("[ish-exec] run: {cmd} (cwd={})", cwd.display());
 
-    let cwd_str = cwd.to_string_lossy();
-    let (code, output) = crate::ish_runtime::run(&cmd, Some(cwd_str.as_ref()), timeout_ms);
+    let cwd_str = fakefs_cwd_string(cwd);
+    let (code, output) = crate::ish_runtime::run(&cmd, Some(cwd_str.as_str()), timeout_ms);
 
     let preview = String::from_utf8_lossy(&output);
     let preview = if preview.len() > 200 {
@@ -105,16 +64,13 @@ pub(crate) fn run_command(
 pub(crate) fn run_command_streaming(
     argv: &[String],
     cwd: &Path,
-    _env: &HashMap<String, String>,
+    env: &HashMap<String, String>,
     timeout_ms: Option<u64>,
     on_output: codex_core::exec::IosExecOutputHandler,
 ) -> (i32, Vec<u8>) {
     // Run apply_patch in-process since iSH cannot exec the app binary.
-    if argv
-        .iter()
-        .any(|arg| arg == codex_apply_patch::CODEX_CORE_APPLY_PATCH_ARG1)
-    {
-        let (code, output) = run_command(argv, cwd, _env, timeout_ms);
+    if is_apply_patch_invocation(argv) {
+        let (code, output) = run_command(argv, cwd, env, timeout_ms);
         if !output.is_empty() {
             on_output(output.clone());
         }
@@ -124,9 +80,9 @@ pub(crate) fn run_command_streaming(
     let cmd = mobile_system_command(argv);
     eprintln!("[ish-exec] run(streaming): {cmd} (cwd={})", cwd.display());
 
-    let cwd_str = cwd.to_string_lossy();
+    let cwd_str = fakefs_cwd_string(cwd);
     let (code, output) =
-        crate::ish_runtime::run_streaming(&cmd, Some(cwd_str.as_ref()), timeout_ms, |chunk| {
+        crate::ish_runtime::run_streaming(&cmd, Some(cwd_str.as_str()), timeout_ms, |chunk| {
             if !chunk.is_empty() {
                 on_output(chunk.to_vec());
             }
@@ -144,4 +100,368 @@ pub(crate) fn run_command_streaming(
     );
 
     (code, output)
+}
+
+fn fakefs_cwd_string(cwd: &Path) -> String {
+    fakefs_cwd_path(cwd).to_string_lossy().into_owned()
+}
+
+fn fakefs_cwd_path(cwd: &Path) -> std::path::PathBuf {
+    let cwd_string = cwd.to_string_lossy();
+    if cwd_string.is_empty() || is_ios_host_path(&cwd_string) {
+        return std::path::PathBuf::from(crate::ish_runtime::default_cwd());
+    }
+    cwd.to_path_buf()
+}
+
+fn is_ios_host_path(path: &str) -> bool {
+    path.starts_with("/private/")
+        || path.starts_with("/var/")
+        || path.starts_with("/Users/")
+        || path.starts_with("/Library/")
+        || path.starts_with("/System/")
+        || path.starts_with("/Applications/")
+}
+
+fn is_apply_patch_invocation(argv: &[String]) -> bool {
+    argv.iter()
+        .any(|arg| arg == codex_apply_patch::CODEX_CORE_APPLY_PATCH_ARG1)
+}
+
+fn run_apply_patch_in_process(argv: &[String], cwd: &Path) -> (i32, Vec<u8>) {
+    let patch_arg = argv
+        .iter()
+        .skip_while(|arg| *arg != codex_apply_patch::CODEX_CORE_APPLY_PATCH_ARG1)
+        .nth(1);
+    let Some(patch) = patch_arg else {
+        return (1, b"missing apply_patch payload\n".to_vec());
+    };
+
+    let fakefs_cwd = fakefs_cwd_path(cwd);
+    eprintln!(
+        "[ish-exec] apply_patch in-process (cwd={} fakefs_cwd={})",
+        cwd.display(),
+        fakefs_cwd.display()
+    );
+    let cwd_abs = match AbsolutePathBuf::from_absolute_path(&fakefs_cwd) {
+        Ok(abs) => abs,
+        Err(err) => {
+            let msg = format!("invalid cwd for apply_patch: {err}\n");
+            eprintln!("[ish-exec] apply_patch setup error: {err}");
+            return (1, msg.into_bytes());
+        }
+    };
+    let cwd_uri = PathUri::from_abs_path(&cwd_abs);
+    let mut stdout_buf = Vec::new();
+    let mut stderr_buf = Vec::new();
+    let fs = IshFakefsFileSystem;
+    let runtime = match tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+    {
+        Ok(rt) => rt,
+        Err(err) => {
+            let msg = format!("build tokio runtime for apply_patch: {err}\n");
+            eprintln!("[ish-exec] apply_patch runtime error: {err}");
+            return (1, msg.into_bytes());
+        }
+    };
+    let result = runtime.block_on(codex_apply_patch::apply_patch(
+        patch,
+        &cwd_uri,
+        &mut stdout_buf,
+        &mut stderr_buf,
+        &fs,
+        None,
+    ));
+    let code = match result {
+        Ok(_) => 0,
+        Err(err) => {
+            eprintln!("[ish-exec] apply_patch error: {err}");
+            if stderr_buf.is_empty() {
+                stderr_buf = format!("{err}\n").into_bytes();
+            }
+            1
+        }
+    };
+    let mut output = stdout_buf;
+    output.extend_from_slice(&stderr_buf);
+    eprintln!(
+        "[ish-exec] apply_patch exit={code} output_len={}",
+        output.len()
+    );
+    (code, output)
+}
+
+pub(crate) fn fakefs_file_system() -> Arc<dyn ExecutorFileSystem> {
+    Arc::new(IshFakefsFileSystem)
+}
+
+pub(crate) struct IshFakefsFileSystem;
+
+impl ExecutorFileSystem for IshFakefsFileSystem {
+    fn canonicalize<'a>(
+        &'a self,
+        path: &'a PathUri,
+        sandbox: Option<&'a FileSystemSandboxContext>,
+    ) -> codex_exec_server::ExecutorFileSystemFuture<'a, PathUri> {
+        Box::pin(async move {
+            accept_fakefs_sandbox_context(sandbox)?;
+            Ok(path.clone())
+        })
+    }
+
+    fn read_file<'a>(
+        &'a self,
+        path: &'a PathUri,
+        sandbox: Option<&'a FileSystemSandboxContext>,
+    ) -> codex_exec_server::ExecutorFileSystemFuture<'a, Vec<u8>> {
+        Box::pin(async move {
+        accept_fakefs_sandbox_context(sandbox)?;
+        let path = path_string(path);
+        let command = format!("base64 < {}", posix_quote(&path));
+        let output = run_ish_fs_command("read_file", &command)?;
+        let encoded = String::from_utf8_lossy(&output)
+            .chars()
+            .filter(|ch| !ch.is_ascii_whitespace())
+            .collect::<String>();
+        BASE64_STANDARD
+            .decode(encoded.as_bytes())
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))
+        })
+    }
+
+    fn read_file_stream<'a>(
+        &'a self,
+        path: &'a PathUri,
+        sandbox: Option<&'a FileSystemSandboxContext>,
+    ) -> codex_exec_server::ExecutorFileSystemFuture<'a, FileSystemReadStream> {
+        Box::pin(async move {
+            let bytes = self.read_file(path, sandbox).await?;
+            Ok(FileSystemReadStream::new(futures::stream::once(async move {
+                Ok(bytes::Bytes::from(bytes))
+            })))
+        })
+    }
+
+    fn write_file<'a>(
+        &'a self,
+        path: &'a PathUri,
+        contents: Vec<u8>,
+        sandbox: Option<&'a FileSystemSandboxContext>,
+    ) -> codex_exec_server::ExecutorFileSystemFuture<'a, ()> {
+        Box::pin(async move {
+        accept_fakefs_sandbox_context(sandbox)?;
+        let path = path_string(path);
+        let encoded = BASE64_STANDARD.encode(contents);
+        let command = format!(
+            "base64 -d > {} <<'LITTER_APPLY_PATCH_B64'\n{}\nLITTER_APPLY_PATCH_B64\n",
+            posix_quote(&path),
+            encoded
+        );
+        run_ish_fs_command("write_file", &command).map(|_| ())
+        })
+    }
+
+    fn create_directory<'a>(
+        &'a self,
+        path: &'a PathUri,
+        options: CreateDirectoryOptions,
+        sandbox: Option<&'a FileSystemSandboxContext>,
+    ) -> codex_exec_server::ExecutorFileSystemFuture<'a, ()> {
+        Box::pin(async move {
+        accept_fakefs_sandbox_context(sandbox)?;
+        let path = path_string(path);
+        let command = if options.recursive {
+            format!("mkdir -p {}", posix_quote(&path))
+        } else {
+            format!("mkdir {}", posix_quote(&path))
+        };
+        run_ish_fs_command("create_directory", &command).map(|_| ())
+        })
+    }
+
+    fn get_metadata<'a>(
+        &'a self,
+        path: &'a PathUri,
+        sandbox: Option<&'a FileSystemSandboxContext>,
+    ) -> codex_exec_server::ExecutorFileSystemFuture<'a, FileMetadata> {
+        Box::pin(async move {
+        accept_fakefs_sandbox_context(sandbox)?;
+        let path = path_string(path);
+        let command = format!(
+            "p={}; if [ ! -e \"$p\" ] && [ ! -L \"$p\" ]; then exit 2; fi; \
+             if [ -d \"$p\" ]; then echo is_directory=1; else echo is_directory=0; fi; \
+             if [ -f \"$p\" ]; then echo is_file=1; else echo is_file=0; fi; \
+             if [ -L \"$p\" ]; then echo is_symlink=1; else echo is_symlink=0; fi; \
+             modified=$(stat -c %Y \"$p\" 2>/dev/null || echo 0); \
+             size=$(stat -c %s \"$p\" 2>/dev/null || echo 0); \
+             case \"$modified\" in ''|*[!0-9]*) modified=0;; esac; \
+             case \"$size\" in ''|*[!0-9]*) size=0;; esac; \
+             echo created_at_ms=0; echo modified_at_ms=$((modified * 1000)); echo size=$size",
+            posix_quote(&path)
+        );
+        let output = run_ish_fs_command("get_metadata", &command)?;
+        let fields = parse_key_value_output(&output);
+        Ok(FileMetadata {
+            is_directory: fields.get("is_directory").is_some_and(|value| value == "1"),
+            is_file: fields.get("is_file").is_some_and(|value| value == "1"),
+            is_symlink: fields.get("is_symlink").is_some_and(|value| value == "1"),
+            created_at_ms: fields
+                .get("created_at_ms")
+                .and_then(|value| value.parse().ok())
+                .unwrap_or(0),
+            modified_at_ms: fields
+                .get("modified_at_ms")
+                .and_then(|value| value.parse().ok())
+                .unwrap_or(0),
+            size: fields
+                .get("size")
+                .and_then(|value| value.parse().ok())
+                .unwrap_or(0),
+        })
+        })
+    }
+
+    fn read_directory<'a>(
+        &'a self,
+        path: &'a PathUri,
+        sandbox: Option<&'a FileSystemSandboxContext>,
+    ) -> codex_exec_server::ExecutorFileSystemFuture<'a, Vec<ReadDirectoryEntry>> {
+        Box::pin(async move {
+        accept_fakefs_sandbox_context(sandbox)?;
+        let path = path_string(path);
+        let command = format!(
+            "p={}; [ -d \"$p\" ] || exit 2; \
+             for child in \"$p\"/* \"$p\"/.[!.]* \"$p\"/..?*; do \
+               [ -e \"$child\" ] || [ -L \"$child\" ] || continue; \
+               name=${{child##*/}}; d=0; f=0; \
+               [ -d \"$child\" ] && d=1; [ -f \"$child\" ] && f=1; \
+               printf '%s\t%s\t%s\n' \"$(printf '%s' \"$name\" | base64 | tr -d '\n')\" \"$d\" \"$f\"; \
+             done",
+            posix_quote(&path)
+        );
+        let output = run_ish_fs_command("read_directory", &command)?;
+        let mut entries = Vec::new();
+        for line in String::from_utf8_lossy(&output).lines() {
+            let mut parts = line.split('\t');
+            let Some(name_b64) = parts.next() else { continue };
+            let Some(is_directory) = parts.next() else { continue };
+            let Some(is_file) = parts.next() else { continue };
+            let Ok(name_bytes) = BASE64_STANDARD.decode(name_b64.as_bytes()) else {
+                continue;
+            };
+            entries.push(ReadDirectoryEntry {
+                file_name: String::from_utf8_lossy(&name_bytes).into_owned(),
+                is_directory: is_directory == "1",
+                is_file: is_file == "1",
+            });
+        }
+        Ok(entries)
+        })
+    }
+
+    fn remove<'a>(
+        &'a self,
+        path: &'a PathUri,
+        options: RemoveOptions,
+        sandbox: Option<&'a FileSystemSandboxContext>,
+    ) -> codex_exec_server::ExecutorFileSystemFuture<'a, ()> {
+        Box::pin(async move {
+        accept_fakefs_sandbox_context(sandbox)?;
+        let path = path_string(path);
+        let missing_branch = if options.force { "exit 0" } else { "exit 2" };
+        let command = if options.recursive {
+            format!(
+                "p={}; if [ ! -e \"$p\" ] && [ ! -L \"$p\" ]; then {}; fi; rm -rf \"$p\"",
+                posix_quote(&path),
+                missing_branch
+            )
+        } else {
+            format!(
+                "p={}; if [ ! -e \"$p\" ] && [ ! -L \"$p\" ]; then {}; fi; if [ -d \"$p\" ] && [ ! -L \"$p\" ]; then rmdir \"$p\"; else rm \"$p\"; fi",
+                posix_quote(&path),
+                missing_branch
+            )
+        };
+        run_ish_fs_command("remove", &command).map(|_| ())
+        })
+    }
+
+    fn copy<'a>(
+        &'a self,
+        source_path: &'a PathUri,
+        destination_path: &'a PathUri,
+        options: CopyOptions,
+        sandbox: Option<&'a FileSystemSandboxContext>,
+    ) -> codex_exec_server::ExecutorFileSystemFuture<'a, ()> {
+        Box::pin(async move {
+        accept_fakefs_sandbox_context(sandbox)?;
+        let source_path = path_string(source_path);
+        let destination_path = path_string(destination_path);
+        let command = if options.recursive {
+            format!(
+                "cp -R {} {}",
+                posix_quote(&source_path),
+                posix_quote(&destination_path)
+            )
+        } else {
+            format!(
+                "cp {} {}",
+                posix_quote(&source_path),
+                posix_quote(&destination_path)
+            )
+        };
+        run_ish_fs_command("copy", &command).map(|_| ())
+        })
+    }
+}
+
+fn accept_fakefs_sandbox_context(
+    _sandbox: Option<&FileSystemSandboxContext>,
+) -> FileSystemResult<()> {
+    Ok(())
+}
+
+fn path_string(path: &PathUri) -> String {
+    path.to_path_buf().to_string_lossy().into_owned()
+}
+
+fn run_ish_fs_command(operation: &str, command: &str) -> FileSystemResult<Vec<u8>> {
+    let (code, output) = crate::ish_runtime::run(command, None, Some(30_000));
+    if code == 0 {
+        return Ok(output);
+    }
+    Err(ish_fs_error(operation, code, &output))
+}
+
+fn ish_fs_error(operation: &str, code: i32, output: &[u8]) -> io::Error {
+    if code == crate::ish_runtime::ISH_E_NOT_RUNNING {
+        return io::Error::new(
+            io::ErrorKind::NotFound,
+            "patch-filesystem-not-mounted: iSH fakefs is not bootstrapped",
+        );
+    }
+    let detail = String::from_utf8_lossy(output).trim().to_string();
+    let message = if detail.is_empty() {
+        format!("patch-filesystem-command-failed: {operation} exited {code}")
+    } else {
+        format!("patch-filesystem-command-failed: {operation} exited {code}: {detail}")
+    };
+    let kind = match code {
+        2 => io::ErrorKind::NotFound,
+        13 => io::ErrorKind::PermissionDenied,
+        _ => io::ErrorKind::Other,
+    };
+    io::Error::new(kind, message)
+}
+
+fn parse_key_value_output(output: &[u8]) -> HashMap<String, String> {
+    String::from_utf8_lossy(output)
+        .lines()
+        .filter_map(|line| {
+            let (key, value) = line.split_once('=')?;
+            Some((key.to_string(), value.to_string()))
+        })
+        .collect()
 }

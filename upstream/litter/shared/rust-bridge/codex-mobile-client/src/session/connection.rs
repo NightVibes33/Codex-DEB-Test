@@ -367,6 +367,19 @@ fn init_ios_tls_roots(codex_home: &std::path::Path) -> Result<(), TransportError
     Ok(())
 }
 
+fn in_process_fallback_cwd(working_dir: &std::path::Path) -> PathBuf {
+    #[cfg(all(target_os = "ios", not(target_abi = "macabi")))]
+    {
+        let _ = working_dir;
+        PathBuf::from(crate::ish_runtime::default_cwd())
+    }
+
+    #[cfg(not(all(target_os = "ios", not(target_abi = "macabi"))))]
+    {
+        working_dir.to_path_buf()
+    }
+}
+
 // ---------------------------------------------------------------------------
 // ServerConfig
 // ---------------------------------------------------------------------------
@@ -582,17 +595,23 @@ impl ServerSession {
         use codex_app_server::in_process::InProcessStartArgs;
         use codex_app_server_protocol::{ClientInfo, InitializeCapabilities, InitializeParams};
         use codex_arg0::Arg0DispatchPaths;
-        use codex_cloud_requirements::cloud_requirements_loader;
+        use codex_config::CloudConfigBundleLoader;
         use codex_config::LoaderOverrides;
         use codex_core::config::ConfigBuilder;
         use codex_feedback::CodexFeedback;
-        use codex_login::AuthManager;
         use codex_protocol::protocol::SessionSource;
 
         let (health_tx, health_rx) = watch::channel(ConnectionHealth::Connecting {
             attempt: 1,
             max_attempts: 1,
         });
+
+        #[cfg(all(target_os = "ios", not(target_abi = "macabi")))]
+        if !crate::ish_runtime::ready_or_wait(Duration::from_secs(60)).await {
+            return Err(TransportError::ConnectionFailed(
+                "iSH runtime did not finish bootstrapping before local Codex server start".to_string(),
+            ));
+        }
 
         let in_process = prepare_in_process_config(in_process)?;
 
@@ -621,6 +640,9 @@ impl ServerSession {
         let mut cli_overrides = vec![
             ("features.goals".to_string(), true.into()),
             ("features.realtime_conversation".to_string(), true.into()),
+            // iOS cannot spawn Codex's separate code-mode host executable from
+            // the app bundle in TestFlight. Keep mobile on the in-process path.
+            ("features.code_mode_host".to_string(), false.into()),
             (
                 "experimental_realtime_ws_model".to_string(),
                 "gpt-realtime-2".to_string().into(),
@@ -640,39 +662,27 @@ impl ServerSession {
             base_builder = base_builder.codex_home(codex_home.clone());
         }
         if let Some(ref working_dir) = in_process.working_directory {
-            base_builder = base_builder.fallback_cwd(Some(working_dir.clone()));
+            base_builder = base_builder.fallback_cwd(Some(in_process_fallback_cwd(working_dir)));
         }
 
         let base_config = base_builder
             .build()
             .await
             .map_err(|e| TransportError::ConnectionFailed(format!("config build failed: {e}")))?;
-
-        let auth_manager = AuthManager::shared(
-            base_config.codex_home.to_path_buf(),
-            false,
-            base_config.cli_auth_credentials_store_mode,
-            Some(base_config.chatgpt_base_url.clone()),
-        )
-        .await;
-
-        let cloud_requirements = cloud_requirements_loader(
-            auth_manager.clone(),
-            base_config.chatgpt_base_url.clone(),
-            base_config.codex_home.to_path_buf(),
-        );
-
         let mut resolved_builder = ConfigBuilder::default()
-            .cli_overrides(cli_overrides.clone())
-            .cloud_requirements(cloud_requirements.clone());
+            .cli_overrides(cli_overrides.clone());
         if let Some(ref codex_home) = in_process.codex_home {
             resolved_builder = resolved_builder.codex_home(codex_home.clone());
         }
         if let Some(ref working_dir) = in_process.working_directory {
-            resolved_builder = resolved_builder.fallback_cwd(Some(working_dir.clone()));
+            resolved_builder = resolved_builder.fallback_cwd(Some(in_process_fallback_cwd(working_dir)));
         }
 
         let resolved_config = resolved_builder.build().await.unwrap_or(base_config);
+
+        let state_db = codex_rollout::state_db::try_init(&resolved_config)
+            .await
+            .map_err(|e| TransportError::ConnectionFailed(format!("state db init failed: {e}")))?;
 
         let feedback = CodexFeedback::new();
         let session_source = SessionSource::VSCode;
@@ -683,10 +693,10 @@ impl ServerSession {
             cli_overrides,
             loader_overrides: LoaderOverrides::default(),
             strict_config: false,
-            cloud_requirements,
+            cloud_config_bundle: CloudConfigBundleLoader::default(),
             feedback,
             log_db: None,
-            state_db: None,
+            state_db: Some(state_db),
             thread_config_loader: Arc::new(codex_config::NoopThreadConfigLoader),
             environment_manager: Arc::new(
                 codex_exec_server::EnvironmentManager::default_for_tests(),
@@ -704,6 +714,7 @@ impl ServerSession {
                     experimental_api: true,
                     request_attestation: false,
                     opt_out_notification_methods: None,
+                    mcp_server_openai_form_elicitation: true,
                 }),
             },
             channel_capacity: in_process.channel_capacity,
@@ -1178,6 +1189,7 @@ pub(crate) fn remote_connect_args(config: &ServerConfig) -> (String, RemoteAppSe
         client_name: "Litter".to_string(),
         client_version: "1.0".to_string(),
         experimental_api: true,
+        mcp_server_openai_form_elicitation: true,
         opt_out_notification_methods: Vec::new(),
         channel_capacity: 256,
     };
@@ -1962,6 +1974,7 @@ mod tests {
             client_name: "LitterTest".to_string(),
             client_version: "0".to_string(),
             experimental_api: true,
+            mcp_server_openai_form_elicitation: true,
             opt_out_notification_methods: Vec::new(),
             channel_capacity: 16,
         }

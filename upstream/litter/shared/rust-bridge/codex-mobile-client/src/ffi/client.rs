@@ -253,9 +253,11 @@ async fn hydrate_thread_goal_if_available(
 }
 
 /// Flatten upstream `plugin/list` marketplaces into a deduped, sorted list of
-/// `PluginSummary` rows suitable for `@`-autocomplete. Pure so it can be unit-
-/// tested without running an RPC client.
-fn shape_plugin_list(response: upstream::PluginListResponse) -> Vec<types::PluginSummary> {
+/// `PluginSummary` rows. Pure so it can be unit-tested without running an RPC client.
+fn shape_plugin_entries(
+    response: upstream::PluginListResponse,
+    mentionable_only: bool,
+) -> Vec<types::PluginSummary> {
     let mut summaries: Vec<types::PluginSummary> = Vec::new();
     for marketplace in response.marketplaces {
         let marketplace_name = marketplace.name.trim().to_owned();
@@ -272,7 +274,7 @@ fn shape_plugin_list(response: upstream::PluginListResponse) -> Vec<types::Plugi
                 marketplace_path.clone(),
                 plugin,
             );
-            if summary.is_available_for_mention() {
+            if !mentionable_only || summary.is_available_for_mention() {
                 summaries.push(summary);
             }
         }
@@ -289,6 +291,16 @@ fn shape_plugin_list(response: upstream::PluginListResponse) -> Vec<types::Plugi
     });
 
     summaries
+}
+
+/// Installed/default plugins suitable for `@`-autocomplete.
+fn shape_plugin_list(response: upstream::PluginListResponse) -> Vec<types::PluginSummary> {
+    shape_plugin_entries(response, true)
+}
+
+/// Full plugin catalog for Settings management surfaces.
+fn shape_plugin_catalog(response: upstream::PluginListResponse) -> Vec<types::PluginSummary> {
+    shape_plugin_entries(response, false)
 }
 
 fn is_mobile_hidden_skill(skill: &types::SkillMetadata) -> bool {
@@ -1030,6 +1042,13 @@ impl AppClient {
                 .map_err(|error| ClientError::Rpc(error.to_string()))?
                 .runtime_kinds();
             let params: upstream::ModelListParams = params.into();
+            let cached_models = c
+                .app_store
+                .snapshot()
+                .servers
+                .get(&server_id)
+                .and_then(|server| server.available_models.clone())
+                .unwrap_or_default();
             let mut models = Vec::new();
             let mut seen_model_ids = HashSet::new();
             let mut failed_runtime_kinds = HashSet::new();
@@ -1088,22 +1107,12 @@ impl AppClient {
                     append_missing_amp_mode_models(&mut models);
                 }
             }
-            if !failed_runtime_kinds.is_empty() {
-                let cached_models = c
-                    .app_store
-                    .snapshot()
-                    .servers
-                    .get(&server_id)
-                    .and_then(|server| server.available_models.clone());
-                if let Some(cached_models) = cached_models {
-                    append_cached_models_for_failed_runtimes(
-                        &mut models,
-                        &mut seen_model_ids,
-                        &cached_models,
-                        &failed_runtime_kinds,
-                    );
-                }
-            }
+            append_cached_models_for_failed_runtimes(
+                &mut models,
+                &mut seen_model_ids,
+                &cached_models,
+                &failed_runtime_kinds,
+            );
             c.app_store.update_server_models(&server_id, Some(models));
             Ok(())
         })
@@ -1160,6 +1169,56 @@ impl AppClient {
             )
             .await?;
             Ok(shape_plugin_list(response))
+        })
+    }
+
+    pub async fn list_plugin_catalog(
+        &self,
+        server_id: String,
+        params: types::AppListPluginsRequest,
+    ) -> Result<Vec<types::PluginSummary>, ClientError> {
+        blocking_async!(self.rt, self.inner, |c| {
+            let upstream_params = convert_params::<_, upstream::PluginListParams>(params)?;
+            let response: upstream::PluginListResponse = rpc(
+                c.as_ref(),
+                &server_id,
+                req!(server_id, PluginList, upstream_params),
+            )
+            .await?;
+            Ok(shape_plugin_catalog(response))
+        })
+    }
+
+    pub async fn install_plugin(
+        &self,
+        server_id: String,
+        params: types::AppPluginInstallRequest,
+    ) -> Result<types::AppPluginInstallResponse, ClientError> {
+        blocking_async!(self.rt, self.inner, |c| {
+            let upstream_params = convert_params::<_, upstream::PluginInstallParams>(params)?;
+            let response: upstream::PluginInstallResponse = rpc(
+                c.as_ref(),
+                &server_id,
+                req!(server_id, PluginInstall, upstream_params),
+            )
+            .await?;
+            Ok(response.into())
+        })
+    }
+
+    pub async fn uninstall_plugin(
+        &self,
+        server_id: String,
+        params: types::AppPluginUninstallRequest,
+    ) -> Result<(), ClientError> {
+        blocking_async!(self.rt, self.inner, |c| {
+            let _: upstream::PluginUninstallResponse = rpc(
+                c.as_ref(),
+                &server_id,
+                req!(server_id, PluginUninstall, params.into()),
+            )
+            .await?;
+            Ok(())
         })
     }
 
@@ -1304,8 +1363,12 @@ impl AppClient {
             let spritesheet_path =
                 crate::pets::local_spritesheet_path(&entry.summary.source_path, spritesheet_file)
                     .map_err(ClientError::Serialization)?;
-            let spritesheet_bytes =
-                read_remote_file_bytes(c.as_ref(), &server_id, &spritesheet_path).await?;
+            let spritesheet_bytes = if pet_runtime_is_local(c.as_ref(), &server_id)? {
+                std::fs::read(&spritesheet_path)
+                    .map_err(|error| ClientError::Rpc(format!("file read failed: {error}")))?
+            } else {
+                read_remote_file_bytes(c.as_ref(), &server_id, &spritesheet_path).await?
+            };
             crate::pets::package_from_parts(
                 entry.summary.source_path,
                 &entry.manifest_json,
@@ -2011,7 +2074,9 @@ async fn scan_remote_pets(
     client: &MobileClient,
     server_id: &str,
 ) -> Result<Vec<RemotePetScanEntry>, ClientError> {
-    ensure_pet_runtime_available(client, server_id)?;
+    if pet_runtime_is_local(client, server_id)? {
+        return scan_local_pets();
+    }
 
     let script = r#"root="${CODEX_HOME:-$HOME/.codex}/pets"
 [ -d "$root" ] || exit 0
@@ -2076,13 +2141,85 @@ done"#;
     Ok(entries)
 }
 
-fn ensure_pet_runtime_available(client: &MobileClient, server_id: &str) -> Result<(), ClientError> {
-    let runtime_kinds = client
+fn scan_local_pets() -> Result<Vec<RemotePetScanEntry>, ClientError> {
+    let root = local_pet_root()?;
+    scan_local_pet_root(&root)
+}
+
+fn local_pet_root() -> Result<std::path::PathBuf, ClientError> {
+    if let Ok(codex_home) = std::env::var("CODEX_HOME")
+        && !codex_home.trim().is_empty()
+    {
+        return Ok(std::path::PathBuf::from(codex_home).join("pets"));
+    }
+    if let Ok(home) = std::env::var("HOME")
+        && !home.trim().is_empty()
+    {
+        return Ok(std::path::PathBuf::from(home).join(".codex").join("pets"));
+    }
+    Err(ClientError::Rpc(
+        "local CODEX_HOME is not available for pet scan".to_string(),
+    ))
+}
+
+fn scan_local_pet_root(root: &std::path::Path) -> Result<Vec<RemotePetScanEntry>, ClientError> {
+    if !root.is_dir() {
+        return Ok(Vec::new());
+    }
+
+    let mut entries = Vec::new();
+    for entry in std::fs::read_dir(root)
+        .map_err(|error| ClientError::Rpc(format!("pet scan failed: {error}")))?
+    {
+        let entry = entry.map_err(|error| ClientError::Rpc(format!("pet scan failed: {error}")))?;
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+        let manifest_path = path.join("pet.json");
+        if !manifest_path.is_file() {
+            continue;
+        }
+
+        let manifest_json = std::fs::read_to_string(&manifest_path)
+            .map_err(|error| ClientError::Rpc(format!("pet manifest read failed: {error}")))?;
+        let source_path = path.to_string_lossy().into_owned();
+        let mut summary =
+            crate::pets::summary_from_manifest(source_path.clone(), &manifest_json, false);
+        if let Some(spritesheet_file) = summary.spritesheet_path.as_deref() {
+            let spritesheet_path =
+                crate::pets::local_spritesheet_path(&source_path, spritesheet_file)
+                    .map_err(ClientError::Serialization)?;
+            summary.has_valid_spritesheet = std::fs::metadata(&spritesheet_path)
+                .map(|metadata| metadata.is_file())
+                .unwrap_or(false);
+            if summary.has_valid_spritesheet {
+                summary.validation_error = None;
+            } else if summary.validation_error.is_none() {
+                summary.validation_error = Some(format!("{spritesheet_file} is missing"));
+            }
+        }
+        entries.push(RemotePetScanEntry {
+            summary,
+            manifest_json,
+        });
+    }
+    entries.sort_by(|a, b| {
+        a.summary
+            .display_name
+            .to_lowercase()
+            .cmp(&b.summary.display_name.to_lowercase())
+    });
+    Ok(entries)
+}
+
+fn pet_runtime_is_local(client: &MobileClient, server_id: &str) -> Result<bool, ClientError> {
+    let session = client
         .get_session(server_id)
-        .map_err(|error| ClientError::Rpc(error.to_string()))?
-        .runtime_kinds();
+        .map_err(|error| ClientError::Rpc(error.to_string()))?;
+    let runtime_kinds = session.runtime_kinds();
     if runtime_kinds.contains(&"codex".to_string()) {
-        return Ok(());
+        return Ok(session.config().is_local);
     }
     Err(ClientError::Rpc(
         "pets require a connected Codex runtime; select the Codex Alleycat agent or connect to a Codex server".to_string(),
@@ -2344,6 +2481,7 @@ async fn start_ephemeral_thread_for_structured(
     let start_params = upstream::ThreadStartParams {
         model: None,
         model_provider: None,
+        allow_provider_model_fallback: false,
         service_tier: None,
         cwd: None,
         runtime_workspace_roots: None,
@@ -2356,14 +2494,16 @@ async fn start_ephemeral_thread_for_structured(
         base_instructions: None,
         developer_instructions: None,
         personality: None,
+        multi_agent_mode: None,
         ephemeral: Some(true),
+        history_mode: None,
         session_start_source: None,
         thread_source: None,
         environments: None,
         dynamic_tools: None,
+        selected_capability_roots: None,
         mock_experimental_field: None,
         experimental_raw_events: false,
-        persist_extended_history: false,
     };
     let response: upstream::ThreadStartResponse = client
         .request_typed_for_server(
@@ -2392,11 +2532,13 @@ async fn run_structured_turn(
 
     let turn_params = upstream::TurnStartParams {
         thread_id: thread_id.to_string(),
+        client_user_message_id: None,
         input: vec![upstream::UserInput::Text {
             text: prompt.to_string(),
             text_elements: Vec::new(),
         }],
         responsesapi_client_metadata: None,
+        additional_context: None,
         cwd: None,
         runtime_workspace_roots: None,
         approval_policy: None,
@@ -2411,6 +2553,7 @@ async fn run_structured_turn(
         personality: None,
         output_schema: Some(output_schema),
         collaboration_mode: None,
+        multi_agent_mode: None,
     };
     let turn_outcome: Result<upstream::TurnStartResponse, _> = client
         .request_typed_for_server(
@@ -2638,6 +2781,7 @@ async fn perform_update_saved_app(
     let start_params = upstream::ThreadStartParams {
         model: Some(model.clone()),
         model_provider: None,
+        allow_provider_model_fallback: false,
         service_tier: service_tier.clone(),
         cwd: Some(thread_cwd.clone()),
         runtime_workspace_roots: None,
@@ -2650,14 +2794,16 @@ async fn perform_update_saved_app(
         base_instructions: None,
         developer_instructions: Some(developer_instructions),
         personality: None,
+        multi_agent_mode: None,
         ephemeral: Some(false),
+        history_mode: None,
         session_start_source: None,
         thread_source: None,
         environments: None,
         dynamic_tools: None,
+        selected_capability_roots: None,
         mock_experimental_field: None,
         experimental_raw_events: false,
-        persist_extended_history: false,
     };
     let thread_response: upstream::ThreadStartResponse = match client
         .request_typed_for_server(
@@ -2687,11 +2833,13 @@ async fn perform_update_saved_app(
     // 4. Send the user's update prompt on this thread.
     let turn_params = upstream::TurnStartParams {
         thread_id: thread_id.clone(),
+        client_user_message_id: None,
         input: vec![upstream::UserInput::Text {
             text: user_prompt.clone(),
             text_elements: Vec::new(),
         }],
         responsesapi_client_metadata: None,
+        additional_context: None,
         cwd: None,
         runtime_workspace_roots: None,
         approval_policy: Some(upstream::AskForApproval::Never),
@@ -2708,6 +2856,7 @@ async fn perform_update_saved_app(
         personality: None,
         output_schema: None,
         collaboration_mode: None,
+        multi_agent_mode: None,
     };
     let turn_start_outcome: Result<upstream::TurnStartResponse, _> = client
         .request_typed_for_server(
@@ -2994,17 +3143,16 @@ Widget construction guidelines (for reference when making UI decisions):\n\n\
 #[cfg(test)]
 mod tests {
     use super::{
-        ImageViewSource, append_cached_models_for_failed_runtimes, append_missing_amp_mode_models,
-        choose_saved_app_update_server_id, image_read_command, is_mobile_hidden_skill,
-        normalize_model_info_for_runtime, normalized_image_path, runtime_exposes_model_choices,
-        splice_generative_ui_preamble,
+        ImageViewSource, append_missing_amp_mode_models, choose_saved_app_update_server_id,
+        image_read_command, is_mobile_hidden_skill, normalize_model_info_for_runtime,
+        normalized_image_path, scan_local_pet_root, splice_generative_ui_preamble,
     };
     use crate::store::snapshot::ServerTransportDiagnostics;
     use crate::store::{AppSnapshot, ServerHealthSnapshot, ServerSnapshot};
     use crate::types::models::{AbsolutePath, AppDynamicToolSpec, SkillMetadata, SkillScope};
     use crate::types::{AgentRuntimeKind, ModelInfo, ReasoningEffort, ReasoningEffortOption};
     use crate::widget_guidelines::GENERATIVE_UI_PREAMBLE;
-    use std::collections::{HashMap, HashSet};
+    use std::collections::HashMap;
 
     fn show_widget_spec() -> AppDynamicToolSpec {
         AppDynamicToolSpec {
@@ -3088,6 +3236,47 @@ mod tests {
         }
     }
 
+    fn unique_temp_dir(name: &str) -> std::path::PathBuf {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock before unix epoch")
+            .as_nanos();
+        std::env::temp_dir().join(format!(
+            "codex-mobile-client-{name}-{}-{nanos}",
+            std::process::id()
+        ))
+    }
+
+    #[test]
+    fn local_pet_scan_reads_codex_home_packages() {
+        let root = unique_temp_dir("pets");
+        let pet_dir = root.join("local-buddy");
+        std::fs::create_dir_all(&pet_dir).expect("create pet dir");
+        std::fs::write(
+            pet_dir.join("pet.json"),
+            r#"{"id":"local-buddy","displayName":"Local Buddy","spritesheetPath":"spritesheet.webp"}"#,
+        )
+        .expect("write manifest");
+        std::fs::write(pet_dir.join("spritesheet.webp"), b"webp bytes").expect("write sheet");
+
+        let entries = scan_local_pet_root(&root).expect("scan local pets");
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].summary.id, "local-buddy");
+        assert_eq!(entries[0].summary.display_name, "Local Buddy");
+        assert!(entries[0].summary.has_valid_spritesheet);
+        assert!(entries[0].summary.validation_error.is_none());
+        assert!(entries[0].manifest_json.contains("local-buddy"));
+
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn local_pet_scan_missing_root_is_empty() {
+        let root = unique_temp_dir("missing-pets");
+        let entries = scan_local_pet_root(&root).expect("scan missing local pets root");
+        assert!(entries.is_empty());
+    }
+
     #[test]
     fn amp_mode_fallback_adds_builtin_modes() {
         let mut models = vec![test_model("gpt-5.2", "codex".to_string())];
@@ -3169,49 +3358,6 @@ mod tests {
             &mut model,
             "amp".to_string()
         ));
-    }
-
-    #[test]
-    fn shell_runtime_does_not_expose_model_choices() {
-        assert!(!runtime_exposes_model_choices("shell"));
-        assert!(runtime_exposes_model_choices("amp"));
-        assert!(runtime_exposes_model_choices("codex"));
-    }
-
-    #[test]
-    fn failed_runtime_cache_preserves_only_failed_runtime_models() {
-        let mut models = vec![test_model("smart", "amp".to_string())];
-        let mut seen_model_ids = models
-            .iter()
-            .map(|model| (model.agent_runtime_kind.clone(), model.id.clone()))
-            .collect::<HashSet<_>>();
-        let cached_models = vec![
-            test_model("opus", "claude".to_string()),
-            test_model("gpt-5.5", "codex".to_string()),
-            test_model("smart", "amp".to_string()),
-        ];
-        let failed_runtime_kinds = HashSet::from(["claude".to_string()]);
-
-        append_cached_models_for_failed_runtimes(
-            &mut models,
-            &mut seen_model_ids,
-            &cached_models,
-            &failed_runtime_kinds,
-        );
-
-        assert!(models.iter().any(|model| {
-            model.agent_runtime_kind == "claude".to_string() && model.id == "opus"
-        }));
-        assert!(!models.iter().any(|model| {
-            model.agent_runtime_kind == "codex".to_string() && model.id == "gpt-5.5"
-        }));
-        assert_eq!(
-            models
-                .iter()
-                .filter(|model| model.agent_runtime_kind == "amp".to_string() && model.id == "smart")
-                .count(),
-            1
-        );
     }
 
     #[test]
@@ -3495,6 +3641,35 @@ mod tests {
             let shaped = shape_plugin_list(response);
             let names: Vec<&str> = shaped.iter().map(|s| s.name.as_str()).collect();
             assert_eq!(names, vec!["alpha", "beta", "gamma"]);
+        }
+
+        #[test]
+        fn catalog_keeps_installable_uninstalled_plugins() {
+            let response = response(vec![marketplace(
+                "openai-curated",
+                vec![
+                    summary(
+                        "install-me",
+                        "gmail",
+                        false,
+                        false,
+                        upstream::PluginInstallPolicy::Available,
+                        Some("Gmail"),
+                    ),
+                    summary(
+                        "not-available",
+                        "admin-disabled",
+                        false,
+                        false,
+                        upstream::PluginInstallPolicy::NotAvailable,
+                        None,
+                    ),
+                ],
+            )]);
+
+            let shaped = shape_plugin_catalog(response);
+            let names: Vec<&str> = shaped.iter().map(|s| s.name.as_str()).collect();
+            assert_eq!(names, vec!["admin-disabled", "gmail"]);
         }
 
         #[test]

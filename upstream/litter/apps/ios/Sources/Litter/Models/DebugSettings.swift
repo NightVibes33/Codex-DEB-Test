@@ -16,6 +16,16 @@ enum StreamingEffectKind: String, CaseIterable, Identifiable {
     case matrixDecode = "Matrix Decode"
     case phosphorCRT = "Phosphor CRT"
     case shockwave = "Shockwave"
+    case typewriter = "Typewriter"
+    case terminalScan = "Terminal Scan"
+    case softBlur = "Soft Blur"
+    case neonPulse = "Neon Pulse"
+    case ghostTrail = "Ghost Trail"
+    case pixelDecode = "Pixel Decode"
+    case inkSpread = "Ink Spread"
+    case slideUp = "Slide Up"
+    case glitch = "Glitch"
+    case focusBeam = "Focus Beam"
 
     var id: String { rawValue }
 
@@ -34,6 +44,16 @@ enum StreamingEffectKind: String, CaseIterable, Identifiable {
         case .matrixDecode: return MatrixDecodeEffect()
         case .phosphorCRT: return PhosphorCRTEffect()
         case .shockwave: return ShockwaveEffect()
+        case .typewriter: return LitterTypewriterEffect(cursorColor: accent)
+        case .terminalScan: return LitterTerminalScanEffect(scanColor: accent)
+        case .softBlur: return LitterSoftBlurEffect()
+        case .neonPulse: return LitterNeonPulseEffect(color: accent)
+        case .ghostTrail: return LitterGhostTrailEffect(color: accent.opacity(0.55))
+        case .pixelDecode: return LitterPixelDecodeEffect(color: accent)
+        case .inkSpread: return LitterInkSpreadEffect()
+        case .slideUp: return LitterSlideUpEffect()
+        case .glitch: return LitterGlitchEffect()
+        case .focusBeam: return LitterFocusBeamEffect(color: accent)
         }
     }
 }

@@ -142,10 +142,11 @@ impl ProotInstance {
 
     fn probe(&self) -> Result<(), ProotBootstrapError> {
         let output = Command::new(&self.proot_bin)
-            .args(self.proot_args(
-                Path::new("/root"),
-                &["/bin/sh".to_string(), "-lc".to_string(), "true".to_string()],
-            ))
+            .args(self.proot_args(Path::new("/root"), &[
+                "/bin/sh".to_string(),
+                "-lc".to_string(),
+                "true".to_string(),
+            ]))
             .env("PROOT_TMP_DIR", self.tmp_dir.to_string_lossy().into_owned())
             .env(
                 "PROOT_LOADER",

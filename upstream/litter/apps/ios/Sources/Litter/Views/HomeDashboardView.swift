@@ -32,9 +32,14 @@ struct HomeDashboardView: View {
     let onOpenProjectPicker: () -> Void
     let onThreadCreated: (ThreadKey) -> Void
     let onShowSettings: () -> Void
+    /// Optional: surface a KittyStore button alongside Settings.
+    var onShowStore: (() -> Void)? = nil
     /// Optional: surface an "Apps" button alongside Settings. Wired by the
     /// hosting navigation when a "Saved Apps" launcher should be exposed.
     var onShowApps: (() -> Void)? = nil
+    /// Opens the real local iSH file workspace.
+    var onShowFiles: (() -> Void)? = nil
+    /// Opens the full shared terminal surface when the feature is available.
     var onShowTerminal: (() -> Void)? = nil
     let onPinThread: (ThreadKey) -> Void
     let onUnpinThread: (ThreadKey) -> Void
@@ -88,6 +93,7 @@ struct HomeDashboardView: View {
     @State private var hydratingKeys: Set<String> = []
     @State private var isLoadingThreadListing = false
     @State private var suppressComposerCollapse = false
+    @State private var pipErrorMessage: String?
 
     private var launchableServers: [HomeDashboardServer] {
         connectedServers.filter(\.canLaunchSessions)
@@ -195,7 +201,11 @@ struct HomeDashboardView: View {
                     selectedSearchRuntimeKind = nil
                 }
             }
-            .task { await TipJarStore.shared.loadProducts() }
+            .task {
+                if TipJarFeature.isVisible {
+                    await TipJarStore.shared.loadProducts()
+                }
+            }
             .onAppear { autoHydrateIfNeeded() }
             .onChange(of: visibleSessions.map { hydrationId($0.key) }) { _, _ in
                 autoHydrateIfNeeded()
@@ -248,6 +258,14 @@ struct HomeDashboardView: View {
             } message: {
                 Text("This will permanently delete \"\(deleteTargetThread?.sessionTitle ?? "this session")\".")
             }
+            .alert("PiP failed", isPresented: Binding(
+                get: { pipErrorMessage != nil },
+                set: { if !$0 { pipErrorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) { pipErrorMessage = nil }
+            } message: {
+                Text(pipErrorMessage ?? "Picture in Picture could not start.")
+            }
             .alert("Rename server", isPresented: Binding(
                 get: { renameServerTarget != nil },
                 set: { if !$0 { renameServerTarget = nil } }
@@ -292,6 +310,20 @@ struct HomeDashboardView: View {
                 Button(action: onShowSettings) {
                     Image(systemName: "gearshape")
                         .foregroundColor(LitterTheme.textSecondary)
+                }
+                if let onShowStore {
+                    Button(action: onShowStore) {
+                        Image(systemName: "storefront")
+                            .foregroundColor(LitterTheme.textSecondary)
+                    }
+                    .accessibilityLabel("KittyStore")
+                }
+                if let onShowFiles {
+                    Button(action: onShowFiles) {
+                        Image(systemName: "folder")
+                            .foregroundColor(LitterTheme.textSecondary)
+                    }
+                    .accessibilityLabel("Files")
                 }
                 if let onShowApps {
                     Button(action: onShowApps) {
@@ -361,18 +393,9 @@ struct HomeDashboardView: View {
         .accessibilityLabel("Zoom")
     }
 
-    /// The sidebar chrome on a Mac (Catalyst or iOS-on-Mac) sits inside
-    /// SwiftUI's `NavigationSplitView` sidebar column, which renders
-    /// Liquid Glass automatically. Painting the gradient on top would
-    /// clobber that material, so we punch to `.clear` for that case
-    /// only. Everywhere else the dashboard owns its own gradient backdrop.
-    @ViewBuilder
+    /// Shared Alley backdrop for phone, iPad sidebar, and Catalyst.
     private var dashboardBackground: some View {
-        if LitterPlatform.rendersAsMacApp && chrome == .sidebar {
-            Color.clear
-        } else {
-            LitterTheme.backgroundGradient.ignoresSafeArea()
-        }
+        AlleyBackdrop().ignoresSafeArea()
     }
 
     private var canvas: some View {
@@ -382,7 +405,7 @@ struct HomeDashboardView: View {
             // branch returns nothing and can't intercept scroll gestures.
             if isSearchExpanded {
                 ZStack(alignment: .top) {
-                    LitterTheme.backgroundGradient.ignoresSafeArea()
+                    AlleyBackdrop().ignoresSafeArea()
                     ThreadSearchResultsView(
                         sessions: searchSessions,
                         pinnedThreadKeys: Set(pinnedThreadKeys),
@@ -588,7 +611,7 @@ struct HomeDashboardView: View {
                             Task { await onForkThread?(session) }
                         },
                         onShowPiP: { session in
-                            StreamingPiPController.shared.start(for: session.key)
+                            showPiP(for: session)
                         }
                     )
                 )
@@ -597,6 +620,25 @@ struct HomeDashboardView: View {
                 // The `topInset`/`bottomInset` we pass already carve
                 // out safe resting space for the rows.
                 .ignoresSafeArea()
+            }
+        }
+    }
+
+
+    private func showPiP(for session: HomeDashboardRecentSession) {
+        pipErrorMessage = nil
+        let controller = StreamingPiPController.shared
+        controller.start(for: session.key)
+        Task { @MainActor in
+            for _ in 0..<40 {
+                try? await Task.sleep(nanoseconds: 250_000_000)
+                if controller.isActive { return }
+                if !controller.isStarting {
+                    if let message = controller.lastErrorMessage {
+                        pipErrorMessage = message
+                    }
+                    return
+                }
             }
         }
     }
@@ -628,22 +670,18 @@ struct HomeDashboardView: View {
 }
 
 private struct EmptyHomeFatCatView: View {
-    @State private var showingLoop = false
-
-    private let entranceURL = Bundle.main.url(forResource: "home_cat_entrance", withExtension: "png")
-    private let loopURL = Bundle.main.url(forResource: "home_cat", withExtension: "png")
-
     var body: some View {
-        CatTransmissionPressView {
-            if let imageURL = showingLoop ? loopURL : (entranceURL ?? loopURL) {
-                AlphaAnimatedImageView(
-                    fileURL: imageURL,
-                    repeatCount: showingLoop ? 0 : 1,
-                    onFinished: showingLoop ? nil : { showingLoop = true }
-                )
-                .accessibilityHidden(true)
-            }
+        VStack(spacing: 12) {
+            AlleyCatMark(size: 92)
+            Text("No active threads")
+                .litterFont(size: 11, weight: .bold)
+                .tracking(0.2)
+                .foregroundStyle(LitterTheme.textPrimary)
+            Text("Start a thread or open search")
+                .litterFont(.caption)
+                .foregroundStyle(LitterTheme.textMuted)
         }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -1196,10 +1234,9 @@ struct SessionCanvasLine: View {
         switch status {
         case .active: return "· ACTIVE"
         case .paused: return "· PAUSED"
-        case .blocked: return "· BLOCKED"
-        case .usageLimited: return "· USAGE"
         case .budgetLimited: return "· BUDGET"
         case .complete: return "· COMPLETE"
+        default: return "· LIMITED"
         }
     }
 
@@ -1309,8 +1346,9 @@ struct SessionCanvasLine: View {
         switch status {
         case .active: return LitterTheme.accent
         case .paused: return LitterTheme.textMuted
-        case .blocked, .usageLimited, .budgetLimited: return LitterTheme.warning
+        case .budgetLimited: return LitterTheme.warning
         case .complete: return LitterTheme.success
+        default: return LitterTheme.warning
         }
     }
 

@@ -18,6 +18,83 @@ final class ConversationAttachmentSupportTests: XCTestCase {
         XCTAssertEqual(url, "data:image/png;base64,abc")
     }
 
+    func testLinkedFakefsPathsParsesMarkdownAndRawLinks() {
+        let text = "Open [IPA](litter-file:///root/.litter/builds/App%20One.ipa), see /root/litter/main.swift and <ish-file://root/projects/Demo/README.md>."
+
+        let paths = ConversationAttachmentSupport.linkedFakefsPaths(in: text)
+
+        XCTAssertEqual(paths, [
+            "/root/.litter/builds/App One.ipa",
+            "/root/projects/Demo/README.md",
+            "/root/litter/main.swift"
+        ])
+    }
+
+    func testNormalizeLinkedFakefsPathSupportsTildeAndCustomHostForm() {
+        XCTAssertEqual(ConversationAttachmentSupport.normalizeLinkedFakefsPath("~/hello.swift"), "/root/hello.swift")
+        XCTAssertEqual(ConversationAttachmentSupport.normalizeLinkedFakefsPath("litter-file://root/tmp/test.png"), "/root/tmp/test.png")
+    }
+
+    func testOversizedPasteDetectionUsesCharacterAndByteLimits() {
+        XCTAssertFalse(ConversationAttachmentSupport.shouldExternalizeComposerText("short paste"))
+
+        let characterHeavy = String(repeating: "a", count: ConversationAttachmentSupport.oversizedPasteCharacterLimit + 1)
+        XCTAssertTrue(ConversationAttachmentSupport.shouldExternalizeComposerText(characterHeavy))
+
+        let byteHeavy = String(repeating: "\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}\u{200D}\u{1F466}", count: 2_000)
+        XCTAssertLessThan(byteHeavy.count, ConversationAttachmentSupport.oversizedPasteCharacterLimit)
+        XCTAssertTrue(ConversationAttachmentSupport.shouldExternalizeComposerText(byteHeavy))
+    }
+
+    func testOversizedPastePlaceholderKeepsPreviewShort() {
+        let paste = String(repeating: "0123456789", count: 1_300)
+
+        let placeholder = ConversationAttachmentSupport.oversizedPastePlaceholder(
+            fileName: "pasted-text-1.txt",
+            originalCharacterCount: paste.count,
+            text: paste
+        )
+
+        XCTAssertTrue(placeholder.contains("pasted-text-1.txt"))
+        XCTAssertTrue(placeholder.contains("Original length: \(paste.count) characters."))
+        XCTAssertLessThan(placeholder.count, 1_200)
+    }
+
+    func testLinkedComputerFileAttachmentKeepsWindowsPathAsMentionPath() throws {
+        let attachment = try XCTUnwrap(
+            ConversationAttachmentSupport.attachmentForLinkedFile(
+                path: #"C:\Users\bobby\Downloads\report.zip"#,
+                sourceRoot: #"C:\Users\bobby\Downloads"#
+            )
+        )
+
+        XCTAssertEqual(attachment.kind, .archive)
+        XCTAssertEqual(attachment.displayName, "report.zip")
+        XCTAssertEqual(attachment.fakefsPath, #"C:\Users\bobby\Downloads\report.zip"#)
+
+        let inputs = ConversationAttachmentSupport.buildTurnInputs(attachments: [attachment])
+        guard case .mention(let name, let path)? = inputs.first else {
+            return XCTFail("Expected mention input")
+        }
+        XCTAssertEqual(name, "report.zip")
+        XCTAssertEqual(path, #"C:\Users\bobby\Downloads\report.zip"#)
+    }
+
+    func testLinkedComputerFolderAttachmentUsesFolderKind() throws {
+        let attachment = try XCTUnwrap(
+            ConversationAttachmentSupport.attachmentForLinkedFile(
+                path: "/Users/bobby/Projects/litter",
+                displayName: "litter",
+                isDirectory: true,
+                sourceRoot: "/Users/bobby/Projects"
+            )
+        )
+
+        XCTAssertEqual(attachment.kind, .folder)
+        XCTAssertEqual(attachment.displayName, "litter")
+        XCTAssertEqual(attachment.fakefsPath, "/Users/bobby/Projects/litter")
+    }
+
     func testPreparedAttachmentCreatesImageUserInput() throws {
         let attachment = try XCTUnwrap(
             PreparedImageAttachment(

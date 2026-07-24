@@ -9,6 +9,16 @@ private let conversationViewSignpostLog = OSLog(
     category: "ConversationView"
 )
 
+private struct PendingChatGPTAccountSwitchRetry: Identifiable {
+    let id = UUID()
+    let failureMessage: String
+    let nextAccountName: String
+    let text: String
+    let attachments: [ConversationAttachment]
+    let skillMentions: [SkillMentionSelection]
+    let pluginMentions: [PluginMentionSelection]
+}
+
 enum ConversationStreamingViewportPolicy {
     static func shouldMaintainBottomAnchor(
         isStreaming: Bool,
@@ -51,12 +61,14 @@ struct ConversationView: View {
     var onMinigameDismiss: (() -> Void)? = nil
     var onMinigameRetry: (() -> Void)? = nil
     @AppStorage("workDir") private var workDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.path ?? "/"
-    @AppStorage("conversationTextSizeStep") private var conversationTextSizeStep = ConversationTextSize.large.rawValue
+    @AppStorage("conversationTextSizeStep") private var conversationTextSizeStep = ConversationTextSize.tiny.rawValue
     @AppStorage("fastMode") private var fastMode = false
     @State private var messageActionError: String?
+    @State private var pendingChatGPTAccountRetry: PendingChatGPTAccountSwitchRetry?
     @State private var hasLoggedFirstRender = false
     @State private var localSendScrollToken = 0
 
+    @StateObject private var taskBag = ViewTaskBag()
     private var items: [ConversationItem] {
         transcript.items
     }
@@ -113,7 +125,7 @@ struct ConversationView: View {
             onForkFromUserItem: forkFromMessage,
             onOpenConversation: onOpenConversation,
             onLoadOlderTurns: { key in
-                Task { await appModel.loadOlderTurns(threadId: key) }
+                taskBag.run { await appModel.loadOlderTurns(threadId: key) }
             }
         )
         .overlay(alignment: .bottomLeading) {
@@ -171,13 +183,30 @@ struct ConversationView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .alert("Conversation Action Error", isPresented: Binding(
-            get: { messageActionError != nil },
-            set: { if !$0 { messageActionError = nil } }
+        .alert(pendingChatGPTAccountRetry == nil ? "Conversation Action Error" : "Switch ChatGPT Account?", isPresented: Binding(
+            get: { messageActionError != nil || pendingChatGPTAccountRetry != nil },
+            set: {
+                if !$0 {
+                    messageActionError = nil
+                    pendingChatGPTAccountRetry = nil
+                }
+            }
         )) {
-            Button("OK", role: .cancel) { messageActionError = nil }
+            if let retry = pendingChatGPTAccountRetry {
+                Button("Switch & Retry") {
+                    pendingChatGPTAccountRetry = nil
+                    retryMessageWithNextChatGPTAccount(retry)
+                }
+                Button("Cancel", role: .cancel) { pendingChatGPTAccountRetry = nil }
+            } else {
+                Button("OK", role: .cancel) { messageActionError = nil }
+            }
         } message: {
-            Text(messageActionError ?? "Unknown error")
+            if let retry = pendingChatGPTAccountRetry {
+                Text("\(retry.failureMessage)\n\nSwitch to \(retry.nextAccountName) and retry this message?")
+            } else {
+                Text(messageActionError ?? "Unknown error")
+            }
         }
         .onAppear {
             guard !hasLoggedFirstRender else { return }
@@ -192,8 +221,9 @@ struct ConversationView: View {
             await loadInitialTurnsIfNeeded()
         }
         .onChange(of: thread.initialTurnsLoaded) { _, _ in
-            Task { await loadInitialTurnsIfNeeded() }
+            taskBag.run { await loadInitialTurnsIfNeeded() }
         }
+        .onDisappear { taskBag.cancelAll() }
     }
 
     private func loadInitialTurnsIfNeeded() async {
@@ -203,13 +233,12 @@ struct ConversationView: View {
 
     private func sendMessage(
         _ text: String,
-        attachmentImage: UIImage?,
-        fileAttachments: [ComposerFileAttachment],
+        attachments: [ConversationAttachment],
         skillMentions: [SkillMentionSelection],
         pluginMentions: [PluginMentionSelection]
     ) {
         localSendScrollToken &+= 1
-        Task {
+        taskBag.run {
             do {
                 NSLog(
                     "[ConversationView] sendMessage start server=%@ thread=%@ textLength=%ld",
@@ -217,10 +246,9 @@ struct ConversationView: View {
                     activeThreadKey.threadId,
                     text.count
                 )
-                let payload = try makeComposerPayload(
+                let payload = try await makeComposerPayload(
                     text: text,
-                    attachmentImage: attachmentImage,
-                    fileAttachments: fileAttachments,
+                    attachments: attachments,
                     skillMentions: skillMentions,
                     pluginMentions: pluginMentions
                 )
@@ -237,7 +265,13 @@ struct ConversationView: View {
                     activeThreadKey.threadId,
                     error.localizedDescription
                 )
-                messageActionError = error.localizedDescription
+                handleTurnStartError(
+                    error,
+                    text: text,
+                    attachments: attachments,
+                    skillMentions: skillMentions,
+                    pluginMentions: pluginMentions
+                )
             }
         }
     }
@@ -245,14 +279,58 @@ struct ConversationView: View {
     private func sendWidgetPrompt(_ text: String) {
         guard !text.isEmpty else { return }
         localSendScrollToken &+= 1
-        Task {
+        taskBag.run {
             do {
-                let payload = try makeComposerPayload(
+                let payload = try await makeComposerPayload(
                     text: text,
-                    attachmentImage: nil,
-                    fileAttachments: [],
+                    attachments: [],
                     skillMentions: [],
                     pluginMentions: []
+                )
+                try await appModel.startTurn(key: activeThreadKey, payload: payload)
+            } catch {
+                handleTurnStartError(
+                    error,
+                    text: text,
+                    attachments: [],
+                    skillMentions: [],
+                    pluginMentions: []
+                )
+            }
+        }
+    }
+
+    private func handleTurnStartError(
+        _ error: Error,
+        text: String,
+        attachments: [ConversationAttachment],
+        skillMentions: [SkillMentionSelection],
+        pluginMentions: [PluginMentionSelection]
+    ) {
+        if let suggestion = appModel.chatGPTAccountSwitchSuggestion(for: error, serverId: activeThreadKey.serverId) {
+            pendingChatGPTAccountRetry = PendingChatGPTAccountSwitchRetry(
+                failureMessage: error.localizedDescription,
+                nextAccountName: suggestion.displayName,
+                text: text,
+                attachments: attachments,
+                skillMentions: skillMentions,
+                pluginMentions: pluginMentions
+            )
+            return
+        }
+        messageActionError = error.localizedDescription
+    }
+
+    private func retryMessageWithNextChatGPTAccount(_ retry: PendingChatGPTAccountSwitchRetry) {
+        localSendScrollToken &+= 1
+        taskBag.run {
+            do {
+                _ = try await appModel.switchToNextStoredLocalChatGPTAccount(serverId: activeThreadKey.serverId)
+                let payload = try await makeComposerPayload(
+                    text: retry.text,
+                    attachments: retry.attachments,
+                    skillMentions: retry.skillMentions,
+                    pluginMentions: retry.pluginMentions
                 )
                 try await appModel.startTurn(key: activeThreadKey, payload: payload)
             } catch {
@@ -283,7 +361,7 @@ struct ConversationView: View {
     }
 
     private func editMessage(_ item: ConversationItem) {
-        Task {
+        taskBag.run {
             do {
                 guard item.isUserItem, item.isFromUserTurnBoundary,
                       let selectedTurnIndex = loadedUserItemIndex(for: item) else {
@@ -305,7 +383,7 @@ struct ConversationView: View {
     }
 
     private func forkFromMessage(_ item: ConversationItem) {
-        Task {
+        taskBag.run {
             do {
                 guard item.isUserItem, item.isFromUserTurnBoundary,
                       let selectedTurnIndex = loadedUserItemIndex(for: item) else {
@@ -349,12 +427,10 @@ struct ConversationView: View {
 
     private func makeComposerPayload(
         text: String,
-        attachmentImage: UIImage?,
-        fileAttachments: [ComposerFileAttachment],
+        attachments: [ConversationAttachment],
         skillMentions: [SkillMentionSelection],
         pluginMentions: [PluginMentionSelection]
-    ) throws -> AppComposerPayload {
-        let preparedAttachment = attachmentImage.flatMap(ConversationAttachmentSupport.prepareImage)
+    ) async throws -> AppComposerPayload {
         var additionalInputs = skillMentions.map { mention in
             AppUserInput.skill(name: mention.name, path: AbsolutePath(value: mention.path))
         }
@@ -363,13 +439,12 @@ struct ConversationView: View {
                 AppUserInput.mention(name: mention.name, path: mention.path)
             )
         }
-        if let preparedAttachment {
-            additionalInputs.append(preparedAttachment.userInput)
-        }
+        additionalInputs.append(contentsOf: ConversationAttachmentSupport.buildTurnInputs(attachments: attachments))
+        additionalInputs.append(contentsOf: await ConversationAttachmentSupport.buildLinkedTurnInputs(text: text))
         return AppComposerPayload(
             text: text,
             additionalInputs: additionalInputs,
-            fileAttachments: fileAttachments,
+            fileAttachments: [],
             approvalPolicy: appState.launchApprovalPolicy(for: activeThreadKey),
             sandboxPolicy: appState.turnSandboxPolicy(for: activeThreadKey),
             model: pendingModelOverride,
@@ -413,7 +488,7 @@ private struct ConversationBottomChrome: View {
     let composer: ConversationComposerSnapshot
     @Binding var composerInputText: String
     @Binding var composerAttachedImage: UIImage?
-    let onSend: (String, UIImage?, [ComposerFileAttachment], [SkillMentionSelection], [PluginMentionSelection]) -> Void
+    let onSend: (String, [ConversationAttachment], [SkillMentionSelection], [PluginMentionSelection]) -> Void
     let onFileSearch: (String) async throws -> [FileSearchResult]
     var bottomInset: CGFloat = 0
     let onOpenConversation: ((ThreadKey) -> Void)?
@@ -422,6 +497,7 @@ private struct ConversationBottomChrome: View {
     @State private var collaborationModePresets: [AppCollaborationModePreset] = []
     @State private var collaborationModesLoading = false
     @State private var collaborationModeError: String?
+    @StateObject private var taskBag = ViewTaskBag()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -460,7 +536,7 @@ private struct ConversationBottomChrome: View {
                 isLoading: collaborationModesLoading,
                 onSelect: { mode in
                     showCollaborationModeSelector = false
-                    Task { await setCollaborationMode(mode) }
+                    taskBag.run { await setCollaborationMode(mode) }
                 }
             )
             .presentationDetents([.height(220)])
@@ -477,6 +553,7 @@ private struct ConversationBottomChrome: View {
         } message: {
             Text(collaborationModeError ?? "Unable to update collaboration mode.")
         }
+        .onDisappear { taskBag.cancelAll() }
     }
 
     private var hasPinnedDiff: Bool {
@@ -598,6 +675,9 @@ private struct ConversationMessageList: View {
     @State private var initialBottomScrollThreadScopeID: String?
     @State private var programmaticBottomScrollSettling = false
     @State private var programmaticBottomScrollGeneration = 0
+    @State private var followLayoutScrollTask: Task<Void, Never>?
+    @State private var delayedBottomScrollTask: Task<Void, Never>?
+    @State private var bottomSettleTask: Task<Void, Never>?
     @AppStorage("collapseTurns") private var collapseTurns = false
     private static let latestButtonShowDistance: CGFloat = 48
     private static let nearBottomRestoreDistance: CGFloat = 12
@@ -778,6 +858,7 @@ private struct ConversationMessageList: View {
                     syncTranscriptTurns()
                     requestInitialBottomScrollIfNeeded(proxy)
                 }
+                .onDisappear { cancelScrollTasks() }
                 .onChange(of: activeThreadKey) {
                     autoFollowStreaming = true
                     isNearBottom = true
@@ -808,11 +889,7 @@ private struct ConversationMessageList: View {
                     isNearBottom = true
                     distanceFromBottom = 0
                     scrollToBottom(proxy)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                        withAnimation(.interactiveSpring(response: 0.28, dampingFraction: 0.9)) {
-                            scrollToBottom(proxy)
-                        }
-                    }
+                    scheduleBottomScrollCorrection(proxy, animated: true)
                 }
                 .onChange(of: threadStatus) { oldStatus, _ in
                     syncTranscriptTurns()
@@ -824,9 +901,7 @@ private struct ConversationMessageList: View {
                     }
                     if wasStreaming && !isStreaming && autoFollowStreaming {
                         scrollToBottom(proxy)
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                            scrollToBottom(proxy)
-                        }
+                        scheduleBottomScrollCorrection(proxy)
                     }
                 }
 
@@ -840,11 +915,7 @@ private struct ConversationMessageList: View {
                         // scroll once layout has settled.  This avoids the
                         // overshoot caused by stale estimated heights.
                         scrollToBottom(proxy)
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                            withAnimation(.interactiveSpring(response: 0.28, dampingFraction: 0.9)) {
-                                scrollToBottom(proxy)
-                            }
-                        }
+                        scheduleBottomScrollCorrection(proxy, animated: true)
                     }
                     .padding(.trailing, 14)
                     .padding(.bottom, 10)
@@ -873,7 +944,10 @@ private struct ConversationMessageList: View {
     private func requestFollowScrollAfterLayout(_ proxy: ScrollViewProxy) {
         guard !followLayoutScrollScheduled else { return }
         followLayoutScrollScheduled = true
-        DispatchQueue.main.async {
+        followLayoutScrollTask?.cancel()
+        followLayoutScrollTask = Task { @MainActor in
+            await Task.yield()
+            guard !Task.isCancelled else { return }
             followLayoutScrollScheduled = false
             guard isStreaming, autoFollowStreaming, !userIsDraggingScroll else { return }
             scrollToBottom(proxy)
@@ -885,14 +959,42 @@ private struct ConversationMessageList: View {
         let threadScopeID = activeThreadScopeID
         guard initialBottomScrollThreadScopeID != threadScopeID else { return }
         initialBottomScrollThreadScopeID = threadScopeID
-        DispatchQueue.main.async {
-            guard activeThreadScopeID == threadScopeID else { return }
+        delayedBottomScrollTask?.cancel()
+        delayedBottomScrollTask = Task { @MainActor in
+            await Task.yield()
+            guard !Task.isCancelled, activeThreadScopeID == threadScopeID else { return }
             scrollToBottom(proxy)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            scheduleBottomScrollCorrection(proxy, threadScopeID: threadScopeID)
+        }
+    }
+
+    private func scheduleBottomScrollCorrection(_ proxy: ScrollViewProxy, animated: Bool = false, threadScopeID: String? = nil) {
+        delayedBottomScrollTask?.cancel()
+        delayedBottomScrollTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 50_000_000)
+            guard !Task.isCancelled else { return }
+            if let threadScopeID {
                 guard activeThreadScopeID == threadScopeID else { return }
+            }
+            if animated {
+                withAnimation(.interactiveSpring(response: 0.28, dampingFraction: 0.9)) {
+                    scrollToBottom(proxy)
+                }
+            } else {
                 scrollToBottom(proxy)
             }
         }
+    }
+
+    private func cancelScrollTasks() {
+        followLayoutScrollTask?.cancel()
+        delayedBottomScrollTask?.cancel()
+        bottomSettleTask?.cancel()
+        followLayoutScrollTask = nil
+        delayedBottomScrollTask = nil
+        bottomSettleTask = nil
+        followLayoutScrollScheduled = false
+        programmaticBottomScrollSettling = false
     }
 
     private func updateDistanceFromBottom(_ distance: CGFloat) {
@@ -922,7 +1024,10 @@ private struct ConversationMessageList: View {
         let generation = programmaticBottomScrollGeneration
         programmaticBottomScrollSettling = true
         proxy.scrollTo(Self.bottomAnchorID, anchor: .bottom)
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.bottomScrollSettleDuration) {
+        bottomSettleTask?.cancel()
+        bottomSettleTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(Self.bottomScrollSettleDuration * 1_000_000_000))
+            guard !Task.isCancelled else { return }
             guard programmaticBottomScrollGeneration == generation else { return }
             programmaticBottomScrollSettling = false
         }
@@ -1381,7 +1486,7 @@ private struct ConversationInputBar: View {
     @AppStorage("workDir") private var workDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.path ?? "/"
     @AppStorage("fastMode") private var fastMode = false
 
-    let onSend: (String, UIImage?, [ComposerFileAttachment], [SkillMentionSelection], [PluginMentionSelection]) -> Void
+    let onSend: (String, [ConversationAttachment], [SkillMentionSelection], [PluginMentionSelection]) -> Void
     let onFileSearch: (String) async throws -> [FileSearchResult]
     var bottomInset: CGFloat = 0
     let showModeChip: Bool
@@ -1396,7 +1501,10 @@ private struct ConversationInputBar: View {
     @State private var showPhotoPicker = false
     @State private var showCamera = false
     @State private var showFileImporter = false
+    @State private var showRemoteFilePicker = false
     @State private var selectedPhoto: PhotosPickerItem?
+    @State private var attachments: [ConversationAttachment] = []
+    @State private var capturedImage: UIImage?
     @State private var showSlashPopup = false
     @State private var activeSlashToken: ComposerSlashQueryContext?
     @State private var slashSuggestions: [ComposerSlashCommand] = []
@@ -1429,11 +1537,13 @@ private struct ConversationInputBar: View {
     @State private var pluginLoadingCwds: Set<String> = []
     @State private var pluginMentionSelections: [PluginMentionSelection] = []
     @State private var voiceManager = VoiceTranscriptionManager()
+    @State private var isExternalizingOversizedPaste = false
     @State private var showMicPermissionAlert = false
     @State private var hasLoggedFirstFocus = false
     @State private var hasLoggedKeyboardShown = false
     @State private var isComposerFocused = false
     @State private var composerSelectionRange = NSRange(location: 0, length: 0)
+    @StateObject private var taskBag = ViewTaskBag()
 
     private var pendingUserInputRequest: PendingUserInputRequest? {
         guard let request = snapshot.pendingUserInputRequest else { return nil }
@@ -1490,8 +1600,9 @@ private struct ConversationInputBar: View {
             showPhotoPicker: $showPhotoPicker,
             showCamera: $showCamera,
             showFileImporter: $showFileImporter,
+            showRemoteFilePicker: $showRemoteFilePicker,
             selectedPhoto: $selectedPhoto,
-            attachedImage: $attachedImage,
+            capturedImage: $capturedImage,
             showModelSelector: $showModelSelector,
             showPermissionsSheet: $showPermissionsSheet,
             showExperimentalSheet: $showExperimentalSheet,
@@ -1503,10 +1614,9 @@ private struct ConversationInputBar: View {
             showMicPermissionAlert: $showMicPermissionAlert,
             onOpenSettings: openAppSettings,
             onLoadSelectedPhoto: loadSelectedPhoto,
-            onLoadSelectedFile: { url in
-                guard let picked = ConversationAttachmentSupport.loadPickedFile(at: url) else { return }
-                applyPickedFile(picked)
-            },
+            onLoadSelectedFiles: importSelectedFiles,
+            onSearchRemoteFiles: onFileSearch,
+            onAttachRemoteFile: appendRemoteFileAttachment,
             onLoadExperimentalFeatures: loadExperimentalFeatures,
             onIsExperimentalFeatureEnabled: { featureId, fallback in
                 isExperimentalFeatureEnabled(featureId, fallback: fallback)
@@ -1517,21 +1627,32 @@ private struct ConversationInputBar: View {
             onLoadSkills: { forceReload, showErrors in
                 await loadSkills(forceReload: forceReload, showErrors: showErrors)
             },
+            onSetSkillEnabled: { skill, enabled in
+                await setSkill(skill, enabled: enabled)
+            },
             onRenameThread: renameThread
         ) {
             composerSurface
         }
         .onChange(of: inputText) { _, next in
+            if ConversationAttachmentSupport.shouldExternalizeComposerText(next) {
+                externalizeOversizedComposerTextIfNeeded(next)
+                return
+            }
             scheduleComposerPopupRefresh(for: next)
         }
         .onChange(of: snapshot.composerPrefillRequest?.id) { _, _ in
             guard let prefill = snapshot.composerPrefillRequest else { return }
             inputText = prefill.text
             composerSelectionRange = NSRange(location: (prefill.text as NSString).length, length: 0)
-            attachedImage = nil
-            attachedFiles = []
+            attachments.removeAll()
             hideComposerPopups()
             appModel.clearComposerPrefill(id: prefill.id)
+        }
+        .onChange(of: capturedImage) { _, image in
+            guard let image else { return }
+            appendImageAttachment(image)
+            capturedImage = nil
         }
         .onChange(of: isComposerFocused) { _, focused in
             if focused {
@@ -1556,14 +1677,14 @@ private struct ConversationInputBar: View {
             popupRefreshTask = nil
             fileSearchTask?.cancel()
             fileSearchTask = nil
+            taskBag.cancelAll()
         }
     }
 
     private var composerSurface: some View {
         VStack(spacing: 0) {
             ConversationComposerContentView(
-                attachedImage: attachedImage,
-                attachedFiles: attachedFiles,
+                attachments: attachments,
                 collaborationMode: snapshot.collaborationMode,
                 activePlanProgress: snapshot.activePlanProgress,
                 pendingUserInputRequest: pendingUserInputRequest,
@@ -1575,20 +1696,19 @@ private struct ConversationInputBar: View {
                 goalActions: makeGoalCardActions(),
                 rateLimits: snapshot.rateLimits,
                 contextPercent: contextPercent(),
-                isTurnActive: isTurnActive,
+                isTurnActive: isTurnActive || isExternalizingOversizedPaste,
                 showModeChip: showModeChip,
                 voiceManager: voiceManager,
                 showAttachMenu: $showAttachMenu,
-                onClearAttachment: clearAttachment,
-                onRemoveFileAttachment: removeFileAttachment,
+                onRemoveAttachment: removeAttachment,
                 onRespondToPendingUserInput: respondToPendingUserInput,
                 onDismissPendingUserInput: dismissPendingUserInput,
-                onImplementPlan: { Task { await implementPlan() } },
+                onImplementPlan: { taskBag.run { await implementPlan() } },
                 onDismissPlanImplementation: dismissPlanImplementationPrompt,
                 onSteerQueuedFollowUp: steerQueuedFollowUp,
                 onDeleteQueuedFollowUp: deleteQueuedFollowUp,
                 onRemovePluginMention: removePluginMention,
-                onPasteImage: { image in attachedImage = image },
+                onPasteImage: appendImageAttachment,
                 onOpenModePicker: onOpenModePicker,
                 onSendText: handleSend,
                 onStopRecording: stopVoiceRecording,
@@ -1609,17 +1729,14 @@ private struct ConversationInputBar: View {
             }
         }
         .dropDestination(for: URL.self) { urls, _ in
-            guard let picked = urls.lazy.compactMap({ ConversationAttachmentSupport.loadPickedFile(at: $0) }).first else {
-                return false
-            }
-            applyPickedFile(picked)
-            return true
+            taskBag.run { await importSelectedFiles(urls) }
+            return !urls.isEmpty
         }
         .dropDestination(for: Data.self) { items, _ in
-            guard let image = items.lazy.compactMap({ UIImage(data: $0) }).first else {
+            guard let image = items.lazy.compactMap({ ConversationAttachmentSupport.loadImageData($0) }).first else {
                 return false
             }
-            attachedImage = image
+            appendImageAttachment(image)
             return true
         }
     }
@@ -1636,8 +1753,33 @@ private struct ConversationInputBar: View {
         return min(max(percent, 0), 100)
     }
 
-    private func clearAttachment() {
-        attachedImage = nil
+    private func removeAttachment(_ id: ConversationAttachment.ID) {
+        attachments.removeAll { $0.id == id }
+    }
+
+    private func appendImageAttachment(_ image: UIImage) {
+        if let attachment = ConversationAttachmentSupport.imageAttachment(image) {
+            attachments.append(attachment)
+        }
+    }
+
+    private func importSelectedFiles(_ urls: [URL]) async {
+        guard !urls.isEmpty else { return }
+        do {
+            for url in urls {
+                let attachment = try await ConversationAttachmentSupport.importURLToFakeFS(url: url, destinationDirectory: workDir)
+                attachments.append(attachment)
+            }
+        } catch {
+            slashErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func appendRemoteFileAttachment(_ result: FileSearchResult) {
+        guard let attachment = ConversationAttachmentSupport.attachment(from: result) else { return }
+        if !attachments.contains(where: { $0.fakefsPath == attachment.fakefsPath }) {
+            attachments.append(attachment)
+        }
     }
 
     private func removeFileAttachment(_ file: ComposerFileAttachment) {
@@ -1661,7 +1803,7 @@ private struct ConversationInputBar: View {
             guard let selectedAnswers = answers[question.id], !selectedAnswers.isEmpty else { return nil }
             return PendingUserInputAnswer(questionId: question.id, answers: selectedAnswers)
         }
-        Task {
+        taskBag.run {
             do {
                 try await appModel.store.respondToUserInput(
                     requestId: pendingUserInputRequest.id,
@@ -1674,7 +1816,7 @@ private struct ConversationInputBar: View {
     }
 
     private func steerQueuedFollowUp(_ preview: AppQueuedFollowUpPreview) {
-        Task {
+        taskBag.run {
             do {
                 try await appModel.store.steerQueuedFollowUp(
                     key: snapshot.threadKey,
@@ -1687,7 +1829,7 @@ private struct ConversationInputBar: View {
     }
 
     private func deleteQueuedFollowUp(_ preview: AppQueuedFollowUpPreview) {
-        Task {
+        taskBag.run {
             do {
                 try await appModel.store.deleteQueuedFollowUp(
                     key: snapshot.threadKey,
@@ -1701,32 +1843,66 @@ private struct ConversationInputBar: View {
 
     private func handleSend() {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let image = attachedImage
-        let files = attachedFiles
-        guard !text.isEmpty || image != nil || !files.isEmpty else { return }
+        let pendingAttachments = attachments
+        guard !text.isEmpty || !pendingAttachments.isEmpty else { return }
+        guard !isExternalizingOversizedPaste else {
+            slashErrorMessage = "Finishing pasted text attachment."
+            return
+        }
         if let request = snapshot.pendingUserInputRequest {
             appState.dismissPendingUserInput(id: request.id)
         }
-        if image == nil,
-           files.isEmpty,
+        if pendingAttachments.isEmpty,
            let invocation = parseSlashCommandInvocation(text) {
             inputText = ""
-            attachedImage = nil
-            attachedFiles = []
+            attachments.removeAll()
             hideComposerPopups()
             isComposerFocused = false
             executeSlashCommand(invocation.command, args: invocation.args)
             return
         }
         inputText = ""
-        attachedImage = nil
-        attachedFiles = []
+        attachments.removeAll()
         hideComposerPopups()
         isComposerFocused = false
         let skillMentions = collectSkillMentionsForSubmission(text)
         let pluginMentions = collectPluginMentionsForSubmission(text)
         pluginMentionSelections = []
-        onSend(text, image, files, skillMentions, pluginMentions)
+        onSend(text, pendingAttachments, skillMentions, pluginMentions)
+    }
+
+    private func externalizeOversizedComposerTextIfNeeded(_ value: String) {
+        guard !isExternalizingOversizedPaste,
+              ConversationAttachmentSupport.shouldExternalizeComposerText(value) else { return }
+
+        let pastedText = value
+        isExternalizingOversizedPaste = true
+        slashErrorMessage = nil
+        taskBag.run {
+            do {
+                let attachment = try await ConversationAttachmentSupport.importPastedTextToFakeFS(
+                    text: pastedText,
+                    destinationDirectory: workDir
+                )
+                if inputText == pastedText {
+                    inputText = ConversationAttachmentSupport.oversizedPastePlaceholder(
+                        fileName: attachment.displayName,
+                        originalCharacterCount: pastedText.count,
+                        text: pastedText
+                    )
+                    composerSelectionRange = NSRange(location: (inputText as NSString).length, length: 0)
+                }
+                if !attachments.contains(where: { $0.fakefsPath == attachment.fakefsPath }) {
+                    attachments.append(attachment)
+                }
+                isExternalizingOversizedPaste = false
+            } catch {
+                inputText = ConversationAttachmentSupport.truncatedComposerPlaceholder(for: pastedText)
+                composerSelectionRange = NSRange(location: (inputText as NSString).length, length: 0)
+                slashErrorMessage = "Oversized paste was truncated: \(error.localizedDescription)"
+                isExternalizingOversizedPaste = false
+            }
+        }
     }
 
     private func dismissPendingUserInput() {
@@ -1749,7 +1925,7 @@ private struct ConversationInputBar: View {
     }
 
     private func startVoiceRecording() {
-        Task {
+        taskBag.run {
             let granted = await voiceManager.requestMicPermission()
             guard granted else {
                 showMicPermissionAlert = true
@@ -1760,7 +1936,7 @@ private struct ConversationInputBar: View {
     }
 
     private func stopVoiceRecording() {
-        Task {
+        taskBag.run {
             let auth = try? await appModel.client.authStatus(
                 serverId: snapshot.threadKey.serverId,
                 params: AuthStatusRequest(includeToken: true, refreshToken: false)
@@ -1804,7 +1980,7 @@ private struct ConversationInputBar: View {
             "interrupt turn",
             fields: ["serverId": threadKey.serverId, "threadId": threadKey.threadId, "turnId": activeTurnId]
         )
-        Task {
+        taskBag.run {
             do {
                 _ = try await appModel.client.interruptTurn(
                     serverId: threadKey.serverId,
@@ -1828,8 +2004,8 @@ private struct ConversationInputBar: View {
 
     private func loadSelectedPhoto(_ item: PhotosPickerItem) async {
         if let data = try? await item.loadTransferable(type: Data.self),
-           let image = UIImage(data: data) {
-            attachedImage = image
+           let image = ConversationAttachmentSupport.loadImageData(data) {
+            appendImageAttachment(image)
         }
         selectedPhoto = nil
     }
@@ -2019,7 +2195,7 @@ private struct ConversationInputBar: View {
             }
             if !hasAttemptedSkillMentionLoad && !skillsLoading {
                 hasAttemptedSkillMentionLoad = true
-                Task { await loadSkills(showErrors: false) }
+                taskBag.run { await loadSkills(showErrors: false) }
             }
             return
         }
@@ -2062,8 +2238,7 @@ private struct ConversationInputBar: View {
         activeSlashToken = nil
         slashSuggestions = []
         inputText = ""
-        attachedImage = nil
-        attachedFiles = []
+        attachments.removeAll()
         isComposerFocused = false
         executeSlashCommand(command, args: nil)
     }
@@ -2078,14 +2253,14 @@ private struct ConversationInputBar: View {
             showPermissionsSheet = true
         case .experimental:
             showExperimentalSheet = true
-            Task { await loadExperimentalFeatures() }
+            taskBag.run { await loadExperimentalFeatures() }
         case .skills:
             showSkillsSheet = true
-            Task { await loadSkills() }
+            taskBag.run { await loadSkills() }
         case .review:
-            Task { await startReview() }
+            taskBag.run { await startReview() }
         case .goal:
-            Task { await handleGoalCommand(args) }
+            taskBag.run { await handleGoalCommand(args) }
         case .rename:
             let initialName = args?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             if initialName.isEmpty {
@@ -2094,12 +2269,12 @@ private struct ConversationInputBar: View {
                 renameDraft = ""
                 showRenamePrompt = true
             } else {
-                Task { await renameThread(initialName) }
+                taskBag.run { await renameThread(initialName) }
             }
         case .new:
             appState.showServerPicker = true
         case .fork:
-            Task { await forkConversation() }
+            taskBag.run { await forkConversation() }
         case .resume:
             onResumeSessions?(snapshot.threadKey.serverId)
         }
@@ -2133,54 +2308,56 @@ private struct ConversationInputBar: View {
 
     private func handleGoalCommand(_ args: String?) async {
         let raw = args?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let lower = raw.lowercased()
+        let parsed = parseGoalSlashCommand(raw)
         do {
-            switch lower {
-            case "":
+            switch parsed {
+            case .show:
                 let goal = try await appModel.client.getThreadGoal(
                     serverId: snapshot.threadKey.serverId,
                     params: AppThreadGoalGetRequest(threadId: snapshot.threadKey.threadId)
                 )
-                guard let goal else {
-                    slashErrorMessage = "No goal is set for this thread."
-                    return
-                }
-                slashErrorMessage = goalSummary(goal)
-            case "pause":
+                slashErrorMessage = goal.map { goalSummary($0) } ?? goalSlashUsageMessage(prefix: "No goal is set for this thread.")
+            case .setObjective(let objective):
                 _ = try await appModel.client.setThreadGoal(
                     serverId: snapshot.threadKey.serverId,
                     params: AppThreadGoalSetRequest(
                         threadId: snapshot.threadKey.threadId,
-                        objective: nil,
-                        status: .paused,
-                        tokenBudget: nil
-                    )
-                )
-            case "resume":
-                _ = try await appModel.client.setThreadGoal(
-                    serverId: snapshot.threadKey.serverId,
-                    params: AppThreadGoalSetRequest(
-                        threadId: snapshot.threadKey.threadId,
-                        objective: nil,
+                        objective: objective,
                         status: .active,
                         tokenBudget: nil
                     )
                 )
-            case "clear":
+                slashErrorMessage = "Goal set. Use /goal to view it, /goal pause to pause it, or /goal complete when done."
+            case .setBudget(let budget):
+                _ = try await appModel.client.setThreadGoal(
+                    serverId: snapshot.threadKey.serverId,
+                    params: AppThreadGoalSetRequest(
+                        threadId: snapshot.threadKey.threadId,
+                        objective: nil,
+                        status: nil,
+                        tokenBudget: budget
+                    )
+                )
+                slashErrorMessage = "Goal token budget set to \(budget)."
+            case .setStatus(let status):
+                _ = try await appModel.client.setThreadGoal(
+                    serverId: snapshot.threadKey.serverId,
+                    params: AppThreadGoalSetRequest(
+                        threadId: snapshot.threadKey.threadId,
+                        objective: nil,
+                        status: status,
+                        tokenBudget: nil
+                    )
+                )
+                slashErrorMessage = "Goal status set to \(goalStatusLabel(status))."
+            case .clear:
                 _ = try await appModel.client.clearThreadGoal(
                     serverId: snapshot.threadKey.serverId,
                     params: AppThreadGoalClearRequest(threadId: snapshot.threadKey.threadId)
                 )
-            default:
-                _ = try await appModel.client.setThreadGoal(
-                    serverId: snapshot.threadKey.serverId,
-                    params: AppThreadGoalSetRequest(
-                        threadId: snapshot.threadKey.threadId,
-                        objective: raw,
-                        status: .active,
-                        tokenBudget: nil
-                    )
-                )
+                slashErrorMessage = "Goal cleared."
+            case .usage(let prefix):
+                slashErrorMessage = goalSlashUsageMessage(prefix: prefix)
             }
         } catch {
             slashErrorMessage = error.localizedDescription
@@ -2203,10 +2380,9 @@ private struct ConversationInputBar: View {
         switch status {
         case .active: return "active"
         case .paused: return "paused"
-        case .blocked: return "blocked"
-        case .usageLimited: return "limited by usage"
         case .budgetLimited: return "limited by budget"
         case .complete: return "complete"
+        default: return "limited"
         }
     }
 
@@ -2217,22 +2393,23 @@ private struct ConversationInputBar: View {
                 let next: AppThreadGoalStatus
                 switch current {
                 case .active: next = .paused
-                case .paused, .blocked, .usageLimited, .budgetLimited: next = .active
+                case .paused, .budgetLimited: next = .active
                 case .complete: return
+                default: next = .active
                 }
-                Task { await applyGoalUpdate(status: next) }
+                taskBag.run { await applyGoalUpdate(status: next) }
             },
             markComplete: {
-                Task { await applyGoalUpdate(status: .complete) }
+                taskBag.run { await applyGoalUpdate(status: .complete) }
             },
             setObjective: { objective in
-                Task { await applyGoalUpdate(objective: objective) }
+                taskBag.run { await applyGoalUpdate(objective: objective) }
             },
             setBudget: { value in
                 let goal = snapshot.goal
                 let resumeFromLimit = goal?.status == .budgetLimited
                     && (value ?? 0) > (goal?.tokensUsed ?? 0)
-                Task {
+                taskBag.run {
                     await applyGoalUpdate(
                         status: resumeFromLimit ? .active : nil,
                         tokenBudget: value
@@ -2240,7 +2417,7 @@ private struct ConversationInputBar: View {
                 }
             },
             clear: {
-                Task { await clearGoal() }
+                taskBag.run { await clearGoal() }
             }
         )
     }
@@ -2396,10 +2573,14 @@ private struct ConversationInputBar: View {
     }
 
     private func loadSkills(forceReload: Bool = false, showErrors: Bool) async {
+        _ = await IshFS.repairCodexHomeBridge()
+
         guard appModel.snapshot?.servers.first(where: { $0.serverId == snapshot.threadKey.serverId })?.canUseTransportActions == true else {
-            skills = []
-            mentionSkillPathsByName = [:]
-            if showErrors {
+            let loadedSkills = InstalledSkillCatalog.merge(serverSkills: [])
+            skills = loadedSkills
+            let validPaths = Set(loadedSkills.map { $0.path.value })
+            mentionSkillPathsByName = mentionSkillPathsByName.filter { _, path in validPaths.contains(path) }
+            if showErrors && loadedSkills.isEmpty {
                 slashErrorMessage = "Not connected to a server"
             }
             return
@@ -2414,14 +2595,31 @@ private struct ConversationInputBar: View {
                     forceReload: forceReload
                 )
             )
-            let loadedSkills = fetchedSkills.sorted { $0.name.lowercased() < $1.name.lowercased() }
+            let loadedSkills = InstalledSkillCatalog.merge(serverSkills: fetchedSkills)
             skills = loadedSkills
             let validPaths = Set(loadedSkills.map { $0.path.value })
             mentionSkillPathsByName = mentionSkillPathsByName.filter { _, path in validPaths.contains(path) }
         } catch {
-            if showErrors {
+            let loadedSkills = InstalledSkillCatalog.merge(serverSkills: [])
+            if !loadedSkills.isEmpty {
+                skills = loadedSkills
+                let validPaths = Set(loadedSkills.map { $0.path.value })
+                mentionSkillPathsByName = mentionSkillPathsByName.filter { _, path in validPaths.contains(path) }
+            } else if showErrors {
                 slashErrorMessage = error.localizedDescription
             }
+        }
+    }
+
+    private func setSkill(_ skill: SkillMetadata, enabled: Bool) async {
+        do {
+            try InstalledSkillCatalog.setEnabled(skill, enabled: enabled)
+            if let index = skills.firstIndex(where: { $0.path.value == skill.path.value }) {
+                skills[index] = InstalledSkillCatalog.withEnabled(skill, enabled: enabled)
+            }
+            await loadSkills(forceReload: true, showErrors: false)
+        } catch {
+            slashErrorMessage = error.localizedDescription
         }
     }
 
@@ -2435,6 +2633,7 @@ private struct ConversationInputBar: View {
             replacement: replacement
         ) else { return }
         inputText = updated
+        appendRemoteFileAttachment(match)
         showFilePopup = false
         activeAtToken = nil
         clearFileSearchState()
@@ -2466,7 +2665,7 @@ private struct ConversationInputBar: View {
             return
         }
         pluginLoadingCwds.insert(cwd)
-        Task {
+        taskBag.run {
             defer { pluginLoadingCwds.remove(cwd) }
             do {
                 let plugins = try await appModel.client.listPlugins(
@@ -2520,9 +2719,10 @@ private struct ConversationInputBar: View {
     }
 
     private func filterSkillSuggestions(_ query: String) -> [SkillMetadata] {
-        guard !skills.isEmpty else { return [] }
-        guard !query.isEmpty else { return skills.sorted { lhs, rhs in lhs.name.lowercased() < rhs.name.lowercased() } }
-        return skills
+        let enabledSkills = skills.filter(\.enabled)
+        guard !enabledSkills.isEmpty else { return [] }
+        guard !query.isEmpty else { return enabledSkills.sorted { lhs, rhs in lhs.name.lowercased() < rhs.name.lowercased() } }
+        return enabledSkills
             .compactMap { skill -> (SkillMetadata, Int)? in
                 let scoreFromName = fuzzyScore(candidate: skill.name, query: query)
                 let scoreFromDescription = fuzzyScore(candidate: skill.description, query: query)
@@ -2554,12 +2754,13 @@ private struct ConversationInputBar: View {
     }
 
     private func collectSkillMentionsForSubmission(_ text: String) -> [SkillMentionSelection] {
-        guard !skills.isEmpty else { return [] }
+        let enabledSkills = skills.filter(\.enabled)
+        guard !enabledSkills.isEmpty else { return [] }
         let mentionNames = extractMentionNames(text)
         guard !mentionNames.isEmpty else { return [] }
 
-        let skillsByName = Dictionary(grouping: skills, by: { $0.name.lowercased() })
-        let skillsByPath = Dictionary(grouping: skills, by: \.path.value)
+        let skillsByName = Dictionary(grouping: enabledSkills, by: { $0.name.lowercased() })
+        let skillsByPath = Dictionary(grouping: enabledSkills, by: \.path.value)
         var seenPaths = Set<String>()
         var resolved: [SkillMentionSelection] = []
 
@@ -2633,6 +2834,66 @@ private struct CollaborationModeSelectorSheet: View {
             .navigationTitle("Collaboration Mode")
         }
     }
+}
+
+enum GoalSlashCommandAction: Equatable {
+    case show
+    case setObjective(String)
+    case setBudget(Int64)
+    case setStatus(AppThreadGoalStatus)
+    case clear
+    case usage(String?)
+}
+
+func parseGoalSlashCommand(_ raw: String) -> GoalSlashCommandAction {
+    let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return .show }
+
+    let parts = trimmed.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
+    let verb = parts.first.map { String($0).lowercased() } ?? ""
+    let rest = parts.dropFirst().first.map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) } ?? ""
+
+    switch verb {
+    case "show", "status", "current":
+        return .show
+    case "pause":
+        return .setStatus(.paused)
+    case "resume", "start", "active":
+        return .setStatus(.active)
+    case "complete", "done", "finish":
+        return .setStatus(.complete)
+    case "clear", "delete", "remove":
+        return .clear
+    case "set", "create", "objective":
+        guard !rest.isEmpty else { return .usage("Missing goal objective.") }
+        return .setObjective(rest)
+    case "budget", "tokens", "token-budget":
+        guard let value = Int64(rest), value > 0 else {
+            return .usage("Goal budget must be a positive token count, for example /goal budget 50000.")
+        }
+        return .setBudget(value)
+    case "help":
+        return .usage(nil)
+    default:
+        return .setObjective(trimmed)
+    }
+}
+
+func goalSlashUsageMessage(prefix: String? = nil) -> String {
+    var lines: [String] = []
+    if let prefix, !prefix.isEmpty { lines.append(prefix) }
+    lines.append(contentsOf: [
+        "Usage:",
+        "/goal <objective>",
+        "/goal set <objective>",
+        "/goal status",
+        "/goal budget <tokens>",
+        "/goal pause",
+        "/goal resume",
+        "/goal complete",
+        "/goal clear"
+    ])
+    return lines.joined(separator: "\n")
 }
 
 private func collaborationModeEffortLabel(_ effort: ReasoningEffort) -> String {
@@ -3529,7 +3790,7 @@ private struct SubagentBreadcrumbBar: View {
         .padding(.top, topInset + 8)
         .background(
             LitterTheme.surface.opacity(0.85)
-                .background(.ultraThinMaterial)
+                .background(LitterTheme.surface.opacity(0.96))
                 .ignoresSafeArea()
         )
     }
@@ -3555,7 +3816,7 @@ private struct ConversationDebugButton: View {
                     .background(
                         Circle()
                             .fill(LitterTheme.surface.opacity(0.85))
-                            .background(Circle().fill(.ultraThinMaterial))
+                            .background(Circle().fill(LitterTheme.surface.opacity(0.96)))
                     )
             }
             .buttonStyle(.plain)

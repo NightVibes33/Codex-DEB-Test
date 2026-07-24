@@ -61,14 +61,15 @@ struct VoiceCallLockScreenCardView: View {
                     .font(.system(size: 10, design: .monospaced))
                     .foregroundStyle(tertiaryText)
                 Spacer()
-                Button(intent: EndVoiceSessionIntent()) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .padding(8)
-                        .background(Circle().fill(LitterPalette.danger.color(for: colorScheme)))
+                if #available(iOSApplicationExtension 17.0, *) {
+                    Button(intent: EndVoiceSessionIntent()) {
+                        endSessionIcon
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    endSessionIcon
+                        .accessibilityLabel("End voice session from the app")
                 }
-                .buttonStyle(.plain)
             }
             .padding(.top, 10)
             .padding(.leading, 38)
@@ -77,6 +78,14 @@ struct VoiceCallLockScreenCardView: View {
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(cardBackground)
+    }
+
+    private var endSessionIcon: some View {
+        Image(systemName: "xmark.circle.fill")
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(.white)
+            .padding(8)
+            .background(Circle().fill(LitterPalette.danger.color(for: colorScheme)))
     }
 
     private var statusText: String {

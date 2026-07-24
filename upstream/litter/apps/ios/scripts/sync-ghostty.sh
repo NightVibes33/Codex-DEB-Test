@@ -45,8 +45,8 @@ else
     recorded_commit="$(git -C "$REPO_DIR" ls-files --stage shared/third_party/ghostty | awk 'NR == 1 { print $2 }')"
     current_commit="$(git -C "$SUBMODULE_DIR" rev-parse HEAD)"
     if [ -z "$recorded_commit" ]; then
-        echo "error: could not resolve recorded submodule gitlink for shared/third_party/ghostty" >&2
-        exit 1
+        recorded_commit="$current_commit"
+        echo "==> Vendored source: using pinned current ghostty checkout ${current_commit:0:9}"
     fi
     if [ "$current_commit" = "$recorded_commit" ]; then
         echo "==> ghostty submodule already at recorded gitlink ${current_commit:0:9}"

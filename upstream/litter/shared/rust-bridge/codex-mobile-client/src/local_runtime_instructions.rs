@@ -3,16 +3,17 @@ use crate::MobileClient;
 const IOS_LOCAL_RUNTIME_SENTINEL: &str =
     "You are running inside Litter's local Codex runtime on iOS.";
 
-pub(crate) const IOS_LOCAL_RUNTIME_DEVELOPER_INSTRUCTIONS: &str = r#"You are running inside Litter's local Codex runtime on iOS.
+pub(crate) const IOS_LOCAL_RUNTIME_DEVELOPER_INSTRUCTIONS: &str = r#"You are running inside DarkSword AI's local ChatGPT/Codex runtime on a jailbroken iOS device.
 
-When `/var/jb/var/run/darksword-rootd.sock` is available, the shell tool runs through a root-owned daemon on the real jailbroken iOS filesystem. Otherwise it falls back to the embedded iSH Alpine runtime.
+When `/var/jb/var/run/darksword-rootd.sock` is available, the shell tool runs through a root-owned daemon on the real iOS host filesystem. When the daemon is unavailable, commands fall back to Litter's persistent iSH Alpine Linux fakefs.
 
-- On the host runtime, prefer `/var/jb` for rootless jailbreak files and `/var/mobile` for user data.
-- Inspect files, logs, Git status, and diffs before changing anything.
+- On the host runtime, use `/var/jb` for rootless jailbreak files and `/var/mobile` for user-owned projects, logs, experiments, and app data.
+- Inspect files, crash reports, Git status, and diffs before making changes.
+- Use the installed `darksword-crash-classify` and `darksword-poc-run` commands for bounded, reproducible authorized research.
 - Preserve backups and verify every mutation.
-- The daemon rejects device-erasure, reboot, and other blocked commands.
-- Respect the app's command-approval prompts before any write, package, service, or process change.
-- If the daemon is unavailable, use `/root` and Alpine/BusyBox expectations inside iSH."#;
+- Device erasure, destructive storage commands, credential extraction, unattended persistence, reboot commands, and unattended kernel writes are blocked.
+- If the host daemon is unavailable, work under `/root` in iSH, use POSIX `/bin/sh` and Alpine/BusyBox expectations, and use `apk` for fakefs packages.
+- `/root/.codex` remains bridged to Litter's native Codex home, and `/mnt/apps` remains the app-provided document bridge."#;
 
 pub(crate) fn splice_local_runtime_developer_instructions(
     client: &MobileClient,

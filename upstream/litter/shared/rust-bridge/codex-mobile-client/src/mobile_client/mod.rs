@@ -110,11 +110,8 @@ pub struct MobileClient {
         Arc<tokio::sync::Mutex<HashMap<String, ManagedSshBootstrapFlow>>>,
     alleycat_restart_targets: Arc<StdMutex<HashMap<String, AlleycatRestartTarget>>>,
     /// Live terminal session handles keyed by session id. The store
-    /// holds the FFI-visible snapshot
-    /// (`AppSnapshot.terminal_sessions`); these are the strong
-    /// references that keep the underlying PTY / SSH channel alive while
-    /// view-scoped renderers come and go. Cleared per-id when the
-    /// session exits or the caller explicitly closes it.
+    /// holds the FFI-visible snapshot; these strong references keep
+    /// the underlying PTY / SSH channel alive while renderers come and go.
     pub(crate) terminal_sessions:
         Arc<StdMutex<HashMap<String, Arc<crate::terminal::TerminalSession>>>>,
 }
@@ -424,6 +421,14 @@ fn mcp_elicitation_response_json(
                 action: upstream::McpServerElicitationAction::Accept,
                 content: Some(serde_json::Value::Object(content)),
                 meta: None,
+            }
+        }
+        upstream::McpServerElicitationRequest::OpenAiForm { .. } => {
+            let (action, meta) = mcp_approval_action_response(answers);
+            upstream::McpServerElicitationRequestResponse {
+                action,
+                content: None,
+                meta,
             }
         }
         upstream::McpServerElicitationRequest::Url { .. } => {
@@ -1164,13 +1169,10 @@ impl MobileClient {
         params: upstream::GetAccountParams,
     ) -> Result<upstream::GetAccountResponse, crate::RpcClientError> {
         use crate::{RpcClientError, next_request_id};
-        self.request_typed_for_server(
-            server_id,
-            upstream::ClientRequest::GetAccount {
-                request_id: upstream::RequestId::Integer(next_request_id()),
-                params,
-            },
-        )
+        self.request_typed_for_server(server_id, upstream::ClientRequest::GetAccount {
+            request_id: upstream::RequestId::Integer(next_request_id()),
+            params,
+        })
         .await
         .map_err(RpcClientError::Rpc)
     }
@@ -1181,13 +1183,10 @@ impl MobileClient {
         params: upstream::ThreadForkParams,
     ) -> Result<upstream::ThreadForkResponse, crate::RpcClientError> {
         use crate::{RpcClientError, next_request_id};
-        self.request_typed_for_server(
-            server_id,
-            upstream::ClientRequest::ThreadFork {
-                request_id: upstream::RequestId::Integer(next_request_id()),
-                params,
-            },
-        )
+        self.request_typed_for_server(server_id, upstream::ClientRequest::ThreadFork {
+            request_id: upstream::RequestId::Integer(next_request_id()),
+            params,
+        })
         .await
         .map_err(RpcClientError::Rpc)
     }
@@ -1198,13 +1197,10 @@ impl MobileClient {
         params: upstream::ThreadRollbackParams,
     ) -> Result<upstream::ThreadRollbackResponse, crate::RpcClientError> {
         use crate::{RpcClientError, next_request_id};
-        self.request_typed_for_server(
-            server_id,
-            upstream::ClientRequest::ThreadRollback {
-                request_id: upstream::RequestId::Integer(next_request_id()),
-                params,
-            },
-        )
+        self.request_typed_for_server(server_id, upstream::ClientRequest::ThreadRollback {
+            request_id: upstream::RequestId::Integer(next_request_id()),
+            params,
+        })
         .await
         .map_err(RpcClientError::Rpc)
     }
@@ -1315,13 +1311,10 @@ impl MobileClient {
     ) {
         self.clear_oauth_callback_tunnel(server_id).await;
         let mut tunnels = self.oauth_callback_tunnels.lock().await;
-        tunnels.insert(
-            server_id.to_string(),
-            OAuthCallbackTunnel {
-                login_id: login_id.to_string(),
-                local_port,
-            },
-        );
+        tunnels.insert(server_id.to_string(), OAuthCallbackTunnel {
+            login_id: login_id.to_string(),
+            local_port,
+        });
     }
 
     fn existing_active_session(&self, server_id: &str) -> Option<Arc<ServerSession>> {
@@ -1824,20 +1817,16 @@ impl MobileClient {
         };
         match self.alleycat_restart_targets.lock() {
             Ok(mut guard) => {
-                guard.insert(
-                    server_id.clone(),
-                    AlleycatRestartTarget {
-                        params: params.clone(),
-                    },
-                );
+                guard.insert(server_id.clone(), AlleycatRestartTarget {
+                    params: params.clone(),
+                });
             }
             Err(error) => {
-                error.into_inner().insert(
-                    server_id.clone(),
-                    AlleycatRestartTarget {
+                error
+                    .into_inner()
+                    .insert(server_id.clone(), AlleycatRestartTarget {
                         params: params.clone(),
-                    },
-                );
+                    });
             }
         }
         self.app_store
@@ -2426,21 +2415,20 @@ impl MobileClient {
     pub(crate) async fn list_threads(&self, server_id: &str) -> Result<Vec<ThreadInfo>, RpcError> {
         self.get_session(server_id)?;
         let response = self
-            .server_thread_list(
-                server_id,
-                upstream::ThreadListParams {
-                    limit: None,
-                    cursor: None,
-                    sort_key: None,
-                    sort_direction: None,
-                    model_providers: None,
-                    source_kinds: None,
-                    archived: None,
-                    cwd: None,
-                    search_term: None,
-                    use_state_db_only: false,
-                },
-            )
+            .server_thread_list(server_id, upstream::ThreadListParams {
+                limit: None,
+                cursor: None,
+                sort_key: None,
+                sort_direction: None,
+                model_providers: None,
+                source_kinds: None,
+                archived: None,
+                cwd: None,
+                search_term: None,
+                use_state_db_only: false,
+                parent_thread_id: None,
+                ancestor_thread_id: None,
+            })
             .await
             .map_err(map_rpc_client_error)?;
         let threads = response
@@ -2455,12 +2443,9 @@ impl MobileClient {
     pub async fn sync_server_account(&self, server_id: &str) -> Result<(), RpcError> {
         self.get_session(server_id)?;
         let response = self
-            .server_get_account(
-                server_id,
-                upstream::GetAccountParams {
-                    refresh_token: false,
-                },
-            )
+            .server_get_account(server_id, upstream::GetAccountParams {
+                refresh_token: false,
+            })
             .await
             .map_err(map_rpc_client_error)?;
         self.apply_account_response(server_id, &response);
@@ -2492,6 +2477,8 @@ impl MobileClient {
 
         let params = upstream::LoginAccountParams::Chatgpt {
             codex_streamlined_login: false,
+            use_hosted_login_success_page: false,
+            app_brand: None,
         };
         let response = self
             .request_typed_for_server::<upstream::LoginAccountResponse>(
@@ -3069,15 +3056,12 @@ impl MobileClient {
     ) -> Result<(), RpcError> {
         self.get_session(server_id)?;
         let _: upstream::ThreadUnsubscribeResponse = self
-            .request_typed_for_server(
-                server_id,
-                upstream::ClientRequest::ThreadUnsubscribe {
-                    request_id: upstream::RequestId::Integer(crate::next_request_id()),
-                    params: upstream::ThreadUnsubscribeParams {
-                        thread_id: thread_id.to_string(),
-                    },
+            .request_typed_for_server(server_id, upstream::ClientRequest::ThreadUnsubscribe {
+                request_id: upstream::RequestId::Integer(crate::next_request_id()),
+                params: upstream::ThreadUnsubscribeParams {
+                    thread_id: thread_id.to_string(),
                 },
-            )
+            })
             .await
             .map_err(RpcError::Deserialization)?;
         self.direct_resumed_threads().remove(&ThreadKey {
@@ -3116,7 +3100,7 @@ impl MobileClient {
                 thread,
                 AppModeKind::Plan,
                 params.model.clone(),
-                params.effort,
+                params.effort.clone(),
             );
         }
         if let Some(thread) = thread_snapshot.as_ref()
@@ -3177,8 +3161,10 @@ impl MobileClient {
                         request_id: upstream::RequestId::Integer(crate::next_request_id()),
                         params: upstream::TurnSteerParams {
                             thread_id: params.thread_id.clone(),
+                            client_user_message_id: None,
                             input: direct_params.input.clone(),
                             responsesapi_client_metadata: None,
+                            additional_context: None,
                             expected_turn_id: active_turn_id,
                         },
                     },
@@ -3205,7 +3191,7 @@ impl MobileClient {
             },
             &params.thread_id,
         );
-        let response_result = self
+        let response = self
             .request_typed_for_server::<upstream::TurnStartResponse>(
                 server_id,
                 upstream::ClientRequest::TurnStart {
@@ -3213,12 +3199,8 @@ impl MobileClient {
                     params: direct_params,
                 },
             )
-            .await;
-        let response = match response_result {
-            Ok(response) => response,
-            Err(error) => {
-                self.app_store
-                    .finish_server_mutating_command_failure(server_id, &direct_command_id);
+            .await
+            .map_err(|error| {
                 if let Some(overlay_id) = optimistic_overlay_id.as_ref() {
                     self.app_store
                         .remove_local_overlay_item(&thread_key, overlay_id);
@@ -3227,9 +3209,8 @@ impl MobileClient {
                     self.app_store
                         .remove_thread_follow_up_draft(&thread_key, &draft.preview.id);
                 }
-                return Err(RpcError::Deserialization(error));
-            }
-        };
+                RpcError::Deserialization(error)
+            })?;
         self.app_store
             .finish_server_mutating_command_success(server_id, &direct_command_id);
         if let Some(overlay_id) = optimistic_overlay_id.as_ref() {
@@ -3279,25 +3260,22 @@ impl MobileClient {
             ServerMutatingCommandKind::SteerQueuedFollowUp,
             &key.thread_id,
         );
-        if let Err(error) = self
-            .request_typed_for_server::<upstream::TurnSteerResponse>(
-                &key.server_id,
-                upstream::ClientRequest::TurnSteer {
-                    request_id: upstream::RequestId::Integer(crate::next_request_id()),
-                    params: upstream::TurnSteerParams {
-                        thread_id: key.thread_id.clone(),
-                        input: draft.inputs,
-                        responsesapi_client_metadata: None,
-                        expected_turn_id: active_turn_id,
-                    },
+        self.request_typed_for_server::<upstream::TurnSteerResponse>(
+            &key.server_id,
+            upstream::ClientRequest::TurnSteer {
+                request_id: upstream::RequestId::Integer(crate::next_request_id()),
+                params: upstream::TurnSteerParams {
+                    thread_id: key.thread_id.clone(),
+                    client_user_message_id: None,
+                    input: draft.inputs,
+                    responsesapi_client_metadata: None,
+                    additional_context: None,
+                    expected_turn_id: active_turn_id,
                 },
-            )
-            .await
-        {
-            self.app_store
-                .finish_server_mutating_command_failure(&key.server_id, &direct_command_id);
-            return Err(RpcError::Deserialization(error));
-        }
+            },
+        )
+        .await
+        .map_err(RpcError::Deserialization)?;
         self.app_store
             .finish_server_mutating_command_success(&key.server_id, &direct_command_id);
         // Keep draft visible as PendingSteer; TurnCompleted will clean it up.
@@ -3343,13 +3321,10 @@ impl MobileClient {
 
         if rollback_depth > 0 {
             let response = self
-                .server_thread_rollback(
-                    &key.server_id,
-                    upstream::ThreadRollbackParams {
-                        thread_id: key.thread_id.clone(),
-                        num_turns: rollback_depth,
-                    },
-                )
+                .server_thread_rollback(&key.server_id, upstream::ThreadRollbackParams {
+                    thread_id: key.thread_id.clone(),
+                    num_turns: rollback_depth,
+                })
                 .await
                 .map_err(|e| RpcError::Deserialization(e.to_string()))?;
             let turns = response.thread.turns.clone();
@@ -3431,13 +3406,10 @@ impl MobileClient {
 
         if rollback_depth > 0 {
             let rollback_response = self
-                .server_thread_rollback(
-                    &key.server_id,
-                    upstream::ThreadRollbackParams {
-                        thread_id: next_key.thread_id.clone(),
-                        num_turns: rollback_depth,
-                    },
-                )
+                .server_thread_rollback(&key.server_id, upstream::ThreadRollbackParams {
+                    thread_id: next_key.thread_id.clone(),
+                    num_turns: rollback_depth,
+                })
                 .await
                 .map_err(|e| RpcError::Deserialization(e.to_string()))?;
             snapshot = thread_snapshot_from_upstream_thread_with_overrides(
@@ -3466,6 +3438,11 @@ impl MobileClient {
             .app_store
             .pending_approval_seed(&approval.server_id, &approval.id);
         let session = self.get_session(&approval.server_id)?;
+        let direct_command_id = self.app_store.begin_server_mutating_command(
+            &approval.server_id,
+            ServerMutatingCommandKind::ApprovalResponse,
+            approval.thread_id.as_deref().unwrap_or(""),
+        );
         let response_json = approval_response_json(&approval, approval_seed.as_ref(), decision)?;
         let response_request_id =
             server_request_id_json(approval_request_id(&approval, approval_seed.as_ref()));
@@ -3479,19 +3456,9 @@ impl MobileClient {
                 })
             })
             .unwrap_or_else(|| "codex".to_string());
-        let direct_command_id = self.app_store.begin_server_mutating_command(
-            &approval.server_id,
-            ServerMutatingCommandKind::ApprovalResponse,
-            approval.thread_id.as_deref().unwrap_or(""),
-        );
-        if let Err(error) = session
+        session
             .respond_for_runtime(runtime_kind, response_request_id, response_json)
-            .await
-        {
-            self.app_store
-                .finish_server_mutating_command_failure(&approval.server_id, &direct_command_id);
-            return Err(error);
-        }
+            .await?;
         self.app_store
             .finish_server_mutating_command_success(&approval.server_id, &direct_command_id);
         debug!(
@@ -3520,25 +3487,20 @@ impl MobileClient {
                 PendingUserInputResponseKind::McpServerElicitation
             )
         {
+            let direct_command_id = self.app_store.begin_server_mutating_command(
+                &request.server_id,
+                ServerMutatingCommandKind::UserInputResponse,
+                &request.thread_id,
+            );
             let response_json = mcp_elicitation_response_json(seed, &answers)?;
             let response_request_id = server_request_id_json(seed.request_id.clone());
             let runtime_kind = self.runtime_for_thread(&ThreadKey {
                 server_id: request.server_id.clone(),
                 thread_id: request.thread_id.clone(),
             });
-            let direct_command_id = self.app_store.begin_server_mutating_command(
-                &request.server_id,
-                ServerMutatingCommandKind::UserInputResponse,
-                &request.thread_id,
-            );
-            if let Err(error) = session
+            session
                 .respond_for_runtime(runtime_kind, response_request_id, response_json)
-                .await
-            {
-                self.app_store
-                    .finish_server_mutating_command_failure(&request.server_id, &direct_command_id);
-                return Err(error);
-            }
+                .await?;
             self.app_store
                 .finish_server_mutating_command_success(&request.server_id, &direct_command_id);
             debug!(
@@ -3554,16 +3516,18 @@ impl MobileClient {
             );
             return Ok(());
         }
+        let direct_command_id = self.app_store.begin_server_mutating_command(
+            &request.server_id,
+            ServerMutatingCommandKind::UserInputResponse,
+            &request.thread_id,
+        );
         let response = upstream::ToolRequestUserInputResponse {
             answers: normalized_answers
                 .into_iter()
                 .map(|answer| {
-                    (
-                        answer.question_id,
-                        upstream::ToolRequestUserInputAnswer {
-                            answers: answer.answers,
-                        },
-                    )
+                    (answer.question_id, upstream::ToolRequestUserInputAnswer {
+                        answers: answer.answers,
+                    })
                 })
                 .collect::<HashMap<_, _>>(),
         };
@@ -3585,19 +3549,9 @@ impl MobileClient {
             server_id: request.server_id.clone(),
             thread_id: request.thread_id.clone(),
         });
-        let direct_command_id = self.app_store.begin_server_mutating_command(
-            &request.server_id,
-            ServerMutatingCommandKind::UserInputResponse,
-            &request.thread_id,
-        );
-        if let Err(error) = session
+        session
             .respond_for_runtime(runtime_kind, response_request_id, response_json)
-            .await
-        {
-            self.app_store
-                .finish_server_mutating_command_failure(&request.server_id, &direct_command_id);
-            return Err(error);
-        }
+            .await?;
         self.app_store
             .finish_server_mutating_command_success(&request.server_id, &direct_command_id);
         debug!(
@@ -3803,31 +3757,31 @@ impl MobileClient {
         let collaboration_mode = thread
             .as_ref()
             .and_then(|t| collaboration_mode_from_thread(t, AppModeKind::Default, None, None));
-        self.start_turn(
-            &key.server_id,
-            upstream::TurnStartParams {
-                thread_id: key.thread_id.clone(),
-                input: vec![upstream::UserInput::Text {
-                    text: "Implement the plan.".to_string(),
-                    text_elements: Vec::new(),
-                }],
-                responsesapi_client_metadata: None,
-                cwd: None,
-                runtime_workspace_roots: None,
-                approval_policy: None,
-                approvals_reviewer: None,
-                sandbox_policy: None,
-                environments: None,
-                permissions: None,
-                model: None,
-                service_tier: None,
-                effort: None,
-                summary: None,
-                personality: None,
-                output_schema: None,
-                collaboration_mode,
-            },
-        )
+        self.start_turn(&key.server_id, upstream::TurnStartParams {
+            thread_id: key.thread_id.clone(),
+            client_user_message_id: None,
+            input: vec![upstream::UserInput::Text {
+                text: "Implement the plan.".to_string(),
+                text_elements: Vec::new(),
+            }],
+            responsesapi_client_metadata: None,
+            additional_context: None,
+            cwd: None,
+            runtime_workspace_roots: None,
+            approval_policy: None,
+            approvals_reviewer: None,
+            sandbox_policy: None,
+            environments: None,
+            permissions: None,
+            model: None,
+            service_tier: None,
+            effort: None,
+            summary: None,
+            personality: None,
+            output_schema: None,
+            collaboration_mode,
+            multi_agent_mode: None,
+        })
         .await
     }
 

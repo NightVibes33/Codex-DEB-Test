@@ -104,6 +104,7 @@ final class AppModel {
     private(set) var snapshotRevision: UInt64 = 0
     private(set) var lastError: String?
     private(set) var composerPrefillRequest: ComposerPrefillRequest?
+    private(set) var isRecoveringLocalServer = false
 
     @ObservationIgnored private var subscription: AppStoreSubscription?
     @ObservationIgnored private var updateTask: Task<Void, Never>?
@@ -121,6 +122,7 @@ final class AppModel {
     @ObservationIgnored private var pendingCommandRowMutationTask: Task<Void, Never>?
     @ObservationIgnored private var cachedThreadSnapshots: [ThreadKey: AppThreadSnapshot] = [:]
     @ObservationIgnored private var loadingTurnPageThreadKeys: Set<ThreadKey> = []
+    @ObservationIgnored private var localServerRecoveryTask: Task<Void, Never>?
 
     init(
         store: AppStore? = nil,
@@ -165,10 +167,12 @@ final class AppModel {
         pendingSnapshotRefreshTask?.cancel()
         pendingThreadStateTask?.cancel()
         pendingCommandRowMutationTask?.cancel()
+        localServerRecoveryTask?.cancel()
     }
 
     func start() {
         guard updateTask == nil else { return }
+        LocalConnectorBroker.shared.start()
         let subscription = store.subscribeUpdates()
         self.subscription = subscription
         updateTask = Task.detached(priority: .userInitiated) { [weak self, subscription] in
@@ -188,6 +192,7 @@ final class AppModel {
     }
 
     func stop() {
+        LocalConnectorBroker.shared.stop()
         updateTask?.cancel()
         updateTask = nil
         pendingThreadRefreshTask?.cancel()
@@ -204,6 +209,8 @@ final class AppModel {
         pendingCommandRowMutationTask?.cancel()
         pendingCommandRowMutationTask = nil
         pendingCommandRowMutations.removeAll()
+        localServerRecoveryTask?.cancel()
+        localServerRecoveryTask = nil
         subscription = nil
     }
 
@@ -460,6 +467,97 @@ final class AppModel {
         await refreshSnapshot()
     }
 
+    func activateStoredLocalChatGPTAccount(serverId: String, accountID: String) async throws {
+        guard let server = snapshot?.serverSnapshot(for: serverId) else {
+            throw LocalAccountLoginFlowError.localServerUnavailable
+        }
+        guard server.isLocal else {
+            throw LocalAccountLoginFlowError.remoteServer
+        }
+
+        try ChatGPTOAuthTokenStore.shared.setActiveAccountID(accountID)
+        if server.account != nil {
+            _ = try? await client.logoutAccount(serverId: serverId)
+        }
+        await restoreStoredLocalAuthState(serverId: serverId)
+        guard snapshot?.serverSnapshot(for: serverId)?.account != nil else {
+            throw LocalAccountLoginFlowError.loginDidNotAttach
+        }
+    }
+
+    func removeStoredLocalChatGPTAccount(serverId: String, accountID: String) async throws {
+        guard let server = snapshot?.serverSnapshot(for: serverId) else {
+            throw LocalAccountLoginFlowError.localServerUnavailable
+        }
+        guard server.isLocal else {
+            throw LocalAccountLoginFlowError.remoteServer
+        }
+
+        try ChatGPTOAuthTokenStore.shared.clear(accountID: accountID)
+        if server.account != nil {
+            _ = try? await client.logoutAccount(serverId: serverId)
+        }
+        await restoreStoredLocalAuthState(serverId: serverId)
+        await refreshSnapshot()
+    }
+
+    func nextStoredLocalChatGPTAccount(serverId: String) throws -> StoredChatGPTAccountSummary? {
+        guard let server = snapshot?.serverSnapshot(for: serverId), server.isLocal else {
+            return nil
+        }
+        let accounts = try ChatGPTOAuthTokenStore.shared.storedAccounts()
+        return nextStoredChatGPTAccount(in: accounts)
+    }
+
+    func chatGPTAccountSwitchSuggestion(for error: Error, serverId: String) -> StoredChatGPTAccountSummary? {
+        guard isChatGPTAccountLimitError(error) else { return nil }
+        guard let server = snapshot?.serverSnapshot(for: serverId), server.isLocal else { return nil }
+        guard case .chatgpt? = server.account else { return nil }
+        let accounts = (try? ChatGPTOAuthTokenStore.shared.storedAccounts()) ?? []
+        return nextStoredChatGPTAccount(in: accounts)
+    }
+
+    @discardableResult
+    func switchToNextStoredLocalChatGPTAccount(serverId: String) async throws -> StoredChatGPTAccountSummary {
+        guard let server = snapshot?.serverSnapshot(for: serverId) else {
+            throw LocalAccountLoginFlowError.localServerUnavailable
+        }
+        guard server.isLocal else {
+            throw LocalAccountLoginFlowError.remoteServer
+        }
+        let accounts = try ChatGPTOAuthTokenStore.shared.storedAccounts()
+        guard let nextAccount = nextStoredChatGPTAccount(in: accounts) else {
+            throw ChatGPTOAuthError.missingStoredTokens
+        }
+        try await activateStoredLocalChatGPTAccount(serverId: serverId, accountID: nextAccount.accountID)
+        return nextAccount
+    }
+
+    private func nextStoredChatGPTAccount(in accounts: [StoredChatGPTAccountSummary]) -> StoredChatGPTAccountSummary? {
+        guard accounts.count > 1 else { return nil }
+        let activeIndex = accounts.firstIndex(where: \.isActive) ?? 0
+        return accounts[(activeIndex + 1) % accounts.count]
+    }
+
+    private func isChatGPTAccountLimitError(_ error: Error) -> Bool {
+        let message = "\(error.localizedDescription) \(String(describing: error))".lowercased()
+        let markers = [
+            "insufficient_quota",
+            "quota",
+            "credit",
+            "credits",
+            "usage limit",
+            "limit reached",
+            "rate_limit",
+            "rate limit",
+            "too many requests",
+            "429",
+            "exhausted",
+            "billing"
+        ]
+        return markers.contains { message.contains($0) }
+    }
+
     func ensureLocalAuthForThreadStart(serverId: String) async throws -> Bool {
         guard let server = snapshot?.serverSnapshot(for: serverId) else {
             return true
@@ -467,6 +565,7 @@ final class AppModel {
         guard server.isLocal else {
             return true
         }
+        try await LitterPlatform.ensureLocalRuntimeReady()
         guard server.account == nil else {
             return true
         }
@@ -537,6 +636,7 @@ final class AppModel {
         let currentLocal = snapshot?.servers.first(where: \.isLocal)
         let serverId = currentLocal?.serverId ?? "local"
         let displayName = resolvedLocalServerDisplayName()
+        try await LitterPlatform.ensureLocalRuntimeReady()
         serverBridge.disconnectServer(serverId: serverId)
         _ = try await serverBridge.connectLocalServer(
             serverId: serverId,
@@ -546,6 +646,49 @@ final class AppModel {
         )
         await restoreStoredLocalAuthState(serverId: serverId)
         await refreshSnapshot()
+    }
+
+    func ensureLocalServerConnectedIfNeeded(reason: String) {
+        guard LitterPlatform.supportsLocalRuntime else { return }
+        guard snapshot?.servers.contains(where: \.isLocal) != true else { return }
+        guard localServerRecoveryTask == nil else { return }
+
+        localServerRecoveryTask = Task { [weak self] in
+            guard let self else { return }
+            defer { self.localServerRecoveryTask = nil }
+            await self.recoverMissingLocalServer(reason: reason)
+        }
+    }
+
+    private func recoverMissingLocalServer(reason: String) async {
+        isRecoveringLocalServer = true
+        defer { isRecoveringLocalServer = false }
+
+        for delay in [0.4, 1.2, 2.4] {
+            guard !Task.isCancelled else { return }
+            await refreshSnapshot()
+            if snapshot?.servers.contains(where: \.isLocal) == true { return }
+            try? await Task.sleep(for: .seconds(delay))
+        }
+
+        guard !Task.isCancelled else { return }
+        guard snapshot?.servers.contains(where: \.isLocal) != true else { return }
+        do {
+            LLog.warn(
+                "local-codex",
+                "local server missing after startup; reconnecting",
+                fields: ["reason": reason]
+            )
+            try await restartLocalServer()
+        } catch {
+            lastError = error.localizedDescription
+            LLog.error(
+                "local-codex",
+                "local server automatic reconnect failed",
+                error: error,
+                fields: ["reason": reason]
+            )
+        }
     }
 
     func restoreStoredLocalAuthState(serverId: String) async {
@@ -660,7 +803,7 @@ final class AppModel {
         storedTokens: ChatGPTOAuthTokenBundle
     ) async -> Bool {
         let refreshedTokens = try? await ChatGPTOAuth.refreshStoredTokens(
-            previousAccountID: nil,
+            previousAccountID: storedTokens.accountID,
             storedTokens: storedTokens
         )
         if let refreshedTokens,
@@ -678,7 +821,7 @@ final class AppModel {
 
         try? await Task.sleep(for: .seconds(2))
         if let retriedRefresh = try? await ChatGPTOAuth.refreshStoredTokens(
-            previousAccountID: nil,
+            previousAccountID: storedTokens.accountID,
             storedTokens: storedTokens
         ) {
             return await loginStoredLocalChatGPTAuth(serverId: serverId, tokens: retriedRefresh)
@@ -718,6 +861,17 @@ final class AppModel {
             "reconnecting local server to re-inherit stored API key environment",
             fields: ["serverId": serverId]
         )
+        do {
+            try await LitterPlatform.ensureLocalRuntimeReady()
+        } catch {
+            LLog.error(
+                "ish",
+                "Local shell unavailable: iSH runtime is not bootstrapped",
+                error: error,
+                fields: ["serverId": localServer.serverId]
+            )
+            return false
+        }
 
         serverBridge.disconnectServer(serverId: localServer.serverId)
 
@@ -1786,7 +1940,8 @@ final class AppModel {
     }
 
     func availableModels(for serverId: String) -> [ModelInfo] {
-        snapshot?.serverSnapshot(for: serverId)?.availableModels ?? []
+        var models = snapshot?.serverSnapshot(for: serverId)?.availableModels ?? []
+        return models
     }
 
     func rateLimits(for serverId: String) -> RateLimitSnapshot? {
@@ -1814,9 +1969,20 @@ final class AppModel {
         recentConversationMetadataLoads[serverId] = Date()
     }
 
+    func refreshConversationMetadata(serverId: String) async {
+        await loadAvailableModels(serverId: serverId, forceRefresh: true)
+        await loadRateLimits(serverId: serverId, forceRefresh: true)
+        await refreshSnapshot()
+        recentConversationMetadataLoads[serverId] = Date()
+    }
+
     func loadAvailableModelsIfNeeded(serverId: String) async {
+        await loadAvailableModels(serverId: serverId, forceRefresh: false)
+    }
+
+    private func loadAvailableModels(serverId: String, forceRefresh: Bool) async {
         guard let server = snapshot?.serverSnapshot(for: serverId), server.isConnected else { return }
-        guard server.availableModels == nil else { return }
+        guard forceRefresh || server.availableModels == nil else { return }
         guard !loadingModelServerIds.contains(serverId) else { return }
         loadingModelServerIds.insert(serverId)
         defer { loadingModelServerIds.remove(serverId) }
@@ -1832,8 +1998,12 @@ final class AppModel {
     }
 
     func loadRateLimitsIfNeeded(serverId: String) async {
+        await loadRateLimits(serverId: serverId, forceRefresh: false)
+    }
+
+    private func loadRateLimits(serverId: String, forceRefresh: Bool) async {
         guard let server = snapshot?.serverSnapshot(for: serverId), server.isConnected else { return }
-        guard server.rateLimits == nil else { return }
+        guard forceRefresh || server.rateLimits == nil else { return }
         guard server.account != nil else { return }
         guard !loadingRateLimitServerIds.contains(serverId) else { return }
         loadingRateLimitServerIds.insert(serverId)
@@ -1846,6 +2016,7 @@ final class AppModel {
     }
 
     func startTurn(key: ThreadKey, payload: AppComposerPayload) async throws {
+        try await ensureLocalRuntimeIfNeeded(serverId: key.serverId)
         await restoreStoredLocalAuthIfNeeded(serverId: key.serverId, reason: "startTurn")
 
         do {
@@ -1857,6 +2028,11 @@ final class AppModel {
             lastError = error.localizedDescription
             throw error
         }
+    }
+
+    private func ensureLocalRuntimeIfNeeded(serverId: String) async throws {
+        guard snapshot?.serverSnapshot(for: serverId)?.isLocal == true else { return }
+        try await LitterPlatform.ensureLocalRuntimeReady()
     }
 
     func hydrateThreadPermissions(for key: ThreadKey, appState: AppState) async -> ThreadKey? {
