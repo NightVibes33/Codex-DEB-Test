@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TARGET="${1:-$SCRIPT_DIR/../upstream/litter}"
+TARGET="$(cd "$TARGET" && pwd)"
 cd "$TARGET"
 
 python3 <<'PY'
@@ -30,4 +31,13 @@ if info.exists():
     info.write_text(s)
 PY
 
-echo "DarkSword iOS 16 overlay applied to $TARGET."
+mkdir -p shared/rust-bridge/codex-mobile-client/src
+cp "$SCRIPT_DIR/rust/darksword_host_runtime.rs" \
+  shared/rust-bridge/codex-mobile-client/src/darksword_host_runtime.rs
+
+if ! grep -q 'pub mod darksword_host_runtime;' \
+  shared/rust-bridge/codex-mobile-client/src/lib.rs; then
+  patch -p1 < "$SCRIPT_DIR/patches/host-runtime.patch"
+fi
+
+echo "DarkSword iOS 16 and host-runtime overlay applied to $TARGET."
