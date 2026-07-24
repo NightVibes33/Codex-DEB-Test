@@ -1,6 +1,5 @@
-name: Report Current DarkSword Build Run
+name: Report Current AlleyCat Build Run
 
-# Probe revision: aws-lc host/iOS toolchain isolation
 on:
   workflow_dispatch:
   push:
@@ -19,20 +18,20 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Query current full-build runs
+      - name: Query AlleyCat build runs
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           gh run list \
             --repo "$GITHUB_REPOSITORY" \
-            --workflow build-darksword-ios16-current.yml \
+            --workflow build-alleycat-ios16.yml \
             --limit 10 \
             --json databaseId,status,conclusion,event,headSha,createdAt,updatedAt,url,displayTitle \
             > /tmp/current-runs.json
 
           {
-            echo '# Current DarkSword full-build runs'
+            echo '# Current AlleyCat build runs'
             echo
             echo '```json'
             cat /tmp/current-runs.json
@@ -46,7 +45,7 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git pull --rebase origin main || true
           git add CURRENT_BUILD_RUNS.md
-          git commit -m 'Record current DarkSword full-build run state' || true
+          git commit -m 'Record current AlleyCat build run state' || true
           git push origin HEAD:main || {
             git pull --rebase origin main
             git push origin HEAD:main
