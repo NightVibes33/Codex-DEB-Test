@@ -1,61 +1,101 @@
-# DarkGPT iOS
+# DarkSword AI for iPadOS 16
 
-DarkGPT iOS is a rootless jailbreak package for iOS 16+ that installs:
+`Codex-DEB-Test` rebuilds the complete advanced [`NightVibes33/litter`](https://github.com/NightVibes33/litter) source tree as a ChatGPT-account-powered, rootless jailbreak research environment for the iPad 5th generation on iPadOS 16.7.11.
 
-- a home-screen ChatGPT-style app using the official `chatgpt.com` session;
-- an official ChatGPT sign-in screen, including Continue with Google when OpenAI offers it;
-- the account's real ChatGPT model picker and conversation history;
-- an experimental local tool-calling loop;
-- a root LaunchDaemon for controlled filesystem, Git, process, log, build, and test operations;
-- one-time local approvals for writes and privileged commands.
+It is not a small replacement UI and it does not remove Litter features. The complete Litter Codex bridge, account flow, model picker, conversations, streaming, plugins, voice, terminal, file workspace, Git integrations, KittyStore, SideStore, BuildKit, LiveProcess, Live Activities, Watch targets, PiP, CarPlay, Ghostty, and embedded iSH runtime remain in the imported source.
 
-## Important architecture boundary
+## Required product architecture
 
-OpenAI does not expose normal ChatGPT subscription conversations through a public third-party API. The app therefore keeps authentication inside a `WKWebView` pointed at the official ChatGPT website. It does not ship an OpenAI password, cookie, API key, or model. Model availability is whatever the signed-in account shows.
-
-The local agent loop is experimental because it observes and drives the ChatGPT web interface. ChatGPT website changes may require selector updates.
-
-## Outputs
-
-The GitHub Actions workflow builds:
-
-- `com.nightvibes.darkgpt_*_iphoneos-arm64.deb`
-- `DarkGPT.ipa`
-
-The `.deb` installs both the app and root daemon. The IPA contains only the app and cannot provide root tools by itself.
-
-## Safe research scope
-
-The included research runner supports bounded test harnesses, source inspection, crash collection, panic-log indexing, Git diffs, and user-approved builds. It does not guarantee discovery of an exploit or a jailbreak. Destructive commands, credential extraction, filesystem erasure, unattended kernel writes, and persistence changes are blocked.
-
-## Build
-
-```sh
-export THEOS=$HOME/theos
-make clean package FINALPACKAGE=1
+```text
+Codex-DEB-Test
+├── upstream/litter/                   complete NightVibes33/litter snapshot
+├── DarkSwordAI.app
+│   ├── ChatGPT login/interface        full Litter chat engine + official login link
+│   ├── research workspace             jailbreak-lab navigation and experiment state
+│   ├── crash and panic viewer         indexes readable .ips/.panic/.crash reports
+│   ├── source editor                  absolute-path read and approval-gated writes
+│   └── tool-approval interface        root daemon status and permission boundaries
+├── darksword-rootd
+│   ├── filesystem tools
+│   ├── process/service tools
+│   ├── Git tools
+│   ├── build/install tools
+│   └── bounded experiment execution
+├── jailbreak-lab/
+│   ├── harnesses/                     minimal authorized reproducer templates
+│   ├── bin/darksword-poc-run          timeout/output/resource-limited runner
+│   ├── bin/darksword-crash-classify   local crash/panic classifier
+│   └── schema/experiment.schema.json  reproducible experiment records
+└── packaging
+    ├── unsigned IPA builder
+    └── rootless iphoneos-arm64 DEB builder
 ```
 
-Target:
+## ChatGPT and Google login
 
-- Architecture: `iphoneos-arm64`
-- Deployment target: iOS 16.0
-- Tested target device profile: iPad6,11 on iOS 16.7.11
+The native Chat tab contains the full Litter `ContentView` and its signed-in ChatGPT/Codex account transport. A visible **Google** button opens OpenAI's official `https://chatgpt.com/auth/login` page, where OpenAI presents **Continue with Google** when it is available for the account.
 
-## Install
+DarkSword does not request, intercept, or store a Google password or manually extract ChatGPT cookies. OpenAI does not expose ordinary ChatGPT subscription conversations as a public third-party Chat API. Therefore the supported account-powered tool loop remains Litter's official Codex sign-in transport, presented through a Chat-style interface, while the normal ChatGPT website login remains on OpenAI's origin.
+
+Model availability comes from the signed-in account and the imported NightVibes Codex fork. The app must not hard-code a model name that the account/server does not advertise.
+
+## Tool execution
+
+The rootless DEB installs:
+
+```text
+/var/jb/Applications/DarkSwordAI.app
+/var/jb/usr/libexec/darksword-rootd
+/var/jb/Library/LaunchDaemons/com.nightvibes.darksword-rootd.plist
+/var/jb/usr/share/darksword/jailbreak-lab
+/var/jb/usr/bin/darksword-poc-run
+/var/jb/usr/bin/darksword-crash-classify
+```
+
+The app and Litter Rust bridge communicate with `darksword-rootd` through:
+
+```text
+/var/jb/var/run/darksword-rootd.sock
+```
+
+Read-only inspection and bounded diagnostics may run automatically. Source writes, patch application, package/service changes, and elevated PoC runs require explicit local approval. Device erasure, credential extraction, destructive disk commands, unattended persistence, and unattended kernel writes remain blocked.
+
+## Build outputs
+
+The GitHub Actions pipeline is intended to produce both:
+
+```text
+DarkSwordAI-full-unsigned.ipa
+com.nightvibes.darkswordai_0.2.0_iphoneos-arm64.deb
+```
+
+The IPA contains the full app and bundled lab templates but cannot install a root LaunchDaemon by itself. The DEB installs the same app plus the privileged daemon and executable lab tools.
+
+## Current build state
+
+The architecture and packaging sources are committed. A build is not considered complete until GitHub Actions reports all of these as successful:
+
+- full NightVibes source verification;
+- Rust/Codex/Ghostty build;
+- iOS app and embedded targets;
+- root daemon compilation;
+- IPA and DEB packaging.
+
+`BUILD_STATUS.md` is written by CI with the exact compiler and packaging results.
+
+## Install the DEB
 
 ```sh
-dpkg -i com.nightvibes.darkgpt_*_iphoneos-arm64.deb
+dpkg -i com.nightvibes.darkswordai_0.2.0_iphoneos-arm64.deb
 sbreload
 ```
 
-Then open **DarkGPT** from the Home Screen, sign in through the official ChatGPT page, and tap **Agent** to install the local-tool protocol into the current conversation.
-
-## Local approval
-
-From a root shell:
+Useful terminal checks after installation:
 
 ```sh
-darkgpt-approve
+ls -l /var/jb/var/run/darksword-rootd.sock
+darksword-crash-classify
+darksword-poc-run --timeout 15 -- /var/mobile/Projects/example-harness
 ```
 
-The command prints a short-lived code. Enter that code in the app only for the exact write or privileged operation you approve.
+A new jailbreak or exploit is never guaranteed. The lab provides source analysis, reproducible harness execution, crash/panic collection, classification, build support, and bounded iteration on the user's own device.
