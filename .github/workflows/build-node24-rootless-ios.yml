@@ -79,7 +79,7 @@ jobs:
 
           SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
           TARGET="arm64-apple-ios${IOS_DEPLOYMENT_TARGET}"
-          mapfile -t STATIC_LIBS < <(find out/Release -maxdepth 1 -name '*.a' -print | sort)
+          STATIC_LIBS=( $(find out/Release -maxdepth 1 -name '*.a' -print | sort) )
           test "${#STATIC_LIBS[@]}" -gt 0
 
           xcrun --sdk iphoneos clang++ \
