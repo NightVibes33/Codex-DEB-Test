@@ -1,4 +1,4 @@
-name: Import Litter upstream
+name: Import NightVibes Litter
 
 on:
   workflow_dispatch:
@@ -8,6 +8,10 @@ on:
 
 permissions:
   contents: write
+
+concurrency:
+  group: import-nightvibes-litter
+  cancel-in-progress: true
 
 jobs:
   import:
@@ -19,18 +23,23 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Clone Litter source
+      - name: Clone complete advanced Litter source
         run: |
-          git clone --depth 1 https://github.com/0xSero/litter.git /tmp/litter
+          git clone --depth 1 https://github.com/NightVibes33/litter.git /tmp/litter
           git -C /tmp/litter rev-parse HEAD > /tmp/litter-commit.txt
           git -C /tmp/litter ls-tree HEAD shared/third_party/codex | awk '{print $3}' > /tmp/codex-commit.txt
           git -C /tmp/litter ls-tree HEAD shared/third_party/ghostty | awk '{print $3}' > /tmp/ghostty-commit.txt
+          test -s /tmp/litter-commit.txt
+          test -s /tmp/codex-commit.txt
+          test -s /tmp/ghostty-commit.txt
 
-      - name: Vendor source into this repository
+      - name: Replace vendored app with the real advanced tree
         run: |
+          rm -rf upstream/litter
           mkdir -p upstream/litter
           rsync -a --exclude .git /tmp/litter/ upstream/litter/
           cp /tmp/litter-commit.txt upstream/litter/LITTER_UPSTREAM_COMMIT.txt
+          printf '%s\n' 'source=https://github.com/NightVibes33/litter' > upstream/litter/LITTER_UPSTREAM_SOURCE.txt
           {
             printf 'codex='
             cat /tmp/codex-commit.txt
@@ -38,23 +47,24 @@ jobs:
             cat /tmp/ghostty-commit.txt
           } > upstream/litter/SUBMODULES.lock
 
-      - name: Apply DarkSword iOS adaptation
+      - name: Apply jailbreak iPad adaptation
         run: |
           chmod +x darksword-overlay/apply.sh
           ./darksword-overlay/apply.sh upstream/litter
 
-      - name: Commit imported source
+      - name: Commit canonical source snapshot
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add upstream/litter darksword-overlay
-          git commit -m "Refresh Litter and apply DarkSword host runtime" || true
+          git add -A upstream/litter darksword-overlay
+          git commit -m "Sync full NightVibes Litter and apply iPad rootless overlay" || true
           git push origin HEAD:main
 
-      - name: Upload import marker
+      - name: Upload source revision marker
         uses: actions/upload-artifact@v4
         with:
-          name: litter-upstream-marker
+          name: nightvibes-litter-source
           path: |
             upstream/litter/LITTER_UPSTREAM_COMMIT.txt
+            upstream/litter/LITTER_UPSTREAM_SOURCE.txt
             upstream/litter/SUBMODULES.lock
