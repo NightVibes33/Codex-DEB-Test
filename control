@@ -1,0 +1,10 @@
+Package: com.nightvibes.darkgpt
+Name: DarkGPT
+Version: 0.1.0
+Architecture: iphoneos-arm64
+Description: ChatGPT-style jailbreak app with a local approval-gated root tool daemon.
+Maintainer: NightVibes33
+Author: NightVibes33
+Section: Applications
+Depends: firmware (>= 16.0), bash, coreutils, git, curl
+Conflicts: com.nightvibes.darkgpt-rootd
