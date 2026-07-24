@@ -44,7 +44,7 @@ jobs:
         run: |
           set -euxo pipefail
           export MACOSX_DEPLOYMENT_TARGET=11.0
-          bash tools/ios-framework/ios_framework_prepare.sh arm64
+          bash tools/ios_framework_prepare.sh arm64
           test -f out/Release/libnode.a
           test -f tools/ios-framework/bin/libnode.a
           file out/Release/libnode.a
@@ -142,7 +142,7 @@ jobs:
           printf '%s\n' \
             'Package: nodejs-mobile' \
             'Name: Node.js Mobile CLI (Rootless)' \
-            "Version: ${BUILT_VERSION}-4" \
+            "Version: ${BUILT_VERSION}-5" \
             "Architecture: ${PACKAGE_ARCH}" \
             'Description: Real iOS-patched Node.js CLI for rootless iOS 16+' \
             'Maintainer: NightVibes33' \
@@ -150,7 +150,7 @@ jobs:
             'Priority: optional' \
             'Depends: firmware (>= 16.0)' > "$ROOT/DEBIAN/control"
 
-          DEB="nodejs-mobile_${BUILT_VERSION}-4_${PACKAGE_ARCH}.deb"
+          DEB="nodejs-mobile_${BUILT_VERSION}-5_${PACKAGE_ARCH}.deb"
           dpkg-deb --root-owner-group --build "$ROOT" "$DEB"
           echo "DEB=$DEB" >> "$GITHUB_ENV"
 
