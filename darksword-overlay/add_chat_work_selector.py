@@ -38,8 +38,8 @@ def main() -> int:
 
     var subtitle: String {
         switch self {
-        case .chat: return "Conversation"
-        case .work: return "Tools and agent work"
+        case .chat: return "Normal ChatGPT usage"
+        case .work: return "Codex tools and agent usage"
         }
     }
 
@@ -64,7 +64,7 @@ def main() -> int:
         '    private static let preferredChatRuntimeKey = "litter.preferredChatRuntime"\n',
         '    private static let preferredChatRuntimeKey = "litter.preferredChatRuntime"\n'
         '    private static let preferredChatWorkModeKey = "alleycat.preferredChatWorkMode"\n',
-        "preferred chat runtime key",
+        "preferred Chat/Work key",
     )
 
     property_block = '''    var preferredChatWorkModeRaw: String {
@@ -75,10 +75,6 @@ def main() -> int:
     var preferredChatWorkMode: ChatWorkMode {
         get { ChatWorkMode(rawValue: preferredChatWorkModeRaw) ?? .work }
         set { preferredChatWorkModeRaw = newValue.rawValue }
-    }
-    var chatModeDeveloperInstructions: String? {
-        guard preferredChatWorkMode == .chat else { return nil }
-        return "Respond as a conversational ChatGPT assistant. Use tools only when the user explicitly asks for tool use or when a tool is necessary to complete the request. Keep the normal AlleyCat model, account, files, and attachment support available."
     }
 '''
     text = replace_once(
@@ -93,7 +89,7 @@ def main() -> int:
         '        preferredChatRuntimeRaw = UserDefaults.standard.string(forKey: Self.preferredChatRuntimeKey) ?? ChatRuntimeMode.chatGPTAccount.rawValue\n',
         '        preferredChatRuntimeRaw = UserDefaults.standard.string(forKey: Self.preferredChatRuntimeKey) ?? ChatRuntimeMode.chatGPTAccount.rawValue\n'
         '        preferredChatWorkModeRaw = UserDefaults.standard.string(forKey: Self.preferredChatWorkModeKey) ?? ChatWorkMode.work.rawValue\n',
-        "AppState chat runtime initialization",
+        "AppState Chat/Work initialization",
     )
     app_state.write_text(text)
 
@@ -115,7 +111,7 @@ def main() -> int:
 
     selector_block = '''    private var chatWorkSelector: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Mode")
+            Text("Experience")
                 .litterFont(.caption2, weight: .bold)
                 .foregroundStyle(LitterTheme.textMuted)
                 .textCase(.uppercase)
@@ -126,6 +122,9 @@ def main() -> int:
                     let selected = appState.preferredChatWorkMode == mode
                     Button {
                         appState.preferredChatWorkMode = mode
+                        if mode == .chat {
+                            appState.showModelSelector = false
+                        }
                     } label: {
                         HStack(spacing: 7) {
                             Image(systemName: mode.systemImage)
@@ -156,7 +155,7 @@ def main() -> int:
                         )
                     }
                     .buttonStyle(.plain)
-                    .accessibilityIdentifier("modelPicker.mode.\\(mode.rawValue)")
+                    .accessibilityIdentifier("modelPicker.experience.\\(mode.rawValue)")
                 }
             }
             .padding(.horizontal, 16)
@@ -174,31 +173,55 @@ def main() -> int:
     )
     header.write_text(text)
 
-    home = root / "apps/ios/Sources/Litter/Views/HomeComposerView.swift"
-    text = home.read_text()
-    text = replace_once(
-        text,
-        '                    developerInstructions: nil,\n',
-        '                    developerInstructions: appState.chatModeDeveloperInstructions,\n',
-        "home thread developer instructions",
-    )
-    home.write_text(text)
+    app = root / "apps/ios/Sources/Litter/LitterApp.swift"
+    text = app.read_text()
+    cloud_route = '''        .fullScreenCover(
+            isPresented: Binding(
+                get: { appState.preferredChatWorkMode == .chat },
+                set: { isPresented in
+                    if !isPresented {
+                        appState.preferredChatWorkMode = .work
+                    }
+                }
+            )
+        ) {
+            ZStack(alignment: .topTrailing) {
+                ChatGPTCloudChatView()
+                    .ignoresSafeArea()
 
-    conversation = root / "apps/ios/Sources/Litter/Views/ConversationView.swift"
-    text = conversation.read_text()
+                Button {
+                    appState.preferredChatWorkMode = .work
+                } label: {
+                    Label("Work", systemImage: "hammer.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(.ultraThinMaterial, in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 8)
+                .padding(.trailing, 8)
+                .accessibilityIdentifier("chatgptCloud.returnToWork")
+            }
+        }
+'''
     text = replace_once(
         text,
-        '            developerInstructions: nil,\n',
-        '            developerInstructions: appState.chatModeDeveloperInstructions,\n',
-        "conversation fork developer instructions",
+        '        .sheet(isPresented: $bindableAppState.showServerPicker) {\n',
+        cloud_route + '        .sheet(isPresented: $bindableAppState.showServerPicker) {\n',
+        "ContentView ChatGPT cloud route",
     )
-    conversation.write_text(text)
+    app.write_text(text)
 
     checks = {
-        app_state: ["enum ChatWorkMode", "preferredChatWorkMode", "chatModeDeveloperInstructions"],
-        header: ["chatWorkSelector", 'Text("Chat")' if False else "ChatWorkMode.allCases"],
-        home: ["developerInstructions: appState.chatModeDeveloperInstructions"],
-        conversation: ["developerInstructions: appState.chatModeDeveloperInstructions"],
+        app_state: [
+            "enum ChatWorkMode",
+            "preferredChatWorkMode",
+            "Normal ChatGPT usage",
+            "Codex tools and agent usage",
+        ],
+        header: ["chatWorkSelector", "ChatWorkMode.allCases", "modelPicker.experience"],
+        app: ["ChatGPTCloudChatView()", "chatgptCloud.returnToWork"],
     }
     for path, needles in checks.items():
         current = path.read_text()
@@ -206,7 +229,14 @@ def main() -> int:
             if needle not in current:
                 raise SystemExit(f"error: missing {needle!r} in {path}")
 
-    print("Added persistent Chat/Work selector to AlleyCat model picker; Work remains the default.")
+    for stale in (
+        root / "apps/ios/Sources/Litter/Views/HomeComposerView.swift",
+        root / "apps/ios/Sources/Litter/Views/ConversationView.swift",
+    ):
+        if "chatModeDeveloperInstructions" in stale.read_text():
+            raise SystemExit(f"error: stale fake Chat routing remains in {stale}")
+
+    print("Added real usage split: Chat opens official ChatGPT cloud; Work remains AlleyCat/Codex.")
     return 0
 
 
