@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - .github/workflows/import-litter.yml
+      - darksword-overlay/**
 
 permissions:
   contents: write
@@ -23,9 +24,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Clone complete advanced Litter source
+      - name: Clone complete advanced Litter source and every submodule
         run: |
-          git clone --depth 1 https://github.com/NightVibes33/litter.git /tmp/litter
+          git clone --depth 1 --recurse-submodules --shallow-submodules \
+            https://github.com/NightVibes33/litter.git /tmp/litter
+          git -C /tmp/litter submodule update --init --recursive --depth 1
           git -C /tmp/litter rev-parse HEAD > /tmp/litter-commit.txt
           git -C /tmp/litter ls-tree HEAD shared/third_party/codex | awk '{print $3}' > /tmp/codex-commit.txt
           git -C /tmp/litter ls-tree HEAD shared/third_party/ghostty | awk '{print $3}' > /tmp/ghostty-commit.txt
@@ -47,17 +50,30 @@ jobs:
             cat /tmp/ghostty-commit.txt
           } > upstream/litter/SUBMODULES.lock
 
-      - name: Apply jailbreak iPad adaptation
+      - name: Verify full-source components were preserved
+        run: |
+          test -d upstream/litter/apps/ios/Sources/Litter
+          test -d upstream/litter/apps/ios/Sources/LitterLiveActivity
+          test -d upstream/litter/apps/ios/Sources/LitterWatch
+          test -d upstream/litter/ThirdParty/SideStore
+          test -d upstream/litter/ThirdParty/EmexDE
+          test -d upstream/litter/shared/rust-bridge
+          test -f upstream/litter/apps/ios/project.yml
+
+      - name: Apply jailbreak iPad adaptation without deleting features
         run: |
           chmod +x darksword-overlay/apply.sh
           ./darksword-overlay/apply.sh upstream/litter
+          grep -q -- '- target: LitterLiveActivity' upstream/litter/apps/ios/project.yml
+          grep -q -- '- target: LitterWatch' upstream/litter/apps/ios/project.yml
+          grep -q -- '- target: LiveProcess' upstream/litter/apps/ios/project.yml
 
       - name: Commit canonical source snapshot
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add -A upstream/litter darksword-overlay
-          git commit -m "Sync full NightVibes Litter and apply iPad rootless overlay" || true
+          git commit -m "Sync complete NightVibes Litter and apply non-destructive iPad overlay" || true
           git push origin HEAD:main
 
       - name: Upload source revision marker
