@@ -1,5 +1,6 @@
 name: Report Current DarkSword Build Run
 
+# Probe revision: aws-lc host/iOS toolchain isolation
 on:
   workflow_dispatch:
   push:
