@@ -81,7 +81,18 @@ struct DarkSwordCrashViewer: View {
             }
             .overlay {
                 if records.isEmpty {
-                    ContentUnavailableView("No crash logs indexed", systemImage: "waveform.path.ecg", description: Text(errorMessage ?? "Pull to refresh or tap Reload."))
+                    VStack(spacing: 10) {
+                        Image(systemName: "waveform.path.ecg")
+                            .font(.system(size: 34))
+                            .foregroundStyle(.secondary)
+                        Text("No crash logs indexed")
+                            .font(.headline)
+                        Text(errorMessage ?? "Pull to refresh or tap Reload.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(24)
                 }
             }
             .navigationTitle("Crashes & Panics")
