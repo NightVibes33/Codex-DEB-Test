@@ -1,0 +1,202 @@
+name: Build Unsigned iOS IPA
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_mode:
+        description: Build mode
+        required: true
+        default: full-sideload
+        type: choice
+        options:
+          - full-sideload
+          - fast-device
+          - release-device
+          - nyxian-private
+  push:
+    branches: [main]
+    paths:
+      - upstream/litter/**
+      - .github/workflows/ios-unsigned-ipa.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ios-unsigned-ipa-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-unsigned-ipa:
+    name: Build unsigned sideload IPA
+    runs-on: macos-26-intel
+    timeout-minutes: 180
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_NET_RETRY: "10"
+      CARGO_HTTP_TIMEOUT: "120"
+      CARGO_HTTP_MULTIPLEXING: "false"
+      IOS_RUST_PROFILE: mobile-release
+      RUSTC_WRAPPER: ""
+      SCCACHE_DISABLE: "1"
+      SOURCE_ROOT: upstream/litter
+      DERIVED_DATA_PATH: ${{ github.workspace }}/build/DerivedData
+      LITTER_IOS_BUILD_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.build_mode || 'full-sideload' }}
+      LITTER_NYXIAN_PRIVATE_BUILD: ${{ (github.event_name != 'workflow_dispatch' || inputs.build_mode == 'full-sideload' || inputs.build_mode == 'nyxian-private') && '1' || '0' }}
+      LITTER_EMBED_PRIVATE_BUILDKIT_ASSETS: ${{ github.event_name == 'workflow_dispatch' && inputs.build_mode == 'nyxian-private' && '1' || '0' }}
+      LITTER_PRESERVE_NYXIAN_LIVEPROCESS: ${{ (github.event_name != 'workflow_dispatch' || inputs.build_mode == 'full-sideload' || inputs.build_mode == 'nyxian-private') && '1' || '0' }}
+      LITTER_SKIP_ALLEYCAT_UPDATE: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.3'
+
+      - name: Show toolchain
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          swift --version
+
+      - name: Install Metal toolchain when absent
+        run: |
+          set -euo pipefail
+          if ! xcrun --sdk iphoneos --find metal >/dev/null 2>&1; then
+            sudo xcodebuild -downloadComponent MetalToolchain
+          fi
+          xcrun --sdk iphoneos --find metal
+
+      - name: Verify Alley Cat source
+        working-directory: upstream/litter
+        run: |
+          set -euo pipefail
+          tools/scripts/verify-nyxian-source-import.sh
+          tools/scripts/verify-kittystore-integration.sh
+
+      - name: Cache Homebrew downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/Homebrew
+          key: homebrew-ios-${{ runner.os }}-xcodegen-native-tools-v5
+
+      - name: Install native build dependencies
+        run: brew install meson ninja xcodegen
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios,i686-unknown-linux-musl
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.2
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ios-cargo-registry-${{ runner.os }}-${{ hashFiles('upstream/litter/shared/rust-bridge/Cargo.lock', 'upstream/litter/ThirdParty/SideStore/minimuxer/Cargo.lock') }}
+          restore-keys: |
+            ios-cargo-registry-${{ runner.os }}-
+
+      - name: Cache Zig package downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/darksword-zig-global
+          key: alleycat-zig-global-${{ runner.os }}-${{ hashFiles('upstream/litter/shared/third_party/ghostty/build.zig.zon') }}
+          restore-keys: |
+            alleycat-zig-global-${{ runner.os }}-
+
+      - name: Restore prebuilt Rust iOS device library
+        id: rust_generated_cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            upstream/litter/apps/ios/GeneratedRust
+            upstream/litter/apps/ios/Sources/Litter/Bridge/UniFFICodexClient.generated.swift
+          key: ios-rust-generated-v3-${{ runner.os }}-${{ hashFiles('upstream/litter/apps/ios/scripts/build-rust.sh', 'upstream/litter/apps/ios/scripts/build-ghostty.sh', 'upstream/litter/apps/ios/scripts/sync-ghostty.sh', 'upstream/litter/apps/ios/scripts/sync-codex.sh', 'upstream/litter/shared/rust-bridge/Cargo.lock', 'upstream/litter/shared/rust-bridge/Cargo.toml', 'upstream/litter/shared/rust-bridge/codex-mobile-client/**', 'upstream/litter/shared/rust-bridge/codex-slingshot/**', 'upstream/litter/patches/codex/**', 'upstream/litter/patches/ghostty/**') }}
+          restore-keys: |
+            ios-rust-generated-v3-${{ runner.os }}-
+            ios-testflight-rust-generated-mobile-release-v1-${{ runner.os }}-
+
+      - name: Restore Alpine filesystem cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            upstream/litter/apps/ios/Resources/fs.tar.gz
+            upstream/litter/apps/ios/Resources/fs.version
+            upstream/litter/.build-stamps
+          key: ios-alpine-fs-v1-${{ runner.os }}-${{ hashFiles('upstream/litter/Makefile', 'upstream/litter/apps/ios/scripts/download-alpine-fs.sh') }}
+          restore-keys: |
+            ios-alpine-fs-v1-${{ runner.os }}-
+
+      - name: Build Alley Cat runtime
+        working-directory: upstream/litter
+        env:
+          GHOSTTY_ZIG_GLOBAL_CACHE_DIR: ${{ runner.temp }}/alleycat-zig-global
+        run: |
+          set -euo pipefail
+          ./apps/ios/scripts/sync-codex.sh --preserve-current
+          ./apps/ios/scripts/build-rust.sh --preserve-current --device-only
+          make alpine-fs xcgen IOS_DEPLOYMENT_TARGET=16.1
+
+      - name: Save generated Rust cache
+        if: success() && steps.rust_generated_cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            upstream/litter/apps/ios/GeneratedRust
+            upstream/litter/apps/ios/Sources/Litter/Bridge/UniFFICodexClient.generated.swift
+          key: ${{ steps.rust_generated_cache.outputs.cache-primary-key }}
+
+      - name: Build unsigned Alley Cat app
+        working-directory: upstream/litter
+        run: |
+          set -euo pipefail
+          mkdir -p "$DERIVED_DATA_PATH"
+          xcodebuild \
+            -project apps/ios/Litter.xcodeproj \
+            -scheme Litter \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$DERIVED_DATA_PATH" \
+            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
+            IPHONEOS_DEPLOYMENT_TARGET=16.1 \
+            LITTER_IOS_BUILD_MODE="$LITTER_IOS_BUILD_MODE" \
+            LITTER_NYXIAN_PRIVATE_BUILD="$LITTER_NYXIAN_PRIVATE_BUILD" \
+            LITTER_EMBED_PRIVATE_BUILDKIT_ASSETS="$LITTER_EMBED_PRIVATE_BUILDKIT_ASSETS" \
+            LITTER_PRESERVE_NYXIAN_LIVEPROCESS="$LITTER_PRESERVE_NYXIAN_LIVEPROCESS" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            build
+
+      - name: Package unsigned IPA
+        run: |
+          set -euo pipefail
+          APP="$(find "$DERIVED_DATA_PATH/Build/Products" -type d -name 'Litter.app' -print -quit)"
+          test -d "$APP"
+          rm -rf build/unsigned-ipa/Payload
+          mkdir -p build/unsigned-ipa/Payload
+          cp -R "$APP" build/unsigned-ipa/Payload/AlleyCat.app
+          ditto -c -k --sequesterRsrc --keepParent build/unsigned-ipa/Payload build/unsigned-ipa/AlleyCat-unsigned.ipa
+          test -s build/unsigned-ipa/AlleyCat-unsigned.ipa
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: AlleyCat-Unsigned-IPA
+          path: build/unsigned-ipa/AlleyCat-unsigned.ipa
+          if-no-files-found: error
