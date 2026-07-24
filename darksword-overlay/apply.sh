@@ -8,11 +8,15 @@ chmod +x "$SCRIPT_DIR/apply-core.sh"
 "$SCRIPT_DIR/apply-core.sh" "$TARGET"
 
 COMPATIBILITY_SOURCE="$SCRIPT_DIR/app/DarkSwordCompatibility.swift"
+LABS_VIEW_SOURCE="$SCRIPT_DIR/app/AlleyCatLabsView.swift"
 test -f "$COMPATIBILITY_SOURCE"
+test -f "$LABS_VIEW_SOURCE"
 
 mkdir -p "$TARGET/apps/ios/Sources/Litter/DarkSword"
 cp "$COMPATIBILITY_SOURCE" \
   "$TARGET/apps/ios/Sources/Litter/DarkSword/DarkSwordCompatibility.swift"
+cp "$LABS_VIEW_SOURCE" \
+  "$TARGET/apps/ios/Sources/Litter/DarkSword/AlleyCatLabsView.swift"
 
 for source_root in \
   LitterLiveActivity \
@@ -77,7 +81,6 @@ export MACOSX_DEPLOYMENT_TARGET="$MACOSX_DEPLOYMENT_TARGET"
 if old_exports in text:
     text = text.replace(old_exports, new_exports, 1)
 else:
-    # Idempotent repair for snapshots where only the global iPhone export remains.
     text = text.replace('export IPHONEOS_DEPLOYMENT_TARGET="$IOS_DEPLOYMENT_TARGET"\n', '')
     if 'export CC_aarch64_apple_ios="$IOS_CLANG_WRAPPER"' not in text:
         marker = 'export CXX_aarch64_apple_ios="$IOS_CLANGXX_WRAPPER"\n'
@@ -111,6 +114,9 @@ text = pattern.sub(scope_target, text)
 path.write_text(text)
 PY
 
+chmod +x "$SCRIPT_DIR/restore_alleycat_ui.py"
+python3 "$SCRIPT_DIR/restore_alleycat_ui.py" "$TARGET"
+
 chmod +x "$SCRIPT_DIR/backport_perception.py"
 python3 "$SCRIPT_DIR/backport_perception.py" "$TARGET"
 
@@ -119,6 +125,14 @@ grep -q '@Perceptible' "$TARGET/apps/ios/Sources/Litter/Models/AppState.swift"
 grep -q 'WithPerceptionTracking' "$TARGET/apps/ios/Sources/Litter/LitterApp.swift"
 grep -q 'darkswordOnChange' "$TARGET/apps/ios/Sources/Litter/DarkSword/DarkSwordCompatibility.swift"
 grep -q 'CC_aarch64_apple_ios="$IOS_CLANG_WRAPPER"' "$TARGET/apps/ios/scripts/build-rust.sh"
+grep -q 'ContentView()' "$TARGET/apps/ios/Sources/Litter/LitterApp.swift"
+grep -q 'AlleyCat Labs' "$TARGET/apps/ios/Sources/Litter/Views/SettingsView.swift"
+grep -q 'PRODUCT_NAME: AlleyCat' "$TARGET/apps/ios/project.yml"
+grep -q '<string>Alley Cãt</string>' "$TARGET/apps/ios/Sources/Litter/Info.plist"
+if grep -q 'DarkSwordRootView()' "$TARGET/apps/ios/Sources/Litter/LitterApp.swift"; then
+  echo 'error: replacement DarkSword tab shell is still the app root' >&2
+  exit 1
+fi
 if grep -q '^export IPHONEOS_DEPLOYMENT_TARGET=' "$TARGET/apps/ios/scripts/build-rust.sh"; then
   echo 'error: global IPHONEOS_DEPLOYMENT_TARGET still present in build-rust.sh' >&2
   exit 1
@@ -126,4 +140,4 @@ fi
 grep -q 'env IPHONEOS_DEPLOYMENT_TARGET="$IOS_DEPLOYMENT_TARGET" cargo rustc' \
   "$TARGET/apps/ios/scripts/build-rust.sh"
 
-echo "DarkSword core overlay, iOS Rust toolchain isolation, and iOS 16 compatibility backports completed for $TARGET."
+echo "Full AlleyCat UI, rootless host tools, iOS Rust isolation, and iOS 16 compatibility backports completed for $TARGET."
