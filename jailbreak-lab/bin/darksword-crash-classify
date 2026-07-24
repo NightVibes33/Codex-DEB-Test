@@ -1,0 +1,56 @@
+#!/var/jb/bin/sh
+set -eu
+
+SINCE=""
+if [ "${1:-}" = "--since" ]; then
+  [ "$#" -eq 2 ] || exit 2
+  SINCE="$2"
+fi
+
+ROOTS="/var/mobile/Library/Logs/CrashReporter /Library/Logs/CrashReporter"
+TMP="${TMPDIR:-/var/tmp}/darksword-crashes-$$"
+trap 'rm -f "$TMP"' EXIT INT TERM
+: > "$TMP"
+
+for root in $ROOTS; do
+  [ -d "$root" ] || continue
+  find "$root" -type f \( -name '*.ips' -o -name '*.panic' -o -name '*.crash' \) -print 2>/dev/null >> "$TMP" || true
+done
+
+json_escape() {
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g'
+}
+
+printf '{"generatedAt":"%s","since":"%s","records":[' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(json_escape "$SINCE")"
+FIRST=1
+while IFS= read -r file; do
+  [ -f "$file" ] || continue
+  kind="userspace-crash"
+  signal="unknown"
+  process="unknown"
+
+  if grep -Eqi 'panicString|panic string|Kernel Extensions in backtrace|Debugger message: panic' "$file"; then
+    kind="kernel-panic"
+  elif grep -Eqi 'EXC_BAD_ACCESS|KERN_INVALID_ADDRESS|SIGSEGV' "$file"; then
+    kind="bad-access"
+    signal="SIGSEGV"
+  elif grep -Eqi 'SIGABRT|abort\(' "$file"; then
+    kind="abort"
+    signal="SIGABRT"
+  elif grep -Eqi 'JetsamEvent|memorystatus|memory-pressure' "$file"; then
+    kind="memory-pressure"
+  elif grep -Eqi 'watchdog|0x8badf00d' "$file"; then
+    kind="watchdog"
+  fi
+
+  process="$(sed -nE 's/.*"procName"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p; s/^Process:[[:space:]]*([^[:space:]]+).*/\1/p' "$file" | head -n 1)"
+  [ -n "$process" ] || process="unknown"
+
+  [ "$FIRST" -eq 1 ] || printf ','
+  FIRST=0
+  printf '{"path":"%s","name":"%s","kind":"%s","signal":"%s","process":"%s"}' \
+    "$(json_escape "$file")" \
+    "$(json_escape "$(basename "$file")")" \
+    "$kind" "$signal" "$(json_escape "$process")"
+done < "$TMP"
+printf ']}\n'
