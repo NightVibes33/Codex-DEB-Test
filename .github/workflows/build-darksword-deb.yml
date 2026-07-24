@@ -1,0 +1,174 @@
+name: Build DarkSword DEB
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - Import Litter upstream
+    types:
+      - completed
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install build dependencies
+        run: |
+          brew install meson ninja xcodegen dpkg zig || true
+          if ! command -v ldid >/dev/null 2>&1; then
+            brew tap ProcursusTeam/Procursus || true
+            brew install ldid || true
+          fi
+          rustup target add aarch64-apple-ios
+
+      - name: Restore pinned Litter submodules
+        shell: bash
+        run: |
+          set -euo pipefail
+          LOCK=upstream/litter/SUBMODULES.lock
+          test -f "$LOCK"
+          CODEX_SHA="$(awk -F= '$1=="codex" {print $2}' "$LOCK")"
+          GHOSTTY_SHA="$(awk -F= '$1=="ghostty" {print $2}' "$LOCK")"
+          test -n "$CODEX_SHA"
+          test -n "$GHOSTTY_SHA"
+
+          restore_repo() {
+            local url="$1"
+            local path="$2"
+            local sha="$3"
+            mkdir -p "$path"
+            git -C "$path" init
+            git -C "$path" remote remove origin >/dev/null 2>&1 || true
+            git -C "$path" remote add origin "$url"
+            git -C "$path" fetch --depth 1 origin "$sha"
+            git -C "$path" checkout --detach FETCH_HEAD
+          }
+
+          restore_repo https://github.com/openai/codex.git \
+            upstream/litter/shared/third_party/codex "$CODEX_SHA"
+          restore_repo https://github.com/ghostty-org/ghostty.git \
+            upstream/litter/shared/third_party/ghostty "$GHOSTTY_SHA"
+
+      - name: Apply DarkSword overlay
+        run: |
+          chmod +x darksword-overlay/apply.sh
+          ./darksword-overlay/apply.sh upstream/litter
+
+      - name: Build Rust bridge and Xcode project
+        id: rust_build
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p artifacts
+          make -C upstream/litter \
+            rust-ios-device-fast alpine-fs xcgen \
+            IOS_DEPLOYMENT_TARGET=16.0 \
+            2>&1 | tee artifacts/rust-and-project.log
+
+      - name: Build iOS application
+        id: app_build
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/DerivedData
+          xcodebuild \
+            -project upstream/litter/apps/ios/Litter.xcodeproj \
+            -scheme Litter \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$PWD/artifacts/DerivedData" \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=YES \
+            IPHONEOS_DEPLOYMENT_TARGET=16.0 \
+            DEVELOPMENT_TEAM= \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY= \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            build 2>&1 | tee artifacts/xcodebuild.log
+
+      - name: Compile root daemon
+        id: rootd_build
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p artifacts
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          xcrun --sdk iphoneos clang \
+            -arch arm64 \
+            -isysroot "$SDK" \
+            -miphoneos-version-min=16.0 \
+            -O2 -Wall -Wextra \
+            darksword-overlay/rootd/main.c \
+            -o artifacts/darksword-rootd \
+            2>&1 | tee artifacts/rootd-build.log
+          codesign --force --sign - artifacts/darksword-rootd
+
+      - name: Sign app and package IPA plus DEB
+        id: package
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="$(find artifacts/DerivedData/Build/Products -type d -name 'DarkSwordAI.app' -print -quit)"
+          if [[ -z "$APP" ]]; then
+            APP="$(find artifacts/DerivedData/Build/Products -type d -name 'Litter.app' -print -quit)"
+          fi
+          test -n "$APP"
+          test -x artifacts/darksword-rootd
+
+          MAIN_EXECUTABLE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist")"
+          if command -v ldid >/dev/null 2>&1; then
+            while IFS= read -r binary; do
+              ldid -S "$binary" || true
+            done < <(find "$APP" -type f -perm -111)
+            ldid -S"$PWD/darksword-overlay/package/app-entitlements.plist" \
+              "$APP/$MAIN_EXECUTABLE"
+            ldid -S artifacts/darksword-rootd
+          else
+            codesign --force --deep --sign - "$APP"
+          fi
+
+          mkdir -p artifacts/Payload
+          cp -R "$APP" artifacts/Payload/DarkSwordAI.app
+          (cd artifacts && zip -qry DarkSwordAI-unsigned.ipa Payload)
+
+          chmod +x darksword-overlay/package/build-deb.sh
+          darksword-overlay/package/build-deb.sh \
+            "$APP" \
+            artifacts/darksword-rootd \
+            artifacts/com.nightvibes.darkswordai_0.1.0_iphoneos-arm64.deb
+
+      - name: Write status summary
+        if: always()
+        run: |
+          {
+            echo "rust_build=${{ steps.rust_build.outcome }}"
+            echo "app_build=${{ steps.app_build.outcome }}"
+            echo "rootd_build=${{ steps.rootd_build.outcome }}"
+            echo "package=${{ steps.package.outcome }}"
+          } | tee artifacts/build-status.txt
+
+      - name: Upload build outputs and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DarkSwordAI-build
+          path: |
+            artifacts/*.deb
+            artifacts/*.ipa
+            artifacts/*.log
+            artifacts/build-status.txt
+          if-no-files-found: warn
