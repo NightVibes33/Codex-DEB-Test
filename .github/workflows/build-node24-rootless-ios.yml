@@ -55,7 +55,8 @@ jobs:
             --openssl-no-asm \
             --v8-options=--jitless \
             --without-node-code-cache \
-            --without-node-snapshot
+            --without-node-snapshot \
+            --shared-openssl
 
           python3 - <<'PY'
           import ast
