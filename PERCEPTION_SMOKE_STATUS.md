@@ -1,8 +1,8 @@
 # DarkSword iOS 16 Perception smoke status
 
-- Overlay: failure
-- Invariants: skipped
-- Swift parse: skipped
+- Overlay: success
+- Invariants: success
+- Swift parse: success
 
 ## overlay log tail
 ```text
@@ -15,11 +15,15 @@ verified: iOS 16 onChange compatibility
 verified: iPhone C compiler wrapper
 verified: real AlleyCat root
 verified: AlleyCat Labs settings entry
-error: AlleyCat overlay verification failed: AlleyCat product name (upstream/litter/apps/ios/project.yml)
+verified: Alley Cãt display name
+verified: target-scoped iPhone deployment
+Full AlleyCat UI, rootless host tools, iOS Rust isolation, and iOS 16 compatibility backports completed for upstream/litter.
 ```
 ## invariants log tail
 ```text
+Perception source invariants passed.
 ```
 ## parse log tail
 ```text
+All transformed Swift files parsed successfully.
 ```
