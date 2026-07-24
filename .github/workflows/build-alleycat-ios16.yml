@@ -76,6 +76,9 @@ jobs:
           ! grep -q 'DarkSwordRootView()' "$SOURCE_ROOT/apps/ios/Sources/Litter/LitterApp.swift"
           grep -q 'AlleyCat Labs' "$SOURCE_ROOT/apps/ios/Sources/Litter/Views/SettingsView.swift"
           grep -q '<string>Alley Cãt</string>' "$SOURCE_ROOT/apps/ios/Sources/Litter/Info.plist"
+          grep -q 'enum ChatWorkMode' "$SOURCE_ROOT/apps/ios/Sources/Litter/Models/AppState.swift"
+          grep -q 'chatWorkSelector' "$SOURCE_ROOT/apps/ios/Sources/Litter/Views/HeaderView.swift"
+          grep -q 'ChatWorkMode.work.rawValue' "$SOURCE_ROOT/apps/ios/Sources/Litter/Models/AppState.swift"
           grep -q 'darksword_host_runtime::is_available' \
             "$SOURCE_ROOT/shared/rust-bridge/codex-mobile-client/src/ish_runtime.rs"
 
