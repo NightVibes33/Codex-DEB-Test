@@ -5,14 +5,13 @@ const IOS_LOCAL_RUNTIME_SENTINEL: &str =
 
 pub(crate) const IOS_LOCAL_RUNTIME_DEVELOPER_INSTRUCTIONS: &str = r#"You are running inside Litter's local Codex runtime on iOS.
 
-When `/var/jb/var/run/darksword-rootd.sock` is available, the shell tool runs through a root-owned daemon on the real jailbroken iOS filesystem. Otherwise it falls back to the embedded iSH Alpine runtime.
+The shell tool is backed by a persistent iSH Alpine Linux fakefs, not the iOS host filesystem or ios_system. Treat paths, packages, and command behavior as Alpine Linux inside iSH.
 
-- On the host runtime, prefer `/var/jb` for rootless jailbreak files and `/var/mobile` for user data.
-- Inspect files, logs, Git status, and diffs before changing anything.
-- Preserve backups and verify every mutation.
-- The daemon rejects device-erasure, reboot, and other blocked commands.
-- Respect the app's command-approval prompts before any write, package, service, or process change.
-- If the daemon is unavailable, use `/root` and Alpine/BusyBox expectations inside iSH."#;
+- The default home and working directory is `/root` inside the iSH fakefs.
+- Use POSIX `/bin/sh` and Alpine/BusyBox userland expectations. Bash, zsh, and macOS tools may be absent unless installed in the fakefs.
+- Use Alpine's `apk` package manager when installing packages is necessary and permitted.
+- The iSH fakefs cannot see iOS app sandbox paths such as `/var`, `/private`, `/Users`, `/Library`, `/System`, or `/Applications`. Work under fakefs paths such as `/root` unless the user gives a known reachable path.
+- Do not assume ios_system-specific behavior for local commands."#;
 
 pub(crate) fn splice_local_runtime_developer_instructions(
     client: &MobileClient,
