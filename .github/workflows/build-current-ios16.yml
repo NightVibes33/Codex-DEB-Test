@@ -41,6 +41,8 @@ jobs:
       SCCACHE_LOG: info
       AWS_ACCESS_KEY_ID: ${{ secrets.SCCACHE_R2_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.SCCACHE_R2_SECRET_ACCESS_KEY }}
+      RUSTY_V8_VERSION: "149.2.0"
+      RUSTY_V8_ARCHIVE_NAME: librusty_v8_release_x86_64-apple-darwin.a.gz
 
     steps:
       - name: Checkout current repository source
@@ -102,6 +104,35 @@ jobs:
           key: ios-cargo-registry-${{ runner.os }}-${{ hashFiles('upstream/litter/shared/rust-bridge/Cargo.lock', 'upstream/litter/ThirdParty/SideStore/minimuxer/Cargo.lock') }}
           restore-keys: |
             ios-cargo-registry-${{ runner.os }}-
+
+      - name: Restore rusty_v8 archive cache
+        id: rusty_v8_cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/.rusty_v8
+          key: rusty-v8-${{ env.RUSTY_V8_VERSION }}-${{ runner.os }}-x86_64-apple-darwin
+          restore-keys: |
+            rusty-v8-${{ env.RUSTY_V8_VERSION }}-${{ runner.os }}-
+
+      - name: Preload rusty_v8 archive
+        id: rusty_v8
+        shell: bash
+        run: |
+          set -euo pipefail
+          CACHE_DIR="$HOME/.cargo/.rusty_v8"
+          ARCHIVE="$CACHE_DIR/$RUSTY_V8_ARCHIVE_NAME"
+          URL="https://github.com/denoland/rusty_v8/releases/download/v${RUSTY_V8_VERSION}/${RUSTY_V8_ARCHIVE_NAME}"
+          mkdir -p "$CACHE_DIR"
+          if [[ ! -s "$ARCHIVE" ]]; then
+            rm -f "$ARCHIVE.tmp"
+            curl --fail --location --retry 12 --retry-all-errors --retry-delay 10 \
+              --connect-timeout 30 --max-time 1800 "$URL" -o "$ARCHIVE.tmp"
+            test -s "$ARCHIVE.tmp"
+            mv "$ARCHIVE.tmp" "$ARCHIVE"
+          fi
+          gzip -t "$ARCHIVE"
+          echo "archive=$ARCHIVE" >> "$GITHUB_OUTPUT"
+          echo "RUSTY_V8_ARCHIVE=$ARCHIVE" >> "$GITHUB_ENV"
 
       - name: Restore Alley Cat generated Rust cache
         id: rust_generated_cache
@@ -165,6 +196,8 @@ jobs:
             echo "Using cached Alley Cat GeneratedRust assets" | tee "$GITHUB_WORKSPACE/$ARTIFACT_ROOT/runtime-build.log"
           else
             ./apps/ios/scripts/sync-codex.sh --preserve-current
+            export RUSTY_V8_ARCHIVE="${{ steps.rusty_v8.outputs.archive }}"
+            test -s "$RUSTY_V8_ARCHIVE"
             if [[ -n "${SCCACHE_ENDPOINT:-}" && -n "${AWS_ACCESS_KEY_ID:-}" && -n "${AWS_SECRET_ACCESS_KEY:-}" ]] && command -v sccache >/dev/null 2>&1; then
               export RUSTC_WRAPPER=sccache
               sccache --start-server || true
@@ -251,6 +284,7 @@ jobs:
             echo "- Run: $GITHUB_RUN_ID"
             echo "- Commit: $GITHUB_SHA"
             echo "- Target: iOS $IOS_MIN+ (iPadOS 16.7.11 supported)"
+            echo "- rusty_v8 cache restored: ${{ steps.rusty_v8_cache.outputs.cache-hit }}"
             echo "- Rust cache restored: ${{ steps.rust_generated_cache.outputs.cache-hit }}"
             echo "- Rust cache valid: ${{ steps.rust_generated_valid.outputs.hit }}"
             echo "- Source verification: ${{ steps.source.outcome }}"
