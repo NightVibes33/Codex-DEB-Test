@@ -231,12 +231,7 @@ where
     F: FnMut(&[u8]),
 {
     if crate::darksword_host_runtime::is_available() {
-        return crate::darksword_host_runtime::run_streaming(
-            cmd,
-            cwd,
-            timeout_ms,
-            &mut on_output,
-        );
+        return crate::darksword_host_runtime::run_streaming(cmd, cwd, timeout_ms, &mut on_output);
     }
     run_streaming_inner(cmd, cwd, timeout_ms, true, on_output)
 }

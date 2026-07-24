@@ -62,13 +62,10 @@ struct VoiceCallLockScreenCardView: View {
                     .foregroundStyle(tertiaryText)
                 Spacer()
                 if #available(iOSApplicationExtension 17.0, *) {
-                    Button(intent: EndVoiceSessionIntent()) {
-                        endSessionIcon
-                    }
-                    .buttonStyle(.plain)
+                    Button(intent: EndVoiceSessionIntent()) { endSessionIcon }
+                        .buttonStyle(.plain)
                 } else {
-                    endSessionIcon
-                        .accessibilityLabel("End voice session from the app")
+                    endSessionIcon.accessibilityLabel("End voice session from the app")
                 }
             }
             .padding(.top, 10)

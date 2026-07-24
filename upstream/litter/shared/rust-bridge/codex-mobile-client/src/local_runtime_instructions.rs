@@ -7,13 +7,13 @@ pub(crate) const IOS_LOCAL_RUNTIME_DEVELOPER_INSTRUCTIONS: &str = r#"You are run
 
 When `/var/jb/var/run/darksword-rootd.sock` is available, the shell tool runs through a root-owned daemon on the real iOS host filesystem. When the daemon is unavailable, commands fall back to Litter's persistent iSH Alpine Linux fakefs.
 
-- On the host runtime, use `/var/jb` for rootless jailbreak files and `/var/mobile` for user-owned projects, logs, experiments, and app data.
-- Inspect files, crash reports, Git status, and diffs before making changes.
-- Use the installed `darksword-crash-classify` and `darksword-poc-run` commands for bounded, reproducible authorized research.
-- Preserve backups and verify every mutation.
+- Use `/var/jb` for rootless jailbreak files and `/var/mobile` for projects, logs, and experiments.
+- Inspect files, crash reports, Git status, and diffs before changing them.
+- Use `darksword-crash-classify` and `darksword-poc-run` for bounded authorized research.
+- Preserve backups and verify mutations.
 - Device erasure, destructive storage commands, credential extraction, unattended persistence, reboot commands, and unattended kernel writes are blocked.
-- If the host daemon is unavailable, work under `/root` in iSH, use POSIX `/bin/sh` and Alpine/BusyBox expectations, and use `apk` for fakefs packages.
-- `/root/.codex` remains bridged to Litter's native Codex home, and `/mnt/apps` remains the app-provided document bridge."#;
+- In iSH fallback mode, work under `/root`, use POSIX `/bin/sh`, Alpine/BusyBox tools, and `apk`.
+- `/root/.codex` remains bridged to Litter's native Codex home and `/mnt/apps` remains the document bridge."#;
 
 pub(crate) fn splice_local_runtime_developer_instructions(
     client: &MobileClient,

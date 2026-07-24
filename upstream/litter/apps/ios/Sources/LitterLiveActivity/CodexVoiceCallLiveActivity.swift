@@ -24,8 +24,7 @@ struct CodexVoiceCallLiveActivity: Widget {
                 DynamicIslandExpandedRegion(.trailing) {
                     if #available(iOSApplicationExtension 17.0, *) {
                         Button(intent: EndVoiceSessionIntent()) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.white)
+                            Image(systemName: "xmark.circle.fill").foregroundStyle(.white)
                         }
                         .buttonStyle(.plain)
                     } else {
