@@ -12,7 +12,7 @@ on:
       - .github/workflows/build-darksword-deb.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -156,13 +156,49 @@ jobs:
 
       - name: Write status summary
         if: always()
+        shell: bash
         run: |
+          mkdir -p artifacts
           {
             echo "rust_build=${{ steps.rust_build.outcome }}"
             echo "app_build=${{ steps.app_build.outcome }}"
             echo "rootd_build=${{ steps.rootd_build.outcome }}"
             echo "package=${{ steps.package.outcome }}"
           } | tee artifacts/build-status.txt
+
+          {
+            echo "# DarkSword AI build status"
+            echo
+            echo "- Rust/project: ${{ steps.rust_build.outcome }}"
+            echo "- iOS app: ${{ steps.app_build.outcome }}"
+            echo "- Root daemon: ${{ steps.rootd_build.outcome }}"
+            echo "- IPA/DEB package: ${{ steps.package.outcome }}"
+            echo
+            echo "## Rust and project log tail"
+            echo '```text'
+            tail -n 100 artifacts/rust-and-project.log 2>/dev/null || true
+            echo '```'
+            echo
+            echo "## Xcode log tail"
+            echo '```text'
+            tail -n 100 artifacts/xcodebuild.log 2>/dev/null || true
+            echo '```'
+            echo
+            echo "## Root daemon log tail"
+            echo '```text'
+            tail -n 100 artifacts/rootd-build.log 2>/dev/null || true
+            echo '```'
+          } > BUILD_STATUS.md
+
+      - name: Commit build diagnostics
+        if: always()
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add BUILD_STATUS.md
+          git commit -m "Record DarkSword build diagnostics" || true
+          git push origin HEAD:main || true
 
       - name: Upload build outputs and logs
         if: always()
@@ -174,4 +210,7 @@ jobs:
             artifacts/*.ipa
             artifacts/*.log
             artifacts/build-status.txt
+            BUILD_STATUS.md
           if-no-files-found: warn
+
+# This comment intentionally triggers the first registered push build.
