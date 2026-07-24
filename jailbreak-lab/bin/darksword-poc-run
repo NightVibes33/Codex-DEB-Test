@@ -1,0 +1,111 @@
+#!/var/jb/bin/sh
+set -eu
+
+TIMEOUT=30
+CWD=/var/mobile
+ROOT=/var/mobile/Library/DarkSwordLab/experiments
+
+usage() {
+  echo "usage: darksword-poc-run [--timeout SECONDS] [--cwd PATH] -- EXECUTABLE [ARGS...]" >&2
+  exit 2
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --timeout)
+      [ "$#" -ge 2 ] || usage
+      TIMEOUT="$2"
+      shift 2
+      ;;
+    --cwd)
+      [ "$#" -ge 2 ] || usage
+      CWD="$2"
+      shift 2
+      ;;
+    --)
+      shift
+      break
+      ;;
+    *) usage ;;
+  esac
+done
+
+[ "$#" -gt 0 ] || usage
+case "$TIMEOUT" in
+  ''|*[!0-9]*) usage ;;
+esac
+[ "$TIMEOUT" -ge 1 ] && [ "$TIMEOUT" -le 300 ] || {
+  echo "timeout must be between 1 and 300 seconds" >&2
+  exit 2
+}
+
+COMMAND="$1"
+case "$COMMAND" in
+  /dev/*|*/newfs|*/mkfs*|*/reboot|*/shutdown|*/launchctl)
+    echo "blocked executable: $COMMAND" >&2
+    exit 126
+    ;;
+esac
+
+STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+RAND="$$"
+OUT="$ROOT/$STAMP-$RAND"
+mkdir -p "$OUT"
+
+if command -v sha256sum >/dev/null 2>&1; then
+  HASH="$(sha256sum "$COMMAND" 2>/dev/null | awk '{print $1}' || true)"
+elif command -v shasum >/dev/null 2>&1; then
+  HASH="$(shasum -a 256 "$COMMAND" 2>/dev/null | awk '{print $1}' || true)"
+else
+  HASH="unavailable"
+fi
+
+{
+  echo "started_at=$STAMP"
+  echo "cwd=$CWD"
+  echo "timeout_seconds=$TIMEOUT"
+  echo "executable=$COMMAND"
+  echo "sha256=$HASH"
+  printf 'argv='
+  printf '%s ' "$@"
+  printf '\n'
+} > "$OUT/metadata.txt"
+
+cd "$CWD"
+# Keep accidental memory/descriptor explosions bounded on the 2 GB iPad.
+ulimit -c 0 2>/dev/null || true
+ulimit -n 512 2>/dev/null || true
+
+set +e
+(
+  "$@"
+) >"$OUT/stdout.log" 2>"$OUT/stderr.log" &
+CHILD=$!
+
+(
+  sleep "$TIMEOUT"
+  if kill -0 "$CHILD" 2>/dev/null; then
+    echo timeout > "$OUT/termination.txt"
+    kill -TERM "$CHILD" 2>/dev/null || true
+    sleep 2
+    kill -KILL "$CHILD" 2>/dev/null || true
+  fi
+) &
+WATCHDOG=$!
+
+wait "$CHILD"
+STATUS=$?
+kill "$WATCHDOG" 2>/dev/null || true
+wait "$WATCHDOG" 2>/dev/null || true
+set -e
+
+printf '%s\n' "$STATUS" > "$OUT/exit-code.txt"
+date -u +%Y%m%dT%H%M%SZ > "$OUT/finished-at.txt"
+
+if [ -x /var/jb/usr/share/darksword/jailbreak-lab/bin/darksword-crash-classify ]; then
+  /var/jb/usr/share/darksword/jailbreak-lab/bin/darksword-crash-classify \
+    --since "$STAMP" > "$OUT/crash-summary.json" 2>/dev/null || true
+fi
+
+printf '%s\n' "$OUT"
+exit "$STATUS"
