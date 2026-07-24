@@ -1,0 +1,52 @@
+name: Report Current DarkSword Build Run
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/report-current-build-run.yml
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Query current full-build runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run list \
+            --repo "$GITHUB_REPOSITORY" \
+            --workflow build-darksword-ios16-current.yml \
+            --limit 10 \
+            --json databaseId,status,conclusion,event,headSha,createdAt,updatedAt,url,displayTitle \
+            > /tmp/current-runs.json
+
+          {
+            echo '# Current DarkSword full-build runs'
+            echo
+            echo '```json'
+            cat /tmp/current-runs.json
+            echo
+            echo '```'
+          } > CURRENT_BUILD_RUNS.md
+
+      - name: Commit run report
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git pull --rebase origin main || true
+          git add CURRENT_BUILD_RUNS.md
+          git commit -m 'Record current DarkSword full-build run state' || true
+          git push origin HEAD:main || {
+            git pull --rebase origin main
+            git push origin HEAD:main
+          }
