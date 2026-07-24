@@ -1,7 +1,7 @@
 # Current DarkSword iOS 16 build status
 
-- Run ID: 30093132862
-- Source commit: 725572ebc2afb72baddec737ad54a4c9ea35c32b
+- Run ID: 30094407102
+- Source commit: b9eb0f2b718448cc0f2ab07a897d33fe83b8658a
 - Toolchain: success
 - Dependencies: success
 - Codex/Ghostty restore: success
@@ -18,7 +18,7 @@
 
 ## toolchain log tail
 ```text
-source_sha=725572ebc2afb72baddec737ad54a4c9ea35c32b
+source_sha=b9eb0f2b718448cc0f2ab07a897d33fe83b8658a
 Xcode 16.4
 Build version 16F6
 18.5
@@ -229,7 +229,7 @@ HEAD is now at a968e12 Update VOUCHED list (#12780)
 ```text
 Exact DarkSword app architecture, full NightVibes Litter, iOS 16.1, pinned Zig, jailbreak lab, and rootless host runtime applied to /Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/litter.
 Perception iOS 16 backport applied: 6 Swift files changed, 13 View bodies wrapped, package revision de219a1cf34e958134e75a9ebb134cf09bf52fc6.
-DarkSword core overlay and iOS 16 compatibility backports completed for upstream/litter.
+DarkSword core overlay, iOS Rust toolchain isolation, and iOS 16 compatibility backports completed for upstream/litter.
 ```
 
 ## source-verify errors
@@ -244,155 +244,152 @@ KittyStore/Feather integration wiring verified.
 
 ## rust-and-project errors
 ```text
-error: failed to run custom build command for `aws-lc-sys v0.42.0`
-  Ignoring candidate AWS-LC at /opt/homebrew/Cellar/openssl@3/3.6.3: Failed to read /opt/homebrew/Cellar/openssl@3/3.6.3/include/openssl/base.h: No such file or directory (os error 2)
-  Ignoring candidate AWS-LC at /opt/homebrew/Cellar/openssl@3/3.6.3: Failed to read /opt/homebrew/Cellar/openssl@3/3.6.3/include/openssl/base.h: No such file or directory (os error 2)
-  ERROR: clang: warning: using sysroot for 'MacOSX' but targeting 'iPhone' [-Wincompatible-sysroot]
-make: *** [rust-ios-device-fast] Error 101
+cp: /Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/litter/apps/ios/GeneratedRust/ios-device/libcodex_mobile_client.a: fcopyfile failed: No space left on device
+make: *** [rust-ios-device-fast] Error 1
 ```
 
 ## rust-and-project log tail
 ```text
-  CC_FORCE_DISABLE = None
-  cargo:rerun-if-env-changed=CC_aarch64-apple-darwin
-  CC_aarch64-apple-darwin = None
-  cargo:rerun-if-env-changed=CC_aarch64_apple_darwin
-  CC_aarch64_apple_darwin = None
-  cargo:rerun-if-env-changed=HOST_CC
-  HOST_CC = None
-  cargo:rerun-if-env-changed=CC
-  CC = None
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS_aarch64_apple_darwin
-  CFLAGS_aarch64_apple_darwin = None
-  cargo:rerun-if-env-changed=CFLAGS_aarch64-apple-darwin
-  CFLAGS_aarch64-apple-darwin = None
-  cargo:warning=Compilation of 'stdalign_check.c' succeeded - Ok(["/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/litter/shared/rust-bridge/target/debug/build/aws-lc-sys-b446d4cc02b9accc/out/out-stdalign_check/7dfda64fdf5a526c-stdalign_check.o"]).
-  cargo:rerun-if-env-changed=CC_aarch64-apple-darwin
-  CC_aarch64-apple-darwin = None
-  cargo:rerun-if-env-changed=CC_aarch64_apple_darwin
-  CC_aarch64_apple_darwin = None
-  cargo:rerun-if-env-changed=HOST_CC
-  HOST_CC = None
-  cargo:rerun-if-env-changed=CC
-  CC = None
-  cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  cargo:rerun-if-env-changed=MACOSX_DEPLOYMENT_TARGET
-  MACOSX_DEPLOYMENT_TARGET = Some(14.0)
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS_aarch64_apple_darwin
-  CFLAGS_aarch64_apple_darwin = None
-  cargo:rerun-if-env-changed=CFLAGS_aarch64-apple-darwin
-  CFLAGS_aarch64-apple-darwin = None
-  cargo:rerun-if-env-changed=CC_FORCE_DISABLE
-  CC_FORCE_DISABLE = None
-  cargo:rerun-if-env-changed=CC_aarch64-apple-darwin
-  CC_aarch64-apple-darwin = None
-  cargo:rerun-if-env-changed=CC_aarch64_apple_darwin
-  CC_aarch64_apple_darwin = None
-  cargo:rerun-if-env-changed=HOST_CC
-  HOST_CC = None
-  cargo:rerun-if-env-changed=CC
-  CC = None
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS_aarch64_apple_darwin
-  CFLAGS_aarch64_apple_darwin = None
-  cargo:rerun-if-env-changed=CFLAGS_aarch64-apple-darwin
-  CFLAGS_aarch64-apple-darwin = None
-  cargo:warning=Compilation of 'builtin_swap_check.c' succeeded - Ok(["/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/litter/shared/rust-bridge/target/debug/build/aws-lc-sys-b446d4cc02b9accc/out/out-builtin_swap_check/7dfda64fdf5a526c-builtin_swap_check.o"]).
-  cargo:rerun-if-env-changed=CC_aarch64-apple-darwin
-  CC_aarch64-apple-darwin = None
-  cargo:rerun-if-env-changed=CC_aarch64_apple_darwin
-  CC_aarch64_apple_darwin = None
-  cargo:rerun-if-env-changed=HOST_CC
-  HOST_CC = None
-  cargo:rerun-if-env-changed=CC
-  CC = None
-  cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  cargo:rerun-if-env-changed=MACOSX_DEPLOYMENT_TARGET
-  MACOSX_DEPLOYMENT_TARGET = Some(14.0)
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS_aarch64_apple_darwin
-  CFLAGS_aarch64_apple_darwin = None
-  cargo:rerun-if-env-changed=CFLAGS_aarch64-apple-darwin
-  CFLAGS_aarch64-apple-darwin = None
-  cargo:rerun-if-env-changed=CC_FORCE_DISABLE
-  CC_FORCE_DISABLE = None
-  cargo:rerun-if-env-changed=CC_aarch64-apple-darwin
-  CC_aarch64-apple-darwin = None
-  cargo:rerun-if-env-changed=CC_aarch64_apple_darwin
-  CC_aarch64_apple_darwin = None
-  cargo:rerun-if-env-changed=HOST_CC
-  HOST_CC = None
-  cargo:rerun-if-env-changed=CC
-  CC = None
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS_aarch64_apple_darwin
-  CFLAGS_aarch64_apple_darwin = None
-  cargo:rerun-if-env-changed=CFLAGS_aarch64-apple-darwin
-  CFLAGS_aarch64-apple-darwin = None
-  cargo:warning=Compilation of 'neon_sha3_check.c' succeeded - Ok(["/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/litter/shared/rust-bridge/target/debug/build/aws-lc-sys-b446d4cc02b9accc/out/out-neon_sha3_check/7dfda64fdf5a526c-neon_sha3_check.o"]).
-  cargo:rerun-if-env-changed=CC_aarch64-apple-darwin
-  CC_aarch64-apple-darwin = None
-  cargo:rerun-if-env-changed=CC_aarch64_apple_darwin
-  CC_aarch64_apple_darwin = None
-  cargo:rerun-if-env-changed=HOST_CC
-  HOST_CC = None
-  cargo:rerun-if-env-changed=CC
-  CC = None
-  cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  cargo:rerun-if-env-changed=MACOSX_DEPLOYMENT_TARGET
-  MACOSX_DEPLOYMENT_TARGET = Some(14.0)
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS_aarch64_apple_darwin
-  CFLAGS_aarch64_apple_darwin = None
-  cargo:rerun-if-env-changed=CFLAGS_aarch64-apple-darwin
-  CFLAGS_aarch64-apple-darwin = None
+  --> codex-mobile-client/src/ish_runtime.rs:61:15
+   |
+61 | pub(crate) fn instance() -> Option<&'static IshInstance> {
+   |               ^^^^^^^^
 
-  --- stderr
+warning: function `instance_or_wait` is never used
+  --> codex-mobile-client/src/ish_runtime.rs:70:21
+   |
+70 | pub(crate) async fn instance_or_wait(timeout: Duration) -> Option<&'static IshInstance> {
+   |                     ^^^^^^^^^^^^^^^^
 
-  thread 'main' (89760) panicked at /Users/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.42.0/builder/cc_builder.rs:872:9:
-  ### COMPILER BUG DETECTED ###
-  Your compiler (cc) is not supported due to a memcmp related bug reported in https://gcc.gnu.org/bugzilla/show_bug.cgi?id=95189. We strongly recommend against using this compiler. 
-  EXECUTED: true
-  ERROR: clang: warning: using sysroot for 'MacOSX' but targeting 'iPhone' [-Wincompatible-sysroot]
-  ld: warning: <rdar://113405968> building for 'iOS', but linking in dylib (/Applications/Xcode_16.4.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/libSystem.B.tbd) built for 'macOS macCatalyst zippered(macOS/Catalyst)'
+warning: function `synthesize_streaming_show_widget_arguments` is never used
+    --> codex-mobile-client/src/conversation.rs:1379:15
+     |
+1379 | pub(crate) fn synthesize_streaming_show_widget_arguments(
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-  OUTPUT: 
+warning: constant `JSON_LOG_PREVIEW_LIMIT` is never used
+ --> codex-mobile-client/src/logging/mod.rs:6:7
+  |
+6 | const JSON_LOG_PREVIEW_LIMIT: usize = 512;
+  |       ^^^^^^^^^^^^^^^^^^^^^^
 
-  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-warning: build failed, waiting for other jobs to finish...
-make: *** [rust-ios-device-fast] Error 101
+warning: function `summarize_json_for_log` is never used
+   --> codex-mobile-client/src/logging/mod.rs:275:15
+    |
+275 | pub(crate) fn summarize_json_for_log(payload: &str) -> String {
+    |               ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `truncate_log_preview` is never used
+   --> codex-mobile-client/src/logging/mod.rs:284:4
+    |
+284 | fn truncate_log_preview(value: &str, limit: usize) -> String {
+    |    ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `format_bytes` is never used
+   --> codex-mobile-client/src/logging/mod.rs:298:4
+    |
+298 | fn format_bytes(bytes: usize) -> String {
+    |    ^^^^^^^^^^^^
+
+warning: function `deserialize_typed_response` is never used
+   --> codex-mobile-client/src/mobile_client/event_loop.rs:440:4
+    |
+440 | fn deserialize_typed_response<R>(value: &serde_json::Value) -> Result<R, serde_json::Error>
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `queued_follow_up_kind_from_json_value` is never used
+   --> codex-mobile-client/src/mobile_client/thread_projection.rs:118:15
+    |
+118 | pub(super) fn queued_follow_up_kind_from_json_value(
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `queued_follow_up_text_from_json_value` is never used
+   --> codex-mobile-client/src/mobile_client/thread_projection.rs:144:15
+    |
+144 | pub(super) fn queued_follow_up_text_from_json_value(value: &serde_json::Value) -> Option<String> {
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `queued_follow_up_inputs_from_json_value` is never used
+   --> codex-mobile-client/src/mobile_client/thread_projection.rs:172:15
+    |
+172 | pub(super) fn queued_follow_up_inputs_from_json_value(
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `string_field` is never used
+   --> codex-mobile-client/src/mobile_client/thread_projection.rs:343:15
+    |
+343 | pub(super) fn string_field(
+    |               ^^^^^^^^^^^^
+
+warning: function `array_field_len` is never used
+   --> codex-mobile-client/src/mobile_client/thread_projection.rs:368:15
+    |
+368 | pub(super) fn array_field_len(
+    |               ^^^^^^^^^^^^^^^
+
+warning: function `stable_follow_up_preview_id` is never used
+   --> codex-mobile-client/src/mobile_client/thread_projection.rs:386:15
+    |
+386 | pub(super) fn stable_follow_up_preview_id(scope: &str, index: usize, text: &str) -> String {
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `refresh_thread_list_from_app_server` is never used
+   --> codex-mobile-client/src/mobile_client/thread_projection.rs:567:21
+    |
+567 | pub(super) async fn refresh_thread_list_from_app_server(
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `request_thread_list_page_for_runtime` is never used
+   --> codex-mobile-client/src/mobile_client/thread_projection.rs:637:10
+    |
+637 | async fn request_thread_list_page_for_runtime(
+    |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `normalize_empty_thread_list_cwds` is never used
+   --> codex-mobile-client/src/mobile_client/thread_projection.rs:655:4
+    |
+655 | fn normalize_empty_thread_list_cwds(value: &mut serde_json::Value) {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `thread_list_page_to_thread_infos` is never used
+   --> codex-mobile-client/src/mobile_client/thread_projection.rs:674:4
+    |
+674 | fn thread_list_page_to_thread_infos(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `upstream_thread_status_from_summary_status` is never used
+   --> codex-mobile-client/src/mobile_client/thread_projection.rs:755:15
+    |
+755 | pub(super) fn upstream_thread_status_from_summary_status(
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `thread_snapshot_from_upstream_thread` is never used
+   --> codex-mobile-client/src/mobile_client/thread_projection.rs:767:15
+    |
+767 | pub(super) fn thread_snapshot_from_upstream_thread(
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: method `replace_pending_approvals_with_seeds` is never used
+    --> codex-mobile-client/src/store/reducer.rs:1014:19
+     |
+ 139 | impl AppStoreReducer {
+     | -------------------- method in this implementation
+...
+1014 |     pub(crate) fn replace_pending_approvals_with_seeds(
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `reconcile_local_overlay_items` is never used
+    --> codex-mobile-client/src/store/reducer.rs:3348:15
+     |
+3348 | pub(crate) fn reconcile_local_overlay_items(thread: &mut ThreadSnapshot) {
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `codex-mobile-client` (lib) generated 24 warnings
+    Finished `ios-dev` profile [unoptimized + debuginfo] target(s) in 11m 42s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+cp: /Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/litter/apps/ios/GeneratedRust/ios-device/libcodex_mobile_client.a: fcopyfile failed: No space left on device
+make: *** [rust-ios-device-fast] Error 1
 ```
 
 ## xcodebuild errors
