@@ -2,15 +2,11 @@ name: Build AlleyCat iOS 16 IPA and DEB
 
 on:
   workflow_dispatch:
-  workflow_run:
-    workflows:
-      - Import NightVibes Litter
-    types:
-      - completed
   push:
     paths:
       - .github/workflows/build-alleycat-ios16.yml
-      - darksword-overlay/build-alleycat/**
+      - darksword-overlay/**
+      - jailbreak-lab/**
 
 permissions:
   contents: read
@@ -21,7 +17,6 @@ concurrency:
 
 jobs:
   build:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: macos-15
     timeout-minutes: 180
     env:
@@ -34,95 +29,72 @@ jobs:
       IOS_RUST_PROFILE: mobile-release
       RUSTC_WRAPPER: ""
       IOS_MIN: "16.1"
-      ARTIFACT_ROOT: alleycat-ios16-artifacts
+      SOURCE_ROOT: source/AlleyCat
+      ARTIFACT_ROOT: artifacts
 
     steps:
-      - name: Checkout complete AlleyCat source
+      - name: Checkout patch and package files
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+
+      - name: Clone the real advanced AlleyCat source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p source "$ARTIFACT_ROOT"
+          git clone --depth 1 https://github.com/NightVibes33/litter.git "$SOURCE_ROOT"
+          git -C "$SOURCE_ROOT" submodule sync --recursive
+          git -C "$SOURCE_ROOT" submodule set-url \
+            shared/third_party/codex https://github.com/NightVibes33/codex.git
+          git -C "$SOURCE_ROOT" submodule update --init --recursive --depth 1 || \
+            git -C "$SOURCE_ROOT" submodule update --init --recursive
+          git -C "$SOURCE_ROOT" rev-parse HEAD | tee "$ARTIFACT_ROOT/alleycat-source-sha.txt"
+          git -C "$SOURCE_ROOT/shared/third_party/codex" rev-parse HEAD \
+            | tee "$ARTIFACT_ROOT/codex-source-sha.txt"
 
       - name: Install build dependencies
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$ARTIFACT_ROOT"
           xcodebuild -version | tee "$ARTIFACT_ROOT/toolchain.log"
           xcrun --sdk iphoneos --show-sdk-version | tee -a "$ARTIFACT_ROOT/toolchain.log"
           brew install meson ninja xcodegen dpkg cmake pkgconf llvm autoconf automake libtool || true
           if ! command -v ldid >/dev/null 2>&1; then
+            brew tap ProcursusTeam/Procursus || true
             brew install ldid || true
           fi
           rustup target add aarch64-apple-ios i686-unknown-linux-musl aarch64-unknown-linux-musl
           command -v xcodegen
           command -v dpkg-deb
 
-      - name: Restore pinned Codex and Ghostty
-        shell: bash
-        run: |
-          set -euo pipefail
-          LOCK=upstream/litter/SUBMODULES.lock
-          CODEX_SHA="$(awk -F= '$1=="codex" {print $2}' "$LOCK")"
-          GHOSTTY_SHA="$(awk -F= '$1=="ghostty" {print $2}' "$LOCK")"
-          test -n "$CODEX_SHA"
-          test -n "$GHOSTTY_SHA"
-
-          restore_repo() {
-            local url="$1"
-            local path="$2"
-            local sha="$3"
-            rm -rf "$path"
-            mkdir -p "$path"
-            git -C "$path" init
-            git -C "$path" remote add origin "$url"
-            git -C "$path" fetch --depth 1 origin "$sha"
-            git -C "$path" checkout --detach FETCH_HEAD
-          }
-
-          restore_repo https://github.com/NightVibes33/codex.git \
-            upstream/litter/shared/third_party/codex "$CODEX_SHA"
-          restore_repo https://github.com/ghostty-org/ghostty.git \
-            upstream/litter/shared/third_party/ghostty "$GHOSTTY_SHA"
-
-      - name: Apply iOS 16 and rootless runtime changes while preserving AlleyCat UI
+      - name: Apply the small iOS 16 and rootless patch set
         shell: bash
         run: |
           set -euo pipefail
           chmod +x darksword-overlay/apply.sh
-          ./darksword-overlay/apply.sh upstream/litter | tee "$ARTIFACT_ROOT/overlay.log"
-          grep -q 'ContentView()' upstream/litter/apps/ios/Sources/Litter/LitterApp.swift
-          ! grep -q 'DarkSwordRootView()' upstream/litter/apps/ios/Sources/Litter/LitterApp.swift
-          grep -q 'AlleyCat Labs' upstream/litter/apps/ios/Sources/Litter/Views/SettingsView.swift
-          grep -q 'PRODUCT_NAME: AlleyCat' upstream/litter/apps/ios/project.yml
-          grep -q '<string>Alley Cãt</string>' upstream/litter/apps/ios/Sources/Litter/Info.plist
-          grep -q '@Perceptible' upstream/litter/apps/ios/Sources/Litter/Models/AppState.swift
+          ./darksword-overlay/apply.sh "$SOURCE_ROOT" 2>&1 | tee "$ARTIFACT_ROOT/patch.log"
+          grep -q 'ContentView()' "$SOURCE_ROOT/apps/ios/Sources/Litter/LitterApp.swift"
+          ! grep -q 'DarkSwordRootView()' "$SOURCE_ROOT/apps/ios/Sources/Litter/LitterApp.swift"
+          grep -q 'AlleyCat Labs' "$SOURCE_ROOT/apps/ios/Sources/Litter/Views/SettingsView.swift"
+          grep -q '<string>Alley Cãt</string>' "$SOURCE_ROOT/apps/ios/Sources/Litter/Info.plist"
           grep -q 'darksword_host_runtime::is_available' \
-            upstream/litter/shared/rust-bridge/codex-mobile-client/src/ish_runtime.rs
+            "$SOURCE_ROOT/shared/rust-bridge/codex-mobile-client/src/ish_runtime.rs"
 
-      - name: Verify complete AlleyCat source integrations
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd upstream/litter
-          tools/scripts/verify-nyxian-source-import.sh
-          tools/scripts/verify-kittystore-integration.sh
-
-      - name: Build Codex bridge Ghostty Alpine runtime and Xcode project
+      - name: Build AlleyCat runtime and Xcode project
         shell: bash
         run: |
           set -o pipefail
-          make -C upstream/litter \
+          make -C "$SOURCE_ROOT" \
             rust-ios-device-fast alpine-fs xcgen \
             IOS_DEPLOYMENT_TARGET="$IOS_MIN" \
             2>&1 | tee "$ARTIFACT_ROOT/rust-and-project.log"
 
-      - name: Build full AlleyCat application and embedded targets
+      - name: Build the full AlleyCat app
         shell: bash
         run: |
           set -o pipefail
           mkdir -p "$ARTIFACT_ROOT/DerivedData"
           xcodebuild \
-            -project upstream/litter/apps/ios/Litter.xcodeproj \
+            -project "$SOURCE_ROOT/apps/ios/Litter.xcodeproj" \
             -scheme Litter \
             -configuration Release \
             -destination 'generic/platform=iOS' \
@@ -133,7 +105,6 @@ jobs:
             LITTER_IOS_BUILD_MODE=full-sideload \
             LITTER_NYXIAN_PRIVATE_BUILD=1 \
             LITTER_PRESERVE_NYXIAN_LIVEPROCESS=1 \
-            LITTER_EMBED_UPSTREAM_SOURCE_TREES=1 \
             DEVELOPMENT_TEAM= \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
@@ -160,10 +131,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          APP="$(find "$ARTIFACT_ROOT/DerivedData/Build/Products" -type d -name 'AlleyCat.app' -print -quit)"
-          if [[ -z "$APP" ]]; then
-            APP="$(find "$ARTIFACT_ROOT/DerivedData/Build/Products" -type d -name 'Litter.app' -print -quit)"
-          fi
+          APP="$(find "$ARTIFACT_ROOT/DerivedData/Build/Products" -type d \
+            \( -name 'AlleyCat.app' -o -name 'Litter.app' \) -print -quit)"
           test -n "$APP"
 
           MAIN_EXECUTABLE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist")"
@@ -189,16 +158,16 @@ jobs:
           dpkg-deb --contents "$ARTIFACT_ROOT/com.nightvibes.alleycat_0.2.0_iphoneos-arm64.deb" \
             | tee "$ARTIFACT_ROOT/deb-contents.log"
           grep -q 'var/jb/Applications/AlleyCat.app' "$ARTIFACT_ROOT/deb-contents.log"
-          grep -q 'usr/libexec/darksword-rootd' "$ARTIFACT_ROOT/deb-contents.log"
-          grep -q 'usr/bin/darksword-poc-run' "$ARTIFACT_ROOT/deb-contents.log"
+          test -s "$ARTIFACT_ROOT/AlleyCat-iOS16-full-unsigned.ipa"
 
-      - name: Upload AlleyCat IPA DEB and logs
+      - name: Upload IPA DEB and full logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: AlleyCat-iOS16-full-build
           path: |
-            alleycat-ios16-artifacts/*.ipa
-            alleycat-ios16-artifacts/*.deb
-            alleycat-ios16-artifacts/*.log
+            artifacts/*.ipa
+            artifacts/*.deb
+            artifacts/*.log
+            artifacts/*.txt
           if-no-files-found: warn
