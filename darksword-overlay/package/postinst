@@ -3,7 +3,18 @@ set -e
 
 chmod 0755 /var/jb/usr/libexec/darksword-rootd 2>/dev/null || true
 chmod 0644 /var/jb/Library/LaunchDaemons/com.nightvibes.darksword-rootd.plist 2>/dev/null || true
-mkdir -p /var/jb/var/run /var/jb/var/log
+chmod 0755 \
+  /var/jb/usr/share/darksword/jailbreak-lab/bin/darksword-poc-run \
+  /var/jb/usr/share/darksword/jailbreak-lab/bin/darksword-crash-classify \
+  2>/dev/null || true
+
+mkdir -p \
+  /var/jb/var/run \
+  /var/jb/var/log \
+  /var/mobile/Library/DarkSwordLab/experiments \
+  /var/mobile/Library/DarkSwordLab/workspaces
+chown -R 501:501 /var/mobile/Library/DarkSwordLab 2>/dev/null || true
+chmod 0750 /var/mobile/Library/DarkSwordLab /var/mobile/Library/DarkSwordLab/experiments /var/mobile/Library/DarkSwordLab/workspaces 2>/dev/null || true
 
 launchctl bootout system/com.nightvibes.darksword-rootd >/dev/null 2>&1 || true
 launchctl bootstrap system /var/jb/Library/LaunchDaemons/com.nightvibes.darksword-rootd.plist >/dev/null 2>&1 || true
