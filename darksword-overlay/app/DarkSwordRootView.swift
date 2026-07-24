@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 /// DarkSword is the product shell. The complete NightVibes Litter ContentView
 /// remains the real chat/agent engine and is embedded without replacing its
@@ -63,29 +62,59 @@ private struct DarkSwordChatSurface: View {
 }
 
 private struct DarkSwordLoginBanner: View {
+    @Environment(AppModel.self) private var appModel
+    @State private var isWorking = false
+    @State private var authError: String?
+
     let onDismiss: () -> Void
 
+    private var localServer: AppServerSnapshot? {
+        appModel.snapshot?.servers.first(where: \.isLocal)
+    }
+
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "person.crop.circle.badge.checkmark")
-                .font(.title3)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Use your ChatGPT account")
-                    .font(.subheadline.weight(.semibold))
-                Text("Continue with Google opens OpenAI's official sign-in page.")
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                Image(systemName: "person.crop.circle.badge.checkmark")
+                    .font(.title3)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Use your ChatGPT account")
+                        .font(.subheadline.weight(.semibold))
+                    Text("OpenAI's official sign-in opens here. Choose Continue with Google.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 4)
+
+                Button {
+                    startChatGPTLogin()
+                } label: {
+                    HStack(spacing: 6) {
+                        if isWorking {
+                            ProgressView()
+                                .controlSize(.small)
+                        }
+                        Text("Continue with Google")
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(isWorking)
+
+                Button(action: onDismiss) {
+                    Image(systemName: "xmark")
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Dismiss login banner")
+            }
+
+            if let authError {
+                Text(authError)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.red)
+                    .textSelection(.enabled)
             }
-            Spacer(minLength: 4)
-            Button("Google") {
-                DarkSwordOpenAIAuth.openGoogleLogin()
-            }
-            .buttonStyle(.borderedProminent)
-            Button(action: onDismiss) {
-                Image(systemName: "xmark")
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Dismiss login banner")
         }
         .padding(12)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -94,13 +123,27 @@ private struct DarkSwordLoginBanner: View {
                 .stroke(Color.secondary.opacity(0.22), lineWidth: 0.5)
         }
     }
-}
 
-enum DarkSwordOpenAIAuth {
-    /// Authentication remains entirely on OpenAI's HTTPS origin. DarkSword
-    /// never asks for, stores, or intercepts a Google password or ChatGPT cookie.
-    static func openGoogleLogin() {
-        guard let url = URL(string: "https://chatgpt.com/auth/login") else { return }
-        UIApplication.shared.open(url, options: [:])
+    private func startChatGPTLogin() {
+        guard !isWorking else { return }
+        guard let localServer else {
+            authError = "The local ChatGPT runtime is still starting. Try again after the connection indicator appears."
+            return
+        }
+
+        Task { @MainActor in
+            isWorking = true
+            defer { isWorking = false }
+
+            do {
+                authError = nil
+                try await appModel.loginLocalChatGPTAccount(serverId: localServer.serverId)
+                onDismiss()
+            } catch ChatGPTOAuthError.cancelled {
+                return
+            } catch {
+                authError = error.localizedDescription
+            }
+        }
     }
 }
