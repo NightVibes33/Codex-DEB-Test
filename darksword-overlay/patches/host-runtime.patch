@@ -1,0 +1,56 @@
+diff --git a/shared/rust-bridge/codex-mobile-client/src/lib.rs b/shared/rust-bridge/codex-mobile-client/src/lib.rs
+index 0000000..0000000 100644
+--- a/shared/rust-bridge/codex-mobile-client/src/lib.rs
++++ b/shared/rust-bridge/codex-mobile-client/src/lib.rs
+@@ -11,6 +11,9 @@ pub mod ish_exec;
+ #[cfg(all(target_os = "ios", not(target_abi = "macabi")))]
+ pub mod ish_runtime;
+ 
++#[cfg(all(target_os = "ios", not(target_abi = "macabi")))]
++pub mod darksword_host_runtime;
++
+ // Always-compiled UniFFI-visible types. The host cdylib that
+ // `generate-bindings.sh` feeds to uniffi-bindgen must contain these so the
+ // generated Swift/Kotlin has `IshRunResult` / `IshBootstrapError` /
+diff --git a/shared/rust-bridge/codex-mobile-client/src/ish_runtime.rs b/shared/rust-bridge/codex-mobile-client/src/ish_runtime.rs
+index 0000000..0000000 100644
+--- a/shared/rust-bridge/codex-mobile-client/src/ish_runtime.rs
++++ b/shared/rust-bridge/codex-mobile-client/src/ish_runtime.rs
+@@ -134,6 +134,11 @@ pub fn run_streaming<F>(
+ where
+     F: FnMut(&[u8]),
+ {
++    if crate::darksword_host_runtime::is_available() {
++        return crate::darksword_host_runtime::run_streaming(
++            cmd, cwd, timeout_ms, &mut on_output,
++        );
++    }
+     let Some(instance) = INSTANCE.get() else {
+         eprintln!("[ish] run() called before bootstrap succeeded");
+         return (ISH_E_NOT_RUNNING, Vec::new());
+diff --git a/shared/rust-bridge/codex-mobile-client/src/local_runtime_instructions.rs b/shared/rust-bridge/codex-mobile-client/src/local_runtime_instructions.rs
+index 0000000..0000000 100644
+--- a/shared/rust-bridge/codex-mobile-client/src/local_runtime_instructions.rs
++++ b/shared/rust-bridge/codex-mobile-client/src/local_runtime_instructions.rs
+@@ -7,15 +7,16 @@ const IOS_LOCAL_RUNTIME_SENTINEL: &str =
+     "You are running inside Litter's local Codex runtime on iOS.";
+ 
+ pub(crate) const IOS_LOCAL_RUNTIME_DEVELOPER_INSTRUCTIONS: &str = r#"You are running inside Litter's local Codex runtime on iOS.
+ 
+-The shell tool is backed by a persistent iSH Alpine Linux fakefs, not the iOS host filesystem or ios_system. Treat paths, packages, and command behavior as Alpine Linux inside iSH.
++When `/var/jb/var/run/darksword-rootd.sock` is available, the shell tool runs through a root-owned daemon on the real jailbroken iOS filesystem. Otherwise it falls back to the embedded iSH Alpine runtime.
+ 
+-- The default home and working directory is `/root` inside the iSH fakefs.
+-- Use POSIX `/bin/sh` and Alpine/BusyBox userland expectations. Bash, zsh, and macOS tools may be absent unless installed in the fakefs.
+-- Use Alpine's `apk` package manager when installing packages is necessary and permitted.
+-- The iSH fakefs cannot see iOS app sandbox paths such as `/var`, `/private`, `/Users`, `/Library`, `/System`, or `/Applications`. Work under fakefs paths such as `/root` unless the user gives a known reachable path.
+-- Do not assume ios_system-specific behavior for local commands."#;
++- On the host runtime, prefer `/var/jb` for rootless jailbreak files and `/var/mobile` for user data.
++- Inspect files, logs, Git status, and diffs before changing anything.
++- Preserve backups and verify every mutation.
++- The daemon rejects device-erasure, reboot, and other blocked commands.
++- Respect the app's command-approval prompts before any write, package, service, or process change.
++- If the daemon is unavailable, use `/root` and Alpine/BusyBox expectations inside iSH."#;
+ 
+ pub(crate) fn splice_local_runtime_developer_instructions(
+     client: &MobileClient,
