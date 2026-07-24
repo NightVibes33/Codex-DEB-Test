@@ -1,0 +1,16 @@
+#!/bin/sh
+set -e
+
+chmod 0755 /var/jb/usr/libexec/darksword-rootd 2>/dev/null || true
+chmod 0644 /var/jb/Library/LaunchDaemons/com.nightvibes.darksword-rootd.plist 2>/dev/null || true
+mkdir -p /var/jb/var/run /var/jb/var/log
+
+launchctl bootout system/com.nightvibes.darksword-rootd >/dev/null 2>&1 || true
+launchctl bootstrap system /var/jb/Library/LaunchDaemons/com.nightvibes.darksword-rootd.plist >/dev/null 2>&1 || true
+launchctl kickstart -k system/com.nightvibes.darksword-rootd >/dev/null 2>&1 || true
+
+if command -v uicache >/dev/null 2>&1; then
+  uicache -p /var/jb/Applications/DarkSwordAI.app >/dev/null 2>&1 || uicache -a >/dev/null 2>&1 || true
+fi
+
+exit 0
