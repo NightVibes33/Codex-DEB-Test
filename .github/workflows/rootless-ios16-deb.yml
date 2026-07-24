@@ -29,6 +29,7 @@ jobs:
     timeout-minutes: 45
     env:
       IOS_MIN: '16.1'
+      TARGET_IOS: '16.7.11'
       ARTIFACT_DIR: artifacts
       IPA_ARTIFACT_NAME: AlleyCat-Unsigned-IPA
       DEB_NAME: com.nightvibes.alleycat_0.2.0_iphoneos-arm64.deb
@@ -36,6 +37,11 @@ jobs:
     steps:
       - name: Checkout packaging source
         uses: actions/checkout@v4
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.3'
 
       - name: Resolve IPA workflow run
         id: ipa_run
@@ -56,14 +62,18 @@ jobs:
               "/repos/${GITHUB_REPOSITORY}/actions/workflows/ios-unsigned-ipa.yml/runs?branch=main&status=success&per_page=1" \
               --jq '.workflow_runs[0].id')"
           fi
-          test -n "$run_id"
+          [[ "$run_id" =~ ^[0-9]+$ ]]
+          conclusion="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}" --jq '.conclusion')"
+          workflow_path="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}" --jq '.path')"
+          test "$conclusion" = success
+          test "$workflow_path" = '.github/workflows/ios-unsigned-ipa.yml'
           echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
-          echo "Using IPA workflow run $run_id"
+          echo "Using successful IPA workflow run $run_id"
 
       - name: Download unsigned IPA artifact
         uses: actions/download-artifact@v4
         with:
-          name: AlleyCat-Unsigned-IPA
+          name: ${{ env.IPA_ARTIFACT_NAME }}
           run-id: ${{ steps.ipa_run.outputs.run_id }}
           github-token: ${{ github.token }}
           path: downloaded-ipa
@@ -77,36 +87,40 @@ jobs:
           rm -rf extracted
           mkdir -p extracted
           ditto -x -k "$IPA" extracted
-          APP="$(find extracted/Payload -maxdepth 1 -type d -name '*.app' -print -quit)"
-          test -d "$APP"
+          mapfile -t apps < <(find extracted/Payload -maxdepth 1 -type d -name '*.app' -print)
+          test "${#apps[@]}" -eq 1
+          APP="${apps[0]}"
+          test -f "$APP/Info.plist"
           EXECUTABLE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist")"
+          BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")"
+          MIN_OS="$(/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP/Info.plist")"
+          test -n "$EXECUTABLE"
+          test -n "$BUNDLE_ID"
+          test -n "$MIN_OS"
           test -f "$APP/$EXECUTABLE"
-          MIN_OS="$(/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP/Info.plist" 2>/dev/null || true)"
-          echo "App: $APP"
-          echo "Executable: $EXECUTABLE"
-          echo "MinimumOSVersion: ${MIN_OS:-not recorded}"
-          if [[ -n "$MIN_OS" ]]; then
-            python3 - "$MIN_OS" <<'PY'
+          python3 - "$MIN_OS" "$TARGET_IOS" <<'PY'
           import sys
-          from packaging.version import Version
-          minimum = Version(sys.argv[1])
-          target = Version('16.7.11')
+          def version(value):
+              return tuple(int(part) for part in value.split('.'))
+          minimum = version(sys.argv[1])
+          target = version(sys.argv[2])
           if minimum > target:
-              raise SystemExit(f'app requires iOS {minimum}, newer than target iOS {target}')
+              raise SystemExit(f'app requires iOS {sys.argv[1]}, newer than target iOS {sys.argv[2]}')
           PY
-          fi
+          file "$APP/$EXECUTABLE" | grep -q 'arm64'
+          echo "App: $APP"
+          echo "Bundle ID: $BUNDLE_ID"
+          echo "Executable: $EXECUTABLE"
+          echo "MinimumOSVersion: $MIN_OS"
           echo "APP=$APP" >> "$GITHUB_ENV"
           echo "APP_EXECUTABLE=$EXECUTABLE" >> "$GITHUB_ENV"
+          echo "APP_BUNDLE_ID=$BUNDLE_ID" >> "$GITHUB_ENV"
 
       - name: Install rootless packaging tools
         shell: bash
         run: |
           set -euo pipefail
-          brew install dpkg
-          if ! command -v ldid >/dev/null 2>&1; then
-            brew tap ProcursusTeam/Procursus || true
-            brew install ldid
-          fi
+          brew install dpkg ldid
           command -v dpkg-deb
           command -v ldid
 
@@ -120,23 +134,29 @@ jobs:
             -arch arm64 \
             -isysroot "$SDK" \
             -miphoneos-version-min="$IOS_MIN" \
-            -O2 -Wall -Wextra \
+            -O2 -Wall -Wextra -Werror \
             darksword-overlay/rootd/main.c \
             -o "$ARTIFACT_DIR/darksword-rootd"
+          file "$ARTIFACT_DIR/darksword-rootd" | grep -q 'arm64'
           ldid -S "$ARTIFACT_DIR/darksword-rootd"
-          file "$ARTIFACT_DIR/darksword-rootd"
+          ldid -e "$ARTIFACT_DIR/darksword-rootd" > "$ARTIFACT_DIR/rootd-entitlements.xml"
 
-      - name: Apply jailbreak entitlements
+      - name: Sign embedded Mach-O files and app
         shell: bash
         run: |
           set -euo pipefail
-          while IFS= read -r binary; do
-            ldid -S "$binary" || true
-          done < <(find "$APP" -type f -perm -111)
+          while IFS= read -r -d '' candidate; do
+            if file "$candidate" | grep -q 'Mach-O'; then
+              if [[ "$candidate" != "$APP/$APP_EXECUTABLE" ]]; then
+                ldid -S "$candidate"
+              fi
+            fi
+          done < <(find "$APP" -type f -print0)
           ldid -S"$GITHUB_WORKSPACE/darksword-overlay/package/app-entitlements.plist" "$APP/$APP_EXECUTABLE"
           ldid -e "$APP/$APP_EXECUTABLE" > "$ARTIFACT_DIR/app-entitlements.xml"
+          grep -q 'platform-application' "$ARTIFACT_DIR/app-entitlements.xml"
 
-      - name: Build rootless DEB
+      - name: Build and validate rootless DEB
         shell: bash
         run: |
           set -euo pipefail
@@ -148,9 +168,13 @@ jobs:
           test -s "$ARTIFACT_DIR/$DEB_NAME"
           dpkg-deb --info "$ARTIFACT_DIR/$DEB_NAME" | tee "$ARTIFACT_DIR/deb-info.log"
           dpkg-deb --contents "$ARTIFACT_DIR/$DEB_NAME" | tee "$ARTIFACT_DIR/deb-contents.log"
-          dpkg-deb --contents "$ARTIFACT_DIR/$DEB_NAME" | grep -q './var/jb/Applications/AlleyCat.app/'
-          dpkg-deb --contents "$ARTIFACT_DIR/$DEB_NAME" | grep -q './var/jb/Library/LaunchDaemons/com.nightvibes.darksword-rootd.plist'
-          dpkg-deb --contents "$ARTIFACT_DIR/$DEB_NAME" | grep -q './var/jb/usr/libexec/darksword-rootd'
+          grep -q '^ Package: com.nightvibes.alleycat$' "$ARTIFACT_DIR/deb-info.log"
+          grep -q '^ Architecture: iphoneos-arm64$' "$ARTIFACT_DIR/deb-info.log"
+          grep -q '^ Depends: firmware (>= 16.1)$' "$ARTIFACT_DIR/deb-info.log"
+          grep -q './var/jb/Applications/AlleyCat.app/' "$ARTIFACT_DIR/deb-contents.log"
+          grep -q './var/jb/Library/LaunchDaemons/com.nightvibes.darksword-rootd.plist' "$ARTIFACT_DIR/deb-contents.log"
+          grep -q './var/jb/usr/libexec/darksword-rootd' "$ARTIFACT_DIR/deb-contents.log"
+          grep -q './var/jb/usr/share/darksword/jailbreak-lab/' "$ARTIFACT_DIR/deb-contents.log"
           shasum -a 256 "$ARTIFACT_DIR/$DEB_NAME" | tee "$ARTIFACT_DIR/$DEB_NAME.sha256"
 
       - name: Upload rootless DEB
