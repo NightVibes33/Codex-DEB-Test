@@ -1,0 +1,5 @@
+Clean rebuild after imported source contains:
+- Zig 0.15.2 bootstrap
+- Ghostty iOS 16.1 target triples
+- DarkSword-aware source verification
+- iOS 16 Live Activity availability guards
