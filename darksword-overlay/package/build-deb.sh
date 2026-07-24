@@ -33,7 +33,7 @@ cp "$SCRIPT_DIR/postinst" "$ROOT/DEBIAN/postinst"
 cp "$SCRIPT_DIR/prerm" "$ROOT/DEBIAN/prerm"
 chmod 0755 "$ROOT/DEBIAN/postinst" "$ROOT/DEBIAN/prerm"
 
-cp -R "$APP_BUNDLE" "$ROOT/var/jb/Applications/DarkSwordAI.app"
+cp -R "$APP_BUNDLE" "$ROOT/var/jb/Applications/AlleyCat.app"
 cp "$ROOTD_BINARY" "$ROOT/var/jb/usr/libexec/darksword-rootd"
 cp "$SCRIPT_DIR/../rootd/com.nightvibes.darksword-rootd.plist" \
   "$ROOT/var/jb/Library/LaunchDaemons/com.nightvibes.darksword-rootd.plist"
