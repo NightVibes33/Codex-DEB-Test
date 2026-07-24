@@ -11,6 +11,7 @@ on:
     paths:
       - .github/workflows/build-darksword-deb.yml
       - darksword-overlay/**
+      - jailbreak-lab/**
 
 permissions:
   contents: write
@@ -91,15 +92,34 @@ jobs:
           test "$(git -C upstream/litter/shared/third_party/codex rev-parse HEAD)" = "$CODEX_SHA"
           test "$(git -C upstream/litter/shared/third_party/ghostty rev-parse HEAD)" = "$GHOSTTY_SHA"
 
-      - name: Apply non-destructive iPad rootless overlay
+      - name: Apply exact DarkSword architecture overlay
         run: |
           set -euo pipefail
           chmod +x darksword-overlay/apply.sh
           ./darksword-overlay/apply.sh upstream/litter
+
+          # Full advanced Litter features stay present.
           grep -q -- '- target: LitterLiveActivity' upstream/litter/apps/ios/project.yml
           grep -q -- '- target: LitterWatch' upstream/litter/apps/ios/project.yml
           grep -q -- '- target: LiveProcess' upstream/litter/apps/ios/project.yml
           grep -q 'listPluginCatalog' upstream/litter/apps/ios/Sources/Litter/Bridge/UniFFICodexClient.generated.swift
+
+          # Exact requested DarkSword product surfaces exist and launch.
+          grep -q 'DarkSwordRootView()' upstream/litter/apps/ios/Sources/Litter/LitterApp.swift
+          test -f upstream/litter/apps/ios/Sources/Litter/DarkSword/DarkSwordRootView.swift
+          test -f upstream/litter/apps/ios/Sources/Litter/DarkSword/DarkSwordResearchViews.swift
+          grep -q 'https://chatgpt.com/auth/login' upstream/litter/apps/ios/Sources/Litter/DarkSword/DarkSwordRootView.swift
+          grep -q 'DarkSwordResearchWorkspaceView' upstream/litter/apps/ios/Sources/Litter/DarkSword/DarkSwordResearchViews.swift
+          grep -q 'DarkSwordCrashViewer' upstream/litter/apps/ios/Sources/Litter/DarkSword/DarkSwordResearchViews.swift
+          grep -q 'DarkSwordSourceEditorView' upstream/litter/apps/ios/Sources/Litter/DarkSword/DarkSwordResearchViews.swift
+          grep -q 'DarkSwordToolApprovalView' upstream/litter/apps/ios/Sources/Litter/DarkSword/DarkSwordResearchViews.swift
+
+          # IPA resources and DEB lab source are both complete.
+          test -f jailbreak-lab/bin/darksword-poc-run
+          test -f jailbreak-lab/bin/darksword-crash-classify
+          test -f jailbreak-lab/harnesses/ios-userspace-reproducer.c
+          test -f jailbreak-lab/schema/experiment.schema.json
+          test -f upstream/litter/apps/ios/Sources/Litter/Resources/JailbreakLab/schema/experiment.schema.json
 
       - name: Verify full advanced source integrations
         id: source_verify
@@ -197,6 +217,8 @@ jobs:
           mkdir -p artifacts/Payload
           cp -R "$APP" artifacts/Payload/DarkSwordAI.app
           test -d artifacts/Payload/DarkSwordAI.app/PlugIns
+          find artifacts/Payload/DarkSwordAI.app -iname '*JailbreakLab*' -print | tee artifacts/ipa-lab-contents.log
+          grep -q 'JailbreakLab' artifacts/ipa-lab-contents.log
           (cd artifacts && zip -qry DarkSwordAI-full-unsigned.ipa Payload)
 
           chmod +x darksword-overlay/package/build-deb.sh
@@ -208,6 +230,10 @@ jobs:
           dpkg-deb --info artifacts/com.nightvibes.darkswordai_0.2.0_iphoneos-arm64.deb
           dpkg-deb --contents artifacts/com.nightvibes.darkswordai_0.2.0_iphoneos-arm64.deb \
             | tee artifacts/deb-contents.log
+          grep -q 'usr/libexec/darksword-rootd' artifacts/deb-contents.log
+          grep -q 'usr/bin/darksword-poc-run' artifacts/deb-contents.log
+          grep -q 'usr/bin/darksword-crash-classify' artifacts/deb-contents.log
+          grep -q 'jailbreak-lab/schema/experiment.schema.json' artifacts/deb-contents.log
 
       - name: Write build status
         if: always()
