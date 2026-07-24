@@ -29,13 +29,16 @@ jobs:
           xcodebuild -version
           xcrun --sdk iphoneos --show-sdk-path
           brew install ldid dpkg python@3.11
+          PY311="$(brew --prefix python@3.11)/bin/python3.11"
+          test -x "$PY311"
+          echo "PYTHON=$PY311" >> "$GITHUB_ENV"
           echo "$(brew --prefix python@3.11)/libexec/bin" >> "$GITHUB_PATH"
 
       - name: Verify compatible Python
         run: |
           set -euxo pipefail
-          python3 --version
-          python3 - <<'PY'
+          "$PYTHON" --version
+          "$PYTHON" - <<'PY'
           from distutils.version import StrictVersion
           print(StrictVersion('1.0'))
           PY
@@ -56,7 +59,8 @@ jobs:
           set -euxo pipefail
           export GYP_DEFINES="target_arch=arm64 host_os=mac target_os=ios"
           export IPHONEOS_DEPLOYMENT_TARGET="$IOS_DEPLOYMENT_TARGET"
-          ./configure \
+          export PYTHON="$PYTHON"
+          "$PYTHON" ./configure \
             --dest-os=ios \
             --dest-cpu=arm64 \
             --with-intl=none \
@@ -67,7 +71,7 @@ jobs:
             --without-node-code-cache \
             --without-node-snapshot
 
-          python3 - <<'PY'
+          "$PYTHON" - <<'PY'
           import ast
           from pathlib import Path
           text = Path('config.gypi').read_text()
