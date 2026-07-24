@@ -130,6 +130,15 @@ cp "$SCRIPT_DIR/app/DarkSwordRootView.swift" \
 cp "$SCRIPT_DIR/app/DarkSwordResearchViews.swift" \
   apps/ios/Sources/Litter/DarkSword/DarkSwordResearchViews.swift
 
+# The IPA carries the same templates, schema, and read-only helper scripts as
+# resources. The rootless DEB additionally installs executable system copies.
+LAB_SOURCE="$SCRIPT_DIR/../jailbreak-lab"
+LAB_RESOURCE="apps/ios/Sources/Litter/Resources/JailbreakLab"
+test -d "$LAB_SOURCE"
+rm -rf "$LAB_RESOURCE"
+mkdir -p "$(dirname "$LAB_RESOURCE")"
+cp -R "$LAB_SOURCE" "$LAB_RESOURCE"
+
 mkdir -p shared/rust-bridge/codex-mobile-client/src
 cp "$SCRIPT_DIR/rust/darksword_host_runtime.rs" \
   shared/rust-bridge/codex-mobile-client/src/darksword_host_runtime.rs
@@ -142,5 +151,6 @@ fi
 grep -q 'DarkSwordRootView()' apps/ios/Sources/Litter/LitterApp.swift
 test -f apps/ios/Sources/Litter/DarkSword/DarkSwordRootView.swift
 test -f apps/ios/Sources/Litter/DarkSword/DarkSwordResearchViews.swift
+test -f apps/ios/Sources/Litter/Resources/JailbreakLab/schema/experiment.schema.json
 
-echo "Exact DarkSword app architecture, full NightVibes Litter, iOS 16.1, and rootless host runtime applied to $TARGET."
+echo "Exact DarkSword app architecture, full NightVibes Litter, iOS 16.1, jailbreak lab, and rootless host runtime applied to $TARGET."
