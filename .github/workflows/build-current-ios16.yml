@@ -1,0 +1,158 @@
+name: Build Current App IPA and DEB
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/build-current-ios16.yml
+      - upstream/litter/**
+      - darksword-overlay/rootd/**
+      - darksword-overlay/package/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: current-ios16-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 180
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_NET_RETRY: "10"
+      CARGO_HTTP_TIMEOUT: "120"
+      CARGO_HTTP_MULTIPLEXING: "false"
+      IOS_RUST_PROFILE: mobile-release
+      RUSTC_WRAPPER: ""
+      IOS_MIN: "16.1"
+      SOURCE_ROOT: upstream/litter
+      ARTIFACT_ROOT: artifacts
+
+    steps:
+      - name: Checkout current repository source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify committed app source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$ARTIFACT_ROOT"
+          test -f "$SOURCE_ROOT/apps/ios/project.yml"
+          test -d "$SOURCE_ROOT/apps/ios/Sources/Litter"
+          test -f "$SOURCE_ROOT/Makefile"
+          echo "$GITHUB_SHA" > "$ARTIFACT_ROOT/source-sha.txt"
+          git status --short
+
+      - name: Install build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version | tee "$ARTIFACT_ROOT/toolchain.log"
+          xcrun --sdk iphoneos --show-sdk-version | tee -a "$ARTIFACT_ROOT/toolchain.log"
+          brew install meson ninja xcodegen dpkg cmake pkgconf llvm autoconf automake libtool || true
+          if ! command -v ldid >/dev/null 2>&1; then
+            brew tap ProcursusTeam/Procursus || true
+            brew install ldid || true
+          fi
+          rustup target add aarch64-apple-ios i686-unknown-linux-musl aarch64-unknown-linux-musl
+          command -v xcodegen
+          command -v dpkg-deb
+
+      - name: Build current committed runtime and Xcode project
+        shell: bash
+        run: |
+          set -o pipefail
+          make -C "$SOURCE_ROOT" \
+            rust-ios-device-fast alpine-fs xcgen \
+            IOS_DEPLOYMENT_TARGET="$IOS_MIN" \
+            2>&1 | tee "$ARTIFACT_ROOT/runtime-build.log"
+
+      - name: Build current committed iOS app
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p "$ARTIFACT_ROOT/DerivedData"
+          xcodebuild \
+            -project "$SOURCE_ROOT/apps/ios/Litter.xcodeproj" \
+            -scheme Litter \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$PWD/$ARTIFACT_ROOT/DerivedData" \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=YES \
+            IPHONEOS_DEPLOYMENT_TARGET="$IOS_MIN" \
+            LITTER_IOS_BUILD_MODE=full-sideload \
+            LITTER_NYXIAN_PRIVATE_BUILD=1 \
+            LITTER_PRESERVE_NYXIAN_LIVEPROCESS=1 \
+            LITTER_EMBED_UPSTREAM_SOURCE_TREES=1 \
+            DEVELOPMENT_TEAM= \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY= \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            build 2>&1 | tee "$ARTIFACT_ROOT/xcodebuild.log"
+
+      - name: Build rootless daemon
+        shell: bash
+        run: |
+          set -o pipefail
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          xcrun --sdk iphoneos clang \
+            -arch arm64 \
+            -isysroot "$SDK" \
+            -miphoneos-version-min="$IOS_MIN" \
+            -O2 -Wall -Wextra \
+            darksword-overlay/rootd/main.c \
+            -o "$ARTIFACT_ROOT/darksword-rootd" \
+            2>&1 | tee "$ARTIFACT_ROOT/rootd-build.log"
+          codesign --force --sign - "$ARTIFACT_ROOT/darksword-rootd"
+
+      - name: Package IPA and rootless DEB
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="$(find "$ARTIFACT_ROOT/DerivedData/Build/Products" -type d -name '*.app' -print -quit)"
+          test -n "$APP"
+          MAIN_EXECUTABLE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist")"
+
+          if command -v ldid >/dev/null 2>&1; then
+            while IFS= read -r binary; do ldid -S "$binary" || true; done < <(find "$APP" -type f -perm -111)
+            ldid -S"$PWD/darksword-overlay/package/app-entitlements.plist" "$APP/$MAIN_EXECUTABLE"
+            ldid -S "$ARTIFACT_ROOT/darksword-rootd"
+          else
+            codesign --force --deep --sign - "$APP"
+          fi
+
+          rm -rf "$ARTIFACT_ROOT/Payload"
+          mkdir -p "$ARTIFACT_ROOT/Payload"
+          cp -R "$APP" "$ARTIFACT_ROOT/Payload/CurrentApp.app"
+          (cd "$ARTIFACT_ROOT" && zip -qry CurrentApp-iOS16-unsigned.ipa Payload)
+
+          chmod +x darksword-overlay/package/build-deb.sh
+          darksword-overlay/package/build-deb.sh \
+            "$APP" \
+            "$ARTIFACT_ROOT/darksword-rootd" \
+            "$ARTIFACT_ROOT/com.nightvibes.currentapp_0.2.0_iphoneos-arm64.deb"
+
+          test -s "$ARTIFACT_ROOT/CurrentApp-iOS16-unsigned.ipa"
+          test -s "$ARTIFACT_ROOT/com.nightvibes.currentapp_0.2.0_iphoneos-arm64.deb"
+          dpkg-deb --contents "$ARTIFACT_ROOT/com.nightvibes.currentapp_0.2.0_iphoneos-arm64.deb" | tee "$ARTIFACT_ROOT/deb-contents.log"
+
+      - name: Upload IPA DEB and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Current-App-iOS16-IPA-DEB
+          path: |
+            artifacts/*.ipa
+            artifacts/*.deb
+            artifacts/*.log
+            artifacts/*.txt
+          if-no-files-found: warn
