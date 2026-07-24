@@ -76,7 +76,7 @@ jobs:
             local url="$1"
             local path="$2"
             local sha="$3"
-            rm -rf "$path/.git"
+            rm -rf "$path"
             mkdir -p "$path"
             git -C "$path" init
             git -C "$path" remote add origin "$url"
