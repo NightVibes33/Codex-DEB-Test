@@ -1,0 +1,165 @@
+name: Build Rootless iOS 16 DEB
+
+on:
+  workflow_dispatch:
+    inputs:
+      ipa_run_id:
+        description: Optional successful Build Unsigned iOS IPA run ID
+        required: false
+        type: string
+  workflow_run:
+    workflows:
+      - Build Unsigned iOS IPA
+    types:
+      - completed
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: rootless-ios16-deb-${{ github.event.workflow_run.id || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  package-rootless-deb:
+    name: Package rootless DEB for iOS 16.7.11
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: macos-26-intel
+    timeout-minutes: 45
+    env:
+      IOS_MIN: '16.1'
+      ARTIFACT_DIR: artifacts
+      IPA_ARTIFACT_NAME: AlleyCat-Unsigned-IPA
+      DEB_NAME: com.nightvibes.alleycat_0.2.0_iphoneos-arm64.deb
+
+    steps:
+      - name: Checkout packaging source
+        uses: actions/checkout@v4
+
+      - name: Resolve IPA workflow run
+        id: ipa_run
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MANUAL_RUN_ID: ${{ inputs.ipa_run_id }}
+          EVENT_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          if [[ -n "${MANUAL_RUN_ID:-}" ]]; then
+            run_id="$MANUAL_RUN_ID"
+          elif [[ -n "${EVENT_RUN_ID:-}" ]]; then
+            run_id="$EVENT_RUN_ID"
+          else
+            run_id="$(gh api \
+              -H 'Accept: application/vnd.github+json' \
+              "/repos/${GITHUB_REPOSITORY}/actions/workflows/ios-unsigned-ipa.yml/runs?branch=main&status=success&per_page=1" \
+              --jq '.workflow_runs[0].id')"
+          fi
+          test -n "$run_id"
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "Using IPA workflow run $run_id"
+
+      - name: Download unsigned IPA artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: AlleyCat-Unsigned-IPA
+          run-id: ${{ steps.ipa_run.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: downloaded-ipa
+
+      - name: Extract and validate application
+        shell: bash
+        run: |
+          set -euo pipefail
+          IPA="$(find downloaded-ipa -type f -name '*.ipa' -print -quit)"
+          test -s "$IPA"
+          rm -rf extracted
+          mkdir -p extracted
+          ditto -x -k "$IPA" extracted
+          APP="$(find extracted/Payload -maxdepth 1 -type d -name '*.app' -print -quit)"
+          test -d "$APP"
+          EXECUTABLE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist")"
+          test -f "$APP/$EXECUTABLE"
+          MIN_OS="$(/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP/Info.plist" 2>/dev/null || true)"
+          echo "App: $APP"
+          echo "Executable: $EXECUTABLE"
+          echo "MinimumOSVersion: ${MIN_OS:-not recorded}"
+          if [[ -n "$MIN_OS" ]]; then
+            python3 - "$MIN_OS" <<'PY'
+          import sys
+          from packaging.version import Version
+          minimum = Version(sys.argv[1])
+          target = Version('16.7.11')
+          if minimum > target:
+              raise SystemExit(f'app requires iOS {minimum}, newer than target iOS {target}')
+          PY
+          fi
+          echo "APP=$APP" >> "$GITHUB_ENV"
+          echo "APP_EXECUTABLE=$EXECUTABLE" >> "$GITHUB_ENV"
+
+      - name: Install rootless packaging tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          brew install dpkg
+          if ! command -v ldid >/dev/null 2>&1; then
+            brew tap ProcursusTeam/Procursus || true
+            brew install ldid
+          fi
+          command -v dpkg-deb
+          command -v ldid
+
+      - name: Build rootless helper daemon
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$ARTIFACT_DIR"
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          xcrun --sdk iphoneos clang \
+            -arch arm64 \
+            -isysroot "$SDK" \
+            -miphoneos-version-min="$IOS_MIN" \
+            -O2 -Wall -Wextra \
+            darksword-overlay/rootd/main.c \
+            -o "$ARTIFACT_DIR/darksword-rootd"
+          ldid -S "$ARTIFACT_DIR/darksword-rootd"
+          file "$ARTIFACT_DIR/darksword-rootd"
+
+      - name: Apply jailbreak entitlements
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r binary; do
+            ldid -S "$binary" || true
+          done < <(find "$APP" -type f -perm -111)
+          ldid -S"$GITHUB_WORKSPACE/darksword-overlay/package/app-entitlements.plist" "$APP/$APP_EXECUTABLE"
+          ldid -e "$APP/$APP_EXECUTABLE" > "$ARTIFACT_DIR/app-entitlements.xml"
+
+      - name: Build rootless DEB
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x darksword-overlay/package/build-deb.sh
+          darksword-overlay/package/build-deb.sh \
+            "$APP" \
+            "$ARTIFACT_DIR/darksword-rootd" \
+            "$ARTIFACT_DIR/$DEB_NAME"
+          test -s "$ARTIFACT_DIR/$DEB_NAME"
+          dpkg-deb --info "$ARTIFACT_DIR/$DEB_NAME" | tee "$ARTIFACT_DIR/deb-info.log"
+          dpkg-deb --contents "$ARTIFACT_DIR/$DEB_NAME" | tee "$ARTIFACT_DIR/deb-contents.log"
+          dpkg-deb --contents "$ARTIFACT_DIR/$DEB_NAME" | grep -q './var/jb/Applications/AlleyCat.app/'
+          dpkg-deb --contents "$ARTIFACT_DIR/$DEB_NAME" | grep -q './var/jb/Library/LaunchDaemons/com.nightvibes.darksword-rootd.plist'
+          dpkg-deb --contents "$ARTIFACT_DIR/$DEB_NAME" | grep -q './var/jb/usr/libexec/darksword-rootd'
+          shasum -a 256 "$ARTIFACT_DIR/$DEB_NAME" | tee "$ARTIFACT_DIR/$DEB_NAME.sha256"
+
+      - name: Upload rootless DEB
+        uses: actions/upload-artifact@v4
+        with:
+          name: AlleyCat-Rootless-iOS16-DEB
+          path: |
+            artifacts/*.deb
+            artifacts/*.sha256
+            artifacts/*.log
+            artifacts/*.xml
+          if-no-files-found: error
