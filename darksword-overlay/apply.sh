@@ -40,6 +40,23 @@ if info.exists():
     s = s.replace('Codex discovers', 'DarkSword AI discovers')
     info.write_text(s)
 
+# Make DarkSwordRootView the product entry while preserving the complete Litter
+# ContentView as the Chat/Codex engine embedded by DarkSwordRootView.
+app_entry = Path("apps/ios/Sources/Litter/LitterApp.swift")
+if app_entry.exists():
+    s = app_entry.read_text()
+    old = '''        WindowGroup {
+            ContentView()
+'''
+    new = '''        WindowGroup {
+            DarkSwordRootView()
+'''
+    if old in s:
+        s = s.replace(old, new, 1)
+    elif 'DarkSwordRootView()' not in s:
+        raise SystemExit("error: could not locate Litter WindowGroup ContentView entry")
+    app_entry.write_text(s)
+
 # Vendored source does not retain gitlink metadata after rsync. Preserve the
 # exact restored checkout instead of aborting Codex/Ghostty patch application.
 for relative, label in (
@@ -105,6 +122,14 @@ if voice_card.exists():
     voice_card.write_text(s)
 PY
 
+# Native DarkSword product shell and research surfaces. XcodeGen already
+# includes Sources/Litter recursively, so these become part of the real app.
+mkdir -p apps/ios/Sources/Litter/DarkSword
+cp "$SCRIPT_DIR/app/DarkSwordRootView.swift" \
+  apps/ios/Sources/Litter/DarkSword/DarkSwordRootView.swift
+cp "$SCRIPT_DIR/app/DarkSwordResearchViews.swift" \
+  apps/ios/Sources/Litter/DarkSword/DarkSwordResearchViews.swift
+
 mkdir -p shared/rust-bridge/codex-mobile-client/src
 cp "$SCRIPT_DIR/rust/darksword_host_runtime.rs" \
   shared/rust-bridge/codex-mobile-client/src/darksword_host_runtime.rs
@@ -114,4 +139,8 @@ if ! grep -q 'pub mod darksword_host_runtime;' \
   patch -p1 < "$SCRIPT_DIR/patches/host-runtime.patch"
 fi
 
-echo "Full NightVibes Litter preserved; iOS 16.1 and rootless host-runtime overlay applied to $TARGET."
+grep -q 'DarkSwordRootView()' apps/ios/Sources/Litter/LitterApp.swift
+test -f apps/ios/Sources/Litter/DarkSword/DarkSwordRootView.swift
+test -f apps/ios/Sources/Litter/DarkSword/DarkSwordResearchViews.swift
+
+echo "Exact DarkSword app architecture, full NightVibes Litter, iOS 16.1, and rootless host runtime applied to $TARGET."
