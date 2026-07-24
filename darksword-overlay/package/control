@@ -1,8 +1,8 @@
-Package: com.nightvibes.darkswordai
-Name: DarkSword AI
+Package: com.nightvibes.alleycat
+Name: Alley Cãt
 Version: 0.2.0
 Architecture: iphoneos-arm64
-Description: Full NightVibes Litter ChatGPT-account client with native research workspace, crash viewer, source editor, approval-gated root tools, and bounded jailbreak lab for iPadOS 16.
+Description: Full NightVibes AlleyCat ChatGPT-account client with its original UI, plus an integrated research workspace, crash viewer, source editor, approval-gated root tools, and bounded jailbreak lab for iPadOS 16.
 Maintainer: NightVibes33
 Author: NightVibes33
 Section: Development
