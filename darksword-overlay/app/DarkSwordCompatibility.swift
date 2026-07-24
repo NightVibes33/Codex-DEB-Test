@@ -67,7 +67,7 @@ extension View {
 struct DarkSwordContentUnavailableView<Description: View>: View {
     let title: String
     let systemImage: String
-    @ViewBuilder let description: () -> Description
+    let description: () -> Description
 
     init(
         _ title: String,
