@@ -15,11 +15,23 @@
 #include <unistd.h>
 
 #define SOCKET_PATH "/var/jb/var/run/darksword-rootd.sock"
+#define LOG_PATH "/var/jb/var/log/darksword-rootd.log"
 #define OUTPUT_LIMIT (1024 * 1024)
 #define REQUEST_MAGIC "DSR1"
+#define APPROVE_MAGIC "DSA1"
+#define DENY_MAGIC "DSD1"
+#define STATUS_MAGIC "DSS1"
 #define RESPONSE_MAGIC "DSO1"
+#define APPROVAL_TTL_SECONDS 120
 
 extern char **environ;
+
+static uint64_t pending_hash = 0;
+static char *pending_cwd = NULL;
+static char *pending_command = NULL;
+static uint32_t pending_timeout_ms = 0;
+static uint64_t approved_hash = 0;
+static time_t approved_until = 0;
 
 static int read_full(int fd, void *buffer, size_t length) {
     unsigned char *cursor = buffer;
@@ -57,6 +69,12 @@ static uint32_t read_u32_le(const unsigned char bytes[4]) {
            ((uint32_t)bytes[3] << 24);
 }
 
+static uint64_t read_u64_le(const unsigned char bytes[8]) {
+    uint64_t value = 0;
+    for (unsigned int i = 0; i < 8; i++) value |= ((uint64_t)bytes[i]) << (i * 8);
+    return value;
+}
+
 static void write_u32_le(unsigned char bytes[4], uint32_t value) {
     bytes[0] = (unsigned char)(value & 0xff);
     bytes[1] = (unsigned char)((value >> 8) & 0xff);
@@ -66,6 +84,43 @@ static void write_u32_le(unsigned char bytes[4], uint32_t value) {
 
 static void write_i32_le(unsigned char bytes[4], int32_t value) {
     write_u32_le(bytes, (uint32_t)value);
+}
+
+static void send_response(int client, int32_t exit_code,
+                          const unsigned char *output, uint32_t output_length) {
+    unsigned char header[12];
+    memcpy(header, RESPONSE_MAGIC, 4);
+    write_i32_le(header + 4, exit_code);
+    write_u32_le(header + 8, output_length);
+    write_full(client, header, sizeof(header));
+    if (output_length > 0) write_full(client, output, output_length);
+}
+
+static void send_text(int client, int32_t exit_code, const char *message) {
+    send_response(client, exit_code, (const unsigned char *)message, (uint32_t)strlen(message));
+}
+
+static void append_audit(uid_t uid, const char *event, uint64_t hash,
+                         const char *cwd, const char *command, int exit_code) {
+    FILE *log = fopen(LOG_PATH, "a");
+    if (!log) return;
+    time_t now = time(NULL);
+    fprintf(log, "%lld uid=%u event=%s hash=%016llx exit=%d cwd=%s command=",
+            (long long)now,
+            (unsigned int)uid,
+            event,
+            (unsigned long long)hash,
+            exit_code,
+            cwd ? cwd : "");
+    if (command) {
+        for (const unsigned char *p = (const unsigned char *)command; *p; p++) {
+            if (*p == '\n' || *p == '\r' || *p == '\t') fputc(' ', log);
+            else if (*p < 0x20) fputc('?', log);
+            else fputc(*p, log);
+        }
+    }
+    fputc('\n', log);
+    fclose(log);
 }
 
 static int contains_case_insensitive(const char *haystack, const char *needle) {
@@ -86,18 +141,19 @@ static int contains_case_insensitive(const char *haystack, const char *needle) {
     return 0;
 }
 
-static int command_is_blocked(const char *command) {
+/*
+ * Approved commands have unrestricted filesystem, process, Git, compiler,
+ * package, service, debugger and research access. These final emergency
+ * stops only prevent commands whose primary effect is destroying the entire
+ * device or raw storage rather than conducting a bounded experiment.
+ */
+static int command_is_emergency_blocked(const char *command) {
     static const char *blocked[] = {
         "rm -rf /",
         "rm -fr /",
         "newfs",
         "mkfs",
         "diskutil erase",
-        "launchctl reboot",
-        "shutdown",
-        "reboot",
-        "halt",
-        "nvram -d",
         "dd if=/dev/zero",
         "dd of=/dev/",
         NULL
@@ -108,12 +164,64 @@ static int command_is_blocked(const char *command) {
     return 0;
 }
 
+static uint64_t fnv1a_update(uint64_t hash, const unsigned char *bytes, size_t length) {
+    for (size_t i = 0; i < length; i++) {
+        hash ^= bytes[i];
+        hash *= UINT64_C(1099511628211);
+    }
+    return hash;
+}
+
+static uint64_t command_hash(const char *cwd, const char *command) {
+    uint64_t hash = UINT64_C(1469598103934665603);
+    if (cwd) hash = fnv1a_update(hash, (const unsigned char *)cwd, strlen(cwd));
+    const unsigned char separator = 0;
+    hash = fnv1a_update(hash, &separator, 1);
+    if (command) hash = fnv1a_update(hash, (const unsigned char *)command, strlen(command));
+    return hash;
+}
+
+static void clear_pending(void) {
+    free(pending_cwd);
+    free(pending_command);
+    pending_cwd = NULL;
+    pending_command = NULL;
+    pending_timeout_ms = 0;
+    pending_hash = 0;
+}
+
+static int set_pending(const char *cwd, const char *command, uint32_t timeout_ms, uint64_t hash) {
+    char *next_cwd = strdup(cwd ? cwd : "");
+    char *next_command = strdup(command ? command : "");
+    if (!next_cwd || !next_command) {
+        free(next_cwd);
+        free(next_command);
+        return -1;
+    }
+    clear_pending();
+    pending_cwd = next_cwd;
+    pending_command = next_command;
+    pending_timeout_ms = timeout_ms;
+    pending_hash = hash;
+    return 0;
+}
+
+static char *single_line_copy(const char *source) {
+    if (!source) return strdup("");
+    size_t length = strlen(source);
+    char *copy = calloc(length + 1, 1);
+    if (!copy) return NULL;
+    for (size_t i = 0; i < length; i++) {
+        unsigned char c = (unsigned char)source[i];
+        copy[i] = (c == '\n' || c == '\r' || c == '\t' || c < 0x20) ? ' ' : (char)c;
+    }
+    return copy;
+}
+
 static int append_output(unsigned char **buffer, size_t *length, size_t *capacity,
                          const unsigned char *data, size_t data_length) {
     if (*length >= OUTPUT_LIMIT) return 0;
-    if (data_length > OUTPUT_LIMIT - *length) {
-        data_length = OUTPUT_LIMIT - *length;
-    }
+    if (data_length > OUTPUT_LIMIT - *length) data_length = OUTPUT_LIMIT - *length;
     size_t needed = *length + data_length;
     if (needed > *capacity) {
         size_t next = *capacity == 0 ? 4096 : *capacity;
@@ -177,10 +285,8 @@ static int run_command(const char *cwd, const char *command, uint32_t timeout_ms
     while (!child_done) {
         unsigned char chunk[4096];
         ssize_t count = read(pipe_fds[0], chunk, sizeof(chunk));
-        if (count > 0) {
-            if (append_output(output, output_length, &capacity, chunk, (size_t)count) != 0) {
-                kill(child, SIGKILL);
-            }
+        if (count > 0 && append_output(output, output_length, &capacity, chunk, (size_t)count) != 0) {
+            kill(child, SIGKILL);
         }
 
         pid_t waited = waitpid(child, &status, WNOHANG);
@@ -221,40 +327,84 @@ static int run_command(const char *cwd, const char *command, uint32_t timeout_ms
     return 125;
 }
 
-static void send_response(int client, int32_t exit_code,
-                          const unsigned char *output, uint32_t output_length) {
-    unsigned char header[12];
-    memcpy(header, RESPONSE_MAGIC, 4);
-    write_i32_le(header + 4, exit_code);
-    write_u32_le(header + 8, output_length);
-    write_full(client, header, sizeof(header));
-    if (output_length > 0) write_full(client, output, output_length);
+static void handle_status(int client) {
+    int is_approved = approved_hash != 0 && approved_hash == pending_hash && time(NULL) <= approved_until;
+    if (!pending_hash || !pending_command) {
+        send_text(client, 0, "pending=0\napproved=0\n");
+        return;
+    }
+
+    char *cwd = single_line_copy(pending_cwd);
+    char *command = single_line_copy(pending_command);
+    if (!cwd || !command) {
+        free(cwd);
+        free(command);
+        send_text(client, 125, "DarkSword: unable to format pending approval\n");
+        return;
+    }
+
+    size_t needed = strlen(cwd) + strlen(command) + 256;
+    char *message = calloc(needed, 1);
+    if (!message) {
+        free(cwd);
+        free(command);
+        send_text(client, 125, "DarkSword: unable to allocate approval status\n");
+        return;
+    }
+    snprintf(message, needed,
+             "pending=1\napproved=%d\nhash=%016llx\ntimeout_ms=%u\ncwd=%s\ncommand=%s\n",
+             is_approved,
+             (unsigned long long)pending_hash,
+             pending_timeout_ms,
+             cwd,
+             command);
+    send_text(client, 0, message);
+    free(message);
+    free(cwd);
+    free(command);
 }
 
-static void handle_client(int client) {
-    uid_t peer_uid = (uid_t)-1;
-    gid_t peer_gid = (gid_t)-1;
-    if (getpeereid(client, &peer_uid, &peer_gid) != 0 ||
-        (peer_uid != 0 && peer_uid != 501)) {
-        const char *message = "DarkSword: unauthorized local client\n";
-        send_response(client, 126, (const unsigned char *)message, (uint32_t)strlen(message));
+static void handle_approve(int client, uid_t peer_uid) {
+    unsigned char hash_bytes[8];
+    if (read_full(client, hash_bytes, sizeof(hash_bytes)) != 0) return;
+    uint64_t requested_hash = read_u64_le(hash_bytes);
+    if (!pending_hash || requested_hash != pending_hash) {
+        send_text(client, 126, "DarkSword: approval does not match the pending command\n");
+        append_audit(peer_uid, "approve-mismatch", requested_hash, NULL, NULL, 126);
         return;
     }
+    approved_hash = requested_hash;
+    approved_until = time(NULL) + APPROVAL_TTL_SECONDS;
+    send_text(client, 0, "DarkSword: exact command approved once; retry within 120 seconds\n");
+    append_audit(peer_uid, "approved", requested_hash, pending_cwd, pending_command, 0);
+}
 
-    unsigned char header[16];
-    if (read_full(client, header, sizeof(header)) != 0 ||
-        memcmp(header, REQUEST_MAGIC, 4) != 0) {
+static void handle_deny(int client, uid_t peer_uid) {
+    unsigned char hash_bytes[8];
+    if (read_full(client, hash_bytes, sizeof(hash_bytes)) != 0) return;
+    uint64_t requested_hash = read_u64_le(hash_bytes);
+    if (pending_hash && requested_hash == pending_hash) {
+        append_audit(peer_uid, "denied", requested_hash, pending_cwd, pending_command, 126);
+        clear_pending();
+        approved_hash = 0;
+        approved_until = 0;
+        send_text(client, 0, "DarkSword: pending command denied\n");
         return;
     }
+    send_text(client, 126, "DarkSword: no matching pending command\n");
+}
 
-    uint32_t timeout_ms = read_u32_le(header + 4);
-    uint32_t cwd_length = read_u32_le(header + 8);
-    uint32_t command_length = read_u32_le(header + 12);
+static void handle_command(int client, uid_t peer_uid) {
+    unsigned char header[12];
+    if (read_full(client, header, sizeof(header)) != 0) return;
+
+    uint32_t timeout_ms = read_u32_le(header);
+    uint32_t cwd_length = read_u32_le(header + 4);
+    uint32_t command_length = read_u32_le(header + 8);
     if (timeout_ms < 1000) timeout_ms = 1000;
     if (timeout_ms > 300000) timeout_ms = 300000;
     if (cwd_length > 4096 || command_length > 262144) {
-        const char *message = "DarkSword: request exceeds limits\n";
-        send_response(client, 126, (const unsigned char *)message, (uint32_t)strlen(message));
+        send_text(client, 126, "DarkSword: request exceeds limits\n");
         return;
     }
 
@@ -268,28 +418,77 @@ static void handle_client(int client) {
         return;
     }
 
-    if (command_is_blocked(command)) {
-        const char *message = "DarkSword: command blocked by device-safety policy\n";
-        send_response(client, 126, (const unsigned char *)message, (uint32_t)strlen(message));
+    uint64_t hash = command_hash(cwd, command);
+    if (command_is_emergency_blocked(command)) {
+        send_text(client, 126, "DarkSword: catastrophic whole-device storage destruction is not executable\n");
+        append_audit(peer_uid, "emergency-block", hash, cwd, command, 126);
         free(cwd);
         free(command);
         return;
     }
 
+    int approved = approved_hash == hash && pending_hash == hash && time(NULL) <= approved_until;
+    if (!approved) {
+        approved_hash = 0;
+        approved_until = 0;
+        if (set_pending(cwd, command, timeout_ms, hash) != 0) {
+            send_text(client, 125, "DarkSword: unable to queue command approval\n");
+        } else {
+            char message[256];
+            snprintf(message, sizeof(message),
+                     "DarkSword approval required\nhash=%016llx\nOpen AlleyCat Labs > Tool Approval, approve the exact command, then retry.\n",
+                     (unsigned long long)hash);
+            send_text(client, 126, message);
+            append_audit(peer_uid, "queued", hash, cwd, command, 126);
+        }
+        free(cwd);
+        free(command);
+        return;
+    }
+
+    approved_hash = 0;
+    approved_until = 0;
     unsigned char *output = NULL;
     size_t output_length = 0;
     int exit_code = run_command(cwd, command, timeout_ms, &output, &output_length);
     send_response(client, exit_code, output, (uint32_t)output_length);
+    append_audit(peer_uid, "executed", hash, cwd, command, exit_code);
+    clear_pending();
 
     free(output);
     free(cwd);
     free(command);
 }
 
+static void handle_client(int client) {
+    uid_t peer_uid = (uid_t)-1;
+    gid_t peer_gid = (gid_t)-1;
+    if (getpeereid(client, &peer_uid, &peer_gid) != 0 ||
+        (peer_uid != 0 && peer_uid != 501)) {
+        send_text(client, 126, "DarkSword: unauthorized local client\n");
+        return;
+    }
+
+    unsigned char magic[4];
+    if (read_full(client, magic, sizeof(magic)) != 0) return;
+    if (memcmp(magic, REQUEST_MAGIC, 4) == 0) {
+        handle_command(client, peer_uid);
+    } else if (memcmp(magic, APPROVE_MAGIC, 4) == 0) {
+        handle_approve(client, peer_uid);
+    } else if (memcmp(magic, DENY_MAGIC, 4) == 0) {
+        handle_deny(client, peer_uid);
+    } else if (memcmp(magic, STATUS_MAGIC, 4) == 0) {
+        handle_status(client);
+    } else {
+        send_text(client, 126, "DarkSword: unknown request type\n");
+    }
+}
+
 int main(void) {
     signal(SIGPIPE, SIG_IGN);
     mkdir("/var/jb/var", 0755);
     mkdir("/var/jb/var/run", 0755);
+    mkdir("/var/jb/var/log", 0755);
     unlink(SOCKET_PATH);
 
     int server = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -305,6 +504,7 @@ int main(void) {
     chown(SOCKET_PATH, 0, 501);
     if (listen(server, 8) != 0) return 3;
 
+    append_audit(0, "daemon-start", 0, NULL, NULL, 0);
     for (;;) {
         int client = accept(server, NULL, NULL);
         if (client < 0) {
