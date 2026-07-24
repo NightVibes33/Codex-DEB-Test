@@ -120,6 +120,93 @@ if voice_card.exists():
 '''
         s = s.replace(marker, helper + marker)
     voice_card.write_text(s)
+
+# Integrate the rootless host runtime directly into the current advanced Litter
+# source. This replaces the stale patch-based integration and is idempotent.
+lib_rs = Path("shared/rust-bridge/codex-mobile-client/src/lib.rs")
+if not lib_rs.exists():
+    raise SystemExit("error: missing codex-mobile-client/src/lib.rs")
+s = lib_rs.read_text()
+if 'pub mod darksword_host_runtime;' not in s:
+    marker = '''#[cfg(all(target_os = "ios", not(target_abi = "macabi")))]
+pub mod ish_runtime;
+'''
+    addition = marker + '''
+#[cfg(all(target_os = "ios", not(target_abi = "macabi")))]
+pub mod darksword_host_runtime;
+'''
+    if marker not in s:
+        raise SystemExit("error: could not locate ish_runtime module declaration")
+    s = s.replace(marker, addition, 1)
+lib_rs.write_text(s)
+
+ish_runtime = Path("shared/rust-bridge/codex-mobile-client/src/ish_runtime.rs")
+if not ish_runtime.exists():
+    raise SystemExit("error: missing ish_runtime.rs")
+s = ish_runtime.read_text()
+if 'crate::darksword_host_runtime::is_available()' not in s:
+    old = '''pub fn run_streaming<F>(
+    cmd: &str,
+    cwd: Option<&str>,
+    timeout_ms: Option<u64>,
+    on_output: F,
+) -> (i32, Vec<u8>)
+where
+    F: FnMut(&[u8]),
+{
+    run_streaming_inner(cmd, cwd, timeout_ms, true, on_output)
+}
+'''
+    new = '''pub fn run_streaming<F>(
+    cmd: &str,
+    cwd: Option<&str>,
+    timeout_ms: Option<u64>,
+    mut on_output: F,
+) -> (i32, Vec<u8>)
+where
+    F: FnMut(&[u8]),
+{
+    if crate::darksword_host_runtime::is_available() {
+        return crate::darksword_host_runtime::run_streaming(
+            cmd,
+            cwd,
+            timeout_ms,
+            &mut on_output,
+        );
+    }
+    run_streaming_inner(cmd, cwd, timeout_ms, true, on_output)
+}
+'''
+    if old not in s:
+        raise SystemExit("error: could not locate current run_streaming implementation")
+    s = s.replace(old, new, 1)
+ish_runtime.write_text(s)
+
+instructions = Path("shared/rust-bridge/codex-mobile-client/src/local_runtime_instructions.rs")
+if not instructions.exists():
+    raise SystemExit("error: missing local_runtime_instructions.rs")
+s = instructions.read_text()
+start_marker = 'pub(crate) const IOS_LOCAL_RUNTIME_DEVELOPER_INSTRUCTIONS: &str = r#"'
+start = s.find(start_marker)
+if start < 0:
+    raise SystemExit("error: could not locate iOS runtime instruction constant")
+end = s.find('"#;', start)
+if end < 0:
+    raise SystemExit("error: could not locate end of iOS runtime instruction constant")
+end += 3
+replacement = '''pub(crate) const IOS_LOCAL_RUNTIME_DEVELOPER_INSTRUCTIONS: &str = r#"You are running inside DarkSword AI's local ChatGPT/Codex runtime on a jailbroken iOS device.
+
+When `/var/jb/var/run/darksword-rootd.sock` is available, the shell tool runs through a root-owned daemon on the real iOS host filesystem. When the daemon is unavailable, commands fall back to Litter's persistent iSH Alpine Linux fakefs.
+
+- On the host runtime, use `/var/jb` for rootless jailbreak files and `/var/mobile` for user-owned projects, logs, experiments, and app data.
+- Inspect files, crash reports, Git status, and diffs before making changes.
+- Use the installed `darksword-crash-classify` and `darksword-poc-run` commands for bounded, reproducible authorized research.
+- Preserve backups and verify every mutation.
+- Device erasure, destructive storage commands, credential extraction, unattended persistence, reboot commands, and unattended kernel writes are blocked.
+- If the host daemon is unavailable, work under `/root` in iSH, use POSIX `/bin/sh` and Alpine/BusyBox expectations, and use `apk` for fakefs packages.
+- `/root/.codex` remains bridged to Litter's native Codex home, and `/mnt/apps` remains the app-provided document bridge."#;'''
+s = s[:start] + replacement + s[end:]
+instructions.write_text(s)
 PY
 
 # Native DarkSword product shell and research surfaces. XcodeGen already
@@ -143,11 +230,9 @@ mkdir -p shared/rust-bridge/codex-mobile-client/src
 cp "$SCRIPT_DIR/rust/darksword_host_runtime.rs" \
   shared/rust-bridge/codex-mobile-client/src/darksword_host_runtime.rs
 
-if ! grep -q 'pub mod darksword_host_runtime;' \
-  shared/rust-bridge/codex-mobile-client/src/lib.rs; then
-  patch -p1 < "$SCRIPT_DIR/patches/host-runtime.patch"
-fi
-
+grep -q 'pub mod darksword_host_runtime;' shared/rust-bridge/codex-mobile-client/src/lib.rs
+grep -q 'darksword_host_runtime::is_available' shared/rust-bridge/codex-mobile-client/src/ish_runtime.rs
+grep -q 'darksword-rootd.sock' shared/rust-bridge/codex-mobile-client/src/local_runtime_instructions.rs
 grep -q 'DarkSwordRootView()' apps/ios/Sources/Litter/LitterApp.swift
 test -f apps/ios/Sources/Litter/DarkSword/DarkSwordRootView.swift
 test -f apps/ios/Sources/Litter/DarkSword/DarkSwordResearchViews.swift
