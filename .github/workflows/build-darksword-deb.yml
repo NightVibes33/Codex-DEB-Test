@@ -7,13 +7,16 @@ on:
       - Import Litter upstream
     types:
       - completed
+  push:
+    paths:
+      - .github/workflows/build-darksword-deb.yml
 
 permissions:
   contents: read
 
 jobs:
   build:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success'
     runs-on: macos-15
     steps:
       - name: Checkout
