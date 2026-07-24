@@ -1,10 +1,10 @@
-name: Build DarkSword DEB
+name: Build DarkSword IPA and DEB
 
 on:
   workflow_dispatch:
   workflow_run:
     workflows:
-      - Import Litter upstream
+      - Import NightVibes Litter
     types:
       - completed
   push:
@@ -15,26 +15,52 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: darksword-full-build-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success'
-    runs-on: macos-15
+    runs-on: macos-26-intel
+    timeout-minutes: 180
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_NET_RETRY: "10"
+      CARGO_HTTP_TIMEOUT: "120"
+      CARGO_HTTP_MULTIPLEXING: "false"
+      IOS_RUST_PROFILE: mobile-release
+      RUSTC_WRAPPER: ""
+      IOS_MIN: "16.1"
+
     steps:
-      - name: Checkout
+      - name: Checkout complete vendored source
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Install build dependencies
+      - name: Select the toolchain used by advanced Litter
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.3'
+
+      - name: Install native build dependencies
         run: |
-          brew install meson ninja xcodegen dpkg zig || true
+          set -euo pipefail
+          brew install meson ninja xcodegen dpkg zig cmake pkgconf llvm autoconf automake libtool || true
           if ! command -v ldid >/dev/null 2>&1; then
             brew tap ProcursusTeam/Procursus || true
             brew install ldid || true
           fi
-          rustup target add aarch64-apple-ios
+          rustup target add aarch64-apple-ios i686-unknown-linux-musl
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          swift --version
 
-      - name: Restore pinned Litter submodules
+      - name: Restore exact advanced Codex and Ghostty revisions
         shell: bash
         run: |
           set -euo pipefail
@@ -49,25 +75,43 @@ jobs:
             local url="$1"
             local path="$2"
             local sha="$3"
+            rm -rf "$path/.git"
             mkdir -p "$path"
             git -C "$path" init
-            git -C "$path" remote remove origin >/dev/null 2>&1 || true
             git -C "$path" remote add origin "$url"
             git -C "$path" fetch --depth 1 origin "$sha"
             git -C "$path" checkout --detach FETCH_HEAD
           }
 
-          restore_repo https://github.com/openai/codex.git \
+          restore_repo https://github.com/NightVibes33/codex.git \
             upstream/litter/shared/third_party/codex "$CODEX_SHA"
           restore_repo https://github.com/ghostty-org/ghostty.git \
             upstream/litter/shared/third_party/ghostty "$GHOSTTY_SHA"
 
-      - name: Apply DarkSword overlay
+          test "$(git -C upstream/litter/shared/third_party/codex rev-parse HEAD)" = "$CODEX_SHA"
+          test "$(git -C upstream/litter/shared/third_party/ghostty rev-parse HEAD)" = "$GHOSTTY_SHA"
+
+      - name: Apply non-destructive iPad rootless overlay
         run: |
+          set -euo pipefail
           chmod +x darksword-overlay/apply.sh
           ./darksword-overlay/apply.sh upstream/litter
+          grep -q -- '- target: LitterLiveActivity' upstream/litter/apps/ios/project.yml
+          grep -q -- '- target: LitterWatch' upstream/litter/apps/ios/project.yml
+          grep -q -- '- target: LiveProcess' upstream/litter/apps/ios/project.yml
+          grep -q 'listPluginCatalog' upstream/litter/apps/ios/Sources/Litter/Bridge/UniFFICodexClient.generated.swift
 
-      - name: Build Rust bridge and Xcode project
+      - name: Verify full advanced source integrations
+        id: source_verify
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          mkdir -p artifacts
+          cd upstream/litter
+          tools/scripts/verify-nyxian-source-import.sh 2>&1 | tee ../../artifacts/nyxian-verify.log
+          tools/scripts/verify-kittystore-integration.sh 2>&1 | tee ../../artifacts/kittystore-verify.log
+
+      - name: Build Rust Codex bridge, Ghostty, Alpine runtime, and Xcode project
         id: rust_build
         continue-on-error: true
         shell: bash
@@ -76,10 +120,10 @@ jobs:
           mkdir -p artifacts
           make -C upstream/litter \
             rust-ios-device-fast alpine-fs xcgen \
-            IOS_DEPLOYMENT_TARGET=16.0 \
+            IOS_DEPLOYMENT_TARGET="$IOS_MIN" \
             2>&1 | tee artifacts/rust-and-project.log
 
-      - name: Build iOS application
+      - name: Build complete iOS application and all embedded targets
         id: app_build
         continue-on-error: true
         shell: bash
@@ -94,7 +138,11 @@ jobs:
             -derivedDataPath "$PWD/artifacts/DerivedData" \
             ARCHS=arm64 \
             ONLY_ACTIVE_ARCH=YES \
-            IPHONEOS_DEPLOYMENT_TARGET=16.0 \
+            IPHONEOS_DEPLOYMENT_TARGET="$IOS_MIN" \
+            LITTER_IOS_BUILD_MODE=full-sideload \
+            LITTER_NYXIAN_PRIVATE_BUILD=1 \
+            LITTER_PRESERVE_NYXIAN_LIVEPROCESS=1 \
+            LITTER_EMBED_UPSTREAM_SOURCE_TREES=1 \
             DEVELOPMENT_TEAM= \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
@@ -102,7 +150,7 @@ jobs:
             COMPILER_INDEX_STORE_ENABLE=NO \
             build 2>&1 | tee artifacts/xcodebuild.log
 
-      - name: Compile root daemon
+      - name: Compile rootless host tool daemon
         id: rootd_build
         continue-on-error: true
         shell: bash
@@ -113,14 +161,14 @@ jobs:
           xcrun --sdk iphoneos clang \
             -arch arm64 \
             -isysroot "$SDK" \
-            -miphoneos-version-min=16.0 \
+            -miphoneos-version-min="$IOS_MIN" \
             -O2 -Wall -Wextra \
             darksword-overlay/rootd/main.c \
             -o artifacts/darksword-rootd \
             2>&1 | tee artifacts/rootd-build.log
           codesign --force --sign - artifacts/darksword-rootd
 
-      - name: Sign app and package IPA plus DEB
+      - name: Sign every embedded binary and package full IPA plus DEB
         id: package
         continue-on-error: true
         shell: bash
@@ -145,22 +193,29 @@ jobs:
             codesign --force --deep --sign - "$APP"
           fi
 
+          rm -rf artifacts/Payload
           mkdir -p artifacts/Payload
           cp -R "$APP" artifacts/Payload/DarkSwordAI.app
-          (cd artifacts && zip -qry DarkSwordAI-unsigned.ipa Payload)
+          test -d artifacts/Payload/DarkSwordAI.app/PlugIns
+          (cd artifacts && zip -qry DarkSwordAI-full-unsigned.ipa Payload)
 
           chmod +x darksword-overlay/package/build-deb.sh
           darksword-overlay/package/build-deb.sh \
             "$APP" \
             artifacts/darksword-rootd \
-            artifacts/com.nightvibes.darkswordai_0.1.0_iphoneos-arm64.deb
+            artifacts/com.nightvibes.darkswordai_0.2.0_iphoneos-arm64.deb
 
-      - name: Write status summary
+          dpkg-deb --info artifacts/com.nightvibes.darkswordai_0.2.0_iphoneos-arm64.deb
+          dpkg-deb --contents artifacts/com.nightvibes.darkswordai_0.2.0_iphoneos-arm64.deb \
+            | tee artifacts/deb-contents.log
+
+      - name: Write build status
         if: always()
         shell: bash
         run: |
           mkdir -p artifacts
           {
+            echo "source_verify=${{ steps.source_verify.outcome }}"
             echo "rust_build=${{ steps.rust_build.outcome }}"
             echo "app_build=${{ steps.app_build.outcome }}"
             echo "rootd_build=${{ steps.rootd_build.outcome }}"
@@ -168,44 +223,45 @@ jobs:
           } | tee artifacts/build-status.txt
 
           {
-            echo "# DarkSword AI build status"
+            echo '# DarkSword full NightVibes Litter build status'
             echo
-            echo "- Rust/project: ${{ steps.rust_build.outcome }}"
-            echo "- iOS app: ${{ steps.app_build.outcome }}"
+            echo "- Full-source verification: ${{ steps.source_verify.outcome }}"
+            echo "- Rust/Codex/Ghostty: ${{ steps.rust_build.outcome }}"
+            echo "- iOS app and embedded targets: ${{ steps.app_build.outcome }}"
             echo "- Root daemon: ${{ steps.rootd_build.outcome }}"
             echo "- IPA/DEB package: ${{ steps.package.outcome }}"
             echo
-            echo "## Rust and project log tail"
+            echo '## Rust/project log tail'
             echo '```text'
-            tail -n 100 artifacts/rust-and-project.log 2>/dev/null || true
+            tail -n 160 artifacts/rust-and-project.log 2>/dev/null || true
             echo '```'
             echo
-            echo "## Xcode log tail"
+            echo '## Xcode log tail'
             echo '```text'
-            tail -n 100 artifacts/xcodebuild.log 2>/dev/null || true
+            tail -n 180 artifacts/xcodebuild.log 2>/dev/null || true
             echo '```'
             echo
-            echo "## Root daemon log tail"
+            echo '## Root daemon log tail'
             echo '```text'
-            tail -n 100 artifacts/rootd-build.log 2>/dev/null || true
+            tail -n 80 artifacts/rootd-build.log 2>/dev/null || true
             echo '```'
           } > BUILD_STATUS.md
 
-      - name: Commit build diagnostics
+      - name: Commit diagnostics for automatic repair
         if: always()
         shell: bash
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add BUILD_STATUS.md
-          git commit -m "Record DarkSword build diagnostics" || true
+          git commit -m 'Record full NightVibes Litter build diagnostics' || true
           git push origin HEAD:main || true
 
-      - name: Upload build outputs and logs
+      - name: Upload IPA, DEB, and logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: DarkSwordAI-build
+          name: DarkSwordAI-full-build
           path: |
             artifacts/*.deb
             artifacts/*.ipa
