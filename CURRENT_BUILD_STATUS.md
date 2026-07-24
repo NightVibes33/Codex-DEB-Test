@@ -1,14 +1,15 @@
 # Current IPA and DEB build status
 
-- Run: 30106599583
-- Commit: ab8736cad010e38b86440a3ab9f38d82c3b3ab49
+- Run: 30108430068
+- Commit: 9fb6701b67265be9d793fda0f98b8204ed8606ea
 - Target: iOS 16.1+ (iPadOS 16.7.11 supported)
+- rusty_v8 cache restored: 
 - Rust cache restored: 
 - Rust cache valid: false
 - Source verification: success
 - Pinned dependencies: success
 - Build tools: success
-- Alley Cat runtime: cancelled
+- Alley Cat runtime: failure
 - iOS application: skipped
 - Root daemon: skipped
 - IPA and DEB package: skipped
@@ -22,7 +23,7 @@
 ==> Installing Zig 0.15.2 from https://ziglang.org/download/0.15.2/zig-x86_64-macos-0.15.2.tar.xz...
   % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
                                  Dload  Upload  Total   Spent   Left   Speed
-  0      0   0      0   0      0      0      0                              0  6 53.21M   6  3.53M   0      0  2.82M      0   00:18   00:01   00:17  3.53M 60 53.21M  60 32.43M   0      0 14.40M      0   00:03   00:02   00:01 16.22M100 53.21M 100 53.21M   0      0 17.56M      0   00:03   00:03         16.22M100 53.21M 100 53.21M   0      0 17.55M      0   00:03   00:03         16.22M100 53.21M 100 53.21M   0      0 17.55M      0   00:03   00:03         16.22M
+  0      0   0      0   0      0      0      0                              0  6 53.21M   6  3.57M   0      0  2.76M      0   00:19   00:01   00:18  3.46M 61 53.21M  61 32.82M   0      0 14.30M      0   00:03   00:02   00:01 16.15M100 53.21M 100 53.21M   0      0 18.14M      0   00:02   00:02         16.15M100 53.21M 100 53.21M   0      0 18.14M      0   00:02   00:02         16.15M100 53.21M 100 53.21M   0      0 18.13M      0   00:02   00:02         16.15M
 ==> Using Zig 0.15.2 from /Users/runner/.cache/darksword-zig/0.15.2-x86_64-macos/zig
 ==> Preserving current ghostty checkout a968e120d (recorded gitlink 55ee2979d)
 ==> Applying litter-mobile-embed.patch to submodule...
@@ -30,6 +31,9 @@
 ==> Preparing Zig host macOS SDK shim from /Applications/Xcode_26.3.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk...
 ==> Building Ghostty iOS static libraries from a968e12...
 ==> Building Ghostty ios-device static library...
+/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/litter/shared/third_party/ghostty/pkg/dcimgui/build.zig.zon:18:20: error: bad HTTP response code: '504 Gateway Timeout'
+            .url = "https://github.com/ocornut/imgui/archive/refs/tags/v1.92.5-docking.tar.gz",
+                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ```
 
 ## xcodebuild tail
