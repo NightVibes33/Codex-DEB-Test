@@ -6,81 +6,176 @@ on:
     paths:
       - .github/workflows/import-litter.yml
       - darksword-overlay/**
+      - jailbreak-lab/**
 
 permissions:
   contents: write
 
 concurrency:
   group: import-nightvibes-litter
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   import:
     if: github.actor != 'github-actions[bot]'
     runs-on: macos-15
+    timeout-minutes: 120
     steps:
       - name: Checkout destination
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Clone complete advanced Litter source and every submodule
+      - name: Clone complete advanced Litter source
+        id: clone
+        continue-on-error: true
+        shell: bash
         run: |
-          git clone --depth 1 --recurse-submodules --shallow-submodules \
-            https://github.com/NightVibes33/litter.git /tmp/litter
-          git -C /tmp/litter submodule update --init --recursive --depth 1
-          git -C /tmp/litter rev-parse HEAD > /tmp/litter-commit.txt
-          git -C /tmp/litter ls-tree HEAD shared/third_party/codex | awk '{print $3}' > /tmp/codex-commit.txt
-          git -C /tmp/litter ls-tree HEAD shared/third_party/ghostty | awk '{print $3}' > /tmp/ghostty-commit.txt
-          test -s /tmp/litter-commit.txt
-          test -s /tmp/codex-commit.txt
-          test -s /tmp/ghostty-commit.txt
+          set -o pipefail
+          mkdir -p import-artifacts
+          {
+            set -euo pipefail
+            rm -rf /tmp/litter
+            git clone --depth 1 https://github.com/NightVibes33/litter.git /tmp/litter
+            git -C /tmp/litter submodule sync --recursive
+
+            # A shallow recursive update is fast when every pinned revision is
+            # reachable. Fall back to a normal recursive update when a nested
+            # project pins a commit outside the shallow history.
+            if ! git -C /tmp/litter submodule update --init --recursive --depth 1; then
+              echo 'Shallow submodule restore failed; retrying full recursive restore.'
+              git -C /tmp/litter submodule deinit -f --all || true
+              git -C /tmp/litter submodule update --init --recursive
+            fi
+
+            git -C /tmp/litter rev-parse HEAD > /tmp/litter-commit.txt
+            git -C /tmp/litter ls-tree HEAD shared/third_party/codex | awk '{print $3}' > /tmp/codex-commit.txt
+            git -C /tmp/litter ls-tree HEAD shared/third_party/ghostty | awk '{print $3}' > /tmp/ghostty-commit.txt
+            test -s /tmp/litter-commit.txt
+            test -s /tmp/codex-commit.txt
+            test -s /tmp/ghostty-commit.txt
+
+            echo 'Restored submodule revisions:'
+            git -C /tmp/litter submodule status --recursive
+          } 2>&1 | tee import-artifacts/clone.log
 
       - name: Replace vendored app with the real advanced tree
+        id: vendor
+        if: steps.clone.outcome == 'success'
+        continue-on-error: true
+        shell: bash
         run: |
-          rm -rf upstream/litter
-          mkdir -p upstream/litter
-          rsync -a --exclude .git /tmp/litter/ upstream/litter/
-          cp /tmp/litter-commit.txt upstream/litter/LITTER_UPSTREAM_COMMIT.txt
-          printf '%s\n' 'source=https://github.com/NightVibes33/litter' > upstream/litter/LITTER_UPSTREAM_SOURCE.txt
+          set -o pipefail
           {
-            printf 'codex='
-            cat /tmp/codex-commit.txt
-            printf 'ghostty='
-            cat /tmp/ghostty-commit.txt
-          } > upstream/litter/SUBMODULES.lock
+            set -euo pipefail
+            rm -rf upstream/litter
+            mkdir -p upstream/litter
+            rsync -a --exclude .git /tmp/litter/ upstream/litter/
+            cp /tmp/litter-commit.txt upstream/litter/LITTER_UPSTREAM_COMMIT.txt
+            printf '%s\n' 'source=https://github.com/NightVibes33/litter' > upstream/litter/LITTER_UPSTREAM_SOURCE.txt
+            {
+              printf 'codex='
+              cat /tmp/codex-commit.txt
+              printf 'ghostty='
+              cat /tmp/ghostty-commit.txt
+            } > upstream/litter/SUBMODULES.lock
 
-      - name: Verify full-source components were preserved
-        run: |
-          test -d upstream/litter/apps/ios/Sources/Litter
-          test -d upstream/litter/apps/ios/Sources/LitterLiveActivity
-          test -d upstream/litter/apps/ios/Sources/LitterWatch
-          test -d upstream/litter/ThirdParty/SideStore
-          test -d upstream/litter/ThirdParty/EmexDE
-          test -d upstream/litter/shared/rust-bridge
-          test -f upstream/litter/apps/ios/project.yml
+            test -d upstream/litter/apps/ios/Sources/Litter
+            test -d upstream/litter/apps/ios/Sources/LitterLiveActivity
+            test -d upstream/litter/apps/ios/Sources/LitterWatch
+            test -d upstream/litter/ThirdParty/SideStore
+            test -d upstream/litter/ThirdParty/EmexDE
+            test -d upstream/litter/shared/rust-bridge
+            test -f upstream/litter/apps/ios/project.yml
+            test -f upstream/litter/shared/third_party/codex/Cargo.toml
+            test -f upstream/litter/shared/third_party/ghostty/build.zig
+          } 2>&1 | tee import-artifacts/vendor.log
 
-      - name: Apply jailbreak iPad adaptation without deleting features
+      - name: Apply exact DarkSword adaptation without deleting features
+        id: overlay
+        if: steps.clone.outcome == 'success' && steps.vendor.outcome == 'success'
+        continue-on-error: true
+        shell: bash
         run: |
-          chmod +x darksword-overlay/apply.sh
-          ./darksword-overlay/apply.sh upstream/litter
-          grep -q -- '- target: LitterLiveActivity' upstream/litter/apps/ios/project.yml
-          grep -q -- '- target: LitterWatch' upstream/litter/apps/ios/project.yml
-          grep -q -- '- target: LiveProcess' upstream/litter/apps/ios/project.yml
+          set -o pipefail
+          {
+            set -euo pipefail
+            chmod +x darksword-overlay/apply.sh
+            ./darksword-overlay/apply.sh upstream/litter
+
+            grep -q -- '- target: LitterLiveActivity' upstream/litter/apps/ios/project.yml
+            grep -q -- '- target: LitterWatch' upstream/litter/apps/ios/project.yml
+            grep -q -- '- target: LiveProcess' upstream/litter/apps/ios/project.yml
+            grep -q 'DarkSwordRootView()' upstream/litter/apps/ios/Sources/Litter/LitterApp.swift
+            grep -q 'loginLocalChatGPTAccount' upstream/litter/apps/ios/Sources/Litter/DarkSword/DarkSwordRootView.swift
+            test -f upstream/litter/apps/ios/Sources/Litter/Resources/JailbreakLab/schema/experiment.schema.json
+          } 2>&1 | tee import-artifacts/overlay.log
 
       - name: Commit canonical source snapshot
+        id: commit_snapshot
+        if: steps.clone.outcome == 'success' && steps.vendor.outcome == 'success' && steps.overlay.outcome == 'success'
+        continue-on-error: true
+        shell: bash
         run: |
+          set -o pipefail
+          {
+            set -euo pipefail
+            git config user.name github-actions[bot]
+            git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+            git add -A upstream/litter darksword-overlay jailbreak-lab
+            git commit -m 'Sync complete NightVibes Litter into DarkSword architecture' || true
+            git push origin HEAD:main
+          } 2>&1 | tee import-artifacts/commit.log
+
+      - name: Record importer status
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '# NightVibes Litter import status'
+            echo
+            echo "- Clone and recursive submodules: ${{ steps.clone.outcome }}"
+            echo "- Vendor complete tree: ${{ steps.vendor.outcome }}"
+            echo "- Apply exact DarkSword overlay: ${{ steps.overlay.outcome }}"
+            echo "- Commit imported snapshot: ${{ steps.commit_snapshot.outcome }}"
+            echo
+            echo '## Clone log tail'
+            echo '```text'
+            tail -n 120 import-artifacts/clone.log 2>/dev/null || true
+            echo '```'
+            echo
+            echo '## Vendor log tail'
+            echo '```text'
+            tail -n 80 import-artifacts/vendor.log 2>/dev/null || true
+            echo '```'
+            echo
+            echo '## Overlay log tail'
+            echo '```text'
+            tail -n 100 import-artifacts/overlay.log 2>/dev/null || true
+            echo '```'
+            echo
+            echo '## Commit log tail'
+            echo '```text'
+            tail -n 80 import-artifacts/commit.log 2>/dev/null || true
+            echo '```'
+          } > IMPORT_STATUS.md
+
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add -A upstream/litter darksword-overlay
-          git commit -m "Sync complete NightVibes Litter and apply non-destructive iPad overlay" || true
-          git push origin HEAD:main
+          git pull --rebase origin main || true
+          git add IMPORT_STATUS.md
+          git commit -m 'Record NightVibes Litter import diagnostics' || true
+          git push origin HEAD:main || true
 
-      - name: Upload source revision marker
+      - name: Upload import source and diagnostics
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nightvibes-litter-source
+          name: nightvibes-litter-import
           path: |
             upstream/litter/LITTER_UPSTREAM_COMMIT.txt
             upstream/litter/LITTER_UPSTREAM_SOURCE.txt
             upstream/litter/SUBMODULES.lock
+            import-artifacts/*.log
+            IMPORT_STATUS.md
+          if-no-files-found: warn
