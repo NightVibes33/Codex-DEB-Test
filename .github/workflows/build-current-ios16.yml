@@ -55,6 +55,30 @@ jobs:
         with:
           xcode-version: "26.3"
 
+      - name: Install Apple Metal toolchain
+        id: metal
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$ARTIFACT_ROOT"
+          if ! xcrun --sdk iphoneos --find metal >/dev/null 2>&1; then
+            for attempt in 1 2 3; do
+              echo "Installing MetalToolchain (attempt $attempt/3)..."
+              if sudo xcodebuild -downloadComponent MetalToolchain; then
+                break
+              fi
+              if [[ "$attempt" == "3" ]]; then
+                echo "error: MetalToolchain installation failed after 3 attempts" >&2
+                exit 1
+              fi
+              sleep $((attempt * 20))
+            done
+          fi
+          METAL_BIN="$(xcrun --sdk iphoneos --find metal)"
+          test -x "$METAL_BIN"
+          echo "Metal compiler: $METAL_BIN" | tee "$ARTIFACT_ROOT/metal-toolchain.log"
+          xcrun --sdk iphoneos metal --version 2>&1 | tee -a "$ARTIFACT_ROOT/metal-toolchain.log" || true
+
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -284,6 +308,7 @@ jobs:
             echo "- Run: $GITHUB_RUN_ID"
             echo "- Commit: $GITHUB_SHA"
             echo "- Target: iOS $IOS_MIN+ (iPadOS 16.7.11 supported)"
+            echo "- Metal toolchain: ${{ steps.metal.outcome }}"
             echo "- rusty_v8 cache restored: ${{ steps.rusty_v8_cache.outputs.cache-hit }}"
             echo "- Rust cache restored: ${{ steps.rust_generated_cache.outputs.cache-hit }}"
             echo "- Rust cache valid: ${{ steps.rust_generated_valid.outputs.hit }}"
@@ -296,7 +321,7 @@ jobs:
             echo "- IPA and DEB package: ${{ steps.package.outcome }}"
             echo "- IPA exists: $(test -s "$ARTIFACT_ROOT/CurrentApp-iOS16-unsigned.ipa" && echo yes || echo no)"
             echo "- DEB exists: $(test -s "$ARTIFACT_ROOT/com.nightvibes.currentapp_0.2.0_iphoneos-arm64.deb" && echo yes || echo no)"
-            for log in runtime-build xcodebuild rootd-build; do
+            for log in metal-toolchain runtime-build xcodebuild rootd-build; do
               echo; echo "## $log tail"; echo '```text'
               tail -n 120 "$ARTIFACT_ROOT/$log.log" 2>/dev/null || true
               echo '```'
