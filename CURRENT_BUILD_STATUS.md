@@ -1,11 +1,11 @@
 # Current IPA and DEB build status
 
-- Run: 30103673729
-- Commit: ae0fb77181882eeffcb289f312a2988ae93749f2
+- Run: 30104659488
+- Commit: e2ce7c64f19bf3bb07e1cdf3d8febfd4201c74c7
 - Source verification: success
 - Pinned dependencies: success
 - Build tools: success
-- Runtime/Xcode project: failure
+- Runtime/Xcode project: cancelled
 - iOS application: skipped
 - Root daemon: skipped
 - IPA and DEB package: skipped
@@ -14,106 +14,29 @@
 
 ## runtime-build tail
 ```text
-  CFLAGS_aarch64-apple-darwin = None
-  cargo:rerun-if-env-changed=CC_FORCE_DISABLE
-  CC_FORCE_DISABLE = None
-  cargo:rerun-if-env-changed=CC_aarch64-apple-darwin
-  CC_aarch64-apple-darwin = None
-  cargo:rerun-if-env-changed=CC_aarch64_apple_darwin
-  CC_aarch64_apple_darwin = None
-  cargo:rerun-if-env-changed=HOST_CC
-  HOST_CC = None
-  cargo:rerun-if-env-changed=CC
-  CC = None
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS_aarch64_apple_darwin
-  CFLAGS_aarch64_apple_darwin = None
-  cargo:rerun-if-env-changed=CFLAGS_aarch64-apple-darwin
-  CFLAGS_aarch64-apple-darwin = None
-  cargo:warning=Compilation of 'builtin_swap_check.c' succeeded - Ok(["/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/litter/shared/rust-bridge/target/debug/build/aws-lc-sys-b446d4cc02b9accc/out/out-builtin_swap_check/7dfda64fdf5a526c-builtin_swap_check.o"]).
-  cargo:rerun-if-env-changed=CC_aarch64-apple-darwin
-  CC_aarch64-apple-darwin = None
-  cargo:rerun-if-env-changed=CC_aarch64_apple_darwin
-  CC_aarch64_apple_darwin = None
-  cargo:rerun-if-env-changed=HOST_CC
-  HOST_CC = None
-  cargo:rerun-if-env-changed=CC
-  CC = None
-  cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  cargo:rerun-if-env-changed=MACOSX_DEPLOYMENT_TARGET
-  MACOSX_DEPLOYMENT_TARGET = Some(14.0)
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS_aarch64_apple_darwin
-  CFLAGS_aarch64_apple_darwin = None
-  cargo:rerun-if-env-changed=CFLAGS_aarch64-apple-darwin
-  CFLAGS_aarch64-apple-darwin = None
-  cargo:rerun-if-env-changed=CC_FORCE_DISABLE
-  CC_FORCE_DISABLE = None
-  cargo:rerun-if-env-changed=CC_aarch64-apple-darwin
-  CC_aarch64-apple-darwin = None
-  cargo:rerun-if-env-changed=CC_aarch64_apple_darwin
-  CC_aarch64_apple_darwin = None
-  cargo:rerun-if-env-changed=HOST_CC
-  HOST_CC = None
-  cargo:rerun-if-env-changed=CC
-  CC = None
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS_aarch64_apple_darwin
-  CFLAGS_aarch64_apple_darwin = None
-  cargo:rerun-if-env-changed=CFLAGS_aarch64-apple-darwin
-  CFLAGS_aarch64-apple-darwin = None
-  cargo:warning=Compilation of 'neon_sha3_check.c' succeeded - Ok(["/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/litter/shared/rust-bridge/target/debug/build/aws-lc-sys-b446d4cc02b9accc/out/out-neon_sha3_check/7dfda64fdf5a526c-neon_sha3_check.o"]).
-  cargo:rerun-if-env-changed=CC_aarch64-apple-darwin
-  CC_aarch64-apple-darwin = None
-  cargo:rerun-if-env-changed=CC_aarch64_apple_darwin
-  CC_aarch64_apple_darwin = None
-  cargo:rerun-if-env-changed=HOST_CC
-  HOST_CC = None
-  cargo:rerun-if-env-changed=CC
-  CC = None
-  cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
-  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
-  CRATE_CC_NO_DEFAULTS = None
-  cargo:rerun-if-env-changed=MACOSX_DEPLOYMENT_TARGET
-  MACOSX_DEPLOYMENT_TARGET = Some(14.0)
-  cargo:rerun-if-env-changed=CFLAGS
-  CFLAGS = None
-  cargo:rerun-if-env-changed=HOST_CFLAGS
-  HOST_CFLAGS = None
-  cargo:rerun-if-env-changed=CFLAGS_aarch64_apple_darwin
-  CFLAGS_aarch64_apple_darwin = None
-  cargo:rerun-if-env-changed=CFLAGS_aarch64-apple-darwin
-  CFLAGS_aarch64-apple-darwin = None
-
-  --- stderr
-
-  thread 'main' (65122) panicked at /Users/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/aws-lc-sys-0.42.0/builder/cc_builder.rs:872:9:
-  ### COMPILER BUG DETECTED ###
-  Your compiler (cc) is not supported due to a memcmp related bug reported in https://gcc.gnu.org/bugzilla/show_bug.cgi?id=95189. We strongly recommend against using this compiler. 
-  EXECUTED: true
-  ERROR: clang: warning: using sysroot for 'MacOSX' but targeting 'iPhone' [-Wincompatible-sysroot]
-  ld: warning: <rdar://113405968> building for 'iOS', but linking in dylib (/Applications/Xcode_16.4.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/libSystem.B.tbd) built for 'macOS macCatalyst zippered(macOS/Catalyst)'
-
-  OUTPUT: 
-
-  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-warning: build failed, waiting for other jobs to finish...
-make: *** [rust-ios-device-fast] Error 101
+==> Resolving shared Rust Alleycat deps to dnakov/alleycat main (3c6dfe2c6b060864d8cb0fcae58f73a6ed1ea10f)...
+==> Resolving kittylitter Alleycat dep to dnakov/alleycat main (3c6dfe2c6b060864d8cb0fcae58f73a6ed1ea10f)...
+==> Syncing codex submodule...
+==> Syncing codex submodule...
+==> Vendored source: using pinned current codex checkout b39d8b474
+==> codex submodule already at recorded gitlink b39d8b474
+==> Applying mobile-bridge-codex-0.144.1.patch to submodule...
+==> codex submodule ready at b39d8b4
+==> Syncing ghostty submodule + applying Litter patches...
+==> Preserving current ghostty checkout a968e120d (recorded gitlink 55ee2979d)
+==> Applying litter-mobile-embed.patch to submodule...
+==> ghostty submodule ready at a968e12
+==> Building Ghostty renderer for iOS...
+==> Installing Zig 0.15.2 from https://ziglang.org/download/0.15.2/zig-aarch64-macos-0.15.2.tar.xz...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0 48.2M    0  239k    0     0   238k      0  0:03:27  0:00:01  0:03:26  238k 21 48.2M   21 10.4M    0     0  5580k      0  0:00:08  0:00:01  0:00:07 5578k 67 48.2M   67 32.8M    0     0  11.3M      0  0:00:04  0:00:02  0:00:02 11.3M100 48.2M  100 48.2M    0     0  13.7M      0  0:00:03  0:00:03 --:--:-- 13.7M
+==> Using Zig 0.15.2 from /Users/runner/.cache/darksword-zig/0.15.2-aarch64-macos/zig
+==> Preserving current ghostty checkout a968e120d (recorded gitlink 55ee2979d)
+==> litter-mobile-embed.patch already applied.
+==> ghostty submodule ready at a968e12
+==> Building Ghostty iOS static libraries from a968e12...
+==> Building Ghostty ios-device static library...
 ```
 
 ## xcodebuild tail
