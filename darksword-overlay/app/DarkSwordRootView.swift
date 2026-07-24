@@ -124,6 +124,9 @@ private struct DarkSwordLoginBanner: View {
         }
     }
 
+    /// Litter's ChatGPTOAuth implementation uses OpenAI's official
+    /// https://chatgpt.com/auth/login origin and stores only the returned account
+    /// tokens in Litter's existing secure account store.
     private func startChatGPTLogin() {
         guard !isWorking else { return }
         guard let localServer else {
