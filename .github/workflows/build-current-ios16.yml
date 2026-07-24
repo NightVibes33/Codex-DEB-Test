@@ -1,4 +1,5 @@
 name: Build Current App IPA and DEB
+# Manual rebuild trigger: 2026-07-24
 
 on:
   workflow_dispatch:
