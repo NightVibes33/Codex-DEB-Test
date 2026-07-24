@@ -8,7 +8,6 @@
 ## Clone log tail
 ```text
 Cloning into '/tmp/litter'...
-Updating files:  76% (5155/6715)Updating files:  77% (5171/6715)Updating files:  78% (5238/6715)Updating files:  79% (5305/6715)Updating files:  80% (5372/6715)Updating files:  81% (5440/6715)Updating files:  82% (5507/6715)Updating files:  83% (5574/6715)Updating files:  84% (5641/6715)Updating files:  85% (5708/6715)Updating files:  86% (5775/6715)Updating files:  87% (5843/6715)Updating files:  88% (5910/6715)Updating files:  89% (5977/6715)Updating files:  90% (6044/6715)Updating files:  91% (6111/6715)Updating files:  92% (6178/6715)Updating files:  93% (6245/6715)Updating files:  94% (6313/6715)Updating files:  95% (6380/6715)Updating files:  96% (6447/6715)Updating files:  97% (6514/6715)Updating files:  98% (6581/6715)Updating files:  99% (6648/6715)Updating files: 100% (6715/6715)Updating files: 100% (6715/6715), done.
 Submodule 'ThirdParty/EmexDE/Source' (https://github.com/emexlab/emexDE.git) registered for path 'ThirdParty/EmexDE/Source'
 Submodule 'ThirdParty/SideStore/AltSign' (https://github.com/SideStore/AltSign.git) registered for path 'ThirdParty/SideStore/AltSign'
 Submodule 'shared/third_party/codex' (https://github.com/NightVibes33/codex.git) registered for path 'shared/third_party/codex'
@@ -70,13 +69,13 @@ Restored submodule revisions:
 
 ## Overlay log tail
 ```text
-Exact DarkSword app architecture, full NightVibes Litter, iOS 16.1, jailbreak lab, and rootless host runtime applied to /Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/litter.
+Exact DarkSword app architecture, full NightVibes Litter, iOS 16.1, pinned Zig, jailbreak lab, and rootless host runtime applied to /Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/litter.
 ```
 
 ## Commit log tail
 ```text
-[main 5982224] Sync complete NightVibes Litter into DarkSword architecture
- 1 file changed, 4 insertions(+), 54 deletions(-)
+[main de208a4] Sync complete NightVibes Litter into DarkSword architecture
+ 5 files changed, 53 insertions(+), 27 deletions(-)
 To https://github.com/NightVibes33/Codex-DEB-Test
-   1e468a2..5982224  HEAD -> main
+   1986835..de208a4  HEAD -> main
 ```
