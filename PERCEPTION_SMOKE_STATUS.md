@@ -9,7 +9,7 @@
 Exact DarkSword app architecture, full NightVibes Litter, iOS 16.1, pinned Zig, jailbreak lab, and rootless host runtime applied to /Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/litter.
 Full AlleyCat UI restored; jailbreak research tools installed inside AlleyCat Settings.
 Perception iOS 16 backport applied: 7 Swift files changed, 15 View bodies wrapped, package revision de219a1cf34e958134e75a9ebb134cf09bf52fc6.
-Added persistent Chat/Work selector to AlleyCat model picker; Work remains the default.
+Added real usage split: Chat opens official ChatGPT cloud; Work remains AlleyCat/Codex.
 verified: Perception package
 verified: Perceptible AppState
 verified: Chat Work mode state
