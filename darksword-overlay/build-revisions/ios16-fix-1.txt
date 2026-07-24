@@ -1,0 +1,4 @@
+DarkSword iOS 16 rebuild inputs:
+- DarkSword-prefixed LiveProcess verification
+- iOS 16 Dynamic Island fallback for EndVoiceSessionIntent
+- Ghostty Zig 0.15.2 toolchain pin
