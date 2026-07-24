@@ -10,6 +10,9 @@ python3 <<'PY'
 from pathlib import Path
 
 IOS_MIN = "16.1"
+DARKSWORD_BUNDLE = "com.nightvibes.darkswordai"
+ORIGINAL_LIVEPROCESS_BUNDLE = "com.sigkitten.litter.39A8Q3T3TR.liveprocess"
+DARKSWORD_LIVEPROCESS_BUNDLE = f"{DARKSWORD_BUNDLE}.39A8Q3T3TR.liveprocess"
 
 project = Path("apps/ios/project.yml")
 if project.exists():
@@ -19,11 +22,33 @@ if project.exists():
     s = s.replace('iOS: "18.0"', f'iOS: "{IOS_MIN}"')
     s = s.replace('deploymentTarget: "18.0"', f'deploymentTarget: "{IOS_MIN}"')
     s = s.replace('IPHONEOS_DEPLOYMENT_TARGET: "18.0"', f'IPHONEOS_DEPLOYMENT_TARGET: "{IOS_MIN}"')
-    s = s.replace('com.sigkitten.litter', 'com.nightvibes.darkswordai')
+    s = s.replace('com.sigkitten.litter', DARKSWORD_BUNDLE)
     if 'PRODUCT_NAME: DarkSwordAI' not in s:
-        marker = '        PRODUCT_BUNDLE_IDENTIFIER: com.nightvibes.darkswordai\n'
+        marker = f'        PRODUCT_BUNDLE_IDENTIFIER: {DARKSWORD_BUNDLE}\n'
         s = s.replace(marker, marker + '        PRODUCT_NAME: DarkSwordAI\n', 1)
     project.write_text(s)
+
+# Upstream integration verification and its unsigned-build workflow intentionally
+# pin the LiveProcess identifier. Keep the same validation after rebranding by
+# teaching both files the DarkSword-prefixed identifier.
+for relative in (
+    "tools/scripts/verify-kittystore-integration.sh",
+    ".github/workflows/ios-unsigned-ipa.yml",
+):
+    path = Path(relative)
+    if not path.exists():
+        continue
+    s = path.read_text()
+    s = s.replace(ORIGINAL_LIVEPROCESS_BUNDLE, DARKSWORD_LIVEPROCESS_BUNDLE)
+    s = s.replace(
+        "emexDE LiveProcess extension bundle id is Litter-prefixed",
+        "emexDE LiveProcess extension bundle id is DarkSword-prefixed",
+    )
+    s = s.replace(
+        "emexDE private LiveProcess workflow bundle id is Litter-prefixed",
+        "emexDE private LiveProcess workflow bundle id is DarkSword-prefixed",
+    )
+    path.write_text(s)
 
 makefile = Path("Makefile")
 if makefile.exists():
@@ -34,7 +59,7 @@ if makefile.exists():
 info = Path("apps/ios/Sources/Litter/Info.plist")
 if info.exists():
     s = info.read_text()
-    s = s.replace('com.sigkitten.litter', 'com.nightvibes.darkswordai')
+    s = s.replace('com.sigkitten.litter', DARKSWORD_BUNDLE)
     s = s.replace('<string>litterauth</string>', '<string>darkswordauth</string>')
     s = s.replace('Litter uses', 'DarkSword AI uses')
     s = s.replace('Codex discovers', 'DarkSword AI discovers')
@@ -120,6 +145,37 @@ if voice_card.exists():
 '''
         s = s.replace(marker, helper + marker)
     voice_card.write_text(s)
+
+# The Dynamic Island trailing control used the same iOS-17-only Button(intent:)
+# initializer. Keep the icon on iOS 16 and make it interactive on iOS 17+.
+voice_activity = Path("apps/ios/Sources/LitterLiveActivity/CodexVoiceCallLiveActivity.swift")
+if voice_activity.exists():
+    s = voice_activity.read_text()
+    old = '''                DynamicIslandExpandedRegion(.trailing) {
+                    Button(intent: EndVoiceSessionIntent()) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.white)
+                    }
+                    .buttonStyle(.plain)
+                }
+'''
+    new = '''                DynamicIslandExpandedRegion(.trailing) {
+                    if #available(iOSApplicationExtension 17.0, *) {
+                        Button(intent: EndVoiceSessionIntent()) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.white)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.white)
+                            .accessibilityLabel("End voice session from the app")
+                    }
+                }
+'''
+    if old in s:
+        s = s.replace(old, new)
+    voice_activity.write_text(s)
 
 # Integrate the rootless host runtime directly into the current advanced Litter
 # source. This replaces the stale patch-based integration and is idempotent.
@@ -234,6 +290,8 @@ grep -q 'pub mod darksword_host_runtime;' shared/rust-bridge/codex-mobile-client
 grep -q 'darksword_host_runtime::is_available' shared/rust-bridge/codex-mobile-client/src/ish_runtime.rs
 grep -q 'darksword-rootd.sock' shared/rust-bridge/codex-mobile-client/src/local_runtime_instructions.rs
 grep -q 'DarkSwordRootView()' apps/ios/Sources/Litter/LitterApp.swift
+grep -q 'com.nightvibes.darkswordai.39A8Q3T3TR.liveprocess' apps/ios/project.yml
+grep -q '#available(iOSApplicationExtension 17.0' apps/ios/Sources/LitterLiveActivity/CodexVoiceCallLiveActivity.swift
 test -f apps/ios/Sources/Litter/DarkSword/DarkSwordRootView.swift
 test -f apps/ios/Sources/Litter/DarkSword/DarkSwordResearchViews.swift
 test -f apps/ios/Sources/Litter/Resources/JailbreakLab/schema/experiment.schema.json
