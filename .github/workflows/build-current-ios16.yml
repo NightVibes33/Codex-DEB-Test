@@ -97,7 +97,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          make -C "$SOURCE_ROOT" rust-ios-device-fast alpine-fs xcgen IOS_DEPLOYMENT_TARGET="$IOS_MIN" 2>&1 | tee "$ARTIFACT_ROOT/runtime-build.log"
+          HOST_SDK="$(xcrun --sdk macosx --show-sdk-path)"
+          HOST_CLANG="$(xcrun --sdk macosx --find clang)"
+          IOS_SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          IOS_CLANG="$(xcrun --sdk iphoneos --find clang)"
+          env \
+            -u SDKROOT \
+            CC="$HOST_CLANG" \
+            HOST_CC="$HOST_CLANG" \
+            CFLAGS="-isysroot $HOST_SDK" \
+            HOST_CFLAGS="-isysroot $HOST_SDK" \
+            CC_aarch64_apple_darwin="$HOST_CLANG" \
+            CFLAGS_aarch64_apple_darwin="-isysroot $HOST_SDK" \
+            CC_aarch64_apple_ios="$IOS_CLANG" \
+            CFLAGS_aarch64_apple_ios="-isysroot $IOS_SDK -arch arm64 -miphoneos-version-min=$IOS_MIN" \
+            make -C "$SOURCE_ROOT" rust-ios-device-fast alpine-fs xcgen IOS_DEPLOYMENT_TARGET="$IOS_MIN" \
+            2>&1 | tee "$ARTIFACT_ROOT/runtime-build.log"
 
       - name: Build current committed iOS app
         id: app
