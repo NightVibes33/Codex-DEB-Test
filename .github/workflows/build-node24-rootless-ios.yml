@@ -44,7 +44,6 @@ jobs:
         run: |
           set -euxo pipefail
           export GYP_DEFINES="target_arch=arm64 host_os=mac target_os=ios ios_deployment_target=${IOS_DEPLOYMENT_TARGET}"
-          export MACOSX_DEPLOYMENT_TARGET="$IOS_DEPLOYMENT_TARGET"
           ./configure \
             --dest-os=ios \
             --dest-cpu=arm64 \
@@ -57,12 +56,51 @@ jobs:
             --without-node-snapshot \
             --prefix=/var/jb/usr
 
-      - name: Build iOS Node CLI
+      - name: Build iOS static libraries
         working-directory: node-src
         run: |
           set -euxo pipefail
-          make -j"$(sysctl -n hw.ncpu)" node
-          test -f out/Release/node
+          make -j"$(sysctl -n hw.ncpu)"
+          test -f out/Release/libnode.a
+          file out/Release/libnode.a
+          find out/Release -maxdepth 1 -name '*.a' -print | sort
+
+      - name: Link jailbroken iOS CLI executable
+        working-directory: node-src
+        run: |
+          set -euxo pipefail
+          cat > ios_cli_main.cc <<'EOF'
+          #include "node.h"
+
+          int main(int argc, char** argv) {
+            return node::Start(argc, argv);
+          }
+          EOF
+
+          SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
+          TARGET="arm64-apple-ios${IOS_DEPLOYMENT_TARGET}"
+          mapfile -t STATIC_LIBS < <(find out/Release -maxdepth 1 -name '*.a' -print | sort)
+          test "${#STATIC_LIBS[@]}" -gt 0
+
+          xcrun --sdk iphoneos clang++ \
+            -target "$TARGET" \
+            -isysroot "$SDKROOT" \
+            -std=gnu++17 \
+            -O2 \
+            -I./src \
+            -I./deps/v8/include \
+            ios_cli_main.cc \
+            -Wl,-all_load \
+            "${STATIC_LIBS[@]}" \
+            -Wl,-noall_load \
+            -framework Foundation \
+            -framework CoreFoundation \
+            -framework Security \
+            -framework SystemConfiguration \
+            -framework Network \
+            -lc++ -lz -liconv -lresolv \
+            -o out/Release/node
+
           file out/Release/node
           xcrun vtool -show-build out/Release/node | tee ../build-version.txt
           grep -Eq 'platform IOS|platform 2' ../build-version.txt
@@ -93,7 +131,7 @@ jobs:
           printf '%s\n' \
             'Package: nodejs-mobile' \
             'Name: Node.js Mobile CLI (Rootless)' \
-            "Version: ${BUILT_VERSION}-1" \
+            "Version: ${BUILT_VERSION}-2" \
             "Architecture: ${PACKAGE_ARCH}" \
             'Description: Real iOS-patched Node.js CLI for rootless iOS 16+' \
             'Maintainer: NightVibes33' \
@@ -101,7 +139,7 @@ jobs:
             'Priority: optional' \
             'Depends: firmware (>= 16.0)' > "$ROOT/DEBIAN/control"
 
-          DEB="nodejs-mobile_${BUILT_VERSION}-1_${PACKAGE_ARCH}.deb"
+          DEB="nodejs-mobile_${BUILT_VERSION}-2_${PACKAGE_ARCH}.deb"
           dpkg-deb --root-owner-group --build "$ROOT" "$DEB"
           echo "DEB=$DEB" >> "$GITHUB_ENV"
 
