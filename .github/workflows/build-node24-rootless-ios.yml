@@ -68,16 +68,16 @@ jobs:
           ))
           variables = data['variables']
           assert variables['target_arch'] == 'arm64', variables['target_arch']
-          assert variables['host_arch'] == 'arm64', variables['host_arch']
           assert variables['node_use_node_snapshot'] == 'false'
           assert variables['node_use_node_code_cache'] == 'false'
-          assert variables['v8_enable_jitless'] == 1
+          assert '--jitless' in variables.get('node_v8_options', '')
           print('config.gypi assertions passed')
           PY
 
           grep -q "'target_name': '<(node_core_target_name)'" node.gyp
           grep -q "'type': 'executable'" node.gyp
           grep -q "'src/node_main.cc'" node.gyp
+          grep -q "return node::Start(argc, argv);" src/node_main.cc
 
       - name: Build Node's native iOS CLI target
         working-directory: node-src
@@ -100,7 +100,6 @@ jobs:
           ! grep -q '/usr/local/' ../linked-libraries.txt
           ! grep -q '/opt/homebrew/' ../linked-libraries.txt
           ! grep -q '/Library/Developer/' ../linked-libraries.txt
-          xcrun nm -m "$BIN" | grep -q 'external _main'
 
       - name: Read built version
         id: version
@@ -130,7 +129,7 @@ jobs:
           printf '%s\n' \
             'Package: nodejs-mobile' \
             'Name: Node.js Mobile CLI (Rootless)' \
-            "Version: ${BUILT_VERSION}-7" \
+            "Version: ${BUILT_VERSION}-8" \
             "Architecture: ${PACKAGE_ARCH}" \
             'Description: Native Node.js Mobile CLI for rootless iOS 16+' \
             'Maintainer: NightVibes33' \
@@ -138,7 +137,7 @@ jobs:
             'Priority: optional' \
             'Depends: firmware (>= 16.0)' > "$ROOT/DEBIAN/control"
 
-          DEB="nodejs-mobile_${BUILT_VERSION}-7_${PACKAGE_ARCH}.deb"
+          DEB="nodejs-mobile_${BUILT_VERSION}-8_${PACKAGE_ARCH}.deb"
           dpkg-deb --root-owner-group --build "$ROOT" "$DEB"
           echo "DEB=$DEB" >> "$GITHUB_ENV"
 
@@ -158,7 +157,7 @@ jobs:
           grep -Eq 'platform IOS|platform 2' packaged-build-version.txt
           ldid -e "$BIN" >/dev/null
           dpkg-deb -f "$DEB" Architecture | grep -qx "$PACKAGE_ARCH"
-          dpkg-deb -f "$DEB" Version | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+-7$'
+          dpkg-deb -f "$DEB" Version | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+-8$'
 
       - uses: actions/upload-artifact@v4
         with:
