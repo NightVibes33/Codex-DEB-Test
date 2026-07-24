@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: import-nightvibes-litter
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   import:
@@ -38,24 +38,17 @@ jobs:
             rm -rf /tmp/litter
             git clone --depth 1 https://github.com/NightVibes33/litter.git /tmp/litter
             git -C /tmp/litter submodule sync --recursive
-
-            # A shallow recursive update is fast when every pinned revision is
-            # reachable. Fall back to a normal recursive update when a nested
-            # project pins a commit outside the shallow history.
             if ! git -C /tmp/litter submodule update --init --recursive --depth 1; then
               echo 'Shallow submodule restore failed; retrying full recursive restore.'
               git -C /tmp/litter submodule deinit -f --all || true
               git -C /tmp/litter submodule update --init --recursive
             fi
-
             git -C /tmp/litter rev-parse HEAD > /tmp/litter-commit.txt
             git -C /tmp/litter ls-tree HEAD shared/third_party/codex | awk '{print $3}' > /tmp/codex-commit.txt
             git -C /tmp/litter ls-tree HEAD shared/third_party/ghostty | awk '{print $3}' > /tmp/ghostty-commit.txt
             test -s /tmp/litter-commit.txt
             test -s /tmp/codex-commit.txt
             test -s /tmp/ghostty-commit.txt
-
-            echo 'Restored submodule revisions:'
             git -C /tmp/litter submodule status --recursive
           } 2>&1 | tee import-artifacts/clone.log
 
@@ -79,7 +72,6 @@ jobs:
               printf 'ghostty='
               cat /tmp/ghostty-commit.txt
             } > upstream/litter/SUBMODULES.lock
-
             test -d upstream/litter/apps/ios/Sources/Litter
             test -d upstream/litter/apps/ios/Sources/LitterLiveActivity
             test -d upstream/litter/apps/ios/Sources/LitterWatch
@@ -91,7 +83,7 @@ jobs:
             test -f upstream/litter/shared/third_party/ghostty/build.zig
           } 2>&1 | tee import-artifacts/vendor.log
 
-      - name: Apply exact DarkSword adaptation without deleting features
+      - name: Apply research and iOS 16 adaptation without replacing AlleyCat UI
         id: overlay
         if: steps.clone.outcome == 'success' && steps.vendor.outcome == 'success'
         continue-on-error: true
@@ -102,16 +94,18 @@ jobs:
             set -euo pipefail
             chmod +x darksword-overlay/apply.sh
             ./darksword-overlay/apply.sh upstream/litter
-
             grep -q -- '- target: LitterLiveActivity' upstream/litter/apps/ios/project.yml
             grep -q -- '- target: LitterWatch' upstream/litter/apps/ios/project.yml
             grep -q -- '- target: LiveProcess' upstream/litter/apps/ios/project.yml
-            grep -q 'DarkSwordRootView()' upstream/litter/apps/ios/Sources/Litter/LitterApp.swift
-            grep -q 'loginLocalChatGPTAccount' upstream/litter/apps/ios/Sources/Litter/DarkSword/DarkSwordRootView.swift
+            grep -q 'ContentView()' upstream/litter/apps/ios/Sources/Litter/LitterApp.swift
+            ! grep -q 'DarkSwordRootView()' upstream/litter/apps/ios/Sources/Litter/LitterApp.swift
+            grep -q 'AlleyCat Labs' upstream/litter/apps/ios/Sources/Litter/Views/SettingsView.swift
+            grep -q 'PRODUCT_NAME: AlleyCat' upstream/litter/apps/ios/project.yml
+            grep -q '<string>Alley Cãt</string>' upstream/litter/apps/ios/Sources/Litter/Info.plist
             test -f upstream/litter/apps/ios/Sources/Litter/Resources/JailbreakLab/schema/experiment.schema.json
           } 2>&1 | tee import-artifacts/overlay.log
 
-      - name: Commit canonical source snapshot
+      - name: Commit canonical AlleyCat source snapshot
         id: commit_snapshot
         if: steps.clone.outcome == 'success' && steps.vendor.outcome == 'success' && steps.overlay.outcome == 'success'
         continue-on-error: true
@@ -123,7 +117,7 @@ jobs:
             git config user.name github-actions[bot]
             git config user.email 41898282+github-actions[bot]@users.noreply.github.com
             git add -A upstream/litter darksword-overlay jailbreak-lab
-            git commit -m 'Sync complete NightVibes Litter into DarkSword architecture' || true
+            git commit -m 'Sync complete AlleyCat UI with iOS 16 research runtime' || true
             git push origin HEAD:main
           } 2>&1 | tee import-artifacts/commit.log
 
@@ -132,46 +126,32 @@ jobs:
         shell: bash
         run: |
           {
-            echo '# NightVibes Litter import status'
+            echo '# NightVibes AlleyCat import status'
             echo
             echo "- Clone and recursive submodules: ${{ steps.clone.outcome }}"
             echo "- Vendor complete tree: ${{ steps.vendor.outcome }}"
-            echo "- Apply exact DarkSword overlay: ${{ steps.overlay.outcome }}"
+            echo "- Restore full AlleyCat UI and apply research runtime: ${{ steps.overlay.outcome }}"
             echo "- Commit imported snapshot: ${{ steps.commit_snapshot.outcome }}"
-            echo
-            echo '## Clone log tail'
-            echo '```text'
-            tail -n 120 import-artifacts/clone.log 2>/dev/null || true
-            echo '```'
-            echo
-            echo '## Vendor log tail'
-            echo '```text'
-            tail -n 80 import-artifacts/vendor.log 2>/dev/null || true
-            echo '```'
-            echo
-            echo '## Overlay log tail'
-            echo '```text'
-            tail -n 100 import-artifacts/overlay.log 2>/dev/null || true
-            echo '```'
-            echo
-            echo '## Commit log tail'
-            echo '```text'
-            tail -n 80 import-artifacts/commit.log 2>/dev/null || true
-            echo '```'
+            for log in clone vendor overlay commit; do
+              echo
+              echo "## ${log} log tail"
+              echo '```text'
+              tail -n 120 "import-artifacts/${log}.log" 2>/dev/null || true
+              echo '```'
+            done
           } > IMPORT_STATUS.md
-
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git pull --rebase origin main || true
           git add IMPORT_STATUS.md
-          git commit -m 'Record NightVibes Litter import diagnostics' || true
+          git commit -m 'Record NightVibes AlleyCat import diagnostics' || true
           git push origin HEAD:main || true
 
       - name: Upload import source and diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nightvibes-litter-import
+          name: nightvibes-alleycat-import
           path: |
             upstream/litter/LITTER_UPSTREAM_COMMIT.txt
             upstream/litter/LITTER_UPSTREAM_SOURCE.txt
