@@ -67,7 +67,8 @@ ensure_required_zig() {
         mkdir -p "$cache_root"
         rm -rf "$install_dir" "$cache_root/$unpacked_dir"
         echo "==> Installing Zig $REQUIRED_ZIG_VERSION from $url..."
-        curl --fail --location --retry 4 --retry-delay 2 "$url" -o "$cache_root/$archive"
+        curl --fail --location --retry 12 --retry-all-errors --retry-delay 5 \
+            --connect-timeout 30 --max-time 1800 "$url" -o "$cache_root/$archive"
         tar -xJf "$cache_root/$archive" -C "$cache_root"
         mv "$cache_root/$unpacked_dir" "$install_dir"
         rm -f "$cache_root/$archive"
@@ -104,11 +105,15 @@ if ! grep -q 'GHOSTTY_PLATFORM_IOS' "$GHOSTTY_DIR/include/ghostty.h"; then
 fi
 
 ZIG_CACHE_DIR="${GHOSTTY_ZIG_CACHE_DIR:-$STAGING_DIR/zig-cache}"
+ZIG_GLOBAL_CACHE_DIR="${GHOSTTY_ZIG_GLOBAL_CACHE_DIR:-$HOME/.cache/darksword-zig-global}"
 MACOS_SDK_SHIM_DIR="$ZIG_CACHE_DIR/macos-sdk-shim/MacOSX.sdk"
 
 mkdir -p "$GENERATED_DIR/Headers" "$GENERATED_DIR/ios-device" "$GENERATED_DIR/ios-sim" "$GENERATED_DIR/ios-macabi" "$STAGING_DIR/bin"
-rm -rf "$ZIG_CACHE_DIR"
-mkdir -p "$ZIG_CACHE_DIR/global" "$ZIG_CACHE_DIR/local"
+# Reset only target-specific local state. Keep Zig's global package cache so a
+# failed GitHub archive request can resume on the next attempt instead of
+# downloading every dependency again.
+rm -rf "$ZIG_CACHE_DIR/local" "$ZIG_CACHE_DIR/macos-sdk-shim"
+mkdir -p "$ZIG_GLOBAL_CACHE_DIR" "$ZIG_CACHE_DIR/local"
 
 if [ ! -d "$XCODE_DEVELOPER_DIR/Platforms/iPhoneOS.platform" ]; then
     echo "error: Xcode developer dir does not contain iPhoneOS SDKs: $XCODE_DEVELOPER_DIR" >&2
@@ -238,6 +243,9 @@ build_slice() {
     local output="$4"
     local prefix="$STAGING_DIR/$name"
     local zig_args
+    local attempt=1
+    local max_attempts="${GHOSTTY_ZIG_BUILD_ATTEMPTS:-6}"
+    local delay
 
     rm -rf "$prefix"
     mkdir -p "$prefix"
@@ -268,12 +276,22 @@ build_slice() {
         zig_args+=(\
             -Doptimize=ReleaseFast \
             --prefix "$prefix")
-        env \
+
+        until env \
             PATH="$STAGING_DIR/bin:$PATH" \
             DEVELOPER_DIR="$XCODE_DEVELOPER_DIR" \
-            ZIG_GLOBAL_CACHE_DIR="$ZIG_CACHE_DIR/global" \
+            ZIG_GLOBAL_CACHE_DIR="$ZIG_GLOBAL_CACHE_DIR" \
             ZIG_LOCAL_CACHE_DIR="$ZIG_CACHE_DIR/local" \
-            "${zig_args[@]}"
+            "${zig_args[@]}"; do
+            if [ "$attempt" -ge "$max_attempts" ]; then
+                echo "error: Ghostty Zig build failed after $attempt attempts" >&2
+                exit 1
+            fi
+            delay=$((attempt * 15))
+            echo "warning: Ghostty Zig build attempt $attempt failed; retrying in ${delay}s with preserved package cache..." >&2
+            sleep "$delay"
+            attempt=$((attempt + 1))
+        done
     )
 
     if [ ! -f "$prefix/lib/ghostty-internal.a" ]; then
