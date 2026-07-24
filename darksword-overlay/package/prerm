@@ -1,0 +1,4 @@
+#!/bin/sh
+launchctl bootout system/com.nightvibes.darksword-rootd >/dev/null 2>&1 || true
+rm -f /var/jb/var/run/darksword-rootd.sock >/dev/null 2>&1 || true
+exit 0
