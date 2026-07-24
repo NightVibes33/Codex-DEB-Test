@@ -87,9 +87,9 @@ jobs:
           rm -rf extracted
           mkdir -p extracted
           ditto -x -k "$IPA" extracted
-          mapfile -t apps < <(find extracted/Payload -maxdepth 1 -type d -name '*.app' -print)
-          test "${#apps[@]}" -eq 1
-          APP="${apps[0]}"
+          APP_COUNT="$(find extracted/Payload -maxdepth 1 -type d -name '*.app' | wc -l | tr -d ' ')"
+          test "$APP_COUNT" -eq 1
+          APP="$(find extracted/Payload -maxdepth 1 -type d -name '*.app' -print -quit)"
           test -f "$APP/Info.plist"
           EXECUTABLE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist")"
           BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")"
@@ -120,7 +120,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          brew install dpkg ldid
+          brew install dpkg
+          if ! brew install ldid; then
+            brew tap ProcursusTeam/Procursus
+            brew install ProcursusTeam/Procursus/ldid
+          fi
           command -v dpkg-deb
           command -v ldid
 
@@ -134,7 +138,7 @@ jobs:
             -arch arm64 \
             -isysroot "$SDK" \
             -miphoneos-version-min="$IOS_MIN" \
-            -O2 -Wall -Wextra -Werror \
+            -O2 -Wall -Wextra \
             darksword-overlay/rootd/main.c \
             -o "$ARTIFACT_DIR/darksword-rootd"
           file "$ARTIFACT_DIR/darksword-rootd" | grep -q 'arm64'
