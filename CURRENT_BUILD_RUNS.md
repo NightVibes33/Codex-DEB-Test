@@ -8,6 +8,6 @@
 
 ## Root approval smoke
 ```json
-[{"conclusion":"failure","createdAt":"2026-07-24T14:20:25Z","databaseId":30100595029,"displayTitle":"Add fast smoke test for root approval gate","event":"push","headSha":"ffda3525ef644a3592460ff5876d4487e582ba32","status":"completed","updatedAt":"2026-07-24T14:20:53Z","url":"https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30100595029"}]
+[{"conclusion":"success","createdAt":"2026-07-24T14:21:49Z","databaseId":30100691451,"displayTitle":"Fix root approval smoke marker check","event":"push","headSha":"91a430f60487fe3ab4dec8b6c66c9c75b9d9cca9","status":"completed","updatedAt":"2026-07-24T14:22:21Z","url":"https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30100691451"},{"conclusion":"failure","createdAt":"2026-07-24T14:20:25Z","databaseId":30100595029,"displayTitle":"Add fast smoke test for root approval gate","event":"push","headSha":"ffda3525ef644a3592460ff5876d4487e582ba32","status":"completed","updatedAt":"2026-07-24T14:20:53Z","url":"https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30100595029"}]
 
 ```
