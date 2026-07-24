@@ -3,6 +3,8 @@ name: Build Current App IPA and DEB
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     paths:
       - .github/workflows/build-current-ios16.yml
       - upstream/litter/**
@@ -18,15 +20,12 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 180
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       CARGO_INCREMENTAL: "0"
-      CARGO_BUILD_JOBS: "2"
-      CARGO_NET_RETRY: "10"
-      CARGO_HTTP_TIMEOUT: "120"
-      CARGO_HTTP_MULTIPLEXING: "false"
+      CARGO_BUILD_JOBS: "1"
       IOS_RUST_PROFILE: mobile-release
       RUSTC_WRAPPER: ""
       IOS_MIN: "16.1"
@@ -39,6 +38,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Select upstream Alley Cat Xcode version
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "26.3"
+
       - name: Verify committed app source
         id: source
         shell: bash
@@ -47,11 +51,11 @@ jobs:
           mkdir -p "$ARTIFACT_ROOT"
           test -f "$SOURCE_ROOT/apps/ios/project.yml"
           test -d "$SOURCE_ROOT/apps/ios/Sources/Litter"
-          test -f "$SOURCE_ROOT/Makefile"
+          test -x "$SOURCE_ROOT/apps/ios/scripts/build-rust.sh"
           test -f "$SOURCE_ROOT/SUBMODULES.lock"
           echo "$GITHUB_SHA" > "$ARTIFACT_ROOT/source-sha.txt"
 
-      - name: Restore pinned build dependencies only
+      - name: Restore pinned Codex and Ghostty sources
         id: dependencies
         shell: bash
         run: |
@@ -61,6 +65,7 @@ jobs:
           GHOSTTY_SHA="$(awk -F= '$1=="ghostty" {print $2}' "$LOCK")"
           test -n "$CODEX_SHA"
           test -n "$GHOSTTY_SHA"
+
           restore_repo() {
             local url="$1" path="$2" sha="$3"
             rm -rf "$path"
@@ -71,48 +76,38 @@ jobs:
             git -C "$path" checkout --detach FETCH_HEAD
             test "$(git -C "$path" rev-parse HEAD)" = "$sha"
           }
-          restore_repo https://github.com/NightVibes33/codex.git "$SOURCE_ROOT/shared/third_party/codex" "$CODEX_SHA"
-          restore_repo https://github.com/ghostty-org/ghostty.git "$SOURCE_ROOT/shared/third_party/ghostty" "$GHOSTTY_SHA"
-          test -f "$SOURCE_ROOT/shared/third_party/codex/codex-rs/Cargo.toml"
-          test -f "$SOURCE_ROOT/shared/third_party/ghostty/build.zig"
 
-      - name: Install build dependencies
+          restore_repo https://github.com/NightVibes33/codex.git \
+            "$SOURCE_ROOT/shared/third_party/codex" "$CODEX_SHA"
+          restore_repo https://github.com/ghostty-org/ghostty.git \
+            "$SOURCE_ROOT/shared/third_party/ghostty" "$GHOSTTY_SHA"
+
+      - name: Install Alley Cat build dependencies
         id: tools
         shell: bash
         run: |
           set -euo pipefail
-          xcodebuild -version | tee "$ARTIFACT_ROOT/toolchain.log"
-          xcrun --sdk iphoneos --show-sdk-version | tee -a "$ARTIFACT_ROOT/toolchain.log"
-          brew install meson ninja xcodegen dpkg cmake pkgconf llvm autoconf automake libtool || true
+          brew install xcodegen meson ninja llvm lld dpkg
           if ! command -v ldid >/dev/null 2>&1; then
             brew tap ProcursusTeam/Procursus || true
             brew install ldid || true
           fi
-          rustup target add aarch64-apple-ios i686-unknown-linux-musl aarch64-unknown-linux-musl
-          command -v xcodegen
-          command -v dpkg-deb
+          rustup target add aarch64-apple-ios i686-unknown-linux-musl
+          xcodebuild -version | tee "$ARTIFACT_ROOT/toolchain.log"
+          xcrun --sdk iphoneos --show-sdk-version | tee -a "$ARTIFACT_ROOT/toolchain.log"
 
-      - name: Build current committed runtime and Xcode project
+      - name: Build iOS runtime using original Alley Cat flow
         id: runtime
+        working-directory: upstream/litter
         shell: bash
         run: |
           set -euo pipefail
-          HOST_SDK="$(xcrun --sdk macosx --show-sdk-path)"
-          HOST_CLANG="$(xcrun --sdk macosx --find clang)"
-          IOS_SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
-          IOS_CLANG="$(xcrun --sdk iphoneos --find clang)"
-          env \
-            -u SDKROOT \
-            CC="$HOST_CLANG" \
-            HOST_CC="$HOST_CLANG" \
-            CFLAGS="-isysroot $HOST_SDK" \
-            HOST_CFLAGS="-isysroot $HOST_SDK" \
-            CC_aarch64_apple_darwin="$HOST_CLANG" \
-            CFLAGS_aarch64_apple_darwin="-isysroot $HOST_SDK" \
-            CC_aarch64_apple_ios="$IOS_CLANG" \
-            CFLAGS_aarch64_apple_ios="-isysroot $IOS_SDK -arch arm64 -miphoneos-version-min=$IOS_MIN" \
-            make -C "$SOURCE_ROOT" rust-ios-device-fast alpine-fs xcgen IOS_DEPLOYMENT_TARGET="$IOS_MIN" \
-            2>&1 | tee "$ARTIFACT_ROOT/runtime-build.log"
+          ./apps/ios/scripts/sync-codex.sh --preserve-current
+          ./apps/ios/scripts/build-rust.sh \
+            --preserve-current \
+            --device-only \
+            2>&1 | tee "$GITHUB_WORKSPACE/$ARTIFACT_ROOT/runtime-build.log"
+          make alpine-fs xcgen IOS_DEPLOYMENT_TARGET="$IOS_MIN"
 
       - name: Build current committed iOS app
         id: app
@@ -125,12 +120,20 @@ jobs:
             -scheme Litter \
             -configuration Release \
             -destination 'generic/platform=iOS' \
-            -derivedDataPath "$PWD/$ARTIFACT_ROOT/DerivedData" \
-            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES IPHONEOS_DEPLOYMENT_TARGET="$IOS_MIN" \
-            LITTER_IOS_BUILD_MODE=full-sideload LITTER_NYXIAN_PRIVATE_BUILD=1 \
-            LITTER_PRESERVE_NYXIAN_LIVEPROCESS=1 LITTER_EMBED_UPSTREAM_SOURCE_TREES=1 \
-            DEVELOPMENT_TEAM= CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= \
-            COMPILER_INDEX_STORE_ENABLE=NO build 2>&1 | tee "$ARTIFACT_ROOT/xcodebuild.log"
+            -derivedDataPath "$GITHUB_WORKSPACE/$ARTIFACT_ROOT/DerivedData" \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=YES \
+            IPHONEOS_DEPLOYMENT_TARGET="$IOS_MIN" \
+            LITTER_IOS_BUILD_MODE=full-sideload \
+            LITTER_NYXIAN_PRIVATE_BUILD=1 \
+            LITTER_PRESERVE_NYXIAN_LIVEPROCESS=1 \
+            LITTER_EMBED_UPSTREAM_SOURCE_TREES=1 \
+            DEVELOPMENT_TEAM= \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY= \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            build 2>&1 | tee "$ARTIFACT_ROOT/xcodebuild.log"
 
       - name: Build rootless daemon
         id: rootd
@@ -138,8 +141,13 @@ jobs:
         run: |
           set -euo pipefail
           SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
-          xcrun --sdk iphoneos clang -arch arm64 -isysroot "$SDK" -miphoneos-version-min="$IOS_MIN" \
-            -O2 -Wall -Wextra darksword-overlay/rootd/main.c -o "$ARTIFACT_ROOT/darksword-rootd" \
+          xcrun --sdk iphoneos clang \
+            -arch arm64 \
+            -isysroot "$SDK" \
+            -miphoneos-version-min="$IOS_MIN" \
+            -O2 -Wall -Wextra \
+            darksword-overlay/rootd/main.c \
+            -o "$ARTIFACT_ROOT/darksword-rootd" \
             2>&1 | tee "$ARTIFACT_ROOT/rootd-build.log"
           codesign --force --sign - "$ARTIFACT_ROOT/darksword-rootd"
 
@@ -151,23 +159,32 @@ jobs:
           APP="$(find "$ARTIFACT_ROOT/DerivedData/Build/Products" -type d -name '*.app' -print -quit)"
           test -n "$APP"
           MAIN_EXECUTABLE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist")"
+
           if command -v ldid >/dev/null 2>&1; then
-            while IFS= read -r binary; do ldid -S "$binary" || true; done < <(find "$APP" -type f -perm -111)
-            ldid -S"$PWD/darksword-overlay/package/app-entitlements.plist" "$APP/$MAIN_EXECUTABLE"
+            while IFS= read -r binary; do
+              ldid -S "$binary" || true
+            done < <(find "$APP" -type f -perm -111)
+            ldid -S"$GITHUB_WORKSPACE/darksword-overlay/package/app-entitlements.plist" "$APP/$MAIN_EXECUTABLE"
             ldid -S "$ARTIFACT_ROOT/darksword-rootd"
           else
             codesign --force --deep --sign - "$APP"
           fi
+
           rm -rf "$ARTIFACT_ROOT/Payload"
           mkdir -p "$ARTIFACT_ROOT/Payload"
           cp -R "$APP" "$ARTIFACT_ROOT/Payload/CurrentApp.app"
           (cd "$ARTIFACT_ROOT" && zip -qry CurrentApp-iOS16-unsigned.ipa Payload)
+
           chmod +x darksword-overlay/package/build-deb.sh
-          darksword-overlay/package/build-deb.sh "$APP" "$ARTIFACT_ROOT/darksword-rootd" \
+          darksword-overlay/package/build-deb.sh \
+            "$APP" \
+            "$ARTIFACT_ROOT/darksword-rootd" \
             "$ARTIFACT_ROOT/com.nightvibes.currentapp_0.2.0_iphoneos-arm64.deb"
+
           test -s "$ARTIFACT_ROOT/CurrentApp-iOS16-unsigned.ipa"
           test -s "$ARTIFACT_ROOT/com.nightvibes.currentapp_0.2.0_iphoneos-arm64.deb"
-          dpkg-deb --contents "$ARTIFACT_ROOT/com.nightvibes.currentapp_0.2.0_iphoneos-arm64.deb" | tee "$ARTIFACT_ROOT/deb-contents.log"
+          dpkg-deb --contents "$ARTIFACT_ROOT/com.nightvibes.currentapp_0.2.0_iphoneos-arm64.deb" \
+            | tee "$ARTIFACT_ROOT/deb-contents.log"
 
       - name: Record build result
         if: always()
@@ -182,7 +199,7 @@ jobs:
             echo "- Source verification: ${{ steps.source.outcome }}"
             echo "- Pinned dependencies: ${{ steps.dependencies.outcome }}"
             echo "- Build tools: ${{ steps.tools.outcome }}"
-            echo "- Runtime/Xcode project: ${{ steps.runtime.outcome }}"
+            echo "- Alley Cat runtime: ${{ steps.runtime.outcome }}"
             echo "- iOS application: ${{ steps.app.outcome }}"
             echo "- Root daemon: ${{ steps.rootd.outcome }}"
             echo "- IPA and DEB package: ${{ steps.package.outcome }}"
@@ -192,10 +209,11 @@ jobs:
               echo
               echo "## $log tail"
               echo '```text'
-              tail -n 100 "$ARTIFACT_ROOT/$log.log" 2>/dev/null || true
+              tail -n 120 "$ARTIFACT_ROOT/$log.log" 2>/dev/null || true
               echo '```'
             done
           } > "$STATUS"
+
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git reset --hard HEAD
