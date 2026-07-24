@@ -8,6 +8,7 @@
 ## Clone log tail
 ```text
 Cloning into '/tmp/litter'...
+Updating files:  56% (3773/6715)Updating files:  57% (3828/6715)Updating files:  58% (3895/6715)Updating files:  59% (3962/6715)Updating files:  60% (4029/6715)Updating files:  61% (4097/6715)Updating files:  62% (4164/6715)Updating files:  63% (4231/6715)Updating files:  64% (4298/6715)Updating files:  65% (4365/6715)Updating files:  66% (4432/6715)Updating files:  67% (4500/6715)Updating files:  68% (4567/6715)Updating files:  69% (4634/6715)Updating files:  70% (4701/6715)Updating files:  71% (4768/6715)Updating files:  72% (4835/6715)Updating files:  73% (4902/6715)Updating files:  74% (4970/6715)Updating files:  75% (5037/6715)Updating files:  76% (5104/6715)Updating files:  77% (5171/6715)Updating files:  78% (5238/6715)Updating files:  79% (5305/6715)Updating files:  80% (5372/6715)Updating files:  81% (5440/6715)Updating files:  82% (5507/6715)Updating files:  83% (5574/6715)Updating files:  84% (5641/6715)Updating files:  85% (5708/6715)Updating files:  86% (5775/6715)Updating files:  87% (5843/6715)Updating files:  88% (5910/6715)Updating files:  89% (5977/6715)Updating files:  90% (6044/6715)Updating files:  91% (6111/6715)Updating files:  92% (6178/6715)Updating files:  93% (6245/6715)Updating files:  94% (6313/6715)Updating files:  95% (6380/6715)Updating files:  96% (6447/6715)Updating files:  97% (6514/6715)Updating files:  98% (6581/6715)Updating files:  99% (6648/6715)Updating files: 100% (6715/6715)Updating files: 100% (6715/6715), done.
 Submodule 'ThirdParty/EmexDE/Source' (https://github.com/emexlab/emexDE.git) registered for path 'ThirdParty/EmexDE/Source'
 Submodule 'ThirdParty/SideStore/AltSign' (https://github.com/SideStore/AltSign.git) registered for path 'ThirdParty/SideStore/AltSign'
 Submodule 'shared/third_party/codex' (https://github.com/NightVibes33/codex.git) registered for path 'shared/third_party/codex'
@@ -70,15 +71,19 @@ Restored submodule revisions:
 ## Overlay log tail
 ```text
 Exact DarkSword app architecture, full NightVibes Litter, iOS 16.1, pinned Zig, jailbreak lab, and rootless host runtime applied to /Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/litter.
-Perception iOS 16 backport applied: 149 Swift files changed, 298 View bodies wrapped, package revision de219a1cf34e958134e75a9ebb134cf09bf52fc6.
-DarkSword core overlay and iOS 16 Perception backport completed for upstream/litter.
+Perception iOS 16 backport applied: 153 Swift files changed, 302 View bodies wrapped, package revision de219a1cf34e958134e75a9ebb134cf09bf52fc6.
+DarkSword core overlay and iOS 16 compatibility backports completed for upstream/litter.
 ```
 
 ## Commit log tail
 ```text
-[main c73ffdc] Sync complete NightVibes Litter into DarkSword architecture
- 151 files changed, 1225 insertions(+), 505 deletions(-)
- mode change 100644 => 100755 darksword-overlay/backport_perception.py
+[main e24ec4d] Sync complete NightVibes Litter into DarkSword architecture
+ 129 files changed, 771 insertions(+), 299 deletions(-)
+ create mode 100644 darksword-overlay/__pycache__/backport_perception_core.cpython-314.pyc
+ create mode 100644 upstream/litter/apps/ios/Sources/Litter/DarkSword/DarkSwordCompatibility.swift
+ create mode 100644 upstream/litter/apps/ios/Sources/LitterLiveActivity/DarkSwordCompatibility.swift
+ create mode 100644 upstream/litter/apps/ios/Sources/LitterWatch/DarkSwordCompatibility.swift
+ create mode 100644 upstream/litter/apps/ios/Sources/LitterWatchComplications/DarkSwordCompatibility.swift
 To https://github.com/NightVibes33/Codex-DEB-Test
-   b6f219c..c73ffdc  HEAD -> main
+   5bdc6f3..e24ec4d  HEAD -> main
 ```
