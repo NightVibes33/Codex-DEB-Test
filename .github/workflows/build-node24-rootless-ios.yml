@@ -39,57 +39,14 @@ jobs:
           git submodule update --init --recursive
           grep -E '^#define NODE_(MAJOR|MINOR|PATCH)_VERSION' src/node_version.h
 
-      - name: Configure real iOS arm64 target
+      - name: Build with upstream iOS arm64 script
         working-directory: node-src
         run: |
           set -euxo pipefail
-          export GYP_DEFINES="target_arch=arm64 host_os=mac target_os=ios"
-          ./configure \
-            --dest-os=ios \
-            --dest-cpu=arm64 \
-            --with-intl=none \
-            --cross-compiling \
-            --enable-static \
-            --openssl-no-asm \
-            --v8-options=--jitless \
-            --without-node-code-cache \
-            --without-node-snapshot \
-            --prefix=/var/jb/usr
-
-      - name: Build iOS static libraries
-        working-directory: node-src
-        run: |
-          set -euxo pipefail
-          make -j"$(getconf _NPROCESSORS_ONLN)"
-          REQUIRED_LIBS=(
-            libada.a
-            libbase64.a
-            libbase64_neon64.a
-            libbrotli.a
-            libcares.a
-            libhistogram.a
-            libllhttp.a
-            libnghttp2.a
-            libnghttp3.a
-            libngtcp2.a
-            libnode.a
-            libopenssl.a
-            libsimdutf.a
-            libuv.a
-            libuvwasi.a
-            libv8_base_without_compiler.a
-            libv8_compiler.a
-            libv8_initializers.a
-            libv8_libbase.a
-            libv8_libplatform.a
-            libv8_snapshot.a
-            libv8_zlib.a
-            libzlib.a
-            libzlib_inflate_chunk_simd.a
-          )
-          for lib in "${REQUIRED_LIBS[@]}"; do
-            test -f "out/Release/$lib"
-          done
+          export MACOSX_DEPLOYMENT_TARGET=11.0
+          bash tools/ios-framework/ios_framework_prepare.sh arm64
+          test -f out/Release/libnode.a
+          test -f tools/ios-framework/bin/libnode.a
           file out/Release/libnode.a
 
       - name: Link jailbroken iOS CLI executable
@@ -106,44 +63,47 @@ jobs:
 
           SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
           TARGET="arm64-apple-ios${IOS_DEPLOYMENT_TARGET}"
+          LIBDIR="tools/ios-framework/bin"
+
           LIBS=(
-            out/Release/libnode.a
-            out/Release/libada.a
-            out/Release/libbase64.a
-            out/Release/libbase64_neon64.a
-            out/Release/libbrotli.a
-            out/Release/libcares.a
-            out/Release/libhistogram.a
-            out/Release/libllhttp.a
-            out/Release/libnghttp2.a
-            out/Release/libnghttp3.a
-            out/Release/libngtcp2.a
-            out/Release/libopenssl.a
-            out/Release/libsimdutf.a
-            out/Release/libuv.a
-            out/Release/libuvwasi.a
-            out/Release/libv8_initializers.a
-            out/Release/libv8_compiler.a
-            out/Release/libv8_base_without_compiler.a
-            out/Release/libv8_libplatform.a
-            out/Release/libv8_libbase.a
-            out/Release/libv8_snapshot.a
-            out/Release/libv8_zlib.a
-            out/Release/libzlib.a
-            out/Release/libzlib_inflate_chunk_simd.a
+            "$LIBDIR/libada.a"
+            "$LIBDIR/libbase64.a"
+            "$LIBDIR/libbase64_neon64.a"
+            "$LIBDIR/libbrotli.a"
+            "$LIBDIR/libcares.a"
+            "$LIBDIR/libhistogram.a"
+            "$LIBDIR/libllhttp.a"
+            "$LIBDIR/libnghttp2.a"
+            "$LIBDIR/libnghttp3.a"
+            "$LIBDIR/libngtcp2.a"
+            "$LIBDIR/libopenssl.a"
+            "$LIBDIR/libsimdutf.a"
+            "$LIBDIR/libuv.a"
+            "$LIBDIR/libuvwasi.a"
+            "$LIBDIR/libv8_initializers.a"
+            "$LIBDIR/libv8_compiler.a"
+            "$LIBDIR/libv8_base_without_compiler.a"
+            "$LIBDIR/libv8_libplatform.a"
+            "$LIBDIR/libv8_libbase.a"
+            "$LIBDIR/libv8_snapshot.a"
+            "$LIBDIR/libv8_zlib.a"
+            "$LIBDIR/libzlib.a"
+            "$LIBDIR/libzlib_inflate_chunk_simd.a"
           )
+
+          for lib in "${LIBS[@]}"; do test -f "$lib"; done
 
           xcrun --sdk iphoneos clang++ \
             -target "$TARGET" \
             -isysroot "$SDKROOT" \
+            -miphoneos-version-min="$IOS_DEPLOYMENT_TARGET" \
             -std=gnu++17 \
             -O2 \
             -I./src \
             -I./deps/v8/include \
             ios_cli_main.cc \
-            -Wl,-all_load \
+            -Wl,-force_load,"$LIBDIR/libnode.a" \
             "${LIBS[@]}" \
-            -Wl,-noall_load \
             -framework Foundation \
             -framework CoreFoundation \
             -framework Security \
@@ -182,7 +142,7 @@ jobs:
           printf '%s\n' \
             'Package: nodejs-mobile' \
             'Name: Node.js Mobile CLI (Rootless)' \
-            "Version: ${BUILT_VERSION}-3" \
+            "Version: ${BUILT_VERSION}-4" \
             "Architecture: ${PACKAGE_ARCH}" \
             'Description: Real iOS-patched Node.js CLI for rootless iOS 16+' \
             'Maintainer: NightVibes33' \
@@ -190,7 +150,7 @@ jobs:
             'Priority: optional' \
             'Depends: firmware (>= 16.0)' > "$ROOT/DEBIAN/control"
 
-          DEB="nodejs-mobile_${BUILT_VERSION}-3_${PACKAGE_ARCH}.deb"
+          DEB="nodejs-mobile_${BUILT_VERSION}-4_${PACKAGE_ARCH}.deb"
           dpkg-deb --root-owner-group --build "$ROOT" "$DEB"
           echo "DEB=$DEB" >> "$GITHUB_ENV"
 
