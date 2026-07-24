@@ -22,11 +22,17 @@ struct CodexVoiceCallLiveActivity: Widget {
                         .lineLimit(1)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    Button(intent: EndVoiceSessionIntent()) {
+                    if #available(iOSApplicationExtension 17.0, *) {
+                        Button(intent: EndVoiceSessionIntent()) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.white)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundStyle(.white)
+                            .accessibilityLabel("End voice session from the app")
                     }
-                    .buttonStyle(.plain)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     HStack(spacing: 8) {
