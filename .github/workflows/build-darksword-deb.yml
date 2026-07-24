@@ -10,6 +10,7 @@ on:
   push:
     paths:
       - .github/workflows/build-darksword-deb.yml
+      - darksword-overlay/**
 
 permissions:
   contents: write
@@ -212,5 +213,3 @@ jobs:
             artifacts/build-status.txt
             BUILD_STATUS.md
           if-no-files-found: warn
-
-# This comment intentionally triggers the first registered push build.
