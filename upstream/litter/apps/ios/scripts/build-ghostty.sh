@@ -42,60 +42,10 @@ if [ ! -f "$GHOSTTY_DIR/build.zig" ]; then
     exit 1
 fi
 
-REQUIRED_ZIG_VERSION="0.15.2"
-ensure_required_zig() {
-    local current=""
-    local host_arch
-    local zig_arch
-    local archive
-    local url
-    local cache_root
-    local install_dir
-    local unpacked_dir
-
-    if command -v zig >/dev/null 2>&1; then
-        current="$(zig version 2>/dev/null || true)"
-    fi
-    if [ "$current" = "$REQUIRED_ZIG_VERSION" ]; then
-        return
-    fi
-
-    host_arch="$(uname -m)"
-    case "$host_arch" in
-        arm64|aarch64) zig_arch="aarch64" ;;
-        x86_64|amd64) zig_arch="x86_64" ;;
-        *)
-            echo "error: unsupported macOS host architecture for Zig: $host_arch" >&2
-            exit 1
-            ;;
-    esac
-
-    cache_root="${GHOSTTY_ZIG_TOOLCHAIN_ROOT:-$HOME/.cache/darksword-zig}"
-    install_dir="$cache_root/$REQUIRED_ZIG_VERSION-$zig_arch-macos"
-    if [ ! -x "$install_dir/zig" ]; then
-        archive="zig-$zig_arch-macos-$REQUIRED_ZIG_VERSION.tar.xz"
-        url="https://ziglang.org/download/$REQUIRED_ZIG_VERSION/$archive"
-        unpacked_dir="zig-$zig_arch-macos-$REQUIRED_ZIG_VERSION"
-        mkdir -p "$cache_root"
-        rm -rf "$install_dir" "$cache_root/$unpacked_dir"
-        echo "==> Installing required Zig $REQUIRED_ZIG_VERSION for Ghostty from $url..."
-        curl --fail --location --retry 4 --retry-delay 2 \
-            "$url" -o "$cache_root/$archive"
-        tar -xJf "$cache_root/$archive" -C "$cache_root"
-        mv "$cache_root/$unpacked_dir" "$install_dir"
-        rm -f "$cache_root/$archive"
-    fi
-
-    export PATH="$install_dir:$PATH"
-    current="$(zig version)"
-    if [ "$current" != "$REQUIRED_ZIG_VERSION" ]; then
-        echo "error: Ghostty requires Zig $REQUIRED_ZIG_VERSION, resolved $current" >&2
-        exit 1
-    fi
-    echo "==> Using Zig $current from $(command -v zig)"
-}
-
-ensure_required_zig
+if ! command -v zig >/dev/null 2>&1; then
+    echo "error: zig is required to build Ghostty (brew install zig)" >&2
+    exit 1
+fi
 
 # Apply Litter's mobile-embed patches if not already applied. Idempotent;
 # safe to call on every build. Required when this script is invoked
