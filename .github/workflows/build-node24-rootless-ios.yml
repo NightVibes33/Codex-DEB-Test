@@ -1,0 +1,132 @@
+name: Build Node 24 Rootless iOS
+
+on:
+  push:
+    branches:
+      - nodejs-rootless-ios-build
+    paths:
+      - '.github/workflows/build-node24-rootless-ios.yml'
+      - 'docs/BUILDING_NODEJS_ROOTLESS_IOS.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: node24-rootless-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 24.4.1
+  IOS_DEPLOYMENT_TARGET: 16.0
+  PACKAGE_ARCH: iphoneos-arm64
+  PACKAGE_ID: nodejs
+  PACKAGE_PREFIX: /var/jb/usr
+
+jobs:
+  build-node24-rootless-ios:
+    runs-on: macos-14
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          set -euxo pipefail
+          sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer || true
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-path
+
+      - name: Install build dependencies
+        run: |
+          set -euxo pipefail
+          brew update
+          brew install make bash wget gnu-tar gnu-sed gnupg ldid cmake automake groff gpatch findutils coreutils fakeroot zstd dpkg ncurses docbook-xsl python@3.12 pkg-config ninja
+          echo "$(brew --prefix make)/libexec/gnubin" >> "$GITHUB_PATH"
+          echo "$(brew --prefix gnu-sed)/libexec/gnubin" >> "$GITHUB_PATH"
+          echo "$(brew --prefix findutils)/libexec/gnubin" >> "$GITHUB_PATH"
+          echo "$(brew --prefix coreutils)/libexec/gnubin" >> "$GITHUB_PATH"
+
+      - name: Download Node.js source
+        run: |
+          set -euxo pipefail
+          curl -fL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}.tar.xz" -o node.tar.xz
+          tar -xf node.tar.xz
+          mv "node-v${NODE_VERSION}" node-src
+
+      - name: Configure Node 24 for iOS arm64
+        working-directory: node-src
+        run: |
+          set -euxo pipefail
+          SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
+          export SDKROOT
+          export CC="$(xcrun --sdk iphoneos -f clang) -arch arm64 -isysroot ${SDKROOT} -miphoneos-version-min=${IOS_DEPLOYMENT_TARGET}"
+          export CXX="$(xcrun --sdk iphoneos -f clang++) -arch arm64 -isysroot ${SDKROOT} -miphoneos-version-min=${IOS_DEPLOYMENT_TARGET}"
+          export AR="$(xcrun --sdk iphoneos -f ar)"
+          export RANLIB="$(xcrun --sdk iphoneos -f ranlib)"
+          export LD="$(xcrun --sdk iphoneos -f ld)"
+          export CFLAGS="-arch arm64 -isysroot ${SDKROOT} -miphoneos-version-min=${IOS_DEPLOYMENT_TARGET} -O2"
+          export CXXFLAGS="${CFLAGS} -std=gnu++17"
+          export LDFLAGS="-arch arm64 -isysroot ${SDKROOT} -miphoneos-version-min=${IOS_DEPLOYMENT_TARGET}"
+          python3 configure.py \
+            --dest-os=ios \
+            --dest-cpu=arm64 \
+            --cross-compiling \
+            --prefix="${PACKAGE_PREFIX}" \
+            --without-npm \
+            --without-corepack \
+            --openssl-no-asm \
+            --with-intl=none \
+            --ninja
+
+      - name: Build Node 24
+        working-directory: node-src
+        run: |
+          set -euxo pipefail
+          gmake -j"$(sysctl -n hw.ncpu)"
+          file out/Release/node
+          xcrun vtool -show-build out/Release/node || true
+
+      - name: Stage rootless package
+        run: |
+          set -euxo pipefail
+          ROOT="$PWD/package-root"
+          mkdir -p "$ROOT/var/jb/usr/bin" "$ROOT/DEBIAN"
+          cp node-src/out/Release/node "$ROOT/var/jb/usr/bin/node"
+          chmod 0755 "$ROOT/var/jb/usr/bin/node"
+          ldid -S "$ROOT/var/jb/usr/bin/node"
+          cat > "$ROOT/DEBIAN/control" <<EOF
+          Package: ${PACKAGE_ID}
+          Name: Node.js 24 (Rootless)
+          Version: ${NODE_VERSION}-1
+          Architecture: ${PACKAGE_ARCH}
+          Description: Node.js ${NODE_VERSION} for rootless iOS 16+
+          Maintainer: NightVibes33
+          Section: Development
+          Priority: optional
+          Depends: firmware (>= 16.0)
+          EOF
+          dpkg-deb --root-owner-group --build "$ROOT" "nodejs_${NODE_VERSION}-1_${PACKAGE_ARCH}.deb"
+
+      - name: Verify package layout and binary
+        run: |
+          set -euxo pipefail
+          dpkg-deb -I "nodejs_${NODE_VERSION}-1_${PACKAGE_ARCH}.deb"
+          dpkg-deb -c "nodejs_${NODE_VERSION}-1_${PACKAGE_ARCH}.deb"
+          rm -rf verify-root
+          mkdir verify-root
+          dpkg-deb -x "nodejs_${NODE_VERSION}-1_${PACKAGE_ARCH}.deb" verify-root
+          test -x verify-root/var/jb/usr/bin/node
+          file verify-root/var/jb/usr/bin/node
+          otool -l verify-root/var/jb/usr/bin/node | grep -A3 LC_BUILD_VERSION || true
+          codesign -dvvv verify-root/var/jb/usr/bin/node || true
+
+      - name: Upload rootless Node 24 DEB
+        uses: actions/upload-artifact@v4
+        with:
+          name: nodejs-24-ios16-rootless-arm64
+          path: nodejs_${{ env.NODE_VERSION }}-1_${{ env.PACKAGE_ARCH }}.deb
+          if-no-files-found: error
+          retention-days: 30
