@@ -10,7 +10,7 @@ on:
       - darksword-overlay/package/**
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: current-ios16-${{ github.ref }}
@@ -40,6 +40,7 @@ jobs:
           fetch-depth: 0
 
       - name: Verify committed app source
+        id: source
         shell: bash
         run: |
           set -euo pipefail
@@ -51,6 +52,7 @@ jobs:
           echo "$GITHUB_SHA" > "$ARTIFACT_ROOT/source-sha.txt"
 
       - name: Restore pinned build dependencies only
+        id: dependencies
         shell: bash
         run: |
           set -euo pipefail
@@ -59,11 +61,8 @@ jobs:
           GHOSTTY_SHA="$(awk -F= '$1=="ghostty" {print $2}' "$LOCK")"
           test -n "$CODEX_SHA"
           test -n "$GHOSTTY_SHA"
-
           restore_repo() {
-            local url="$1"
-            local path="$2"
-            local sha="$3"
+            local url="$1" path="$2" sha="$3"
             rm -rf "$path"
             mkdir -p "$path"
             git -C "$path" init
@@ -72,16 +71,13 @@ jobs:
             git -C "$path" checkout --detach FETCH_HEAD
             test "$(git -C "$path" rev-parse HEAD)" = "$sha"
           }
-
-          restore_repo https://github.com/NightVibes33/codex.git \
-            "$SOURCE_ROOT/shared/third_party/codex" "$CODEX_SHA"
-          restore_repo https://github.com/ghostty-org/ghostty.git \
-            "$SOURCE_ROOT/shared/third_party/ghostty" "$GHOSTTY_SHA"
-
+          restore_repo https://github.com/NightVibes33/codex.git "$SOURCE_ROOT/shared/third_party/codex" "$CODEX_SHA"
+          restore_repo https://github.com/ghostty-org/ghostty.git "$SOURCE_ROOT/shared/third_party/ghostty" "$GHOSTTY_SHA"
           test -f "$SOURCE_ROOT/shared/third_party/codex/codex-rs/Cargo.toml"
           test -f "$SOURCE_ROOT/shared/third_party/ghostty/build.zig"
 
       - name: Install build dependencies
+        id: tools
         shell: bash
         run: |
           set -euo pipefail
@@ -97,15 +93,14 @@ jobs:
           command -v dpkg-deb
 
       - name: Build current committed runtime and Xcode project
+        id: runtime
         shell: bash
         run: |
           set -euo pipefail
-          make -C "$SOURCE_ROOT" \
-            rust-ios-device-fast alpine-fs xcgen \
-            IOS_DEPLOYMENT_TARGET="$IOS_MIN" \
-            2>&1 | tee "$ARTIFACT_ROOT/runtime-build.log"
+          make -C "$SOURCE_ROOT" rust-ios-device-fast alpine-fs xcgen IOS_DEPLOYMENT_TARGET="$IOS_MIN" 2>&1 | tee "$ARTIFACT_ROOT/runtime-build.log"
 
       - name: Build current committed iOS app
+        id: app
         shell: bash
         run: |
           set -euo pipefail
@@ -116,43 +111,31 @@ jobs:
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -derivedDataPath "$PWD/$ARTIFACT_ROOT/DerivedData" \
-            ARCHS=arm64 \
-            ONLY_ACTIVE_ARCH=YES \
-            IPHONEOS_DEPLOYMENT_TARGET="$IOS_MIN" \
-            LITTER_IOS_BUILD_MODE=full-sideload \
-            LITTER_NYXIAN_PRIVATE_BUILD=1 \
-            LITTER_PRESERVE_NYXIAN_LIVEPROCESS=1 \
-            LITTER_EMBED_UPSTREAM_SOURCE_TREES=1 \
-            DEVELOPMENT_TEAM= \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY= \
-            COMPILER_INDEX_STORE_ENABLE=NO \
-            build 2>&1 | tee "$ARTIFACT_ROOT/xcodebuild.log"
+            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES IPHONEOS_DEPLOYMENT_TARGET="$IOS_MIN" \
+            LITTER_IOS_BUILD_MODE=full-sideload LITTER_NYXIAN_PRIVATE_BUILD=1 \
+            LITTER_PRESERVE_NYXIAN_LIVEPROCESS=1 LITTER_EMBED_UPSTREAM_SOURCE_TREES=1 \
+            DEVELOPMENT_TEAM= CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= \
+            COMPILER_INDEX_STORE_ENABLE=NO build 2>&1 | tee "$ARTIFACT_ROOT/xcodebuild.log"
 
       - name: Build rootless daemon
+        id: rootd
         shell: bash
         run: |
           set -euo pipefail
           SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
-          xcrun --sdk iphoneos clang \
-            -arch arm64 \
-            -isysroot "$SDK" \
-            -miphoneos-version-min="$IOS_MIN" \
-            -O2 -Wall -Wextra \
-            darksword-overlay/rootd/main.c \
-            -o "$ARTIFACT_ROOT/darksword-rootd" \
+          xcrun --sdk iphoneos clang -arch arm64 -isysroot "$SDK" -miphoneos-version-min="$IOS_MIN" \
+            -O2 -Wall -Wextra darksword-overlay/rootd/main.c -o "$ARTIFACT_ROOT/darksword-rootd" \
             2>&1 | tee "$ARTIFACT_ROOT/rootd-build.log"
           codesign --force --sign - "$ARTIFACT_ROOT/darksword-rootd"
 
       - name: Package IPA and rootless DEB
+        id: package
         shell: bash
         run: |
           set -euo pipefail
           APP="$(find "$ARTIFACT_ROOT/DerivedData/Build/Products" -type d -name '*.app' -print -quit)"
           test -n "$APP"
           MAIN_EXECUTABLE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist")"
-
           if command -v ldid >/dev/null 2>&1; then
             while IFS= read -r binary; do ldid -S "$binary" || true; done < <(find "$APP" -type f -perm -111)
             ldid -S"$PWD/darksword-overlay/package/app-entitlements.plist" "$APP/$MAIN_EXECUTABLE"
@@ -160,21 +143,52 @@ jobs:
           else
             codesign --force --deep --sign - "$APP"
           fi
-
           rm -rf "$ARTIFACT_ROOT/Payload"
           mkdir -p "$ARTIFACT_ROOT/Payload"
           cp -R "$APP" "$ARTIFACT_ROOT/Payload/CurrentApp.app"
           (cd "$ARTIFACT_ROOT" && zip -qry CurrentApp-iOS16-unsigned.ipa Payload)
-
           chmod +x darksword-overlay/package/build-deb.sh
-          darksword-overlay/package/build-deb.sh \
-            "$APP" \
-            "$ARTIFACT_ROOT/darksword-rootd" \
+          darksword-overlay/package/build-deb.sh "$APP" "$ARTIFACT_ROOT/darksword-rootd" \
             "$ARTIFACT_ROOT/com.nightvibes.currentapp_0.2.0_iphoneos-arm64.deb"
-
           test -s "$ARTIFACT_ROOT/CurrentApp-iOS16-unsigned.ipa"
           test -s "$ARTIFACT_ROOT/com.nightvibes.currentapp_0.2.0_iphoneos-arm64.deb"
           dpkg-deb --contents "$ARTIFACT_ROOT/com.nightvibes.currentapp_0.2.0_iphoneos-arm64.deb" | tee "$ARTIFACT_ROOT/deb-contents.log"
+
+      - name: Record build result
+        if: always()
+        shell: bash
+        run: |
+          STATUS="$RUNNER_TEMP/CURRENT_BUILD_STATUS.md"
+          {
+            echo '# Current IPA and DEB build status'
+            echo
+            echo "- Run: $GITHUB_RUN_ID"
+            echo "- Commit: $GITHUB_SHA"
+            echo "- Source verification: ${{ steps.source.outcome }}"
+            echo "- Pinned dependencies: ${{ steps.dependencies.outcome }}"
+            echo "- Build tools: ${{ steps.tools.outcome }}"
+            echo "- Runtime/Xcode project: ${{ steps.runtime.outcome }}"
+            echo "- iOS application: ${{ steps.app.outcome }}"
+            echo "- Root daemon: ${{ steps.rootd.outcome }}"
+            echo "- IPA and DEB package: ${{ steps.package.outcome }}"
+            echo "- IPA exists: $(test -s "$ARTIFACT_ROOT/CurrentApp-iOS16-unsigned.ipa" && echo yes || echo no)"
+            echo "- DEB exists: $(test -s "$ARTIFACT_ROOT/com.nightvibes.currentapp_0.2.0_iphoneos-arm64.deb" && echo yes || echo no)"
+            for log in runtime-build xcodebuild rootd-build; do
+              echo
+              echo "## $log tail"
+              echo '```text'
+              tail -n 100 "$ARTIFACT_ROOT/$log.log" 2>/dev/null || true
+              echo '```'
+            done
+          } > "$STATUS"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git reset --hard HEAD
+          git pull --rebase origin main || true
+          cp "$STATUS" CURRENT_BUILD_STATUS.md
+          git add CURRENT_BUILD_STATUS.md
+          git commit -m 'Record current IPA and DEB build result' || true
+          git push origin HEAD:main || true
 
       - name: Upload IPA DEB and logs
         if: always()
@@ -186,4 +200,5 @@ jobs:
             artifacts/*.deb
             artifacts/*.log
             artifacts/*.txt
+            CURRENT_BUILD_STATUS.md
           if-no-files-found: warn
