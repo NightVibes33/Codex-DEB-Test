@@ -116,6 +116,9 @@ python3 "$SCRIPT_DIR/backport_perception.py" "$TARGET"
 chmod +x "$SCRIPT_DIR/add_chat_work_selector.py"
 python3 "$SCRIPT_DIR/add_chat_work_selector.py" "$TARGET"
 
+chmod +x "$SCRIPT_DIR/update_approval_instructions.py"
+python3 "$SCRIPT_DIR/update_approval_instructions.py" "$TARGET"
+
 require_grep() {
   local label="$1"
   local pattern="$2"
@@ -132,6 +135,9 @@ require_grep "Perceptible AppState" '@Perceptible' "$TARGET/apps/ios/Sources/Lit
 require_grep "Chat Work mode state" 'enum ChatWorkMode' "$TARGET/apps/ios/Sources/Litter/Models/AppState.swift"
 require_grep "Chat Work selector" 'chatWorkSelector' "$TARGET/apps/ios/Sources/Litter/Views/HeaderView.swift"
 require_grep "Work remains default" 'ChatWorkMode.work.rawValue' "$TARGET/apps/ios/Sources/Litter/Models/AppState.swift"
+require_grep "Exact command approval UI" 'Approve This Exact Command Once' "$TARGET/apps/ios/Sources/Litter/DarkSword/DarkSwordResearchViews.swift"
+require_grep "Approval retry instructions" 'retry the identical command once within 120 seconds' "$TARGET/shared/rust-bridge/codex-mobile-client/src/local_runtime_instructions.rs"
+require_grep "One-time root approval protocol" 'APPROVE_MAGIC "DSA1"' "$SCRIPT_DIR/rootd/main.c"
 require_grep "iOS 16 onChange compatibility" 'darkswordOnChange' "$TARGET/apps/ios/Sources/Litter/DarkSword/DarkSwordCompatibility.swift"
 require_grep "iPhone C compiler wrapper" 'CC_aarch64_apple_ios="$IOS_CLANG_WRAPPER"' "$TARGET/apps/ios/scripts/build-rust.sh"
 require_grep "real AlleyCat root" 'ContentView()' "$TARGET/apps/ios/Sources/Litter/LitterApp.swift"
@@ -148,4 +154,4 @@ if grep -q '^export IPHONEOS_DEPLOYMENT_TARGET=' "$TARGET/apps/ios/scripts/build
   exit 1
 fi
 
-echo "Full AlleyCat UI, Chat/Work selector, rootless host tools, iOS Rust isolation, and iOS 16 compatibility backports completed for $TARGET."
+echo "Full AlleyCat UI, Chat/Work selector, exact root approval, rootless host tools, iOS Rust isolation, and iOS 16 compatibility backports completed for $TARGET."
