@@ -28,7 +28,17 @@ jobs:
           set -euxo pipefail
           xcodebuild -version
           xcrun --sdk iphoneos --show-sdk-path
-          brew install ldid dpkg
+          brew install ldid dpkg python@3.11
+          echo "$(brew --prefix python@3.11)/libexec/bin" >> "$GITHUB_PATH"
+
+      - name: Verify compatible Python
+        run: |
+          set -euxo pipefail
+          python3 --version
+          python3 - <<'PY'
+          from distutils.version import StrictVersion
+          print(StrictVersion('1.0'))
+          PY
 
       - name: Clone pinned iOS-patched Node source
         run: |
@@ -55,18 +65,13 @@ jobs:
             --openssl-no-asm \
             --v8-options=--jitless \
             --without-node-code-cache \
-            --without-node-snapshot \
-            --shared-openssl
+            --without-node-snapshot
 
           python3 - <<'PY'
           import ast
           from pathlib import Path
-
           text = Path('config.gypi').read_text()
-          data = ast.literal_eval('\n'.join(
-              line for line in text.splitlines()
-              if not line.lstrip().startswith('#')
-          ))
+          data = ast.literal_eval('\n'.join(line for line in text.splitlines() if not line.lstrip().startswith('#')))
           variables = data['variables']
           assert variables['target_arch'] == 'arm64', variables['target_arch']
           assert variables['node_use_node_snapshot'] == 'false'
@@ -126,19 +131,17 @@ jobs:
           install -m 0755 node-src/out/Release/node "$BIN"
           ldid -S "$BIN"
           ldid -e "$BIN" >/dev/null
-
           printf '%s\n' \
             'Package: nodejs-mobile' \
             'Name: Node.js Mobile CLI (Rootless)' \
-            "Version: ${BUILT_VERSION}-8" \
+            "Version: ${BUILT_VERSION}-9" \
             "Architecture: ${PACKAGE_ARCH}" \
             'Description: Native Node.js Mobile CLI for rootless iOS 16+' \
             'Maintainer: NightVibes33' \
             'Section: Development' \
             'Priority: optional' \
             'Depends: firmware (>= 16.0)' > "$ROOT/DEBIAN/control"
-
-          DEB="nodejs-mobile_${BUILT_VERSION}-8_${PACKAGE_ARCH}.deb"
+          DEB="nodejs-mobile_${BUILT_VERSION}-9_${PACKAGE_ARCH}.deb"
           dpkg-deb --root-owner-group --build "$ROOT" "$DEB"
           echo "DEB=$DEB" >> "$GITHUB_ENV"
 
@@ -158,7 +161,7 @@ jobs:
           grep -Eq 'platform IOS|platform 2' packaged-build-version.txt
           ldid -e "$BIN" >/dev/null
           dpkg-deb -f "$DEB" Architecture | grep -qx "$PACKAGE_ARCH"
-          dpkg-deb -f "$DEB" Version | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+-8$'
+          dpkg-deb -f "$DEB" Version | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+-9$'
 
       - uses: actions/upload-artifact@v4
         with:
