@@ -1,0 +1,223 @@
+name: Diagnose Dark-Boot on iPad
+
+on:
+  workflow_dispatch:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: diagnose-dark-boot-ipad
+  cancel-in-progress: true
+
+jobs:
+  resolve-environment:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.actor == 'NightVibes33' && github.event.issue.title == '[Diagnose Dark-Boot]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - name: Resolve bridge environment
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" \
+            > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json, sys
+          target = int(sys.argv[1])
+          data = json.load(open('environments.json', encoding='utf-8'))
+          for env in data.get('environments', []):
+              if int(env.get('id', -1)) == target:
+                  print('environment_name=' + env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  diagnose:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.actor == 'NightVibes33' && github.event.issue.title == '[Diagnose Dark-Boot]')
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate bridge secrets
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$TAILSCALE_AUTHKEY"
+          test -n "$IPAD_PASSWORD"
+
+      - name: Join Tailscale
+        id: tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          ping: 100.116.117.65
+          version: latest
+
+      - name: Install SSH tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends openssh-client sshpass
+
+      - name: Run read-only Dark-Boot diagnosis
+        id: diagnose
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          ssh-keyscan -T 20 -H -p 22 100.116.117.65 > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+          {
+            printf '%s\n' "$IPAD_PASSWORD"
+            cat <<'REMOTE'
+          set +e
+          export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
+          echo '=== DEVICE ==='
+          id
+          printf 'model='; sysctl -n hw.model 2>/dev/null || true
+          printf 'machine='; uname -m
+          printf 'kernel='; uname -r
+
+          echo '=== PACKAGE STATUS ==='
+          dpkg-query -W -f='darkboot_status=${db:Status-Abbrev}\ndarkboot_version=${Version}\ndarkboot_arch=${Architecture}\n' com.nightvibes33.darkboot 2>&1
+          for pkg in preferenceloader com.opa334.ellekit mobilesubstrate org.coolstar.sileo; do
+            dpkg-query -W -f="$pkg=${Version} (${Architecture})\n" "$pkg" 2>/dev/null || echo "$pkg=not-installed"
+          done
+
+          echo '=== PACKAGE FILE LIST ==='
+          dpkg -L com.nightvibes33.darkboot 2>&1
+
+          echo '=== CRITICAL PATHS ==='
+          for path in \
+            /var/jb/Library/MobileSubstrate/DynamicLibraries/DarkBoot.dylib \
+            /var/jb/Library/MobileSubstrate/DynamicLibraries/DarkBoot.plist \
+            /var/jb/Library/PreferenceBundles/DarkBootPrefs.bundle \
+            /var/jb/Library/PreferenceBundles/DarkBootPrefs.bundle/DarkBootPrefs \
+            /var/jb/Library/PreferenceBundles/DarkBootPrefs.bundle/Info.plist \
+            /var/jb/Library/PreferenceBundles/DarkBootPrefs.bundle/Root.plist \
+            /var/jb/Library/PreferenceLoader/Preferences/DarkBoot.plist; do
+            if [ -e "$path" ]; then
+              echo "present=$path"
+              ls -ld "$path"
+              stat -f 'owner=%Su group=%Sg mode=%Sp size=%z' "$path" 2>/dev/null || true
+              file "$path" 2>/dev/null || true
+            else
+              echo "missing=$path"
+            fi
+          done
+
+          echo '=== PREFERENCELOADER DIRECTORY ==='
+          ls -la /var/jb/Library/PreferenceLoader/Preferences 2>&1 | tail -n 100
+          echo '=== PREFERENCE BUNDLES DIRECTORY ==='
+          ls -la /var/jb/Library/PreferenceBundles 2>&1 | tail -n 100
+
+          echo '=== PLIST VALIDATION ==='
+          for plist in \
+            /var/jb/Library/MobileSubstrate/DynamicLibraries/DarkBoot.plist \
+            /var/jb/Library/PreferenceBundles/DarkBootPrefs.bundle/Info.plist \
+            /var/jb/Library/PreferenceBundles/DarkBootPrefs.bundle/Root.plist \
+            /var/jb/Library/PreferenceLoader/Preferences/DarkBoot.plist; do
+            echo "--- $plist"
+            plutil -lint "$plist" 2>&1 || true
+            plutil -p "$plist" 2>&1 || cat "$plist" 2>/dev/null || true
+          done
+
+          echo '=== MACH-O ARCHITECTURES ==='
+          for binary in \
+            /var/jb/Library/MobileSubstrate/DynamicLibraries/DarkBoot.dylib \
+            /var/jb/Library/PreferenceBundles/DarkBootPrefs.bundle/DarkBootPrefs; do
+            echo "--- $binary"
+            lipo -info "$binary" 2>&1 || file "$binary" 2>&1 || true
+            otool -L "$binary" 2>&1 | head -n 50 || true
+          done
+
+          echo '=== RUNNING PROCESSES ==='
+          ps aux 2>/dev/null | grep -E '[S]pringBoard|[P]references' || true
+          printf 'springboard_pid='; pgrep -x SpringBoard | head -n1 || true
+          printf 'preferences_pid='; pgrep -x Preferences | head -n1 || true
+
+          echo '=== RECENT CRASHES ==='
+          find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'SpringBoard*' -o -name 'Preferences*' \) -mtime -2 -print 2>/dev/null | tail -n 20
+
+          echo '=== DARKBOOT PREFS ==='
+          defaults read com.nightvibes33.darkboot 2>&1 || true
+
+          echo 'diagnosis_result=completed-read-only'
+          REMOTE
+          } | sshpass -e ssh \
+              -p 22 \
+              -o ConnectTimeout=20 \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              mobile@100.116.117.65 \
+              'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
+              2>&1 | tee dark-boot-diagnosis.txt
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dark-boot-diagnosis-${{ github.run_id }}
+          path: dark-boot-diagnosis.txt
+          retention-days: 7
+
+      - name: Publish sanitized diagnosis
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          TAILSCALE_OUTCOME: ${{ steps.tailscale.outcome }}
+          DIAGNOSE_OUTCOME: ${{ steps.diagnose.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text = Path('dark-boot-diagnosis.txt').read_text(errors='replace') if Path('dark-boot-diagnosis.txt').exists() else 'No diagnosis output was produced.'
+          password = os.environ.get('IPAD_PASSWORD', '')
+          if password:
+              text = text.replace(password, '***REDACTED***')
+          lines = [
+              'Dark-Boot Live Diagnosis',
+              f"run_id={os.environ.get('GITHUB_RUN_ID', '')}",
+              f"run_url=https://github.com/{os.environ.get('GITHUB_REPOSITORY', '')}/actions/runs/{os.environ.get('GITHUB_RUN_ID', '')}",
+              f"tailscale={os.environ.get('TAILSCALE_OUTCOME', '')}",
+              f"diagnose={os.environ.get('DIAGNOSE_OUTCOME', '')}",
+              '',
+              '--- sanitized output ---',
+              *text.splitlines()[-500:],
+          ]
+          Path('remote/dark-boot-diagnosis.txt').write_text('\n'.join(lines) + '\n')
+          PY
+          git add remote/dark-boot-diagnosis.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record Dark-Boot live diagnosis [skip ci]"
+            git push origin HEAD:main
+          fi
