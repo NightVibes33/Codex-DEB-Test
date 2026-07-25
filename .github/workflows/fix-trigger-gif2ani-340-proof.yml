@@ -1,0 +1,43 @@
+name: Fix and Trigger Gif2Ani 3.4 Proof
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - triggers/fix-trigger-gif2ani-340-proof.txt
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Correct validator and retrigger proof
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.github/workflows/build-install-gif2ani-340-downloadable.yml')
+          text=p.read_text()
+          old="assert remote.count('@{\"name\":') == 6 + 9"
+          new="assert remote.count('@{@\"name\":') == 6 + 9"
+          if old not in text:
+              raise SystemExit('expected remote catalog count assertion not found')
+          p.write_text(text.replace(old,new,1))
+          PY
+          grep -Fq "assert remote.count('@{@\"name\":') == 6 + 9" .github/workflows/build-install-gif2ani-340-downloadable.yml
+          printf 'build=%s\nversion=3.4.0\nfix=objective-c-dictionary-count\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > triggers/build-install-gif2ani-340-downloadable.txt
+      - name: Commit correction
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/build-install-gif2ani-340-downloadable.yml triggers/build-install-gif2ani-340-downloadable.txt
+          git commit -m "Fix Gif2Ani 3.4 proof catalog assertion"
+          git pull --rebase origin main
+          git push origin HEAD:main
