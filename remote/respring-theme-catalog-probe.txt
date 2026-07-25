@@ -1,0 +1,99 @@
+Respring Theme Catalog Probe
+run_id=30176791461
+
+=== PUBLIC PAGE PROBE ===
+
+PAGE https://www.ios-repo-updates.com/repository/viren-s-repo-1/
+status 403 bytes 5429 final https://www.ios-repo-updates.com/repository/viren-s-repo-1/
+title Just a moment...
+
+PAGE https://www.ios-repo-updates.com/repository/viren-s-repo-1/package/io.github.virenmohindra.bubbles/
+status 403 bytes 5613 final https://www.ios-repo-updates.com/repository/viren-s-repo-1/package/io.github.virenmohindra.bubbles/
+title Just a moment...
+
+PAGE https://www.ios-repo-updates.com/repository/basepack/package/com.project.brooklyn/
+status 403 bytes 5541 final https://www.ios-repo-updates.com/repository/basepack/package/com.project.brooklyn/
+title Just a moment...
+connected=1
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== IPAD SOURCES ===
+--- /var/jb/etc/apt/sources.list.d/palera1n.sources
+Types: deb
+URIs: https://repo.palera.in
+Suites: ./
+Components: 
+
+Types: deb
+URIs: https://ellekit.space
+Suites: ./
+Components: 
+--- /var/jb/etc/apt/sources.list.d/poomsmart.list
+deb https://poomsmart.github.io/repo/ ./
+--- /var/jb/etc/apt/sources.list.d/procursus.sources
+Types: deb
+URIs: https://apt.procurs.us/
+Suites: 1900
+Components: main
+
+--- /var/jb/etc/apt/sources.list.d/sileo.sources
+Types: deb
+URIs: https://havoc.app/
+Suites: ./
+Components:
+
+Types: deb
+URIs: https://repo.chariz.com/
+Suites: ./
+Components:
+
+Types: deb
+URIs: http://apt.thebigboss.org/repofiles/cydia/
+Suites: stable
+Components: main
+
+Types: deb
+URIs: https://repo.cypwn.xyz/
+Suites: ./
+Components:
+
+Types: deb
+URIs: https://apt.iarrays.com/
+Suites: ./
+Components:
+
+Types: deb
+URIs: https://randy-420.github.io/
+Suites: ./
+Components:
+
+=== APT CACHE SEARCH ===
+com.dave1482.powerapp - Reboot, Shutdown, Respring, go into Safemode
+com.hg13.reboothelper - Tweak to automate common jailbreak actions like Respring and Userspace Reboots etc.
+cn.tinyapps.respringassistant - [??????+??????]Restart your SpringBoard&Refresh App Icons& Fix network[for iOS 15-iOS16] for Rootless ????????? ??????SpringBoard????????????????????????????????????????????
+net.joebruce.respringhelper - App which restarts SpringBoard by one click.
+xyz.cypwn.betterusrb - Userspace reboot faster by booting with tweaks disabled to eliminate startup lag then automatically restoring them and respringing when the device boots, useful for heavy setups.
+xyz.cypwn.brooklyn - All Apple-Logos from the Apple 2018 Event as respring animation
+xyz.cypwn.cypwnrespringtheme - Style your device with CyPwn ??
+xyz.cypwn.hardrespring - Force respring with hardware buttons.
+xyz.cypwn.macosspinnerrespring - macOS Spinner Respring Theme
+xyz.cypwn.nopassafterrespringsafe - Disables passcode after a respring.
+xyz.cypwn.nosbreload - Replace sbreload with traditional respring to fix autofill issues
+xyz.cypwn.panic - Respring or Safe Mode with hardware keys
+xyz.cypwn.raru - Resprings once after restarting the user space to try to alleviate the problem of hung black screen after restarting user space.
+xyz.cypwn.respring - ReSpring your way. Anytime, Everywhere.
+xyz.cypwn.respringiconfix - Snowboard Respring Icon fix for Xina
+xyz.cypwn.roadrunner - Keep apps alive through resprings
+xyz.cypwn.safetoggle - A versatile command-line utility to quickly enable or disable tweaks.
+xyz.cypwn.sileorespringfix - Changes "sbreload" in Sileo to "killall SpringBoard" to avoid a bug in Dopamine where a black screen happens.
+xyz.cypwn.snowboardrespringextension - Respring icon extension for SnowBoard
+xyz.cypwn.teddyrunningrespringtheme - Pixel art of Teddy running across your screen ??
+com.nightvibes33.gif2ani - Crash-safe custom GIF animations for the BackBoard respring screen on rootless iOS 15 and 16. Version 3.2.1 fully debugs the Settings bundle with verified disk-backed preferences, exact playback choices, accurate loop wording, background-color persistence, status diagnostics, transactional staging and activation rollback, removal confirmation, safe defaults, and persistent runtime reporting of applied duration, repeat count, and scaling.
+=== PACKAGE LIST MATCHES ===
+/var/jb/var/lib/apt/lists/repo.cypwn.xyz_._Packages:5752:Description: All Apple-Logos from the Apple 2018 Event as respring animation
+/var/jb/var/lib/apt/lists/repo.cypwn.xyz_._Packages:9138:Name: CyPwn Respring Theme
+/var/jb/var/lib/apt/lists/repo.cypwn.xyz_._Packages:9156:Name: CyPwn Respring Theme
+/var/jb/var/lib/apt/lists/repo.cypwn.xyz_._Packages:20420:Description: macOS Spinner Respring Theme
+/var/jb/var/lib/apt/lists/repo.cypwn.xyz_._Packages:20423:Name: macOS Spinner Respring Theme
+/var/jb/var/lib/apt/lists/repo.cypwn.xyz_._Packages:26564:Name: Teddy Respring Theme
+/var/jb/var/lib/apt/lists/repo.cypwn.xyz_._Packages:32176:Name: Teddy Running Respring Theme
+=== INSTALLED/DOWNLOADED THEME PATHS ===
