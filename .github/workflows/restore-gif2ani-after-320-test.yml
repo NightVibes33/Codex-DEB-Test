@@ -1,0 +1,137 @@
+name: Restore Gif2Ani After 3.2 Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - triggers/restore-gif2ani-after-320-test.txt
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+concurrency:
+  group: gif2ani-device-change
+  cancel-in-progress: false
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1)) == target:
+                  print('environment_name='+env['name']); raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  restore:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends openssh-client sshpass
+      - name: Restore exact pre-test files
+        id: restore
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 45); do
+            sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1 && break
+            sleep 5
+          done
+          cat > /tmp/restore-320.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media='/var/mobile/Library/Application Support/Gif2Ani'
+          prefs='/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist'
+          active="$media/Active.gif"
+          status="$media/runtime-status.plist"
+          prefs_backup='/var/mobile/Media/Gif2Ani-3.2.0-prefs-before-test.plist'
+          gif_backup='/var/mobile/Media/Gif2Ani-3.2.0-active-before-test.gif'
+          marker='/var/mobile/Media/gif2ani-320-recovery.marker'
+          backboard_pid() { ps ax | awk '$5=="/usr/libexec/backboardd" {print $1; exit}'; }
+          springboard_pid() { ps ax | awk '$5=="/System/Library/CoreServices/SpringBoard.app/SpringBoard" {print $1; exit}'; }
+          wait_new_pid() { kind="$1"; old="$2"; for n in $(seq 1 75); do if [ "$kind" = backboardd ]; then now=$(backboard_pid); else now=$(springboard_pid); fi; [ -n "$now" ] && [ "$now" != "$old" ] && { echo "$now"; return 0; }; sleep 1; done; return 1; }
+
+          echo '=== RECOVERY PRECHECK ==='
+          test -f "$gif_backup"
+          test -f "$prefs_backup"
+          echo "backup_gif_size=$(wc -c < "$gif_backup" | tr -d ' ')"
+          echo "current_gif_size=$(wc -c < "$active" | tr -d ' ')"
+          cp "$gif_backup" "$active"
+          cp "$prefs_backup" "$prefs"
+          chown mobile:mobile "$active" "$prefs"
+          chmod 0644 "$active" "$prefs"
+          rm -f "$media/Rejected.gif" "$media/load-in-progress" "$media/Pending.gif" "$media/pending-metadata.plist" "$media/Active.previous.gif" "$media/Active.gif.new"
+          touch "$marker"
+
+          old_bb=$(backboard_pid); old_sb=$(springboard_pid)
+          /var/jb/usr/bin/killall -9 backboardd 2>/dev/null || killall -9 backboardd 2>/dev/null || true
+          new_bb=$(wait_new_pid backboardd "$old_bb")
+          new_sb=$(wait_new_pid SpringBoard "$old_sb")
+          echo "backboardd=$old_bb->$new_bb"
+          echo "springboard=$old_sb->$new_sb"
+          sleep 12
+
+          echo '=== RECOVERY RESULT ==='
+          echo "installed_version=$(dpkg-query -W -f='${Version}' com.nightvibes33.gif2ani)"
+          echo "restored_gif_size=$(wc -c < "$active" | tr -d ' ')"
+          cat "$prefs"
+          cat "$status"
+          grep -a -q 'custom-animation-stable' "$status"
+          grep -a -q 'dedicated-overlay-layer' "$status"
+          test -f "$active"
+          test ! -e "$media/Rejected.gif"
+          test ! -e "$media/load-in-progress"
+          crashes=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -newer "$marker" -print 2>/dev/null | wc -l | tr -d ' ')
+          echo "new_crash_reports=$crashes"
+          test "$crashes" = 0
+          echo restore_320_result=success
+          SH
+          chmod +x /tmp/restore-320.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null /tmp/restore-320.sh mobile@"$IPAD_HOST":/var/mobile/Media/restore-320.sh
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=60 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/restore-320.sh' 2>&1 | tee restore-320.txt
+      - name: Publish recovery
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          OUTCOME: ${{ steps.restore.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('restore-320.txt').read_text(errors='replace') if Path('restore-320.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          Path('remote/gif2ani-320-recovery.txt').write_text('Gif2Ani 3.2 Recovery\noutcome='+os.environ.get('OUTCOME','')+'\n\n'+text)
+          PY
+          git add remote/gif2ani-320-recovery.txt
+          if ! git diff --cached --quiet; then git commit -m "Record Gif2Ani 3.2 recovery [skip ci]"; git push origin HEAD:main; fi
