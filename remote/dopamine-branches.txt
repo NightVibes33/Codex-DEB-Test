@@ -1,0 +1,10 @@
+NightVibes33/Dopamine branch inventory
+branch_count=7
+
+2.x	e89072adc591881146c9513a616fa68b7323d6a7
+main	790896fb8e3ad5d43a696cc65c1d50b50055f338
+main-backup-before-installer	9b0b648346c96151556214e9100ee8029f2e7d80
+research/ipad5-16.7.11-support-lab	2ec6a8fa380276270a69c34c4ac410f1d4e5ff7b
+research/ipad5-darksword	9b0b648346c96151556214e9100ee8029f2e7d80
+research/paleramine-no-pc	4e5d6d601692b8393a5fd67b6db6fdba83c5d2a8
+research/paleramine-runtime-preentry	808cffc8b27614d8db1b5d465345dfc06391e571
