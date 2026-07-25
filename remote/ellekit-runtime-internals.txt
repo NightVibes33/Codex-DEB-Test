@@ -1,0 +1,150 @@
+ElleKit Runtime Internals
+run_id=30170379038
+probe=success
+
+--- sanitized output ---
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+/var/mobile/Media/check-ellekit-internals.sh: 3: pgrep: not found
+/var/mobile/Media/check-ellekit-internals.sh: 4: pgrep: not found
+backboardd_pid=
+springboard_pid=
+=== AVAILABLE TOOLS ===
+=== LOADER ENTITLEMENTS ===
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>get-task-allow</key>
+	<true/>
+	<key>task_for_pid-allow</key>
+	<true/>
+	<key>platform-application</key>
+	<true/>
+	<key>com.apple.private.security.no-container</key>
+	<true/>
+	<key>com.apple.system-task-ports</key>
+	<true/>
+</dict>
+</plist>
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>get-task-allow</key>
+	<true/>
+	<key>task_for_pid-allow</key>
+	<true/>
+	<key>platform-application</key>
+	<true/>
+	<key>com.apple.private.security.no-container</key>
+	<true/>
+	<key>com.apple.system-task-ports</key>
+	<true/>
+</dict>
+</plist>
+=== PSPAWN ENTITLEMENTS ===
+=== PROCESS ENVIRONMENTS ===
+  PID   TT  STAT      TIME COMMAND
+    1   ??  ?s     0:00.00 /sbin/launchd DYLD_INSERT_LIBRARIES=/cores/payload.dylib JB_PINFO_FLAGS=0x6c00082 JB_ROOT_PATH=/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus JB_TWEAKLOADER_PATH=@default JB_HAS_VERBOSE_BOOT=1 XPC_USERSPACE_REBOOTED=1
+=== LAUNCHCTL PROCINFO ===
+program path = /sbin/launchd
+mach info = {
+	task-kernel port = 0x1e03 (unknown)
+	task-host port = 0x1c03 (host)
+	task-name port = 0x1a03 (unknown)
+	task-bootstrap port = 0x0 (unknown)
+	task-inspect port = 0x1a07 (unknown)
+	task-read port = 0x1a0b (unknown)
+	task-access port = 0x0 (unknown)
+	task-debug control port = 0x1a0f (unknown)
+	exception port = 0x1d03 (unknown)
+		EXC_BAD_ACCESS
+		EXC_BAD_INSTRUCTION
+		EXC_ARITHMETIC
+		EXC_EMULATION
+		EXC_SOFTWARE
+		EXC_BREAKPOINT
+}
+argument count = 1
+argument vector = {
+	[0] = /sbin/launchd
+}
+environment vector = {
+	DYLD_INSERT_LIBRARIES => /cores/payload.dylib
+	JB_PINFO_FLAGS => 0x6c00082
+	JB_ROOT_PATH => /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus
+	JB_TWEAKLOADER_PATH => @default
+	JB_HAS_VERBOSE_BOOT => 1
+	XPC_USERSPACE_REBOOTED => 1
+}
+bsd proc info = {
+	pid = 1
+	unique pid = 1
+	ppid = 0
+	pgid = 1
+	status = stopped
+	flags = 64-bit|session leader|has controlling terminal
+	uid = 0
+	svuid = 0
+	ruid = 0
+	gid = 0
+	svgid = 0
+	rgid = 0
+	comm name = launchd
+	long name = launchd
+	controlling tty devnode = 0xffffffff
+	controlling tty pgid = 100000
+}
+pressured exit info = {
+	dirty state tracked = 0
+	dirty = 0
+	pressured-exit capable = 0
+}
+
+entitlements = {
+	"com.apple.private.amfi.can-allow-non-platform" = true;
+	"com.apple.rootless.volume.Preboot" = true;
+	"com.apple.private.security.disk-device-access" = true;
+	"com.apple.private.roots-installed-read-write" = true;
+	"com.apple.apfs.get-dev-by-role" = true;
+	"com.apple.rootless.storage.early_boot_mount" = true;
+	"com.apple.private.vfs.allow-low-space-writes" = true;
+	"com.apple.private.security.storage.driverkitd" = true;
+	"com.apple.private.pmap.load-trust-cache" = (
+		"cryptex1.boot.os";
+		"cryptex1.boot.app";
+		"cryptex1.safari-downlevel";
+	);
+	"com.apple.private.iokit.system-nvram-allow" = true;
+	"com.apple.security.network.server" = true;
+	"com.apple.private.set-atm-diagnostic-flag" = true;
+	"com.apple.private.record_system_event" = true;
+	"com.apple.private.kernel.system-override" = true;
+	"com.apple.private.vfs.pivot-root" = true;
+	"com.apple.private.security.system-mount-authority" = true;
+	"com.apple.private.vfs.graftdmg" = true;
+	"com.apple.private.spawn-subsystem-root" = true;
+	"com.apple.private.spawn-panic-crash-behavior" = true;
+	"com.apple.rootless.restricted-block-devices" = true;
+	"com.apple.private.security.storage.launchd" = true;
+	"com.apple.private.persona-mgmt" = true;
+};
+
+code signing info = valid
+	ad-hoc signed
+	get-task-allow entitlement
+	installer entitlement
+	require enforcement
+	allowed mach-o
+	platform dyld
+	platform binary
+
+(pid 1 is not managed by launchd)
+
+=== VMMAP LAUNCHD ===
+=== VMMAP BACKBOARDD ===
+=== BOOT ARGS / FLAGS ===
+/var/mobile/Media/check-ellekit-internals.sh: 34: sysctl: not found
+_MSSafeMode=
+_SafeMode=
+eksafemode_file=absent
