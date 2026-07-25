@@ -1,0 +1,12 @@
+Cancelled p1ctl Probe Cleanup
+run_id=30170964783
+cleanup=success
+
+--- sanitized output ---
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+cleanup=success
+gif2ani_state=installed-disabled-no-gif
+10024   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+10056   ??  ?s     0:00.00 /usr/libexec/backboardd
