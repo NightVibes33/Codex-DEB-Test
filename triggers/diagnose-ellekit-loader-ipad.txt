@@ -1,3 +1,3 @@
-diagnose=choicy-backboardd-injection-trace
-requested_at=2026-07-25T19:59:00-05:00
-reason=retry-after-choicy-trace-registration
+diagnose=choicy-backboardd-injection-trace-v2
+requested_at=2026-07-25T20:03:00-05:00
+reason=plist-safe-process-injection-trace
