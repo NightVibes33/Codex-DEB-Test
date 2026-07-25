@@ -1,2 +1,3 @@
 action=official-exit-palera1n-safemode
-requested_at=2026-07-25T17:30:00-05:00
+requested_at=2026-07-25T17:34:00-05:00
+helper=non-arc-c
