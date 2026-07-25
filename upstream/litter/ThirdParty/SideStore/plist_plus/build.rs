@@ -2,7 +2,12 @@
 
 extern crate bindgen;
 
-use std::{env, fs::canonicalize, path::PathBuf};
+use std::{
+    env,
+    fs::{canonicalize, read_to_string},
+    path::PathBuf,
+    process::Command,
+};
 
 fn main() {
     // Tell cargo to invalidate the built crate whenever build files change
@@ -26,7 +31,6 @@ fn main() {
 
         let bindings = bindgen::Builder::default()
             // The input header we would like to generate
-            // bindings for.
             .header("wrapper.h")
             // Include in clang build
             .clang_arg(format!("-I{}", gnutls_path))
@@ -49,7 +53,7 @@ fn main() {
         // Change current directory to OUT_DIR
         let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
         env::set_current_dir(out_path).unwrap();
-        // Clone the vendored libraries
+        // Clone and bootstrap the vendored library.
         repo_setup("https://github.com/libimobiledevice/libplist.git");
 
         // Build libplist for the Cargo target. The upstream build script lets
@@ -131,15 +135,37 @@ fn autotools_host_for_target(target: &str) -> Option<&'static str> {
 }
 
 fn repo_setup(url: &str) {
-    let mut cmd = std::process::Command::new("git");
-    cmd.arg("clone");
-    cmd.arg("--depth=1");
-    cmd.arg(url);
-    cmd.output().unwrap();
-    env::set_current_dir(url.split('/').last().unwrap().replace(".git", "")).unwrap();
-    env::set_var("NOCONFIGURE", "1");
-    let mut cmd = std::process::Command::new("./autogen.sh");
-    let _ = cmd.output();
-    env::remove_var("NOCONFIGURE");
+    let repo_name = url.split('/').last().unwrap().replace(".git", "");
+
+    let status = Command::new("git")
+        .args(["clone", "--depth=1", url])
+        .status()
+        .expect("failed to launch git clone for vendored libplist");
+    assert!(status.success(), "failed to clone vendored libplist");
+
+    env::set_current_dir(&repo_name).unwrap();
+
+    // libplist's repository contains Autoconf/Automake input files. A fresh
+    // clone must be bootstrapped before the autotools crate invokes configure.
+    // The old implementation discarded autogen.sh's exit status, leaving a
+    // placeholder configure script containing AM_INIT_AUTOMAKE on macOS CI.
+    let mut bootstrap = Command::new("./autogen.sh");
+    bootstrap.env("NOCONFIGURE", "1");
+    if env::consts::OS == "macos" {
+        bootstrap.env("LIBTOOLIZE", "glibtoolize");
+    }
+    let status = bootstrap
+        .status()
+        .expect("failed to launch libplist autogen.sh");
+    assert!(status.success(), "libplist autogen.sh failed");
+
+    let configure = PathBuf::from("configure");
+    let configure_text = read_to_string(&configure)
+        .expect("libplist bootstrap did not produce a readable configure script");
+    assert!(
+        !configure_text.contains("AM_INIT_AUTOMAKE("),
+        "libplist configure script still contains unexpanded Automake macros"
+    );
+
     env::set_current_dir("..").unwrap();
 }
