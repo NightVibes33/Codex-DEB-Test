@@ -1,7 +1,82 @@
 Gif2Ani 3.1.1 Loader Diagnostic
-run_id=30167050443
-collect=failure
+run_id=30167144034
+collect=success
 
 --- sanitized output ---
 Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
-zsh:1: = not found
+=== DEVICE / PROCESSES ===
+Darwin Bobbys-iPad 22.6.0 Darwin Kernel Version 22.6.0: Tue Jul  2 20:45:41 PDT 2024; root:xnu-8796.142.1.703.8~1/RELEASE_ARM64_S8000 iPad6,11 arm Darwin
+ProductName:    iPhone OS
+ProductVersion: 16.7.11
+BuildVersion:   20H360
+ 1163   ??  ?s     0:00.00 /usr/libexec/backboardd
+ 1165   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+=== INJECTION PACKAGES ===
+ellekit	1.1.3
+=== ELLEKIT / LOADER FILES ===
+=== SAFE MODE FILES ===
+=== GIF2ANI BINARY ===
+/var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib: Mach-O 64-bit arm64 dynamically linked shared library, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|NO_REEXPORTED_DYLIBS>
+/var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib:
+	@rpath/Gif2Ani.dylib (compatibility version 0.0.0, current version 0.0.0)
+	/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)
+	/System/Library/Frameworks/Foundation.framework/Foundation (compatibility version 300.0.0, current version 1971.0.0)
+	/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation (compatibility version 150.0.0, current version 1971.0.0)
+	/System/Library/Frameworks/UIKit.framework/UIKit (compatibility version 1.0.0, current version 6441.1.101)
+	/System/Library/Frameworks/ImageIO.framework/ImageIO (compatibility version 1.0.0, current version 1.0.0)
+	/System/Library/Frameworks/QuartzCore.framework/QuartzCore (compatibility version 1.2.0, current version 1.11.0)
+	/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 1500.65.0)
+	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1319.100.3)
+	/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics (compatibility version 64.0.0, current version 1690.5.4)
+	@rpath/CydiaSubstrate.framework/CydiaSubstrate (compatibility version 0.0.0, current version 0.0.0)
+/var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib:
+	@rpath/Gif2Ani.dylib (compatibility version 0.0.0, current version 0.0.0)
+	/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)
+	/System/Library/Frameworks/Foundation.framework/Foundation (compatibility version 300.0.0, current version 1971.0.0)
+	/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation (compatibility version 150.0.0, current version 1971.0.0)
+	/System/Library/Frameworks/UIKit.framework/UIKit (compatibility version 1.0.0, current version 6441.1.101)
+	/System/Library/Frameworks/ImageIO.framework/ImageIO (compatibility version 1.0.0, current version 1.0.0)
+	/System/Library/Frameworks/QuartzCore.framework/QuartzCore (compatibility version 1.2.0, current version 1.11.0)
+	/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 1500.65.0)
+	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1319.100.3)
+	/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics (compatibility version 64.0.0, current version 1690.5.4)
+	@rpath/CydiaSubstrate.framework/CydiaSubstrate (compatibility version 0.0.0, current version 0.0.0)
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Filter</key>
+  <dict>
+    <key>Executables</key>
+    <array>
+      <string>backboardd</string>
+    </array>
+  </dict>
+</dict>
+</plist>
+=== OTHER BACKBOARDD FILTERS ===
+--- /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Filter</key>
+  <dict>
+    <key>Executables</key>
+    <array>
+      <string>backboardd</string>
+    </array>
+  </dict>
+</dict>
+</plist>
+=== LOADED IMAGE CHECKS ===
+backboardd_pid=1163
+=== LAUNCHD LOADER SERVICES ===
+=== AVAILABLE CONTROL TOOLS ===
+/var/jb/usr/bin/sbreload
+/var/jb/usr/bin/sbreload
+/var/jb/usr/bin/launchctl
+/var/jb/usr/bin/launchctl
+=== RECENT LOADER LOGS ===
+=== RUNTIME STATUS ===
+runtime_status=missing
