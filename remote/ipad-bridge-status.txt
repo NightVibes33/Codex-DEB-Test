@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30150987132
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30150987132
-commit=b486c17813f2e6c810cc44115ee2253d8985a1ef
+run_id=30151079779
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30151079779
+commit=472caf9c27a12993c245cdab76455ddb47d25318
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -16,24 +16,30 @@ Checking SSH host key over Tailscale...
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-+ git rev-parse HEAD
-027e478f8e16fd9d8044fc29cade307c65cb3715
-+ git branch --show-current
-ipad5/adaptive-lowmem-v1
-current_branch=ipad5/adaptive-lowmem-v1
-local_head=027e478f8e16fd9d8044fc29cade307c65cb3715
 + git fetch origin ipad5/adaptive-lowmem-v1
 From github.com:NightVibes33/Dopamine
  * branch            ipad5/adaptive-lowmem-v1 -> FETCH_HEAD
- * [new branch]      ipad5/adaptive-lowmem-v1 -> origin/ipad5/adaptive-lowmem-v1
-+ git rev-parse FETCH_HEAD
-0ae85378a6294a424c8b63de0c72b8eb8161447f
-remote_head_before=0ae85378a6294a424c8b63de0c72b8eb8161447f
-+ git push --force-with-lease=refs/heads/ipad5/adaptive-lowmem-v1:0ae85378a6294a424c8b63de0c72b8eb8161447f -u origin HEAD:refs/heads/ipad5/adaptive-lowmem-v1
++ git switch ipad5/adaptive-lowmem-v1
+Already on 'ipad5/adaptive-lowmem-v1'
+M	BaseBin/_external/modules/litehook
+M	BaseBin/opainject
+Your branch is up to date with 'origin/ipad5/adaptive-lowmem-v1'.
++ git reset --hard origin/ipad5/adaptive-lowmem-v1
+HEAD is now at 027e478 Add adaptive low-memory DarkSword profile for iPad 5
++ git config user.name NightVibes33 iPad
++ git config user.email NightVibes33@users.noreply.github.com
++ git diff --check
++ git add .github/workflows/ipad5-adaptive-lowmem.yml
++ git commit -m Add adaptive iPad5 DarkSword build workflow
+[ipad5/adaptive-lowmem-v1 020358a] Add adaptive iPad5 DarkSword build workflow
+ 1 file changed, 136 insertions(+)
+ create mode 100644 .github/workflows/ipad5-adaptive-lowmem.yml
++ git rev-parse HEAD
+020358a8549ab0a33482d3656b42ed3809fc515f
++ git push origin HEAD:ipad5/adaptive-lowmem-v1
 To github.com:NightVibes33/Dopamine.git
-   0ae8537..027e478  HEAD -> ipad5/adaptive-lowmem-v1
-branch 'ipad5/adaptive-lowmem-v1' set up to track 'origin/ipad5/adaptive-lowmem-v1'.
+   027e478..020358a  HEAD -> ipad5/adaptive-lowmem-v1
 branch=ipad5/adaptive-lowmem-v1
-pushed_head=027e478f8e16fd9d8044fc29cade307c65cb3715
-ipad_push=success
+workflow_head=020358a8549ab0a33482d3656b42ed3809fc515f
+workflow_push=success
 ssh_exit_code=0
