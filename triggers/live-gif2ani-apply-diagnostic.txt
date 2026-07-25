@@ -1,3 +1,3 @@
-triggered_at=2026-07-25T13:32:00-05:00
-reason=user-sees-huge-default-respring-loader-instead-of-applied-gif
-attempt=3
+triggered_at=2026-07-25T15:53:00-05:00
+reason=inspect-315-overlay-failure-quarantine-and-crashes
+attempt=4
