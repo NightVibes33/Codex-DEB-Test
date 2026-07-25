@@ -1,7 +1,86 @@
 ElleKit Launch Injection Trace
-run_id=30170524598
-collect=failure
+run_id=30170588629
+collect=success
 
 Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
-zsh:18: parse error near `}'
-ssh_exit=1
+=== CURRENT STATE ===
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+com.nightvibes33.gif2ani	3.1.1
+ellekit	1.1.3
+    1   ??  ?s     0:00.00 /sbin/launchd
+ 7374   ??  ?s     0:00.00 /usr/libexec/biometrickitd --launchd
+ 8809   ??  ?s     0:00.00 /usr/libexec/backboardd
+ 8813   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+ 8898   ??  ?s     0:00.00 sh -c \012    echo "=== CURRENT STATE ==="\012    dpkg-query -W ellekit com.nightvibes33.gif2ani 2>&1 || true\012    ps ax | grep -E "[l]aunchd|[b]ackboardd|[S]pringBoard" || true\012    echo "_MSSafeMode=$(/var/jb/usr/bin/launchctl getenv _MSSafeMode 2>/dev/null || true)"\012    echo "_SafeMode=$(/var/jb/usr/bin/launchctl getenv _SafeMode 2>/dev/null || true)"\012\012    echo "=== GLOBAL LAUNCHD ENV ==="\012    for key in DYLD_INSERT_LIBRARIES SANDBOX_EXTENSION _MSSafeMode _SafeMode; do\012      printf "%s=" "$key"\012      /var/jb/usr/bin/launchctl getenv "$key" 2>/dev/null || true\012    done\012\012    echo "=== BACKBOARDD SERVICE ENVIRONMENT ==="\012    /var/jb/usr/bin/launchctl print system/com.apple.backboardd 2>&1 | grep -A 35 -E "default environment =|environment =" | head -90 || true\012\012    echo "=== BACKBOARDD PROCESS ENVIRONMENT ==="\012    pid=$(ps ax | awk "/[b]ackboardd/{print \$1; exit}")\012    echo "backboardd_pid=$pid"\012    ps eww -p "$pid" 2>&1 || true\012\012    echo "=== LAUNCHD PROCESS ENVIRONMENT ==="\012    ps eww -p 1 2>&1 || true\012\012    echo "=== ELLEKIT PATHS ==="\012    ls -la /var/jb/usr/lib/ellekit/pspawn.dylib /var/jb/usr/lib/ellekit/libinjector.dylib /var/jb/usr/libexec/ellekit/loader /var/jb/etc/rc.d/ellekit-loader 2>&1 || true\012    file /var/jb/usr/lib/ellekit/pspawn.dylib /var/jb/usr/lib/ellekit/libinjector.dylib /var/jb/usr/libexec/ellekit/loader 2>&1 || true\012\012    echo "=== SYSTEM JOB MATCHES ==="\012    /var/jb/usr/bin/launchctl print system 2>&1 | grep -i -E "ellekit|pspawn|libinjector|DYLD_INSERT_LIBRARIES|SANDBOX_EXTENSION" | head -120 || true\012\012    echo "=== GIF2ANI RUNTIME ==="\012    media="/var/mobile/Library/Application Support/Gif2Ani"\012    ls -la "$media" 2>&1 || true\012    if [ -e "$media/runtime-status.plist" ]; then /var/jb/usr/libexec/PlistBuddy -c Print "$media/runtime-status.plist" 2>&1 || true; else echo runtime_status=missing; fi\012\012    echo "=== RECENT CRASHES ==="\012    find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name "backboardd-*.ips" -o -name "SpringBoard-*.ips" \) -mmin -30 -print 2>/dev/null || true\012  
+_MSSafeMode=
+_SafeMode=
+=== GLOBAL LAUNCHD ENV ===
+DYLD_INSERT_LIBRARIES=SANDBOX_EXTENSION=_MSSafeMode=_SafeMode==== BACKBOARDD SERVICE ENVIRONMENT ===
+	inherited environment = {
+		JB_TWEAKLOADER_PATH => /var/jb/usr/lib/TweakLoader.dylib
+	}
+
+	default environment = {
+		PATH => /usr/bin:/bin:/usr/sbin:/sbin
+	}
+
+	environment = {
+		XPC_SERVICE_NAME => com.apple.backboardd
+	}
+
+	domain = user/501
+	username = mobile
+
+	minimum runtime = 10
+	base minimum runtime = 10
+	exit timeout = 3
+	runs = 5
+	pid = 8809
+	immediate reason = inefficient
+	forks = 0
+	execs = 1
+	initialized = 1
+	trampolined = 1
+	started suspended = 0
+	proxy started suspended = 0
+	uses proxy = 1
+	last terminating signal = Killed: 9
+
+	event triggers = {
+		com.apple.CoreBrightness.Analytics => {
+			keepalive = 0
+			service = com.apple.backboardd
+			stream = com.apple.xpc.activity
+			monitor = com.apple.UserEventAgent-System
+			descriptor = {
+				"_SequenceNumber" => 1
+				"Interval" => 28800
+				"Priority" => "Maintenance"
+			}
+		}
+	}
+
+=== BACKBOARDD PROCESS ENVIRONMENT ===
+backboardd_pid=8809
+  PID   TT  STAT      TIME COMMAND
+ 8809   ??  ?s     0:00.00 /usr/libexec/backboardd XPC_SERVICE_NAME=com.apple.backboardd JB_TWEAKLOADER_PATH=@default PATH=/usr/bin:/bin:/usr/sbin:/sbin XPC_FLAGS=9 LOGNAME=mobile USER=mobile HOME=/var/mobile SHELL=/bin/sh DYLD_INSERT_LIBRARIES=/cores/binpack/usr/lib/systemhook.dylib DYLD_LIBRARY_PATH=/cores/binpack/usr/lib/libroot JB_SANDBOX_EXTENSIONS=8e6c9f13d0cb72057dd695cbf86e7d80c160693ae5cfd6a52a90be6e753b0ed5;01;00000000;00000000;00000000;0000000000000034;com.apple.security.exception.mach-lookup.global-name;in.palera.palera1nd.systemwide|df1ecf8ceaa25ef97dd100b8e27feb0710b25a56ab3333a41d50050b91292bca;01;00000000;00000000;00000000;000000000000001a;com.apple.app-sandbox.mach;in.palera.palera1nd.systemwide JB_ROOT_PATH=/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus JB_PINFO_FLAGS=0x6c00082
+=== LAUNCHD PROCESS ENVIRONMENT ===
+  PID   TT  STAT      TIME COMMAND
+    1   ??  ?s     0:00.00 /sbin/launchd
+=== ELLEKIT PATHS ===
+lrwxr-xr-x 1 root wheel     34 Jun 11  2024 /var/jb/etc/rc.d/ellekit-loader -> /var/jb/usr/libexec/ellekit/loader
+-rw-r--r-- 1 root wheel 136464 Jun 11  2024 /var/jb/usr/lib/ellekit/libinjector.dylib
+-rw-r--r-- 1 root wheel 930656 Jun 11  2024 /var/jb/usr/lib/ellekit/pspawn.dylib
+-rwxr-xr-x 1 root wheel 793168 Jun 11  2024 /var/jb/usr/libexec/ellekit/loader
+/var/jb/usr/lib/ellekit/pspawn.dylib:      Mach-O universal binary with 2 architectures: [arm64:\012- Mach-O 64-bit arm64 dynamically linked shared library, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|BINDS_TO_WEAK|NO_REEXPORTED_DYLIBS>] [\012- arm64e (caps: 0x2):\012- Mach-O 64-bit arm64e (caps: PAC00) dynamically linked shared library, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|BINDS_TO_WEAK|NO_REEXPORTED_DYLIBS>]
+/var/jb/usr/lib/ellekit/libinjector.dylib: Mach-O universal binary with 2 architectures: [arm64:\012- Mach-O 64-bit arm64 dynamically linked shared library, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|NO_REEXPORTED_DYLIBS>] [\012- arm64e (caps: 0x2):\012- Mach-O 64-bit arm64e (caps: PAC00) dynamically linked shared library, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|NO_REEXPORTED_DYLIBS>]
+/var/jb/usr/libexec/ellekit/loader:        Mach-O universal binary with 2 architectures: [arm64:\012- Mach-O 64-bit arm64 executable, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|BINDS_TO_WEAK|PIE>] [\012- arm64e (caps: 0x2):\012- Mach-O 64-bit arm64e (caps: PAC00) executable, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|BINDS_TO_WEAK|PIE>]
+=== SYSTEM JOB MATCHES ===
+=== GIF2ANI RUNTIME ===
+total 0
+drwxr-xr-x  2 mobile mobile  64 Jul 25 11:49 .
+drwxr-xr-x 28 mobile mobile 896 Jul 25 11:49 ..
+runtime_status=missing
+=== RECENT CRASHES ===
+ssh_exit=0
