@@ -1,0 +1,23 @@
+Gif2Ani 3.2.1 Settings Final
+run_id=30175719011
+install=failure
+
+--- sanitized output ---
+connected=1
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== SNAPSHOT ===
+active_size_before=360114
+=== INSTALL 3.2.1 ===
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+(Reading database ... 19748 files and directories currently installed.)
+Preparing to unpack .../Gif2Ani-3.2.1-settings-final.deb ...
+Unpacking com.nightvibes33.gif2ani (3.2.1) over (3.2.0) ...
+Setting up com.nightvibes33.gif2ani (3.2.1) ...
+Processing triggers for org.coolstar.sileo (2.5.1) ...
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+installed_version=3.2.1
+=== APPLY REVERSIBLE SETTINGS MATRIX ===
+=== RESTORE USER STATE ===
+backboardd=13430->13531 springboard=13443->13544
