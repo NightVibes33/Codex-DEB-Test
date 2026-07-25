@@ -1,2 +1,3 @@
 patch=install-313-theos-path
-requested_at=2026-07-25T17:15:00-05:00
+requested_at=2026-07-25T17:16:00-05:00
+reason=retry-after-workflow-registration
