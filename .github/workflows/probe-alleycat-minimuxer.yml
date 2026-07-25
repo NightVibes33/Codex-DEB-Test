@@ -21,7 +21,7 @@ jobs:
       - name: Extract failed minimuxer step
         env:
           GH_TOKEN: ${{ github.token }}
-          JOB_ID: '89651432379'
+          JOB_ID: '89656272526'
         run: |
           set -euo pipefail
           mkdir -p build-diagnostics
@@ -34,10 +34,10 @@ jobs:
             echo "- Job: ${JOB_ID}"
             echo
             echo '```text'
-            grep -nEi 'minimuxer|rustbridge|rust_bridge|error:|failed|No such file|not found|exit code|cargo build|bindgen|cmake|pkgconf|openssl|aws-lc' "$RUNNER_TEMP/job.log" | tail -n 300 || true
+            grep -nEi 'minimuxer|rustbridge|rust_bridge|error:|failed|No such file|not found|exit code|cargo build|bindgen|cmake|pkgconf|openssl|aws-lc|autogen|autoreconf|automake|libtool|configure' "$RUNNER_TEMP/job.log" | tail -n 350 || true
             echo
-            echo '--- final 350 lines ---'
-            tail -n 350 "$RUNNER_TEMP/job.log"
+            echo '--- final 400 lines ---'
+            tail -n 400 "$RUNNER_TEMP/job.log"
             echo '```'
           } > build-diagnostics/alleycat-minimuxer-error.md
       - name: Commit probe result
