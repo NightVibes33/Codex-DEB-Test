@@ -1,4 +1,4 @@
-name: Verify Current ElleKit Loader Path
+name: Diagnose TweakLoader dlopen
 
 on:
   workflow_dispatch:
@@ -32,88 +32,165 @@ jobs:
           target=int(sys.argv[1])
           for env in json.load(open('environments.json')).get('environments',[]):
               if int(env.get('id',-1))==target:
-                  print('environment_name='+env['name'])
-                  raise SystemExit(0)
+                  print('environment_name='+env['name']); raise SystemExit(0)
           raise SystemExit('environment-not-found')
           PY
 
-  check:
+  diagnose:
     needs: resolve-environment
     environment:
       name: ${{ needs.resolve-environment.outputs.environment_name }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
+      - name: Build arm64 dlopen probe
+        id: build
+        env:
+          THEOS: /opt/theos
+          THEOS_MAKE_PATH: /opt/theos/makefiles
+          CI: "1"
+          SHELL: /bin/bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends bash curl build-essential git ca-certificates file openssh-client sshpass
+          sudo rm -rf /opt/theos
+          sudo mkdir -p /opt
+          sudo chown "$USER:$USER" /opt
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          mkdir -p dlopenprobe
+          cat > dlopenprobe/Makefile <<'MK'
+          ARCHS = arm64
+          TARGET = iphone:clang:latest:15.0
+          TOOL_NAME = dlopenprobe
+          dlopenprobe_FILES = main.c
+          dlopenprobe_CFLAGS = -Wall -Wextra
+          dlopenprobe_CODESIGN_FLAGS = -Sentitlements.plist
+          include $(THEOS)/makefiles/common.mk
+          include $(THEOS_MAKE_PATH)/tool.mk
+          MK
+          cat > dlopenprobe/main.c <<'CC'
+          #include <dlfcn.h>
+          #include <mach-o/dyld.h>
+          #include <stdio.h>
+          #include <stdlib.h>
+          #include <string.h>
+          #include <unistd.h>
+
+          static void print_env(const char *key) {
+              const char *value=getenv(key);
+              printf("env_%s=%s\n",key,value?value:"<unset>");
+          }
+
+          static void print_matching_images(const char *phase) {
+              printf("=== IMAGES %s ===\n",phase);
+              uint32_t count=_dyld_image_count();
+              printf("image_count=%u\n",count);
+              for(uint32_t i=0;i<count;i++) {
+                  const char *name=_dyld_get_image_name(i);
+                  if(name && (strstr(name,"ellekit") || strstr(name,"TweakLoader") || strstr(name,"Gif2Ani") || strstr(name,"systemhook"))) {
+                      printf("image=%s\n",name);
+                  }
+              }
+          }
+
+          static void *probe(const char *label,const char *path) {
+              dlerror();
+              void *handle=dlopen(path,RTLD_NOW|RTLD_LOCAL);
+              const char *error=dlerror();
+              printf("probe_%s_path=%s\n",label,path);
+              printf("probe_%s_handle=%p\n",label,handle);
+              printf("probe_%s_error=%s\n",label,error?error:"<none>");
+              return handle;
+          }
+
+          int main(void) {
+              printf("pid=%d\n",getpid());
+              print_env("DYLD_INSERT_LIBRARIES");
+              print_env("DYLD_LIBRARY_PATH");
+              print_env("JB_TWEAKLOADER_PATH");
+              print_env("JB_PINFO_FLAGS");
+              print_env("_MSSafeMode");
+              print_env("_SafeMode");
+              print_matching_images("BEFORE");
+              void *h1=probe("tweakloader","/var/jb/usr/lib/TweakLoader.dylib");
+              print_matching_images("AFTER_TWEAKLOADER");
+              void *h2=probe("libinjector","/var/jb/usr/lib/ellekit/libinjector.dylib");
+              print_matching_images("AFTER_LIBINJECTOR");
+              void *h3=probe("gif2ani","/var/jb/usr/lib/TweakInject/Gif2Ani.dylib");
+              print_matching_images("AFTER_GIF2ANI");
+              if(h3) dlclose(h3);
+              if(h2) dlclose(h2);
+              if(h1) dlclose(h1);
+              return 0;
+          }
+          CC
+          cat > dlopenprobe/Entitlements.plist <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>platform-application</key><true/>
+            <key>com.apple.private.security.no-container</key><true/>
+            <key>get-task-allow</key><true/>
+          </dict></plist>
+          PLIST
+          make -C dlopenprobe clean all FINALPACKAGE=1
+          BIN="$(find dlopenprobe/.theos -type f -name dlopenprobe -perm -111 | head -n1)"
+          test -n "$BIN"
+          cp "$BIN" dlopenprobe-tool
+          file dlopenprobe-tool | grep -q arm64
       - uses: tailscale/github-action@v4
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
           version: latest
-      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends openssh-client sshpass
-      - name: Create read-only device script
-        run: |
-          cat > verify-current-loader-path.sh <<'SH'
-          #!/bin/sh
-          set +e
-          media="/var/mobile/Library/Application Support/Gif2Ani"
-          bb=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')
-          sb=$(ps ax | awk '/[S]pringBoard/{print $1; exit}')
-          echo '=== PACKAGES ==='
-          dpkg-query -W -f='${Package}\t${Version}\t${Status}\n' ellekit com.nightvibes33.gif2ani 2>&1
-          echo '=== GLOBAL LOADER PATH ==='
-          echo "JB_TWEAKLOADER_PATH=$(/var/jb/usr/bin/launchctl getenv JB_TWEAKLOADER_PATH 2>/dev/null || true)"
-          echo '=== PROCESSES ==='
-          echo "backboardd_pid=$bb"
-          echo "springboard_pid=$sb"
-          ps eww -p "$bb" 2>&1 || true
-          ps eww -p "$sb" 2>&1 || true
-          echo '=== RUNTIME DIRECTORY ==='
-          ls -la "$media" 2>&1 || true
-          echo '=== RUNTIME STATUS ==='
-          cat "$media/runtime-status.plist" 2>/dev/null || echo runtime_status=missing
-          echo '=== SAFE MODE GATES ==='
-          echo "_MSSafeMode=$(/var/jb/usr/bin/launchctl getenv _MSSafeMode 2>/dev/null || true)"
-          echo "_SafeMode=$(/var/jb/usr/bin/launchctl getenv _SafeMode 2>/dev/null || true)"
-          if [ -e /var/mobile/.eksafemode ]; then echo eksafemode_file=present; else echo eksafemode_file=absent; fi
-          echo '=== RECENT CRASHES ==='
-          find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -mmin -30 -print 2>/dev/null || true
-          SH
-          chmod +x verify-current-loader-path.sh
-      - name: Run read-only verification
+      - name: Run non-rebooting dlopen diagnostic
         id: collect
         env:
           SSHPASS: ${{ secrets.IPAD_PASSWORD }}
         run: |
-          set -uo pipefail
-          set +e
-          timeout 60 sshpass -e scp -P 22 -o ConnectTimeout=12 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null verify-current-loader-path.sh mobile@"$IPAD_HOST":/var/mobile/Media/
-          copy_code=$?
-          if [ "$copy_code" -eq 0 ]; then
-            timeout 60 sshpass -e ssh -p 22 -o ConnectTimeout=12 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sh /var/mobile/Media/verify-current-loader-path.sh' 2>&1 | tee current-loader-path.txt
-            code=${PIPESTATUS[0]}
-          else
-            code=$copy_code
-            echo "scp_exit=$copy_code" | tee current-loader-path.txt
-          fi
-          set -e
-          echo "probe_exit=$code" | tee -a current-loader-path.txt
-          exit "$code"
-      - name: Publish status
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 48); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          echo "connected=$connected" | tee dlopen-diagnostic.txt
+          test "$connected" -eq 1
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null dlopenprobe-tool mobile@"$IPAD_HOST":/var/mobile/Media/dlopenprobe
+          sshpass -e ssh -p 22 -o ConnectTimeout=30 -o ServerAliveInterval=5 -o ServerAliveCountMax=3 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sh -c '\''
+            echo "=== PATHS ==="
+            ls -la /var/jb/usr/lib/TweakLoader.dylib /var/jb/usr/lib/ellekit/libinjector.dylib /var/jb/usr/lib/TweakInject/Gif2Ani.dylib 2>&1 || true
+            readlink /var/jb/usr/lib/TweakLoader.dylib 2>&1 || true
+            echo "=== FILE TYPES ==="
+            file /var/jb/usr/lib/TweakLoader.dylib /var/jb/usr/lib/ellekit/libinjector.dylib /var/jb/usr/lib/TweakInject/Gif2Ani.dylib 2>&1 || true
+            echo "=== DLOPEN PROBE ==="
+            chmod 0755 /var/mobile/Media/dlopenprobe
+            /var/mobile/Media/dlopenprobe 2>&1
+            echo "=== RUNTIME STATUS AFTER ==="
+            cat "/var/mobile/Library/Application Support/Gif2Ani/runtime-status.plist" 2>/dev/null || echo runtime_status=missing
+            rm -f /var/mobile/Media/dlopenprobe
+          '\''' 2>&1 | tee -a dlopen-diagnostic.txt
+      - name: Publish result
         if: always()
+        env:
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          COLLECT_OUTCOME: ${{ steps.collect.outcome }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git pull --rebase origin main
           {
-            echo 'Current ElleKit Loader Path Verification'
+            echo "TweakLoader dlopen Diagnostic"
             echo "run_id=${GITHUB_RUN_ID}"
-            echo "collect=${{ steps.collect.outcome }}"
+            echo "build=$BUILD_OUTCOME"
+            echo "collect=$COLLECT_OUTCOME"
             echo
-            cat current-loader-path.txt 2>/dev/null || echo 'No output.'
-          } > remote/current-ellekit-loader-path.txt
-          git add remote/current-ellekit-loader-path.txt
+            cat dlopen-diagnostic.txt 2>/dev/null || echo "No output."
+          } > remote/tweakloader-dlopen-diagnostic.txt
+          git add remote/tweakloader-dlopen-diagnostic.txt
           if ! git diff --cached --quiet; then
-            git commit -m 'Record current ElleKit loader path [skip ci]'
+            git commit -m "Record TweakLoader dlopen diagnostic [skip ci]"
             git push origin HEAD:main
           fi
