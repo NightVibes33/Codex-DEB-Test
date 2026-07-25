@@ -1,12 +1,12 @@
 iPad Tailscale SSH Bridge
-run_id=30149265064
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30149265064
-commit=ee8100d48e08eb15b0f830059d89cace40f3c2b4
+run_id=30149420621
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30149420621
+commit=f8a404c977668826fd2eb40ba8eb478c42cc0803
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
 install_ssh=success
-ssh=success
+ssh=failure
 
 --- sanitized SSH output ---
 Checking SSH host key over Tailscale...
@@ -16,10 +16,13 @@ Checking SSH host key over Tailscale...
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-BOOTSTRAP_RSA_N_HEX_BEGIN
-649a9b7ac932fc9fbd8175182491d8f617c91930e471a225701ebc895b8c7fb1f635fc162b54d0c5921d00d9bd8673dd86223aa88f0aef2ae2cb560fc4c37fe6d65b2a702758321a68e533638edaa91e3b4a805656f9e78deab0515c553a3d9538f84c3b206a83111cc0fc065bc4b25fd3d871117ddf9aa73eda31a8014893f7e3914dc12bc485a961b3695c17b60364482834bbd7e3f7033d017a50a6aadfb8615e7f9122cbe4928174e4f2dc73ad7b84d31ccfe4423d96b7da8e8093e086e65c4868a940936e19fbe30f441139cc9b269a5e8c296b4676512d87740c9ca3ed4061207684a8e66dd1d231370d720fb739ca7852c6f19d11f49604288db63a71
-BOOTSTRAP_RSA_N_HEX_END
-BOOTSTRAP_RSA_E=65537
-BOOTSTRAP_RSA_BITS=2047
-bootstrap_status=ready
-ssh_exit_code=0
+token_decrypt=success
+github_login=NightVibes33
+ssh_authorization=account-key-created
+ssh_test=authenticated
+fatal: cannot run ssh -i /var/mobile/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new: No such file or directory
+fatal: unable to fork
+
+push_exit_code=128
+bootstrap_error=push-failed
+ssh_exit_code=1
