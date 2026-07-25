@@ -1,0 +1,31 @@
+Gif2Ani Dlopen Diagnostic
+run_id=30169838236
+probe=success
+
+--- sanitized output ---
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== FILES ===
+lrwxr-xr-x 1 root wheel     32 Jun 11  2024 /var/jb/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate -> /var/jb/usr/lib/libellekit.dylib
+-rwxr-xr-x 1 root wheel  89104 Jul 25 12:02 /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib
+-rwxr-xr-x 1 root wheel  89104 Jul 25 12:02 /var/jb/usr/lib/TweakInject/Gif2Ani.dylib
+-rw-r--r-- 1 root wheel 820000 Jun 11  2024 /var/jb/usr/lib/libellekit.dylib
+=== MACH-O ===
+/var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib: Mach-O 64-bit arm64 dynamically linked shared library, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|NO_REEXPORTED_DYLIBS>
+/var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib:
+	@rpath/Gif2Ani.dylib (compatibility version 0.0.0, current version 0.0.0)
+	/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)
+	/System/Library/Frameworks/Foundation.framework/Foundation (compatibility version 300.0.0, current version 1971.0.0)
+	/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation (compatibility version 150.0.0, current version 1971.0.0)
+	/System/Library/Frameworks/UIKit.framework/UIKit (compatibility version 1.0.0, current version 6441.1.101)
+	/System/Library/Frameworks/ImageIO.framework/ImageIO (compatibility version 1.0.0, current version 1.0.0)
+	/System/Library/Frameworks/QuartzCore.framework/QuartzCore (compatibility version 1.2.0, current version 1.11.0)
+	/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 1500.65.0)
+	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1319.100.3)
+	/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics (compatibility version 64.0.0, current version 1690.5.4)
+	@rpath/CydiaSubstrate.framework/CydiaSubstrate (compatibility version 0.0.0, current version 0.0.0)
+=== ENTITLEMENTS ===
+=== PYTHON DLOPEN ===
+dlopen_success=yes
+handle=12919632
+=== CURRENT MARKER ===
+runtime_status=missing
