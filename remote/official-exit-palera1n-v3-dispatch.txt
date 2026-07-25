@@ -1,0 +1,7 @@
+Official palera1n Exit V3 Dispatch
+run_id=30168856090
+outcome=success
+
+curl_exit=0
+http_code=204
+official_exit_v3_dispatched=yes
