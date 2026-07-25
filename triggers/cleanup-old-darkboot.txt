@@ -1,2 +1,0 @@
-trigger=cleanup-old-darkboot-data
-requested_at=2026-07-25T15:10:00Z
