@@ -1,3 +1,3 @@
-diagnose=ellekit-loader
-requested_at=2026-07-25T19:20:00-05:00
-reason=verify-after-post-exit-ellekit-loader-userspace-reboot
+diagnose=quick-gif2ani-post-exit
+requested_at=2026-07-25T19:38:00-05:00
+reason=bounded-current-state-check
