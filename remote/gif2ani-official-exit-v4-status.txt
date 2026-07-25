@@ -1,27 +1,9 @@
 Official palera1n Exit Safemode V4
-run_id=30169363614
+run_id=30169559734
 tailscale=success
 execute=failure
 
 --- sanitized output ---
-AppleTVOS12.4.sdk/usr/include/simd/vector_types.h
-AppleTVOS12.4.sdk/usr/include/simd/vector_make.h
-AppleTVOS12.4.sdk/usr/include/simd/simd.h
-AppleTVOS12.4.sdk/usr/include/simd/matrix.h
-AppleTVOS12.4.sdk/usr/include/simd/vector.h
-AppleTVOS12.4.sdk/usr/include/simd/conversion.h
-AppleTVOS12.4.sdk/usr/include/simd/quaternion.h
-AppleTVOS12.4.sdk/usr/include/utmpx.h
-AppleTVOS12.4.sdk/usr/include/sysexits.h
-AppleTVOS12.4.sdk/usr/include/Endian.h
-AppleTVOS12.4.sdk/usr/include/Block.h
-AppleTVOS12.4.sdk/usr/include/spawn.h
-AppleTVOS12.4.sdk/usr/include/complex.h
-AppleTVOS12.4.sdk/usr/include/stddef.h
-AppleTVOS12.4.sdk/usr/include/inttypes.h
-AppleTVOS12.4.sdk/usr/include/__cxxabi_config.h
-AppleTVOS12.4.sdk/usr/include/AvailabilityMacros.h
-AppleTVOS12.4.sdk/usr/include/ftw.h
 AppleTVOS12.4.sdk/usr/include/sched.h
 AppleTVOS12.4.sdk/usr/include/math.h
 AppleTVOS12.4.sdk/usr/include/bitstring.h
@@ -418,8 +400,7 @@ AppleTVOS12.4.sdk/usr/lib/libIOAccessoryManager.tbd
 AppleTVOS12.4.sdk/usr/lib/libbsm.0.tbd
 AppleTVOS12.4.sdk/usr/lib/libicucore.A.tbd
 
-100 5693k  100 5693k    0     0  9437k      0 --:--:-- --:--:-- --:--:-- 9437k
-100 5693k  100 5693k    0     0  9435k      0 --:--:-- --:--:-- --:--:--     0
+100 5693k  100 5693k    0     0  9163k      0 --:--:-- --:--:-- --:--:-- 9163k
 AppleTVOS12.4.sdk/usr/lib/libbz2.tbd
 AppleTVOS12.4.sdk/usr/lib/libSystem_asan.tbd
 AppleTVOS12.4.sdk/usr/lib/libnetwork.tbd
@@ -473,34 +454,53 @@ AppleTVOS12.4.sdk/Entitlements.plist
 [0;34m==> [1;34mTheos Installer:[m Theos has been successfully installed! Restart your shell and then run $THEOS/bin/nic.pl to get started.
 === THEOS PATHS ===
 total 124
-drwxrwxrwx+ 15 runner runner  4096 Jul 25 18:19 .
-drwxrwxrwx+ 15 runner runner  4096 Jul 25 18:19 ..
-drwxrwxrwx+  8 runner runner  4096 Jul 25 18:19 .git
-drwxrwxrwx+  4 runner runner  4096 Jul 25 18:19 .github
--rw-rw-rw-+  1 runner runner    89 Jul 25 18:19 .gitignore
--rw-rw-rw-+  1 runner runner   750 Jul 25 18:19 .gitmodules
--rw-rw-rw-+  1 runner runner  5219 Jul 25 18:19 CODE_OF_CONDUCT.md
--rw-rw-rw-+  1 runner runner 35367 Jul 25 18:19 LICENSE.md
--rw-rw-rw-+  1 runner runner  1045 Jul 25 18:19 Prefix.pch
--rw-rw-rw-+  1 runner runner  3290 Jul 25 18:19 README.md
-drwxrwxrwx+  2 runner runner  4096 Jul 25 18:19 bin
-drwxrwxrwx+  3 runner runner  4096 Jul 25 18:19 docs
-drwxrwxrwx+  3 runner runner  4096 Jul 25 18:19 extras
-drwxrwxrwx+  2 runner runner  4096 Jul 25 18:19 include
-drwxrwxrwx+  3 runner runner  4096 Jul 25 18:19 lib
-drwxrwxrwx+  8 runner runner  4096 Jul 25 18:19 makefiles
-drwxrwxrwx+  2 runner runner  4096 Jul 25 18:19 mod
--rw-rw-rw-+  1 runner runner   657 Jul 25 18:19 package.json
-drwxrwxrwx+  4 runner runner  4096 Jul 25 18:19 sdks
-drwxrwxrwx+  2 runner runner  4096 Jul 25 18:19 templates
-drwxrwxrwx+  3 runner runner  4096 Jul 25 18:19 toolchain
-drwxrwxrwx+ 11 runner runner  4096 Jul 25 18:19 vendor
+drwxrwxrwx+ 15 runner runner  4096 Jul 25 18:25 .
+drwxrwxrwx+ 15 runner runner  4096 Jul 25 18:25 ..
+drwxrwxrwx+  8 runner runner  4096 Jul 25 18:25 .git
+drwxrwxrwx+  4 runner runner  4096 Jul 25 18:25 .github
+-rw-rw-rw-+  1 runner runner    89 Jul 25 18:25 .gitignore
+-rw-rw-rw-+  1 runner runner   750 Jul 25 18:25 .gitmodules
+-rw-rw-rw-+  1 runner runner  5219 Jul 25 18:25 CODE_OF_CONDUCT.md
+-rw-rw-rw-+  1 runner runner 35367 Jul 25 18:25 LICENSE.md
+-rw-rw-rw-+  1 runner runner  1045 Jul 25 18:25 Prefix.pch
+-rw-rw-rw-+  1 runner runner  3290 Jul 25 18:25 README.md
+drwxrwxrwx+  2 runner runner  4096 Jul 25 18:25 bin
+drwxrwxrwx+  3 runner runner  4096 Jul 25 18:25 docs
+drwxrwxrwx+  3 runner runner  4096 Jul 25 18:25 extras
+drwxrwxrwx+  2 runner runner  4096 Jul 25 18:25 include
+drwxrwxrwx+  3 runner runner  4096 Jul 25 18:25 lib
+drwxrwxrwx+  8 runner runner  4096 Jul 25 18:25 makefiles
+drwxrwxrwx+  2 runner runner  4096 Jul 25 18:25 mod
+-rw-rw-rw-+  1 runner runner   657 Jul 25 18:25 package.json
+drwxrwxrwx+  4 runner runner  4096 Jul 25 18:25 sdks
+drwxrwxrwx+  2 runner runner  4096 Jul 25 18:25 templates
+drwxrwxrwx+  3 runner runner  4096 Jul 25 18:25 toolchain
+drwxrwxrwx+ 11 runner runner  4096 Jul 25 18:25 vendor
 total 16
-drwxrwxrwx+  4 runner runner 4096 Jul 25 18:19 .
-drwxrwxrwx+ 15 runner runner 4096 Jul 25 18:19 ..
--rw-rw-rw-+  1 runner runner    0 Jul 25 18:19 .keep
+drwxrwxrwx+  4 runner runner 4096 Jul 25 18:25 .
+drwxrwxrwx+ 15 runner runner 4096 Jul 25 18:25 ..
+-rw-rw-rw-+  1 runner runner    0 Jul 25 18:25 .keep
 drwxr-xr-x+  4 runner runner 4096 Nov 23  2023 AppleTVOS12.4.sdk
 drwxr-xr-x+  5 runner runner 4096 Nov 23  2023 iPhoneOS16.5.sdk
 selected_sdk=/opt/theos/sdks/iPhoneOS16.5.sdk
-clang_path=
+clang_path=/opt/theos/toolchain/linux/iphone/bin/clang
 ldid_path=/opt/theos/toolchain/linux/iphone/bin/ldid
+exitpale-v4: Mach-O 64-bit arm64 executable, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|PIE>
+helper_build=success
+=== WAIT FOR IPAD SSH ===
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+prepared_disabled_clean_state=yes
+=== SEND OFFICIAL PALERA1N EXIT SAFE MODE COMMAND ===
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+Timeout, server 100.116.117.65 not responding.
+exit_command_ssh_exit=255
+=== WAIT FOR IPAD AFTER OFFICIAL EXIT ===
+reconnected_after_official_exit=1
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
