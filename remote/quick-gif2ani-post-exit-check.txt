@@ -1,0 +1,29 @@
+Quick Gif2Ani Post-Exit Check
+run_id=30169829639
+collect=success
+
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== PACKAGES ===
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+  
+  
+=== PROCESSES ===
+ 6314   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+ 6346   ??  ?s     0:00.00 /usr/libexec/backboardd
+ 6781   ??  ?s     0:00.00 sh -c \012    echo "=== PACKAGES ==="\012    dpkg-query -W -f="${Package} ${Version} ${Status}\n" ellekit com.nightvibes33.gif2ani 2>&1 || true\012    echo "=== PROCESSES ==="\012    ps ax | grep -E "[b]ackboardd|[S]pringBoard" || true\012    echo "=== GIF SLOTS ==="\012    media="/var/mobile/Library/Application Support/Gif2Ani"\012    for f in Pending.gif Active.gif Rejected.gif load-in-progress runtime-status.plist; do\012      if [ -e "$media/$f" ]; then echo "$f=present"; else echo "$f=absent"; fi\012    done\012    echo "=== RUNTIME STATUS ==="\012    cat "$media/runtime-status.plist" 2>/dev/null || echo runtime_status=missing\012    echo "=== SAFE MODE GATES ==="\012    echo "_MSSafeMode=$(/var/jb/usr/bin/launchctl getenv _MSSafeMode 2>/dev/null || true)"\012    echo "_SafeMode=$(/var/jb/usr/bin/launchctl getenv _SafeMode 2>/dev/null || true)"\012    if [ -e /var/mobile/.eksafemode ]; then echo eksafemode_file=present; else echo eksafemode_file=absent; fi\012    echo "=== RECENT CRASHES ==="\012    find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name "backboardd-*.ips" -o -name "SpringBoard-*.ips" \) -mmin -20 -print 2>/dev/null | wc -l | tr -d " "\012  
+=== GIF SLOTS ===
+Pending.gif=absent
+Active.gif=absent
+Rejected.gif=absent
+load-in-progress=absent
+runtime-status.plist=absent
+=== RUNTIME STATUS ===
+runtime_status=missing
+=== SAFE MODE GATES ===
+_MSSafeMode=
+_SafeMode=
+eksafemode_file=absent
+=== RECENT CRASHES ===
+0
+ssh_exit=0
