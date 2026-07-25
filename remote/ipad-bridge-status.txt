@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30149492572
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30149492572
-commit=edee2ab8e7ff93c53f6446b952ac1b4993594d27
+run_id=30149561344
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30149561344
+commit=5bd63344e1ac9ec77674153faa272170613cf1f7
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -18,5 +18,5 @@ Checking SSH host key over Tailscale...
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
 === GitHub SSH verification ===
 Hi NightVibes33! You've successfully authenticated, but GitHub does not provide shell access.
-/var/jb/usr/bin/sh: 32: Syntax error: Unterminated quoted string
+/var/jb/usr/bin/sh: 23: Syntax error: end of file unexpected (expecting "}")
 ssh_exit_code=2
