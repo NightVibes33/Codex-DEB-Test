@@ -66,7 +66,7 @@ jobs:
           TOOL_NAME = dlopenprobe
           dlopenprobe_FILES = main.c
           dlopenprobe_CFLAGS = -Wall -Wextra
-          dlopenprobe_CODESIGN_FLAGS = -Sentitlements.plist
+          dlopenprobe_CODESIGN_FLAGS = -SEntitlements.plist
           include $(THEOS)/makefiles/common.mk
           include $(THEOS_MAKE_PATH)/tool.mk
           MK
