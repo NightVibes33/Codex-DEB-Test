@@ -1,0 +1,42 @@
+Gif2Ani 3.1.1 Injection Diagnostic
+run_id=30166866989
+post_respring_injection=failure
+
+--- sanitized output ---
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== PACKAGE ===
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+com.nightvibes33.gif2ani	3.1.1
+-rwxr-xr-x 1 root wheel 89104 Jul 25 12:02 /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib
+-rw-r--r-- 1 root wheel   313 Jul 25 12:02 /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist
+=== DISABLED CLEAN STATE ===
+=== PROCESSES ===
+ 1010   ??  ?s     0:00.00 /usr/libexec/backboardd
+ 1012   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+=== SAFE MODE MARKERS ===
+=== CURRENT RUNTIME STATUS ===
+runtime_status=missing
+=== CRASH COUNT LAST 10 MINUTES ===
+recent_crash_count=0
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+respring_exit=0
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+backboard_restart_exit=0
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== PACKAGE ===
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+com.nightvibes33.gif2ani	3.1.1
+-rwxr-xr-x 1 root wheel 89104 Jul 25 12:02 /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib
+-rw-r--r-- 1 root wheel   313 Jul 25 12:02 /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist
+=== DISABLED CLEAN STATE ===
+=== PROCESSES ===
+ 1084   ??  ?s     0:00.00 /usr/libexec/backboardd
+ 1086   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+=== SAFE MODE MARKERS ===
+=== CURRENT RUNTIME STATUS ===
+runtime_status=missing
+=== CRASH COUNT LAST 10 MINUTES ===
+recent_crash_count=0
+normal_injection_detected=no
