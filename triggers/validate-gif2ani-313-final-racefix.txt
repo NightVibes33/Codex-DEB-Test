@@ -1,4 +1,5 @@
 validate=gif2ani-3.1.3-final-cached-layer
-requested_at=2026-07-25T17:15:00-05:00
+requested_at=2026-07-25T17:20:00-05:00
 deb_sha256=56be3e0656ab6770dd3f352ddcd6fb308a887bded980ee818e8e6fe46b6e5281
+harness=accept-early-custom-animation-stable
 cleanup=mandatory-disabled-no-media
