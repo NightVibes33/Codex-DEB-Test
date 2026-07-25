@@ -1,0 +1,258 @@
+name: Install Gif2Ani 3.1.2 Safely
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/install-gif2ani-3.1.2-safe.txt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+  ARTIFACT_URL: "https://sdmntprwestus3.oaiusercontent.com/files/00000000-9fb0-81fd-87b9-423df7befa4f/raw?se=2026-07-25T19:39:58Z&sp=r&sv=2026-02-06&sr=b&scid=2b988af7-0d7f-5ec3-9807-a12885dc20b2&skoid=2d2fbb03-9efb-4ad0-a91c-1db2f5a47997&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-07-25T15:04:43Z&ske=2026-07-27T15:04:43Z&sks=b&skv=2026-02-06&sig=TifGe4ifWNYK7ZIyj90z0KdYvbGdpB%2F3BfLXNEuV5Ig%3D"
+  ARTIFACT_SHA256: "a5224b6a3ae062332b7f114776c2a54f481153f0a09293eedf099d6242eb4640"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1)) == target:
+                  print('environment_name='+env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  install:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download and validate green DEB
+        id: package
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 "$ARTIFACT_URL" -o artifact.zip
+          unzip -q artifact.zip -d artifact
+          DEB="$(find artifact -maxdepth 1 -type f -name '*.deb' | head -n1)"
+          test -n "$DEB"
+          echo "$ARTIFACT_SHA256  $DEB" | sha256sum -c -
+          test "$(dpkg-deb --field "$DEB" Package)" = "com.nightvibes33.gif2ani"
+          test "$(dpkg-deb --field "$DEB" Version)" = "3.1.2"
+          cp "$DEB" Gif2Ani-3.1.2.deb
+
+      - name: Generate tiny two-frame staging fixture
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends imagemagick openssh-client sshpass
+          convert -size 64x64 xc:black -delay 20 -size 64x64 xc:white -delay 20 -loop 0 safe-stage-test.gif
+          test "$(stat -c %s safe-stage-test.gif)" -lt 1048576
+          identify safe-stage-test.gif
+
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Install disabled and verify inert selection
+        id: verify
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 60); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then
+              connected=1
+              break
+            fi
+            sleep 5
+          done
+          echo "connected=$connected" | tee gif2ani-312-install.txt
+          test "$connected" -eq 1
+
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            Gif2Ani-3.1.2.deb safe-stage-test.gif \
+            mobile@"$IPAD_HOST":/var/mobile/Media/
+
+          cat > install-gif2ani-312.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media='/var/mobile/Library/Application Support/Gif2Ani'
+          prefs='/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist'
+          marker='/var/mobile/Media/gif2ani-312-install.marker'
+          deb='/var/mobile/Media/Gif2Ani-3.1.2.deb'
+          fixture='/var/mobile/Media/safe-stage-test.gif'
+
+          mkdir -p "$media"
+          chown mobile:mobile "$media"
+          chmod 0755 "$media"
+          rm -f "$media/Pending.gif" "$media/Active.gif" "$media/Rejected.gif" \
+                "$media/load-in-progress" "$media/pending-metadata.plist" \
+                "$media/runtime-status.plist"
+          cat > "$prefs" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>isEnabled</key><false/>
+            <key>pendingReady</key><false/>
+            <key>imageTransformation</key><string>resizeAspect</string>
+            <key>customLoop</key><real>-1</real>
+            <key>customDuration</key><real>-1</real>
+            <key>backgroundColor</key><string>#000000</string>
+          </dict></plist>
+          PLIST
+          chown mobile:mobile "$prefs"
+          chmod 0644 "$prefs"
+
+          echo '=== INSTALL ==='
+          dpkg -i "$deb"
+          dpkg-query -W -f='${Package}\t${Version}\t${Status}\n' com.nightvibes33.gif2ani
+          test "$(dpkg-query -W -f='${Version}' com.nightvibes33.gif2ani)" = '3.1.2'
+
+          echo '=== RELOAD NEW DYLIB WITH TWEAK DISABLED ==='
+          touch "$marker"
+          oldpid=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')
+          killall -9 backboardd 2>/dev/null || true
+          newpid=''
+          for attempt in $(seq 1 45); do
+            newpid=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')
+            [ -n "$newpid" ] && [ "$newpid" != "$oldpid" ] && break
+            sleep 1
+          done
+          echo "old_backboardd_pid=$oldpid"
+          echo "new_backboardd_pid=$newpid"
+          test -n "$newpid"
+          sleep 12
+          cat "$media/runtime-status.plist"
+          grep -a -q 'tweak-loaded-no-media-decode' "$media/runtime-status.plist"
+
+          echo '=== SIMULATE DOCUMENT PICKER STAGING ONLY ==='
+          cp "$fixture" "$media/Pending.gif.importing"
+          chown mobile:mobile "$media/Pending.gif.importing"
+          chmod 0644 "$media/Pending.gif.importing"
+          mv "$media/Pending.gif.importing" "$media/Pending.gif"
+          cat > "$media/pending-metadata.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>sourceFrames</key><integer>2</integer>
+            <key>decodedFrames</key><integer>2</integer>
+            <key>sourceWidth</key><integer>64</integer>
+            <key>sourceHeight</key><integer>64</integer>
+            <key>decodedWidth</key><integer>64</integer>
+            <key>decodedHeight</key><integer>64</integer>
+            <key>estimatedDecodedBytes</key><integer>32768</integer>
+            <key>decoder</key><string>ImageIO-bounded-thumbnail</string>
+          </dict></plist>
+          PLIST
+          chown mobile:mobile "$media/pending-metadata.plist"
+          chmod 0644 "$media/pending-metadata.plist"
+          /var/jb/usr/bin/plutil -replace pendingReady -bool true "$prefs" 2>/dev/null || true
+          sleep 10
+
+          echo '=== INERT-SELECTION VERIFICATION ==='
+          cat "$prefs"
+          cat "$media/runtime-status.plist"
+          test -f "$media/Pending.gif"
+          test ! -e "$media/Active.gif"
+          test ! -e "$media/load-in-progress"
+          grep -a -q '<false/>' "$prefs"
+          grep -a -q 'tweak-loaded-no-media-decode' "$media/runtime-status.plist"
+          crashes=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \
+            \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' -o -name 'Preferences-*.ips' \) \
+            -newer "$marker" -print 2>/dev/null | wc -l | tr -d ' ')
+          echo "new_crash_reports=$crashes"
+          test "$crashes" = 0
+          echo inert_selection_test=success
+
+          echo '=== CLEAN TEST FIXTURE; LEAVE TWEAK DISABLED ==='
+          rm -f "$media/Pending.gif" "$media/pending-metadata.plist"
+          cat > "$prefs" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>isEnabled</key><false/>
+            <key>pendingReady</key><false/>
+            <key>imageTransformation</key><string>resizeAspect</string>
+            <key>customLoop</key><real>-1</real>
+            <key>customDuration</key><real>-1</real>
+            <key>backgroundColor</key><string>#000000</string>
+          </dict></plist>
+          PLIST
+          chown mobile:mobile "$prefs"
+          chmod 0644 "$prefs"
+          echo final_state=installed_3.1.2_disabled_no_media
+          SH
+
+          chmod +x install-gif2ani-312.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            install-gif2ani-312.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=90 -o ServerAliveInterval=8 -o ServerAliveCountMax=8 \
+            -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/install-gif2ani-312.sh' \
+            2>&1 | tee -a gif2ani-312-install.txt
+
+      - name: Publish sanitized result
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          PACKAGE_OUTCOME: ${{ steps.package.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('gif2ani-312-install.txt').read_text(errors='replace') if Path('gif2ani-312-install.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=[
+              'Gif2Ani 3.1.2 Safe Install and Inert Selection Test',
+              f"run_id={os.environ.get('GITHUB_RUN_ID','')}",
+              f"package={os.environ.get('PACKAGE_OUTCOME','')}",
+              f"verify={os.environ.get('VERIFY_OUTCOME','')}",
+              '', '--- sanitized output ---', *text.splitlines()[-800:]
+          ]
+          Path('/tmp/gif2ani-312-safe-install.txt').write_text('\n'.join(out)+'\n')
+          PY
+          for attempt in 1 2 3 4 5; do
+            git reset --hard HEAD
+            git pull --rebase origin main
+            mkdir -p remote
+            cp /tmp/gif2ani-312-safe-install.txt remote/gif2ani-312-safe-install.txt
+            git add remote/gif2ani-312-safe-install.txt
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "Record Gif2Ani 3.1.2 safe install [skip ci]"
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 3
+          done
+          exit 1
