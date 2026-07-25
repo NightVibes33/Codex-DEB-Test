@@ -1,0 +1,3 @@
+check=gif2ani-dlopen
+requested_at=2026-07-25T19:45:00-05:00
+reason=separate-loader-failure-from-binary-load-failure
