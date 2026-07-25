@@ -1,0 +1,11 @@
+Official palera1n Exit Safemode Result
+run_id=30167750560
+build=failure
+tailscale=skipped
+prepare=skipped
+exit_command=skipped
+reconnect=skipped
+verify=skipped
+
+--- sanitized output ---
+No output.
