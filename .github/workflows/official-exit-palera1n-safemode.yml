@@ -45,6 +45,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+
       - name: Build official Exit Safemode XPC helper
         id: build_helper
         env:
@@ -53,69 +54,85 @@ jobs:
           SHELL: /bin/bash
         run: |
           set -euo pipefail
-          sudo apt-get update
+          : > helper-build.log
+          sudo apt-get update 2>&1 | tee -a helper-build.log
           sudo apt-get install -y --no-install-recommends \
-            bash curl build-essential git ca-certificates openssh-client sshpass file
+            bash curl build-essential git ca-certificates openssh-client sshpass file 2>&1 | tee -a helper-build.log
           sudo rm -rf /opt/theos
           sudo mkdir -p /opt
           sudo chown "$USER:$USER" /opt
-          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)" 2>&1 | tee -a helper-build.log
+
           mkdir -p exitpale
           cat > exitpale/Makefile <<'MK'
           ARCHS = arm64
           TARGET = iphone:clang:latest:15.0
           TOOL_NAME = exitpale
-          exitpale_FILES = main.m
-          exitpale_CFLAGS = -fobjc-arc -Wall -Wextra
+          exitpale_FILES = main.c
+          exitpale_CFLAGS = -fblocks -Wall -Wextra
+          exitpale_LIBRARIES = xpc
           exitpale_CODESIGN_FLAGS = -Sentitlements.plist
           include $(THEOS)/makefiles/common.mk
           include $(THEOS_MAKE_PATH)/tool.mk
           MK
-          cat > exitpale/main.m <<'MM'
-          #import <Foundation/Foundation.h>
-          #import <xpc/xpc.h>
+
+          cat > exitpale/main.c <<'CC'
+          #include <xpc/xpc.h>
+          #include <stdint.h>
+          #include <stdio.h>
 
           static const uint64_t JBD_CMD_EXIT_SAFE_MODE = 10;
 
           int main(void) {
-              @autoreleasepool {
-                  xpc_connection_t connection = xpc_connection_create_mach_service(
-                      "in.palera.palera1nd.systemwide", NULL, 0
-                  );
-                  if (!connection || xpc_get_type(connection) == XPC_TYPE_ERROR) {
-                      fprintf(stderr, "connection_create_failed\n");
-                      return 70;
-                  }
-                  xpc_connection_set_event_handler(connection, ^(xpc_object_t event) {
-                      (void)event;
-                  });
-                  xpc_connection_activate(connection);
+              xpc_connection_t connection = xpc_connection_create_mach_service(
+                  "in.palera.palera1nd.systemwide", NULL, 0
+              );
+              if (connection == NULL || xpc_get_type(connection) == XPC_TYPE_ERROR) {
+                  fprintf(stderr, "connection_create_failed\n");
+                  return 70;
+              }
 
-                  xpc_object_t request = xpc_dictionary_create(NULL, NULL, 0);
-                  xpc_dictionary_set_uint64(request, "cmd", JBD_CMD_EXIT_SAFE_MODE);
-                  xpc_object_t reply = xpc_connection_send_message_with_reply_sync(connection, request);
-                  xpc_release(request);
+              xpc_connection_set_event_handler(connection, ^(xpc_object_t event) {
+                  (void)event;
+              });
+              xpc_connection_activate(connection);
+
+              xpc_object_t request = xpc_dictionary_create(NULL, NULL, 0);
+              if (request == NULL) {
                   xpc_connection_cancel(connection);
                   xpc_release(connection);
-
-                  if (!reply || xpc_get_type(reply) == XPC_TYPE_ERROR) {
-                      const char *description = reply ? xpc_dictionary_get_string(reply, XPC_ERROR_KEY_DESCRIPTION) : NULL;
-                      fprintf(stderr, "xpc_reply_error=%s\n", description ?: "unknown");
-                      if (reply) xpc_release(reply);
-                      return 71;
-                  }
-
-                  int64_t error = xpc_dictionary_get_int64(reply, "error");
-                  const char *message = xpc_dictionary_get_string(reply, "message");
-                  const char *errorDescription = xpc_dictionary_get_string(reply, "errorDescription");
-                  printf("jailbreakd_error=%lld\n", error);
-                  if (message) printf("jailbreakd_message=%s\n", message);
-                  if (errorDescription) printf("jailbreakd_error_description=%s\n", errorDescription);
-                  xpc_release(reply);
-                  return error == 0 ? 0 : (int)error;
+                  fprintf(stderr, "request_create_failed\n");
+                  return 72;
               }
+              xpc_dictionary_set_uint64(request, "cmd", JBD_CMD_EXIT_SAFE_MODE);
+
+              xpc_object_t reply = xpc_connection_send_message_with_reply_sync(connection, request);
+              xpc_release(request);
+              xpc_connection_cancel(connection);
+              xpc_release(connection);
+
+              if (reply == NULL || xpc_get_type(reply) == XPC_TYPE_ERROR) {
+                  const char *description = reply != NULL
+                      ? xpc_dictionary_get_string(reply, XPC_ERROR_KEY_DESCRIPTION)
+                      : NULL;
+                  fprintf(stderr, "xpc_reply_error=%s\n", description != NULL ? description : "unknown");
+                  if (reply != NULL) xpc_release(reply);
+                  return 71;
+              }
+
+              int64_t error = xpc_dictionary_get_int64(reply, "error");
+              const char *message = xpc_dictionary_get_string(reply, "message");
+              const char *error_description = xpc_dictionary_get_string(reply, "errorDescription");
+              printf("jailbreakd_error=%lld\n", (long long)error);
+              if (message != NULL) printf("jailbreakd_message=%s\n", message);
+              if (error_description != NULL) {
+                  printf("jailbreakd_error_description=%s\n", error_description);
+              }
+              xpc_release(reply);
+              return error == 0 ? 0 : (int)error;
           }
-          MM
+          CC
+
           cat > exitpale/entitlements.plist <<'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -128,12 +145,19 @@ jobs:
             <key>get-task-allow</key><true/>
           </dict></plist>
           PLIST
-          make -C exitpale clean all FINALPACKAGE=1
+
+          set +e
+          make -C exitpale clean all FINALPACKAGE=1 2>&1 | tee -a helper-build.log
+          result=${PIPESTATUS[0]}
+          set -e
+          test "$result" -eq 0
+
           HELPER="$(find exitpale/.theos -type f -name exitpale -perm -111 | head -n1)"
           test -n "$HELPER"
           cp "$HELPER" exitpale-tool
-          file exitpale-tool | grep -q arm64
+          file exitpale-tool | tee -a helper-build.log | grep -q arm64
           test -s exitpale-tool
+          echo "helper_build=success" | tee -a helper-build.log
 
       - name: Join Tailscale
         id: tailscale
@@ -150,7 +174,10 @@ jobs:
           set -euo pipefail
           connected=0
           for attempt in $(seq 1 30); do
-            if sshpass -e ssh -p 22 -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            if sshpass -e ssh -p 22 -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then
+              connected=1
+              break
+            fi
             sleep 5
           done
           test "$connected" -eq 1
@@ -174,7 +201,17 @@ jobs:
           marker="/var/mobile/Media/gif2ani-official-exit.marker"
           test "$(dpkg-query -W com.nightvibes33.gif2ani | cut -f2)" = "3.1.1"
           mkdir -p "$media"
-          printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>' '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' '<plist version="1.0"><dict>' '  <key>isEnabled</key><false/>' '  <key>pendingReady</key><false/>' '  <key>imageTransformation</key><string>resizeAspect</string>' '  <key>customLoop</key><real>-1</real>' '  <key>customDuration</key><real>-1</real>' '  <key>backgroundColor</key><string>#000000</string>' '</dict></plist>' > "$prefs"
+          printf '%s\n' \
+            '<?xml version="1.0" encoding="UTF-8"?>' \
+            '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+            '<plist version="1.0"><dict>' \
+            '  <key>isEnabled</key><false/>' \
+            '  <key>pendingReady</key><false/>' \
+            '  <key>imageTransformation</key><string>resizeAspect</string>' \
+            '  <key>customLoop</key><real>-1</real>' \
+            '  <key>customDuration</key><real>-1</real>' \
+            '  <key>backgroundColor</key><string>#000000</string>' \
+            '</dict></plist>' > "$prefs"
           chown mobile:mobile "$media" "$prefs"
           chmod 0755 "$media"
           chmod 0644 "$prefs"
@@ -183,8 +220,12 @@ jobs:
           echo "prepared_disabled_clean_state=yes"
           SH
           chmod +x prepare.sh
-          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null prepare.sh mobile@"$IPAD_HOST":/var/mobile/Media/
-          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/prepare.sh' | tee official-exit-safemode.txt
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            prepare.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/prepare.sh' \
+            2>&1 | tee official-exit-safemode.txt
 
       - name: Send official Exit Safemode command
         id: exit_command
@@ -197,7 +238,8 @@ jobs:
           printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
             -o ConnectTimeout=20 -o ServerAliveInterval=3 -o ServerAliveCountMax=2 \
             -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            mobile@"$IPAD_HOST" 'sudo -S -p "" /var/mobile/Media/exitpale' 2>&1 | tee -a official-exit-safemode.txt
+            mobile@"$IPAD_HOST" 'sudo -S -p "" /var/mobile/Media/exitpale' \
+            2>&1 | tee -a official-exit-safemode.txt
           code=${PIPESTATUS[1]}
           set -e
           echo "exit_command_ssh_exit=$code" | tee -a official-exit-safemode.txt
@@ -212,7 +254,10 @@ jobs:
           sleep 10
           connected=0
           for attempt in $(seq 1 60); do
-            if sshpass -e ssh -p 22 -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            if sshpass -e ssh -p 22 -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then
+              connected=1
+              break
+            fi
             sleep 5
           done
           echo "reconnected_after_official_exit=$connected" | tee -a official-exit-safemode.txt
@@ -246,8 +291,12 @@ jobs:
           rm -f /var/mobile/Media/exitpale /var/mobile/Media/prepare.sh /var/mobile/Media/verify.sh
           SH
           chmod +x verify.sh
-          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null verify.sh mobile@"$IPAD_HOST":/var/mobile/Media/
-          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/verify.sh' 2>&1 | tee -a official-exit-safemode.txt
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            verify.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/verify.sh' \
+            2>&1 | tee -a official-exit-safemode.txt
 
       - name: Publish sanitized result
         if: always()
@@ -267,9 +316,20 @@ jobs:
           python3 - <<'PY'
           import os
           from pathlib import Path
-          text=Path('official-exit-safemode.txt').read_text(errors='replace') if Path('official-exit-safemode.txt').exists() else 'No output.'
+
+          sections=[]
+          for name in ('helper-build.log','official-exit-safemode.txt'):
+              path=Path(name)
+              if path.exists():
+                  sections += [f'--- {name} ---', *path.read_text(errors='replace').splitlines()[-350:]]
+          if not sections:
+              sections=['No output.']
+
           pw=os.environ.get('IPAD_PASSWORD','')
-          if pw: text=text.replace(pw,'***REDACTED***')
+          text='\n'.join(sections)
+          if pw:
+              text=text.replace(pw,'***REDACTED***')
+
           out=[
               'Official palera1n Exit Safemode Result',
               f"run_id={os.environ.get('GITHUB_RUN_ID','')}",
@@ -281,7 +341,7 @@ jobs:
               f"verify={os.environ.get('VERIFY_OUTCOME','')}",
               '',
               '--- sanitized output ---',
-              *text.splitlines()[-400:],
+              *text.splitlines()[-700:],
           ]
           Path('remote/gif2ani-official-exit-safemode-status.txt').write_text('\n'.join(out)+'\n')
           PY
