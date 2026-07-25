@@ -1,2 +1,2 @@
-trigger=install-safari-polyfills
-requested_at=2026-07-25T15:28:00-05:00
+trigger=install-safari-polyfills-isolated
+requested_at=2026-07-25T15:31:00-05:00
