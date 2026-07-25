@@ -1,3 +1,4 @@
-test=explicit-tweakloader-path
-requested_at=2026-07-25T14:15:00-05:00
+test=explicit-tweakloader-path-v2
+requested_at=2026-07-25T14:24:00-05:00
 state=gif2ani-disabled-no-media
+reason=correct-zsh-quoting-with-copied-script
