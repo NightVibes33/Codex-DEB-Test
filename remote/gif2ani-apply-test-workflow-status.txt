@@ -1,0 +1,22 @@
+Gif2Ani Apply and Respring Workflow Status
+run_id=30172008597
+status=completed
+conclusion=failure
+event=push
+head_sha=9adb9ec8a26978bd71d5a12d0e7be44029ab042d
+created_at=2026-07-25T19:38:29Z
+updated_at=2026-07-25T19:40:09Z
+job=resolve-environment status=completed conclusion=success id=89714612456
+  step=1 Set up job status=completed conclusion=success
+  step=2 Run set -euo pipefail status=completed conclusion=success
+  step=3 Complete job status=completed conclusion=success
+job=test-animation status=completed conclusion=failure id=89714619916
+  step=1 Set up job status=completed conclusion=success
+  step=2 Run actions/checkout@v4 status=completed conclusion=success
+  step=3 Generate safe DarkSword pulse GIF status=completed conclusion=success
+  step=4 Run tailscale/github-action@v4 status=completed conclusion=success
+  step=5 Upload, enable, and test one respring status=completed conclusion=failure
+  step=6 Publish result status=completed conclusion=success
+  step=11 Post Run tailscale/github-action@v4 status=completed conclusion=success
+  step=12 Post Run actions/checkout@v4 status=completed conclusion=success
+  step=13 Complete job status=completed conclusion=success
