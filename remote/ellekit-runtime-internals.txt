@@ -1,15 +1,15 @@
 ElleKit Runtime Internals
-run_id=30170379038
+run_id=30170393431
 probe=success
 
 --- sanitized output ---
 Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
-/var/mobile/Media/check-ellekit-internals.sh: 3: pgrep: not found
-/var/mobile/Media/check-ellekit-internals.sh: 4: pgrep: not found
 backboardd_pid=
 springboard_pid=
 === AVAILABLE TOOLS ===
 === LOADER ENTITLEMENTS ===
+/var/mobile/Media/check-ellekit-internals.sh: 3: pgrep: not found
+/var/mobile/Media/check-ellekit-internals.sh: 4: pgrep: not found
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -50,14 +50,14 @@ springboard_pid=
 program path = /sbin/launchd
 mach info = {
 	task-kernel port = 0x1e03 (unknown)
-	task-host port = 0x1c03 (host)
-	task-name port = 0x1a03 (unknown)
+	task-host port = 0x1d03 (host)
+	task-name port = 0xd03 (unknown)
 	task-bootstrap port = 0x0 (unknown)
-	task-inspect port = 0x1a07 (unknown)
-	task-read port = 0x1a0b (unknown)
+	task-inspect port = 0xd07 (unknown)
+	task-read port = 0xd0b (unknown)
 	task-access port = 0x0 (unknown)
-	task-debug control port = 0x1a0f (unknown)
-	exception port = 0x1d03 (unknown)
+	task-debug control port = 0xd0f (unknown)
+	exception port = 0xa03 (unknown)
 		EXC_BAD_ACCESS
 		EXC_BAD_INSTRUCTION
 		EXC_ARITHMETIC
