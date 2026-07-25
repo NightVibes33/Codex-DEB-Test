@@ -1,0 +1,166 @@
+name: Restart backboardd and Verify Gif2Ani
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - triggers/restart-backboardd-verify-gif2ani.txt
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name']); raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  verify:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - name: Install SSH tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends openssh-client sshpass
+      - name: Restart backboardd and verify
+        id: verify
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 48); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          echo "connected=$connected" | tee backboardd-verify.txt
+          test "$connected" -eq 1
+          cat > verify-backboardd.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media='/var/mobile/Library/Application Support/Gif2Ani'
+          prefs='/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist'
+          tool='/var/mobile/Media/launchdflags-tool'
+          marker='/var/mobile/Media/gif2ani-backboardd-restart.marker'
+          probe_label='com.nightvibes33.launchdflagprobe'
+
+          echo '=== PRECHECK ==='
+          test -x "$tool"
+          dpkg-query -W ellekit com.nightvibes33.gif2ani 2>&1 || true
+          mkdir -p "$media"
+          chmod 0777 "$media"
+          cat > "$prefs" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict><key>isEnabled</key><false/><key>pendingReady</key><false/><key>imageTransformation</key><string>resizeAspect</string><key>customLoop</key><real>-1</real><key>customDuration</key><real>-1</real><key>backgroundColor</key><string>#000000</string></dict></plist>
+          PLIST
+          chown mobile:mobile "$prefs"
+          chmod 0644 "$prefs"
+          rm -f "$media/Pending.gif" "$media/Active.gif" "$media/Rejected.gif" "$media/load-in-progress" "$media/runtime-status.plist"
+
+          echo '=== CLEAN TEMP PROBE ==='
+          /var/jb/usr/bin/launchctl bootout system/"$probe_label" 2>/dev/null || true
+          rm -f "/var/jb/Library/LaunchDaemons/${probe_label}.plist"
+          rm -f /var/jb/usr/lib/TweakInject/LaunchdFlagProbe.dylib /var/jb/usr/lib/TweakInject/LaunchdFlagProbe.plist
+          rm -f "$media/LaunchdFlagProbe-sh.txt" "$media/LaunchdEnv.txt"
+
+          echo '=== CONFIRM CLEAN LAUNCHD FLAGS ==='
+          "$tool" 0x4c00082
+
+          echo '=== RESTART BACKBOARDD ==='
+          touch "$marker"
+          oldpid=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')
+          echo "old_backboardd_pid=$oldpid"
+          /var/jb/usr/bin/killall -9 backboardd 2>/dev/null || true
+          newpid=''
+          for attempt in $(seq 1 45); do
+            newpid=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')
+            [ -n "$newpid" ] && [ "$newpid" != "$oldpid" ] && break
+            sleep 1
+          done
+          echo "new_backboardd_pid=$newpid"
+          test -n "$newpid"
+          sleep 15
+
+          echo '=== NEW BACKBOARDD ENV ==='
+          ps eww -p "$newpid" 2>&1 || true
+          echo '=== GIF2ANI RUNTIME ==='
+          cat "$media/runtime-status.plist" 2>/dev/null || echo runtime_status=missing
+          crashes=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -newer "$marker" -print 2>/dev/null | wc -l | tr -d ' ')
+          echo "new_crash_reports=$crashes"
+          if [ "$crashes" != "0" ]; then
+            echo rollback_reason=new_crash
+            "$tool" 0x6c00082 || true
+            /var/jb/usr/bin/killall -9 backboardd 2>/dev/null || true
+            exit 91
+          fi
+          test -f "$media/runtime-status.plist"
+          grep -a -q 'tweak-loaded-no-media-decode' "$media/runtime-status.plist"
+          test ! -e "$media/Pending.gif"
+          test ! -e "$media/Active.gif"
+          test ! -e "$media/Rejected.gif"
+          echo gif2ani_backboardd_injection=success
+          SH
+          chmod +x verify-backboardd.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null verify-backboardd.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=40 -o ServerAliveInterval=8 -o ServerAliveCountMax=4 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/verify-backboardd.sh' 2>&1 | tee -a backboardd-verify.txt
+          code=${PIPESTATUS[1]}
+          set -e
+          echo "verify_ssh_exit=$code" | tee -a backboardd-verify.txt
+          exit "$code"
+      - name: Publish result
+        if: always()
+        env:
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('backboardd-verify.txt').read_text(errors='replace') if Path('backboardd-verify.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=['Restart backboardd and Verify Gif2Ani',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"verify={os.environ.get('VERIFY_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-500:]]
+          Path('remote/restart-backboardd-verify-gif2ani.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/restart-backboardd-verify-gif2ani.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record backboardd Gif2Ani verification [skip ci]"
+            git push origin HEAD:main
+          fi
