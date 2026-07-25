@@ -1,3 +1,4 @@
-dispatch=2026-07-25T20:53:00-05:00
-workflow=build-install-gif2ani-340-downloadable.yml
+dispatch=2026-07-25T20:39:00-05:00
+workflow=build-install-gif2ani-340-final.yml
+patch=split-generated-theme-binary-checks
 darkboot_head=6707d16aaeb5753f49a374d2b3f98d52270aaf83
