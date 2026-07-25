@@ -1,4 +1,4 @@
-name: Check Gif2Ani Injection Metadata
+name: Inspect ElleKit APT Origin
 
 on:
   push:
@@ -36,7 +36,7 @@ jobs:
           raise SystemExit('environment-not-found')
           PY
 
-  check:
+  inspect:
     needs: resolve-environment
     environment:
       name: ${{ needs.resolve-environment.outputs.environment_name }}
@@ -49,40 +49,47 @@ jobs:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
           version: latest
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends openssh-client sshpass
-      - name: Create device diagnostic
+      - name: Create read-only APT script
         run: |
-          cat > check-gif2ani-metadata.sh <<'SH'
+          cat > inspect-ellekit-apt.sh <<'SH'
           #!/bin/sh
           set +e
-          ms="/var/jb/Library/MobileSubstrate/DynamicLibraries"
-          ti="/var/jb/usr/lib/TweakInject"
-          echo '=== DIRECTORY MAPPING ==='
-          ls -lid "$ms" "$ti" 2>&1
-          readlink "$ms" 2>/dev/null || true
-          readlink "$ti" 2>/dev/null || true
-          echo '=== GIF2ANI METADATA ==='
-          ls -li "$ms"/Gif2Ani.* "$ti"/Gif2Ani.* 2>&1
-          echo '=== FILTER CONTENTS ==='
-          echo '-- MobileSubstrate filter --'
-          cat "$ms/Gif2Ani.plist" 2>&1
-          echo '-- TweakInject filter --'
-          cat "$ti/Gif2Ani.plist" 2>&1
-          echo '=== DLOPEN ==='
-          /var/jb/usr/bin/python3 - <<'PY'
-          import ctypes
-          path='/var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib'
-          try:
-              ctypes.CDLL(path, mode=ctypes.RTLD_LOCAL)
-              print('dlopen_success=yes')
-          except Exception as exc:
-              print('dlopen_success=no')
-              print('dlopen_error=%r' % (exc,))
-          PY
-          echo '=== CURRENT MARKER ==='
-          cat '/var/mobile/Library/Application Support/Gif2Ani/runtime-status.plist' 2>/dev/null || echo runtime_status=missing
+          echo '=== INSTALLED ==='
+          dpkg-query -W -f='${Package}\t${Version}\t${Architecture}\t${Status}\n' ellekit 2>&1
+          echo '=== APT SOURCES ==='
+          for f in /var/jb/etc/apt/sources.list /var/jb/etc/apt/sources.list.d/*.list /var/jb/etc/apt/sources.list.d/*.sources; do
+            [ -f "$f" ] || continue
+            echo "--- $f"
+            sed -n '/^[[:space:]]*#/d;/^[[:space:]]*$/d;p' "$f"
+          done
+          echo '=== APT POLICY ==='
+          apt-cache policy ellekit 2>&1
+          echo '=== APT SHOW ==='
+          apt-cache show ellekit 2>&1 | sed -n '1,120p'
+          echo '=== CACHED INDEX FILES ==='
+          find /var/jb/var/lib/apt/lists -maxdepth 1 -type f -print 2>/dev/null | sort
+          echo '=== CACHED ELLEKIT STANZAS ==='
+          for f in /var/jb/var/lib/apt/lists/*Packages*; do
+            [ -f "$f" ] || continue
+            case "$f" in
+              *.lz4)
+                if command -v lz4 >/dev/null 2>&1; then
+                  lz4 -dc "$f" 2>/dev/null | awk 'BEGIN{RS=""} $0 ~ /^Package: ellekit$/m {print "--- source=" FILENAME "\n" $0 "\n"}' FILENAME="$f"
+                fi
+                ;;
+              *.gz)
+                gzip -dc "$f" 2>/dev/null | awk 'BEGIN{RS=""} $0 ~ /^Package: ellekit$/m {print "--- source=" FILENAME "\n" $0 "\n"}' FILENAME="$f"
+                ;;
+              *)
+                awk 'BEGIN{RS=""} $0 ~ /^Package: ellekit$/m {print "--- source=" FILENAME "\n" $0 "\n"}' "$f"
+                ;;
+            esac
+          done
+          echo '=== PACKAGE STATUS FILE STANZA ==='
+          awk 'BEGIN{RS=""} $0 ~ /^Package: ellekit$/m {print $0}' /var/jb/Library/dpkg/status 2>/dev/null
           SH
-          chmod +x check-gif2ani-metadata.sh
-      - name: Run read-only diagnostic
+          chmod +x inspect-ellekit-apt.sh
+      - name: Run read-only inspection
         id: probe
         env:
           SSHPASS: ${{ secrets.IPAD_PASSWORD }}
@@ -90,17 +97,17 @@ jobs:
         run: |
           set -uo pipefail
           set +e
-          timeout 60 sshpass -e scp -P 22 -o ConnectTimeout=12 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null check-gif2ani-metadata.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          timeout 60 sshpass -e scp -P 22 -o ConnectTimeout=12 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null inspect-ellekit-apt.sh mobile@"$IPAD_HOST":/var/mobile/Media/
           copy_code=$?
           if [ "$copy_code" -eq 0 ]; then
-            printf '%s\n' "$IPAD_PASSWORD" | timeout 60 sshpass -e ssh -p 22 -o ConnectTimeout=12 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/check-gif2ani-metadata.sh' 2>&1 | tee gif2ani-metadata.txt
+            printf '%s\n' "$IPAD_PASSWORD" | timeout 90 sshpass -e ssh -p 22 -o ConnectTimeout=12 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/inspect-ellekit-apt.sh' 2>&1 | tee ellekit-apt.txt
             code=${PIPESTATUS[1]}
           else
             code=$copy_code
-            echo "scp_exit=$copy_code" | tee gif2ani-metadata.txt
+            echo "scp_exit=$copy_code" | tee ellekit-apt.txt
           fi
           set -e
-          echo "probe_exit=$code" | tee -a gif2ani-metadata.txt
+          echo "probe_exit=$code" | tee -a ellekit-apt.txt
           exit "$code"
       - name: Publish result
         if: always()
@@ -115,14 +122,14 @@ jobs:
           python3 - <<'PY'
           import os
           from pathlib import Path
-          text=Path('gif2ani-metadata.txt').read_text(errors='replace') if Path('gif2ani-metadata.txt').exists() else 'No output.'
+          text=Path('ellekit-apt.txt').read_text(errors='replace') if Path('ellekit-apt.txt').exists() else 'No output.'
           pw=os.environ.get('IPAD_PASSWORD','')
           if pw: text=text.replace(pw,'***REDACTED***')
-          out=['Gif2Ani Injection Metadata Diagnostic',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"probe={os.environ.get('PROBE_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-180:]]
-          Path('remote/gif2ani-injection-metadata.txt').write_text('\n'.join(out)+'\n')
+          out=['ElleKit APT Origin Inspection',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"probe={os.environ.get('PROBE_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-420:]]
+          Path('remote/ellekit-apt-origin.txt').write_text('\n'.join(out)+'\n')
           PY
-          git add remote/gif2ani-injection-metadata.txt
+          git add remote/ellekit-apt-origin.txt
           if ! git diff --cached --quiet; then
-            git commit -m "Record Gif2Ani injection metadata [skip ci]"
+            git commit -m "Record ElleKit APT origin [skip ci]"
             git push origin HEAD:main
           fi
