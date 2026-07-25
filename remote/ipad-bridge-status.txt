@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30147251570
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30147251570
-commit=11437206c66724e596750aab688b4a9b9d30e4be
+run_id=30147417740
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30147417740
+commit=61ff282cfbe0c13a7376bd61119079b819348178
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -9,22 +9,103 @@ install_ssh=success
 ssh=success
 
 --- sanitized SSH output ---
-Checking SSH host key over Tailscale...
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-=== iPad SSH bridge diagnostic ===
-Sat Jul 25 01:18:26 CDT 2026
-uid=0(root) gid=0(wheel) groups=0(wheel)
-Darwin Bobbys-iPad 22.6.0 Darwin Kernel Version 22.6.0: Tue Jul  2 20:45:41 PDT 2024; root:xnu-8796.142.1.703.8~1/RELEASE_ARM64_S8000 iPad6,11 arm Darwin
-user=root
-cwd=/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus/var/mobile
-sshd=sudo=/var/jb/usr/bin/sudo
-tailscale-ip=Tailscale CLI not installed in the jailbreak shell
-=== rootless jailbreak paths ===
-lrwxr-xr-x 1 root wheel 79 Jan 10  2026 /var/jb -> /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus
--rwxr-xr-x 1 root wheel 806512 Jul  1  2024 /var/jb/usr/sbin/sshd
+drwxr-xr-x 79 root wheel 2528 Jul 24 23:30 /var/jb/usr/lib/TweakInject
+bootstrap-packages=dev.theos.orion14 1.0.2
+ellekit 1.1.3
+ldid 2.1.5-procursus7
+libclang-cpp16 16.0.0~5.9.2~RELEASE-1
+libllvm16 16.0.0~5.9.2~RELEASE-1
+llvm-16 16.0.0~5.9.2~RELEASE-1
+llvm-16-dev 16.0.0~5.9.2~RELEASE-1
+llvm-16-linker-tools 16.0.0~5.9.2~RELEASE-1
+llvm-16-runtime 16.0.0~5.9.2~RELEASE-1
+llvm-dev 16.0.0~5.9.2~RELEASE-1
+openssh 1:0
+openssh-client 9.7p1-1
+openssh-server 9.7p1-1
+openssh-sftp-server 9.7p1-1
+org.coolstar.sileo 2.5.1
+procursus-keyring 2020.05.09-4
+sudo 1.9.15p5
+xyz.willy.zebra 1.1.36
+
+=== Available research tools ===
+ldid=/var/jb/usr/bin/ldid
+codesign_allocate=/var/jb/usr/bin/codesign_allocate
+python3=/var/jb/usr/bin/python3
+git=/var/jb/usr/bin/git
+curl=/var/jb/usr/bin/curl
+wget=/var/jb/usr/bin/wget
+plutil=/var/jb/usr/bin/plutil
+otool=/var/jb/usr/bin/otool
+nm=/var/jb/usr/bin/nm
+strings=/var/jb/usr/bin/strings
+launchctl=/var/jb/usr/bin/launchctl
+vm_stat=/usr/bin/vm_stat
+
+=== Kernel and dyld assets ===
+-rwxr-xr-x 1 root wheel 902K Mar 20  2025 /usr/lib/dyld
+
+=== Code-signing and trust components ===
+-rwxr-xr-x 1 root wheel 137K Mar 20  2025 /usr/libexec/amfid
+-rwxr-xr-x 1 root wheel 697K Mar 20  2025 /usr/libexec/trustd
+-rwxr-xr-x 1 root wheel 53K Mar 20  2025 /usr/libexec/containermanagerd
+
+=== Kernel-facing device nodes ===
+crw------- 1 root  wheel     6,  0 Jul 24 00:38 klog
+crw-rw-rw- 1 root  wheel     3,  2 Jul 25 01:24 null
+crw------- 1 root  wheel    10,  0 Jul 24 00:38 pf
+crw-rw-rw- 1 root  wheel    13,  0 Jul 24 09:10 random
+crw-rw-rw- 1 root  wheel    13,  1 Jul 24 00:38 urandom
+crw-rw-rw- 1 root  wheel     3,  3 Jul 24 00:38 zero
+crw------- 1 root wheel 23, 0 Jul 25 00:11 /dev/bpf0
+crw------- 1 root wheel 23, 1 Jul 24 00:38 /dev/bpf1
+crw------- 1 root wheel 23, 2 Jul 24 00:38 /dev/bpf2
+crw------- 1 root wheel 23, 3 Jul 24 00:38 /dev/bpf3
+
+=== Relevant running processes ===
+    1     0 /sbin/launchd
+ 9805     0 /usr/libexec/amfid
+ 9875   282 /usr/libexec/trustd
+10026   501 /usr/libexec/gamecontrollerd
+10121   501 /var/containers/Bundle/Application/663433B5-62D5-4D09-974C-2D846B34DB92/FridaCodeManager.app/swifty
+10155     0 sshd: mobile@notty
+
+=== Resource headroom ===
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                                 988.
+Pages active:                             42333.
+Pages inactive:                           41895.
+Pages speculative:                          249.
+Pages throttled:                              0.
+Pages wired down:                         23290.
+Pages purgeable:                           1048.
+"Translation faults":                  28224927.
+Pages copy-on-write:                     678488.
+Pages zero filled:                     11257956.
+Pages reactivated:                      5515738.
+Pages purged:                            297869.
+File-backed pages:                        45710.
+Anonymous pages:                          38767.
+Pages stored in compressor:               52487.
+Pages occupied by compressor:             17869.
+Decompressions:                         3601939.
+Compressions:                           4445820.
+Pageins:                                4717247.
+Filesystem                                                                          Size   Used  Avail Capacity iused      ifree %iused  Mounted on
+com.apple.os.update-8579078043F0FC7B23462C6FC23605D3A3BB1E07@/dev/disk1s1           30Gi  4.2Gi  5.5Gi    44%  237568   57480720    0%   /
+/dev/disk1s2                                                                        30Gi   16Gi  5.5Gi    75%  155229   57480720    0%   /private/var
+/dev/disk1s5                                                                        30Gi  4.2Gi  5.5Gi    44%   26974   57480720    0%   /private/preboot
+time(seconds)        unlimited
+file(blocks)         unlimited
+data(kbytes)         unlimited
+stack(kbytes)        1008
+coredump(blocks)     0
+memory(kbytes)       unlimited
+locked memory(kbytes) unlimited
+process              950
+nofiles              256
+vmemory(kbytes)      unlimited
+
+=== Profile complete ===
 ssh_exit_code=0
