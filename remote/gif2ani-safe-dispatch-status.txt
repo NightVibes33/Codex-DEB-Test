@@ -1,0 +1,11 @@
+Gif2Ani Safe Installer Dispatch
+run_id=30166286182
+outcome=failure
+
+curl_exit=0
+http_code=422
+{
+  "message": "Workflow does not have 'workflow_dispatch' trigger",
+  "documentation_url": "https://docs.github.com/rest/actions/workflows#create-a-workflow-dispatch-event",
+  "status": "422"
+}
