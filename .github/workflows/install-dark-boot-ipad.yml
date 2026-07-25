@@ -9,8 +9,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: install-dark-boot-ipad
-  cancel-in-progress: true
+  group: install-dark-boot-ipad-${{ github.event.issue.number || github.run_id }}
+  cancel-in-progress: false
 
 env:
   DARK_BOOT_VERSION: "2.0.1"
