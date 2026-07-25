@@ -1,223 +1,105 @@
-Run: 30138598918
-Commit: bb4b101b0686a5178aece2b558633fc0351232a7
+Run: 30139130854
+Commit: 07871ff5e6df2de4d6cac5f09dc9c8699edda0fb
 Upstream: a3cd9f16f5b3dfefb928af3fa512b9dac6af9ac7
 
-   Compiling smallvec v1.15.1
-   Compiling rustix v1.1.3
    Compiling codex-utils-absolute-path v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/absolute-path)
-   Compiling parking_lot_core v0.9.12
-   Compiling parking_lot v0.12.5
-   Compiling icu_normalizer v2.1.1
-   Compiling tokio v1.49.0
-   Compiling idna_adapter v1.2.1
-   Compiling idna v1.1.0
-   Compiling url v2.5.8
-   Compiling nibble_vec v0.1.0
-   Compiling radix_trie v0.2.1
-   Compiling lsp-types v0.94.1
-   Compiling terminal_size v0.4.3
-   Compiling clap_builder v4.5.58
-   Compiling tokio-util v0.7.18
-   Compiling h2 v0.4.13
-   Compiling tokio-rustls v0.26.4
-   Compiling tower v0.5.3
-   Compiling clap v4.5.58
-   Compiling fd-lock v4.0.4
-   Compiling tokio-stream v0.1.18
-   Compiling tempfile v3.24.0
-   Compiling starlark_syntax v0.13.0
-   Compiling rustyline v14.0.0
-   Compiling hyper v1.8.1
-   Compiling tokio-native-tls v0.3.1
-   Compiling starlark v0.13.0
-   Compiling hyper-util v0.1.19
    Compiling codex-utils-cache v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/cache)
-   Compiling tower-http v0.6.8
-   Compiling fixed_decimal v0.7.1
-   Compiling hyper-tls v0.6.0
-   Compiling hyper-rustls v0.27.7
-   Compiling reqwest v0.12.28
-   Compiling icu_decimal v2.1.1
-   Compiling codex-utils-image v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/image)
    Compiling codex-git v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/git)
-   Compiling rama-utils v0.3.0-alpha.4
-   Compiling tokio-graceful v0.2.2
-   Compiling rama-core v0.3.0-alpha.4
-   Compiling tracing-subscriber v0.3.22
-   Compiling radix_trie v0.3.0
-   Compiling rama-http-types v0.3.0-alpha.4
-   Compiling tokio-tungstenite v0.28.0 (https://github.com/openai-oss-forks/tokio-tungstenite?rev=132f5b39c862e3a970f731d709608b3e6276d5f6#132f5b39)
-   Compiling moka v0.12.13
    Compiling codex-execpolicy v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/execpolicy)
+   Compiling codex-utils-image v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/image)
    Compiling codex-protocol v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/protocol)
-   Compiling rama-net v0.3.0-alpha.4
-   Compiling hickory-proto v0.25.2
-   Compiling hickory-resolver v0.25.2
-   Compiling hyper-timeout v0.5.2
-   Compiling axum v0.8.8
-   Compiling fluent-bundle v0.15.3
-   Compiling tonic v0.14.3
-   Compiling process-wrap v9.0.1
-   Compiling rama-http-headers v0.3.0-alpha.4
-   Compiling rama-dns v0.3.0-alpha.4
-   Compiling oauth2 v5.0.0
-   Compiling futures-intrusive v0.5.0
-   Compiling rama-http v0.3.0-alpha.4
-   Compiling which v8.0.0
-   Compiling rmcp v0.15.0
-   Compiling sqlx-core v0.8.6
-   Compiling rama-tcp v0.3.0-alpha.4
-   Compiling tonic-prost v0.14.3
-   Compiling fluent v0.16.1
-   Compiling tracing-opentelemetry v0.32.1
-   Compiling opentelemetry_sdk v0.31.0
-   Compiling tokio-test v0.4.5
    Compiling codex-utils-home-dir v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/home-dir)
    Compiling codex-utils-rustls-provider v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/rustls-provider)
    Compiling codex-keyring-store v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/keyring-store)
-   Compiling sqlx-sqlite v0.8.6
-   Compiling opentelemetry-proto v0.31.0
-   Compiling rama-http-core v0.3.0-alpha.4
    Compiling codex-client v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/codex-client)
-   Compiling i18n-embed v0.15.4
    Compiling codex-windows-sandbox v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/windows-sandbox-rs)
    Compiling codex-utils-string v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/string)
-   Compiling rama-unix v0.3.0-alpha.4
-   Compiling rama-udp v0.3.0-alpha.4
-   Compiling opentelemetry-http v0.31.0
    Compiling codex-experimental-api-macros v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/codex-experimental-api-macros)
    Compiling codex-skills v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/skills)
    Compiling codex-apply-patch v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/apply-patch)
-   Compiling age v0.11.2
-   Compiling codex-app-server-protocol v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/app-server-protocol)
-   Compiling nucleo v0.5.0 (https://github.com/helix-editor/nucleo.git?rev=4253de9faabb4e5c6d81d946a5e35a90f87347ee#4253de9f)
-   Compiling opentelemetry-otlp v0.31.0
-   Compiling rama-socks5 v0.3.0-alpha.4
-   Compiling rama-http-backend v0.3.0-alpha.4
-   Compiling sqlx v0.8.6
-   Compiling codex-api v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/codex-api)
-   Compiling rama-tls-rustls v0.3.0-alpha.4
    Compiling codex-package-manager v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/package-manager)
    Compiling codex-utils-pty v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/pty)
-   Compiling codex-shell-escalation v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/shell-escalation)
-   Compiling opentelemetry-appender-tracing v0.31.1
-   Compiling webbrowser v1.0.6
-   Compiling gethostname v1.1.0
-   Compiling codex-rmcp-client v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/rmcp-client)
-   Compiling codex-otel v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/otel)
-   Compiling codex-config v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/config)
    Compiling codex-file-search v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/file-search)
    Compiling codex-artifacts v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/artifacts)
    Compiling codex-network-proxy v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/network-proxy)
-   Compiling codex-state v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/state)
    Compiling codex-secrets v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/secrets)
-   Compiling codex-shell-command v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/shell-command)
+   Compiling codex-api v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/codex-api)
+   Compiling codex-shell-escalation v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/shell-escalation)
+   Compiling codex-app-server-protocol v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/app-server-protocol)
+   Compiling codex-otel v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/otel)
    Compiling codex-hooks v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/hooks)
-   Compiling codex-async-utils v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/async-utils)
+   Compiling codex-rmcp-client v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/rmcp-client)
+   Compiling codex-state v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/state)
+   Compiling codex-shell-command v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/shell-command)
    Compiling codex-utils-readiness v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/readiness)
+   Compiling codex-async-utils v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/async-utils)
    Compiling codex-utils-stream-parser v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/stream-parser)
-   Compiling codex-core v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/core)
-   Compiling sentry-types v0.46.1
-   Compiling sentry-core v0.46.1
    Compiling codex-linux-sandbox v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/linux-sandbox)
-   Compiling sentry-backtrace v0.46.1
    Compiling codex-utils-cli v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/cli)
    Compiling codex-backend-openapi-models v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/codex-backend-openapi-models)
-   Compiling sentry-contexts v0.46.1
-   Compiling sentry-panic v0.46.1
-   Compiling sentry-debug-images v0.46.1
-   Compiling rustix v0.38.44
-   Compiling castaway v0.2.4
-   Compiling strum_macros v0.26.4
-   Compiling onig_sys v69.9.1
-   Compiling num_cpus v1.17.0
-   Compiling runfiles v0.1.0 (https://github.com/dzbarsky/rules_rust?rev=b56cbaa8465e74127f1ea216f813cd377295ad81#b56cbaa8)
-   Compiling deadpool-runtime v0.1.4
-   Compiling indoc v2.0.7
-   Compiling dotenvy v0.15.7
    Compiling codex-arg0 v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/arg0)
-   Compiling instability v0.3.11
-   Compiling deadpool v0.12.3
    Compiling codex-utils-cargo-bin v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/cargo-bin)
-   Compiling strum v0.26.3
-   Compiling compact_str v0.8.1
-   Compiling crossterm v0.28.1 (https://github.com/nornagon/crossterm?branch=nornagon%2Fcolor-query#87db8bfa)
-   Compiling sentry v0.46.1
-   Compiling coreaudio-sys v0.2.17
-   Compiling lru v0.12.5
-   Compiling unicode-truncate v1.1.0
-   Compiling assert-json-diff v2.0.2
-   Compiling async-stream-impl v0.3.6
-   Compiling cassowary v0.3.0
-   Compiling ratatui v0.29.0 (https://github.com/nornagon/ratatui?branch=nornagon-v0.29.0-patch#9b2ad129)
-   Compiling async-stream v0.3.6
-   Compiling wiremock v0.6.5
    Compiling codex-feedback v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/feedback)
-   Compiling quick-xml v0.38.4
-   Compiling color-spantrace v0.3.0
-   Compiling eyre v0.6.12
-   Compiling linked-hash-map v0.5.6
-   Compiling semver v1.0.27
-   Compiling yaml-rust v0.4.5
-   Compiling plist v1.8.0
-   Compiling onig v6.5.1
    Compiling codex-utils-json-to-toml v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/json-to-toml)
-   Compiling tracing-error v0.2.1
-   Compiling convert_case v0.10.0
-   Compiling bincode v1.3.3
-   Compiling cpal v0.15.3
-   Compiling simdutf8 v0.1.5
-   Compiling pulldown-cmark v0.10.3
-   Compiling ansi-to-tui v7.0.0
-   Compiling syntect v5.3.0
-   Compiling derive_more-impl v2.1.1
-   Compiling coreaudio-rs v0.11.3
-   Compiling getopts v0.2.24
-   Compiling diffy v0.4.2
-   Compiling mach2 v0.4.3
-   Compiling smawk v0.3.2
-   Compiling dtor-proc-macro v0.0.6
-   Compiling dasp_sample v0.11.0
    Compiling codex-utils-elapsed v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/elapsed)
-   Compiling pulldown-cmark-escape v0.10.1
-   Compiling unicode-linebreak v0.1.5
-   Compiling textwrap v0.16.2
-   Compiling dtor v0.1.1
-   Compiling color-eyre v0.6.5
-   Compiling derive_more v2.1.1
-   Compiling two-face v0.5.1
    Compiling codex-ansi-escape v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/ansi-escape)
-   Compiling ratatui-macros v0.6.0
    Compiling codex-utils-approval-presets v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/approval-presets)
-   Compiling tracing-appender v0.2.4
    Compiling codex-utils-sleep-inhibitor v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/sleep-inhibitor)
-   Compiling ctor-proc-macro v0.0.7
    Compiling codex-utils-fuzzy-match v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/fuzzy-match)
-   Compiling hound v3.5.1
-   Compiling pathdiff v0.2.3
-   Compiling ctor v0.6.3
    Compiling codex-process-hardening v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/process-hardening)
-error[E0425]: cannot find value `SET_RLIMIT_CORE_FAILED_EXIT_CODE` in this scope
-   --> process-hardening/src/lib.rs:121:28
-    |
-121 |         std::process::exit(SET_RLIMIT_CORE_FAILED_EXIT_CODE);
-    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not found in this scope
-    |
-note: found an item that was configured out
-   --> process-hardening/src/lib.rs:41:7
-    |
- 33 |   #[cfg(any(
-    |  __________-
- 34 | |     target_os = "linux",
- 35 | |     target_os = "android",
- 36 | |     target_os = "macos",
-...   |
- 39 | |     target_os = "openbsd"
- 40 | | ))]
-    | |_- the item is gated here
- 41 |   const SET_RLIMIT_CORE_FAILED_EXIT_CODE: i32 = 7;
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+warning: constant `SET_RLIMIT_CORE_FAILED_EXIT_CODE` is never used
+  --> process-hardening/src/lib.rs:42:7
+   |
+42 | const SET_RLIMIT_CORE_FAILED_EXIT_CODE: i32 = 7;
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
 
-For more information about this error, try `rustc --explain E0425`.
-error: could not compile `codex-process-hardening` (lib) due to 1 previous error
+warning: function `set_core_file_size_limit_to_zero` is never used
+   --> process-hardening/src/lib.rs:110:4
+    |
+110 | fn set_core_file_size_limit_to_zero() {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `env_keys_with_prefix` is never used
+   --> process-hardening/src/lib.rs:132:4
+    |
+132 | fn env_keys_with_prefix<I>(vars: I, prefix: &[u8]) -> Vec<OsString>
+    |    ^^^^^^^^^^^^^^^^^^^^
+
+warning: `codex-process-hardening` (lib) generated 3 warnings
+   Compiling codex-responses-api-proxy v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/responses-api-proxy)
+   Compiling clap_complete v4.5.65
+   Compiling codex-stdio-to-uds v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/stdio-to-uds)
+   Compiling codex-config v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/config)
+   Compiling codex-core v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/core)
+   Compiling codex-backend-client v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/backend-client)
+   Compiling codex-chatgpt v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/chatgpt)
+   Compiling codex-cloud-requirements v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/cloud-requirements)
+   Compiling codex-login v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/login)
+   Compiling codex-lmstudio v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/lmstudio)
+   Compiling codex-ollama v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/ollama)
+   Compiling codex-utils-oss v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/oss)
+   Compiling codex-utils-sandbox-summary v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/sandbox-summary)
+   Compiling codex-app-server v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/app-server)
+   Compiling codex-tui v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/tui)
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `arboard`
+ --> tui/src/clipboard_text.rs:3:18
+  |
+3 |     let mut cb = arboard::Clipboard::new().map_err(|e| format!("clipboard unavailable: {e}"))?;
+  |                  ^^^^^^^ use of unresolved module or unlinked crate `arboard`
+  |
+  = help: if you wanted to use a crate named `arboard`, use `cargo add arboard` to add it to your `Cargo.toml`
+
+warning: unused import: `tempfile::Builder`
+ --> tui/src/clipboard_paste.rs:3:5
+  |
+3 | use tempfile::Builder;
+  |     ^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+For more information about this error, try `rustc --explain E0433`.
+warning: `codex-tui` (lib) generated 1 warning
+error: could not compile `codex-tui` (lib) due to 1 previous error; 1 warning emitted
 warning: build failed, waiting for other jobs to finish...
