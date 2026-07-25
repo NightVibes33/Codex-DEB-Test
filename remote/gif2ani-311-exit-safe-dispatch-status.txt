@@ -1,0 +1,7 @@
+Gif2Ani Exit Safemode Test Dispatch
+run_id=30167300311
+outcome=success
+
+curl_exit=0
+http_code=204
+exit_safemode_test_dispatched=yes
