@@ -1,0 +1,7 @@
+Choicy Injection Rules Dispatch
+run_id=30170362341
+outcome=success
+
+curl_exit=0
+http_code=204
+choicy_rules_dispatched=yes
