@@ -1,4 +1,4 @@
-name: Diagnose TweakLoader dlopen
+name: Repair Launchd Tweak Injection Flags
 
 on:
   workflow_dispatch:
@@ -36,15 +36,15 @@ jobs:
           raise SystemExit('environment-not-found')
           PY
 
-  diagnose:
+  repair:
     needs: resolve-environment
     environment:
       name: ${{ needs.resolve-environment.outputs.environment_name }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 12
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - name: Build arm64 dlopen probe
+      - name: Build launchd flags client and constructor probe
         id: build
         env:
           THEOS: /opt/theos
@@ -59,147 +59,303 @@ jobs:
           sudo mkdir -p /opt
           sudo chown "$USER:$USER" /opt
           bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
-          mkdir -p dlopenprobe
-          cat > dlopenprobe/Makefile <<'MK'
+
+          mkdir -p launchdflags
+          cat > launchdflags/Makefile <<'MK'
           ARCHS = arm64
           TARGET = iphone:clang:latest:15.0
-          TOOL_NAME = dlopenprobe
-          dlopenprobe_FILES = main.c
-          dlopenprobe_CFLAGS = -Wall -Wextra
-          dlopenprobe_CODESIGN_FLAGS = -Sentitlements.plist
+          TOOL_NAME = launchdflags
+          launchdflags_FILES = main.c
+          launchdflags_CFLAGS = -Wall -Wextra
+          launchdflags_CODESIGN_FLAGS = -Sentitlements.plist
           include $(THEOS)/makefiles/common.mk
           include $(THEOS_MAKE_PATH)/tool.mk
           MK
-          cat > dlopenprobe/main.c <<'CC'
+          cat > launchdflags/main.c <<'CC'
           #include <dlfcn.h>
-          #include <mach-o/dyld.h>
+          #include <mach/mach.h>
+          #include <stdint.h>
           #include <stdio.h>
           #include <stdlib.h>
-          #include <string.h>
-          #include <unistd.h>
 
-          static void print_env(const char *key) {
-              const char *value=getenv(key);
-              printf("env_%s=%s\n",key,value?value:"<unset>");
-          }
+          typedef void *xpc_object_t;
+          struct _os_alloc_once_s { long once; void *ptr; };
+          struct xpc_global_data {
+              uint64_t a;
+              uint64_t xpc_flags;
+              mach_port_t task_bootstrap_port;
+              xpc_object_t xpc_bootstrap_pipe;
+          };
 
-          static void print_matching_images(const char *phase) {
-              printf("=== IMAGES %s ===\n",phase);
-              uint32_t count=_dyld_image_count();
-              printf("image_count=%u\n",count);
-              for(uint32_t i=0;i<count;i++) {
-                  const char *name=_dyld_get_image_name(i);
-                  if(name && (strstr(name,"ellekit") || strstr(name,"TweakLoader") || strstr(name,"Gif2Ani") || strstr(name,"systemhook"))) {
-                      printf("image=%s\n",name);
-                  }
+          typedef xpc_object_t (*fn_dictionary_create)(const char * const *, const xpc_object_t *, size_t);
+          typedef void (*fn_dictionary_set_bool)(xpc_object_t, const char *, int);
+          typedef void (*fn_dictionary_set_uint64)(xpc_object_t, const char *, uint64_t);
+          typedef int64_t (*fn_dictionary_get_int64)(xpc_object_t, const char *);
+          typedef char *(*fn_copy_description)(xpc_object_t);
+          typedef void (*fn_release)(xpc_object_t);
+          typedef int (*fn_pipe_interface)(xpc_object_t, uint64_t, xpc_object_t, xpc_object_t *, uint64_t);
+
+          #define LOAD(handle,name,type) type name=(type)dlsym(handle,#name); if(!(name)){fprintf(stderr,"missing_symbol=%s\n",#name); return 78;}
+
+          int main(int argc,char **argv) {
+              if(argc!=2) { fprintf(stderr,"usage: launchdflags <hex-flags>\n"); return 64; }
+              uint64_t flags=strtoull(argv[1],NULL,0);
+              void *xpc=dlopen("/usr/lib/system/libxpc.dylib",RTLD_NOW|RTLD_GLOBAL);
+              if(!xpc) { fprintf(stderr,"dlopen_xpc=%s\n",dlerror()); return 77; }
+              LOAD(xpc,xpc_dictionary_create,fn_dictionary_create);
+              LOAD(xpc,xpc_dictionary_set_bool,fn_dictionary_set_bool);
+              LOAD(xpc,xpc_dictionary_set_uint64,fn_dictionary_set_uint64);
+              LOAD(xpc,xpc_dictionary_get_int64,fn_dictionary_get_int64);
+              LOAD(xpc,xpc_copy_description,fn_copy_description);
+              LOAD(xpc,xpc_release,fn_release);
+              LOAD(xpc,_xpc_pipe_interface_routine,fn_pipe_interface);
+
+              struct _os_alloc_once_s *table=(struct _os_alloc_once_s *)dlsym(RTLD_DEFAULT,"_os_alloc_once_table");
+              if(!table) { fprintf(stderr,"missing_symbol=_os_alloc_once_table\n"); return 79; }
+              struct xpc_global_data *global=(struct xpc_global_data *)table[1].ptr;
+              if(!global || !global->xpc_bootstrap_pipe) { fprintf(stderr,"bootstrap_pipe_missing\n"); return 80; }
+
+              xpc_object_t message=xpc_dictionary_create(NULL,NULL,0);
+              xpc_dictionary_set_bool(message,"jailbreak",1);
+              xpc_dictionary_set_uint64(message,"cmd",3);
+              xpc_dictionary_set_uint64(message,"flags",flags);
+              xpc_object_t reply=NULL;
+              int routine=_xpc_pipe_interface_routine(global->xpc_bootstrap_pipe,0,message,&reply,0);
+              printf("requested_flags=0x%llx\n",(unsigned long long)flags);
+              printf("pipe_routine=%d\n",routine);
+              if(reply) {
+                  char *desc=xpc_copy_description(reply);
+                  if(desc) { printf("reply=%s\n",desc); free(desc); }
+                  long long error=(long long)xpc_dictionary_get_int64(reply,"error");
+                  printf("launchd_error=%lld\n",error);
+                  xpc_release(reply);
+                  xpc_release(message);
+                  dlclose(xpc);
+                  return routine==0 && error==0 ? 0 : 81;
               }
-          }
-
-          static void *probe(const char *label,const char *path) {
-              dlerror();
-              void *handle=dlopen(path,RTLD_NOW|RTLD_LOCAL);
-              const char *error=dlerror();
-              printf("probe_%s_path=%s\n",label,path);
-              printf("probe_%s_handle=%p\n",label,handle);
-              printf("probe_%s_error=%s\n",label,error?error:"<none>");
-              return handle;
-          }
-
-          int main(void) {
-              printf("pid=%d\n",getpid());
-              print_env("DYLD_INSERT_LIBRARIES");
-              print_env("DYLD_LIBRARY_PATH");
-              print_env("JB_TWEAKLOADER_PATH");
-              print_env("JB_PINFO_FLAGS");
-              print_env("_MSSafeMode");
-              print_env("_SafeMode");
-              print_matching_images("BEFORE");
-              void *h1=probe("tweakloader","/var/jb/usr/lib/TweakLoader.dylib");
-              print_matching_images("AFTER_TWEAKLOADER");
-              void *h2=probe("libinjector","/var/jb/usr/lib/ellekit/libinjector.dylib");
-              print_matching_images("AFTER_LIBINJECTOR");
-              void *h3=probe("gif2ani","/var/jb/usr/lib/TweakInject/Gif2Ani.dylib");
-              print_matching_images("AFTER_GIF2ANI");
-              if(h3) dlclose(h3);
-              if(h2) dlclose(h2);
-              if(h1) dlclose(h1);
-              return 0;
+              xpc_release(message);
+              dlclose(xpc);
+              return routine==0 ? 0 : 82;
           }
           CC
-          cat > dlopenprobe/entitlements.plist <<'PLIST'
+          cat > launchdflags/entitlements.plist <<'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0"><dict>
             <key>platform-application</key><true/>
             <key>com.apple.private.security.no-container</key><true/>
+            <key>in.palera.private.launchd-commands.client</key><true/>
             <key>get-task-allow</key><true/>
           </dict></plist>
           PLIST
+
+          mkdir -p flagprobe
+          cat > flagprobe/Makefile <<'MK'
+          ARCHS = arm64
+          TARGET = iphone:clang:latest:15.0
+          THEOS_PACKAGE_SCHEME = rootless
+          TWEAK_NAME = LaunchdFlagProbe
+          LaunchdFlagProbe_FILES = Probe.m
+          LaunchdFlagProbe_FRAMEWORKS = Foundation
+          LaunchdFlagProbe_CFLAGS = -fobjc-arc
+          include $(THEOS)/makefiles/common.mk
+          include $(THEOS_MAKE_PATH)/tweak.mk
+          MK
+          cat > flagprobe/Probe.m <<'MM'
+          #import <Foundation/Foundation.h>
+          #include <stdlib.h>
+          #include <unistd.h>
+          __attribute__((constructor)) static void LaunchdFlagProbeInit(void) {
+              @autoreleasepool {
+                  NSString *dir=@"/var/mobile/Library/Application Support/Gif2Ani";
+                  [[NSFileManager defaultManager] createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:nil];
+                  const char *flags=getenv("JB_PINFO_FLAGS");
+                  NSString *body=[NSString stringWithFormat:@"process=%@\npid=%d\nflags=%s\n",NSProcessInfo.processInfo.processName,getpid(),flags?flags:"<unset>"];
+                  [body writeToFile:[dir stringByAppendingPathComponent:@"LaunchdFlagProbe-sh.txt"] atomically:YES encoding:NSUTF8StringEncoding error:nil];
+              }
+          }
+          MM
+          cat > flagprobe/LaunchdFlagProbe.plist <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict><key>Filter</key><dict><key>Executables</key><array><string>sh</string></array></dict></dict></plist>
+          PLIST
+
           set +e
-          make -C dlopenprobe clean all FINALPACKAGE=1 2>&1 | tee dlopen-build.txt
+          {
+            make -C launchdflags clean all FINALPACKAGE=1
+            make -C flagprobe clean all FINALPACKAGE=1
+          } 2>&1 | tee repair-build.txt
           make_code=${PIPESTATUS[0]}
           set -e
-          echo "make_exit=$make_code" | tee -a dlopen-build.txt
+          echo "make_exit=$make_code" | tee -a repair-build.txt
           test "$make_code" -eq 0
-          BIN="$(find dlopenprobe/.theos -type f -name dlopenprobe -perm -111 | head -n1)"
-          test -n "$BIN"
-          cp "$BIN" dlopenprobe-tool
-          file dlopenprobe-tool | tee -a dlopen-build.txt | grep -q arm64
+          TOOL="$(find launchdflags/.theos -type f -name launchdflags -perm -111 | head -n1)"
+          PROBE="$(find flagprobe/.theos -type f -name LaunchdFlagProbe.dylib | head -n1)"
+          test -n "$TOOL"
+          test -n "$PROBE"
+          cp "$TOOL" launchdflags-tool
+          cp "$PROBE" LaunchdFlagProbe.dylib
+          cp flagprobe/LaunchdFlagProbe.plist LaunchdFlagProbe.plist
+          file launchdflags-tool LaunchdFlagProbe.dylib | tee -a repair-build.txt
+
       - uses: tailscale/github-action@v4
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
           version: latest
-      - name: Run non-rebooting dlopen diagnostic
-        id: collect
+
+      - name: Repair launchd flags and validate injection
+        id: repair
         env:
           SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
         run: |
           set -euo pipefail
           connected=0
-          for attempt in $(seq 1 48); do
+          for attempt in $(seq 1 60); do
             if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
             sleep 5
           done
-          echo "connected=$connected" | tee dlopen-diagnostic.txt
+          echo "connected=$connected" | tee launchd-repair.txt
           test "$connected" -eq 1
-          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null dlopenprobe-tool mobile@"$IPAD_HOST":/var/mobile/Media/dlopenprobe
-          sshpass -e ssh -p 22 -o ConnectTimeout=30 -o ServerAliveInterval=5 -o ServerAliveCountMax=3 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sh -c '\''
-            echo "=== PATHS ==="
-            ls -la /var/jb/usr/lib/TweakLoader.dylib /var/jb/usr/lib/ellekit/libinjector.dylib /var/jb/usr/lib/TweakInject/Gif2Ani.dylib 2>&1 || true
-            readlink /var/jb/usr/lib/TweakLoader.dylib 2>&1 || true
-            echo "=== FILE TYPES ==="
-            file /var/jb/usr/lib/TweakLoader.dylib /var/jb/usr/lib/ellekit/libinjector.dylib /var/jb/usr/lib/TweakInject/Gif2Ani.dylib 2>&1 || true
-            echo "=== DLOPEN PROBE ==="
-            chmod 0755 /var/mobile/Media/dlopenprobe
-            /var/mobile/Media/dlopenprobe 2>&1
-            echo "=== RUNTIME STATUS AFTER ==="
-            cat "/var/mobile/Library/Application Support/Gif2Ani/runtime-status.plist" 2>/dev/null || echo runtime_status=missing
-            rm -f /var/mobile/Media/dlopenprobe
-          '\''' 2>&1 | tee -a dlopen-diagnostic.txt
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            launchdflags-tool LaunchdFlagProbe.dylib LaunchdFlagProbe.plist mobile@"$IPAD_HOST":/var/mobile/Media/
+          cat > run-launchd-repair.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media='/var/mobile/Library/Application Support/Gif2Ani'
+          prefs='/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist'
+          target='0x4c00082'
+          rollback='0x6c00082'
+          probe_label='com.nightvibes33.launchdflagprobe'
+          probe_plist="/var/jb/Library/LaunchDaemons/${probe_label}.plist"
+          marker='/var/mobile/Media/gif2ani-launchd-repair-start.marker'
+          tool='/var/mobile/Media/launchdflags-tool'
+
+          chmod 0755 "$tool"
+          mkdir -p "$media"
+          chmod 0777 "$media"
+          rm -f "$media/Pending.gif" "$media/Active.gif" "$media/Rejected.gif" "$media/load-in-progress" "$media/runtime-status.plist" "$media/LaunchdFlagProbe-sh.txt" "$media/LaunchdEnv.txt"
+          cat > "$prefs" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict><key>isEnabled</key><false/><key>pendingReady</key><false/><key>imageTransformation</key><string>resizeAspect</string><key>customLoop</key><real>-1</real><key>customDuration</key><real>-1</real><key>backgroundColor</key><string>#000000</string></dict></plist>
+          PLIST
+          chown mobile:mobile "$prefs"
+          chmod 0644 "$prefs"
+
+          ln -sf /cores/payload /var/mobile/Media/p1ctl
+          chmod 0755 /var/mobile/Media/p1ctl
+          echo '=== JAILBREAKD FLAGS BEFORE ==='
+          current=$(/var/mobile/Media/p1ctl palera1n_flags | head -n1)
+          echo "$current"
+          test "$current" = "$target"
+
+          cp /var/mobile/Media/LaunchdFlagProbe.dylib /var/jb/usr/lib/TweakInject/LaunchdFlagProbe.dylib
+          cp /var/mobile/Media/LaunchdFlagProbe.plist /var/jb/usr/lib/TweakInject/LaunchdFlagProbe.plist
+          chown root:wheel /var/jb/usr/lib/TweakInject/LaunchdFlagProbe.dylib /var/jb/usr/lib/TweakInject/LaunchdFlagProbe.plist
+          chmod 0755 /var/jb/usr/lib/TweakInject/LaunchdFlagProbe.dylib
+          chmod 0644 /var/jb/usr/lib/TweakInject/LaunchdFlagProbe.plist
+
+          echo '=== SET LAUNCHD FLAGS ==='
+          "$tool" "$target"
+
+          cat > "$probe_plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>Label</key><string>${probe_label}</string>
+            <key>ProgramArguments</key><array><string>/var/jb/bin/sh</string><string>-c</string><string>/var/jb/usr/bin/env &gt; '${media}/LaunchdEnv.txt'; sleep 1</string></array>
+            <key>UserName</key><string>mobile</string>
+            <key>RunAtLoad</key><true/>
+          </dict></plist>
+          PLIST
+          chown root:wheel "$probe_plist"
+          chmod 0644 "$probe_plist"
+          /var/jb/usr/bin/launchctl bootout system/"$probe_label" 2>/dev/null || true
+          /var/jb/usr/bin/launchctl bootstrap system "$probe_plist"
+          sleep 8
+          /var/jb/usr/bin/launchctl bootout system/"$probe_label" 2>/dev/null || true
+
+          echo '=== TEMP PROCESS ENV ==='
+          cat "$media/LaunchdEnv.txt" 2>/dev/null || true
+          echo '=== TEMP CONSTRUCTOR MARKER ==='
+          cat "$media/LaunchdFlagProbe-sh.txt" 2>/dev/null || true
+          grep -q 'JB_PINFO_FLAGS=0x4c00082' "$media/LaunchdEnv.txt"
+          grep -q 'flags=0x4c00082' "$media/LaunchdFlagProbe-sh.txt"
+          echo temp_process_injection=success
+
+          rm -f "$probe_plist" /var/jb/usr/lib/TweakInject/LaunchdFlagProbe.dylib /var/jb/usr/lib/TweakInject/LaunchdFlagProbe.plist
+
+          echo '=== RESTART BACKBOARDD ONLY ==='
+          touch "$marker"
+          oldpid=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')
+          echo "old_backboardd_pid=$oldpid"
+          rm -f "$media/runtime-status.plist"
+          /var/jb/usr/bin/killall -9 backboardd 2>/dev/null || true
+          newpid=''
+          for attempt in $(seq 1 40); do
+            newpid=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')
+            [ -n "$newpid" ] && [ "$newpid" != "$oldpid" ] && break
+            sleep 1
+          done
+          echo "new_backboardd_pid=$newpid"
+          test -n "$newpid"
+          sleep 15
+          ps eww -p "$newpid" 2>/dev/null || true
+          echo '=== GIF2ANI RUNTIME MARKER ==='
+          cat "$media/runtime-status.plist" 2>/dev/null || echo runtime_status=missing
+          crashes=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -newer "$marker" -print 2>/dev/null | wc -l | tr -d ' ')
+          echo "new_crash_reports=$crashes"
+          if [ "$crashes" != "0" ]; then
+            echo rollback_reason=new_crash
+            "$tool" "$rollback" || true
+            /var/jb/usr/bin/killall -9 backboardd 2>/dev/null || true
+            exit 91
+          fi
+          test -f "$media/runtime-status.plist"
+          grep -a -q 'tweak-loaded-no-media-decode' "$media/runtime-status.plist"
+          test ! -e "$media/Pending.gif"
+          test ! -e "$media/Active.gif"
+          test ! -e "$media/Rejected.gif"
+          echo launchd_flags_and_gif2ani_injection=success
+          rm -f /var/mobile/Media/launchdflags-tool /var/mobile/Media/LaunchdFlagProbe.dylib /var/mobile/Media/LaunchdFlagProbe.plist
+          SH
+          chmod +x run-launchd-repair.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null run-launchd-repair.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=45 -o ServerAliveInterval=8 -o ServerAliveCountMax=4 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/run-launchd-repair.sh' 2>&1 | tee -a launchd-repair.txt
+          code=${PIPESTATUS[1]}
+          set -e
+          echo "repair_ssh_exit=$code" | tee -a launchd-repair.txt
+          exit "$code"
+
       - name: Publish result
         if: always()
         env:
           BUILD_OUTCOME: ${{ steps.build.outcome }}
-          COLLECT_OUTCOME: ${{ steps.collect.outcome }}
+          REPAIR_OUTCOME: ${{ steps.repair.outcome }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git pull --rebase origin main
-          {
-            echo "TweakLoader dlopen Diagnostic"
-            echo "run_id=${GITHUB_RUN_ID}"
-            echo "build=$BUILD_OUTCOME"
-            echo "collect=$COLLECT_OUTCOME"
-            echo
-            echo "=== BUILD LOG ==="
-            tail -n 240 dlopen-build.txt 2>/dev/null || echo "No build log."
-            echo
-            echo "=== DEVICE LOG ==="
-            cat dlopen-diagnostic.txt 2>/dev/null || echo "No device output."
-          } > remote/tweakloader-dlopen-diagnostic.txt
-          git add remote/tweakloader-dlopen-diagnostic.txt
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          pieces=[]
+          for name in ('repair-build.txt','launchd-repair.txt'):
+              if Path(name).exists():
+                  pieces += [f'=== {name} ===',Path(name).read_text(errors='replace')]
+          text='\n'.join(pieces) if pieces else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=['Launchd Tweak Injection Flags Repair',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"build={os.environ.get('BUILD_OUTCOME','')}",f"repair={os.environ.get('REPAIR_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-700:]]
+          Path('remote/launchd-tweak-injection-flags-repair.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/launchd-tweak-injection-flags-repair.txt
           if ! git diff --cached --quiet; then
-            git commit -m "Record TweakLoader dlopen diagnostic [skip ci]"
+            git commit -m "Record launchd tweak injection flags repair [skip ci]"
             git push origin HEAD:main
           fi
