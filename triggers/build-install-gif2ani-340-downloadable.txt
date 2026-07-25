@@ -1,4 +1,5 @@
-build=2026-07-25T20:49:00-05:00
+build=2026-07-26T00:18:00-05:00
 version=3.4.0
 downloadable_builtins=54
-workflow=deterministic-replacement
+source_commit=612bddc91876fa35a66306e1d470e6375f70168a
+proof=build-install-download-preservation-crash-check
