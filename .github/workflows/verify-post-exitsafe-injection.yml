@@ -1,0 +1,177 @@
+name: Verify Post Exit Safe Mode Injection
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/verify-post-exitsafe-injection.txt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  verify:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - name: Install SSH tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends openssh-client sshpass
+      - name: Read-only device verification and probe cleanup
+        id: probe
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 72); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          echo "connected=$connected" | tee post-exitsafe-verification.txt
+          test "$connected" -eq 1
+          cat > verify-post-exitsafe.sh <<'SH'
+          #!/bin/sh
+          set +e
+          media='/var/mobile/Library/Application Support/Gif2Ani'
+          runtime="$media/runtime-status.plist"
+          prefs='/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist'
+          p1ctl='/var/mobile/Media/p1ctl'
+          ln -sf /cores/payload "$p1ctl"
+          chmod 0755 "$p1ctl"
+
+          echo '=== PALERA1N FLAGS ==='
+          flags=$($p1ctl palera1n_flags 2>&1)
+          echo "$flags"
+          $p1ctl palera1n_flags -s 2>&1 || true
+
+          echo '=== PROCESS STATE ==='
+          bb=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')
+          sb=$(ps ax | awk '/[S]pringBoard/{print $1; exit}')
+          echo "backboardd_pid=$bb"
+          echo "springboard_pid=$sb"
+          bb_env=$(ps eww -p "$bb" 2>/dev/null || true)
+          sb_env=$(ps eww -p "$sb" 2>/dev/null || true)
+          echo "backboardd_env=$bb_env"
+          echo "springboard_env=$sb_env"
+          spawned_flags=$(printf '%s\n' "$bb_env" | sed -n 's/.*JB_PINFO_FLAGS=\([^ ]*\).*/\1/p' | tail -n1)
+          loader_path=$(printf '%s\n' "$bb_env" | sed -n 's/.*JB_TWEAKLOADER_PATH=\([^ ]*\).*/\1/p' | tail -n1)
+          echo "spawned_flags=$spawned_flags"
+          echo "loader_path=$loader_path"
+
+          echo '=== CONSTRUCTOR PROBE MARKERS ==='
+          markers=0
+          for f in "$media"/P1Probe-*.txt; do
+            [ -f "$f" ] || continue
+            markers=$((markers+1))
+            echo "--- $f"
+            cat "$f"
+          done
+          echo "probe_marker_count=$markers"
+
+          echo '=== GIF2ANI STATE ==='
+          if [ -f "$runtime" ]; then
+            cat "$runtime"
+          else
+            echo runtime_status=missing
+          fi
+          if [ -f "$prefs" ]; then
+            cat "$prefs"
+          else
+            echo preferences=missing
+          fi
+          for f in Pending.gif Active.gif Rejected.gif load-in-progress pending-metadata.plist; do
+            if [ -e "$media/$f" ]; then echo "$f=present"; else echo "$f=absent"; fi
+          done
+
+          echo '=== RECENT CRASHES ==='
+          crash_count=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -mmin -30 -print 2>/dev/null | tee /tmp/post-exitsafe-crashes.txt | wc -l | tr -d ' ')
+          echo "new_crash_reports=$crash_count"
+
+          echo '=== CLEANUP CONSTRUCTOR PROBE FILES ==='
+          rm -f /var/jb/usr/lib/TweakInject/P1InjectionProbe.dylib /var/jb/usr/lib/TweakInject/P1InjectionProbe.plist
+          echo probe_files_removed=yes
+
+          result=success
+          [ "$flags" = '0x4c00082' ] || result=failure
+          [ "$spawned_flags" = "$flags" ] || result=failure
+          [ "$loader_path" = '@default' ] || result=failure
+          [ "$markers" -ge 1 ] || result=failure
+          [ -f "$runtime" ] || result=failure
+          if [ -f "$runtime" ]; then grep -a -q 'tweak-loaded-no-media-decode' "$runtime" || result=failure; fi
+          [ ! -e "$media/Pending.gif" ] || result=failure
+          [ ! -e "$media/Active.gif" ] || result=failure
+          [ ! -e "$media/Rejected.gif" ] || result=failure
+          [ "$crash_count" = 0 ] || result=failure
+          echo "verification_result=$result"
+          [ "$result" = success ]
+          SH
+          chmod +x verify-post-exitsafe.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null verify-post-exitsafe.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=60 -o ServerAliveInterval=5 -o ServerAliveCountMax=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/verify-post-exitsafe.sh' 2>&1 | tee -a post-exitsafe-verification.txt
+          code=${PIPESTATUS[1]}
+          set -e
+          echo "remote_exit=$code" | tee -a post-exitsafe-verification.txt
+          exit "$code"
+      - name: Publish verification
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          PROBE_OUTCOME: ${{ steps.probe.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('post-exitsafe-verification.txt').read_text(errors='replace') if Path('post-exitsafe-verification.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=['Post Exit Safe Mode Injection Verification',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"probe={os.environ.get('PROBE_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-500:]]
+          Path('remote/post-exitsafe-injection-verification.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/post-exitsafe-injection-verification.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record post Exit Safe Mode injection verification [skip ci]"
+            git push origin HEAD:main
+          fi
