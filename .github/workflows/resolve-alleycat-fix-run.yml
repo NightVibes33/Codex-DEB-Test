@@ -15,8 +15,8 @@ jobs:
   resolve:
     runs-on: ubuntu-latest
     env:
-      OBSOLETE_SHA: a2121493af5a9707598fc8fe7ebfcd9b5ca26f26
-      FINAL_SHA: 3a1ecc4277e06ee564bfed74745a7e9765b90b78
+      OBSOLETE_SHA: cf03df447927f546f942c67897fd8b6c9713d1c1
+      FINAL_SHA: 018d71c78659909db67bf5daf1b2e5f59b364dd2
     steps:
       - uses: actions/checkout@v4
         with:
