@@ -1,11 +1,12 @@
 Official palera1n Exit Safemode V2
-run_id=30168659575
+run_id=30168666437
 build=failure
 prepare=skipped
 exit_command=skipped
 verify=skipped
 
 --- sanitized output ---
+AppleTVOS12.4.sdk/usr/include/libxml2/libxml/nanoftp.h
 AppleTVOS12.4.sdk/usr/include/libxml2/libxml/encoding.h
 AppleTVOS12.4.sdk/usr/include/libxml2/libxml/parserInternals.h
 AppleTVOS12.4.sdk/usr/include/libxml2/module.modulemap
@@ -453,8 +454,7 @@ AppleTVOS12.4.sdk/usr/lib/libIOAccessoryManager.tbd
 AppleTVOS12.4.sdk/usr/lib/libbsm.0.tbd
 AppleTVOS12.4.sdk/usr/lib/libicucore.A.tbd
 
-100 5693k  100 5693k    0     0  8935k      0 --:--:-- --:--:-- --:--:-- 8935k
-100 5693k  100 5693k    0     0  8934k      0 --:--:-- --:--:-- --:--:--     0
+100 5693k  100 5693k    0     0  9641k      0 --:--:-- --:--:-- --:--:-- 9641k
 AppleTVOS12.4.sdk/usr/lib/libbz2.tbd
 AppleTVOS12.4.sdk/usr/lib/libSystem_asan.tbd
 AppleTVOS12.4.sdk/usr/lib/libnetwork.tbd
