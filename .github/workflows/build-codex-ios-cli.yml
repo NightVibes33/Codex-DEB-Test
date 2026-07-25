@@ -101,17 +101,18 @@ jobs:
           cd upstream/openai-codex
           bash "$GITHUB_WORKSPACE/codex-ios/prepare-upstream.sh"
 
-      - name: Cache Cargo and V8
-        uses: actions/cache@v4
+      - name: Restore Cargo and V8 cache
+        id: build-cache
+        uses: actions/cache/restore@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             ~/.cargo/.rusty_v8
             upstream/openai-codex/codex-rs/target
-          key: codex-ios-v8-${{ runner.os }}-${{ hashFiles('codex-ios/**', '.github/workflows/build-codex-ios-cli.yml') }}
+          key: codex-ios-v8-noicu-${{ runner.os }}-${{ github.sha }}
           restore-keys: |
-            codex-ios-v8-${{ runner.os }}-
+            codex-ios-v8-noicu-${{ runner.os }}-
 
       - name: Cross-compile official Codex CLI
         shell: bash
@@ -120,7 +121,7 @@ jobs:
           CARGO_INCREMENTAL: '0'
           RUST_BACKTRACE: '1'
           V8_FROM_SOURCE: '1'
-          GN_ARGS: 'target_os="ios" target_environment="device" ios_deployment_target="16.0" use_xcode_clang=true ios_enable_code_signing=false treat_warnings_as_errors=false'
+          GN_ARGS: 'target_os="ios" target_environment="device" ios_deployment_target="16.0" use_xcode_clang=true ios_enable_code_signing=false v8_enable_i18n_support=false treat_warnings_as_errors=false'
           PRINT_GN_ARGS: '1'
         run: |
           set -uxo pipefail
@@ -168,6 +169,17 @@ jobs:
           git commit -m 'Record Codex iOS compiler failure [skip ci]' || exit 0
           git pull --rebase origin main
           git push origin HEAD:main
+
+      - name: Save Cargo and V8 cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/.rusty_v8
+            upstream/openai-codex/codex-rs/target
+          key: ${{ steps.build-cache.outputs.cache-primary-key }}
 
       - name: Verify iOS Mach-O
         shell: bash
