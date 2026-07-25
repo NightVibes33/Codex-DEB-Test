@@ -1,4 +1,4 @@
-name: Trace Choicy and backboardd Injection
+name: Trace Choicy and backboardd Injection V2
 
 on:
   workflow_dispatch:
@@ -66,6 +66,16 @@ jobs:
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             mobile@"$IPAD_HOST" 'sh -c '\''
+              dump_plist() {
+                p="$1"
+                echo "--- $p"
+                if command -v plutil >/dev/null 2>&1; then
+                  plutil -p "$p" 2>&1 || file "$p" 2>&1 || true
+                else
+                  file "$p" 2>&1 || true
+                fi
+              }
+
               echo "=== PACKAGES / PROCESSES ==="
               dpkg-query -W ellekit com.nightvibes33.gif2ani 2>&1 || true
               ps ax | grep -E "[b]ackboardd|[S]pringBoard" || true
@@ -81,24 +91,21 @@ jobs:
               ls -la /var/jb/usr/lib/TweakInject/Choicy* 2>&1 || true
               for f in /var/jb/usr/lib/TweakInject/Choicy*.plist; do
                 [ -e "$f" ] || continue
-                echo "--- $f"
-                cat "$f" 2>&1 || true
+                dump_plist "$f"
               done
 
               echo "=== CHOICY PREFERENCES ==="
               find /var/mobile/Library/Preferences -maxdepth 1 -iname "*choicy*" -print 2>/dev/null || true
               for f in /var/mobile/Library/Preferences/*choicy* /var/mobile/Library/Preferences/*Choicy*; do
                 [ -e "$f" ] || continue
-                echo "--- $f"
-                if command -v plutil >/dev/null 2>&1; then plutil -p "$f" 2>&1 || true; else file "$f" 2>&1 || true; fi
+                dump_plist "$f"
               done
 
               echo "=== BACKBOARDD TARGETING TWEAKS ==="
               for f in /var/jb/usr/lib/TweakInject/*.plist; do
                 [ -f "$f" ] || continue
                 if grep -a -q "backboardd" "$f" 2>/dev/null; then
-                  echo "--- $f"
-                  cat "$f" 2>&1 || true
+                  dump_plist "$f"
                 fi
               done
 
@@ -111,14 +118,14 @@ jobs:
               media="/var/mobile/Library/Application Support/Gif2Ani"
               ls -ld "$media" 2>&1 || true
               ls -la "$media" 2>&1 || true
-              cat "$media/runtime-status.plist" 2>/dev/null || echo runtime_status=missing
+              if [ -e "$media/runtime-status.plist" ]; then dump_plist "$media/runtime-status.plist"; else echo runtime_status=missing; fi
 
               echo "=== RECENT CRASHES ==="
               find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name "backboardd-*.ips" -o -name "SpringBoard-*.ips" \) -mmin -30 -print 2>/dev/null || true
-            '\''' 2>&1 | tee choicy-backboardd-trace.txt
+            '\''' 2>&1 | tee choicy-backboardd-trace-v2.txt
           code=${PIPESTATUS[0]}
           set -e
-          echo "ssh_exit=$code" | tee -a choicy-backboardd-trace.txt
+          echo "ssh_exit=$code" | tee -a choicy-backboardd-trace-v2.txt
           exit "$code"
       - name: Publish status
         if: always()
@@ -128,14 +135,14 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git pull --rebase origin main
           {
-            echo "Choicy and backboardd Injection Trace"
+            echo "Choicy and backboardd Injection Trace V2"
             echo "run_id=${GITHUB_RUN_ID}"
             echo "collect=${{ steps.collect.outcome }}"
             echo
-            cat choicy-backboardd-trace.txt 2>/dev/null || echo "No output."
-          } > remote/choicy-backboardd-injection-trace.txt
-          git add remote/choicy-backboardd-injection-trace.txt
+            cat choicy-backboardd-trace-v2.txt 2>/dev/null || echo "No output."
+          } > remote/choicy-backboardd-injection-trace-v2.txt
+          git add remote/choicy-backboardd-injection-trace-v2.txt
           if ! git diff --cached --quiet; then
-            git commit -m "Record Choicy and backboardd injection trace [skip ci]"
+            git commit -m "Record Choicy and backboardd injection trace V2 [skip ci]"
             git push origin HEAD:main
           fi
