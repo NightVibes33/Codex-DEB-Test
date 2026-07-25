@@ -1,0 +1,114 @@
+name: iPad Tailscale SSH Bridge
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "remote/ipad-command.sh"
+      - ".github/workflows/ipad-tailscale-ssh.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ipad-tailscale-ssh
+  cancel-in-progress: false
+
+jobs:
+  run-command:
+    name: Run command on iPad
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "$TAILSCALE_AUTHKEY" ]; then
+            echo "Missing repository secret: TAILSCALE_AUTHKEY" >&2
+            exit 1
+          fi
+          if [ -z "$IPAD_PASSWORD" ]; then
+            echo "Missing repository secret: IPAD_PASSWORD" >&2
+            exit 1
+          fi
+
+      - name: Join the Tailscale network
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          ping: 100.116.117.65
+          version: latest
+
+      - name: Install SSH client
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends openssh-client sshpass
+
+      - name: Run command file on iPad as root
+        shell: bash
+        env:
+          IPAD_HOST: 100.116.117.65
+          IPAD_PORT: "22"
+          IPAD_USER: mobile
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -uo pipefail
+          : > ipad-output.txt
+
+          if [ ! -s remote/ipad-command.sh ]; then
+            echo "remote/ipad-command.sh is missing or empty" | tee -a ipad-output.txt
+            exit 1
+          fi
+
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+
+          echo "Checking SSH host key over Tailscale..." | tee -a ipad-output.txt
+          if ! ssh-keyscan -T 15 -H -p "$IPAD_PORT" "$IPAD_HOST" > "$HOME/.ssh/known_hosts" 2>>ipad-output.txt; then
+            echo "Could not read an SSH host key from $IPAD_HOST:$IPAD_PORT" | tee -a ipad-output.txt
+            exit 1
+          fi
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+          echo "Running remote/ipad-command.sh on $IPAD_USER@$IPAD_HOST:$IPAD_PORT as root..." | tee -a ipad-output.txt
+          set +e
+          {
+            printf '%s\n' "$IPAD_PASSWORD"
+            cat remote/ipad-command.sh
+          } | sshpass -e ssh \
+                -p "$IPAD_PORT" \
+                -o BatchMode=no \
+                -o ConnectTimeout=20 \
+                -o ConnectionAttempts=2 \
+                -o ServerAliveInterval=15 \
+                -o ServerAliveCountMax=2 \
+                -o StrictHostKeyChecking=yes \
+                -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+                "$IPAD_USER@$IPAD_HOST" \
+                'sudo -k; exec sudo -S -p "" /bin/sh -s' \
+                2>&1 | tee -a ipad-output.txt
+          ssh_status=${PIPESTATUS[1]}
+          set -e
+
+          echo "ssh_exit_code=$ssh_status" | tee -a ipad-output.txt
+          exit "$ssh_status"
+
+      - name: Upload command output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipad-ssh-output-${{ github.run_id }}
+          path: ipad-output.txt
+          if-no-files-found: warn
+          retention-days: 7
