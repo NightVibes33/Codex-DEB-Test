@@ -1,0 +1,4 @@
+action=sync-launchd-palera1n-flags-v2
+requested_at=2026-07-25T15:42:00-05:00
+state=gif2ani-disabled-no-media
+expected_flags=0x4c00082
