@@ -1,0 +1,3 @@
+query=palera1n-pinfo
+requested_at=2026-07-25T20:45:00-05:00
+reason=compare-jailbreakd-flags-with-launchd-environment
