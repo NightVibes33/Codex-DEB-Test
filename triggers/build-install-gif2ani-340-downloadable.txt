@@ -1,4 +1,4 @@
-build=2026-07-25T20:16:00-05:00
+build=2026-07-25T20:49:00-05:00
 version=3.4.0
 downloadable_builtins=54
-fix=catalog-identity-literal
+workflow=deterministic-replacement
