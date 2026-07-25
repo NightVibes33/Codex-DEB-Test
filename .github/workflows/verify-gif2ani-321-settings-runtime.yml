@@ -1,0 +1,276 @@
+name: Verify Gif2Ani 3.2.1 Settings Runtime
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - triggers/verify-gif2ani-321-settings-runtime.txt
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+concurrency:
+  group: gif2ani-device-change
+  cancel-in-progress: false
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1)) == target:
+                  print('environment_name='+env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  verify:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends openssh-client sshpass
+
+      - name: Run parsed, fail-safe settings verification
+        id: verify
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 45); do
+            sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1 && { connected=1; break; }
+            sleep 5
+          done
+          echo "connected=$connected" | tee gif2ani-321-settings-runtime.txt
+          test "$connected" -eq 1
+
+          cat > /tmp/verify-321-runtime.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media='/var/mobile/Library/Application Support/Gif2Ani'
+          prefs='/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist'
+          active="$media/Active.gif"
+          status="$media/runtime-status.plist"
+          prefs_backup='/var/mobile/Media/Gif2Ani-3.2.1-runtime-prefs-backup.plist'
+          gif_backup='/var/mobile/Media/Gif2Ani-3.2.1-runtime-active-backup.gif'
+          marker='/var/mobile/Media/gif2ani-321-runtime.marker'
+          restored=0
+
+          backboard_pid() { ps ax | awk '$5=="/usr/libexec/backboardd" {print $1; exit}'; }
+          springboard_pid() { ps ax | awk '$5=="/System/Library/CoreServices/SpringBoard.app/SpringBoard" {print $1; exit}'; }
+          wait_new_pid() {
+            kind="$1"; old="$2"
+            for n in $(seq 1 75); do
+              if [ "$kind" = backboardd ]; then now=$(backboard_pid); else now=$(springboard_pid); fi
+              [ -n "$now" ] && [ "$now" != "$old" ] && { echo "$now"; return 0; }
+              sleep 1
+            done
+            return 1
+          }
+          restart_backboard() {
+            old_bb=$(backboard_pid); old_sb=$(springboard_pid)
+            /var/jb/usr/bin/killall -9 backboardd 2>/dev/null || killall -9 backboardd 2>/dev/null || true
+            new_bb=$(wait_new_pid backboardd "$old_bb")
+            new_sb=$(wait_new_pid SpringBoard "$old_sb")
+            echo "backboardd=$old_bb->$new_bb springboard=$old_sb->$new_sb"
+          }
+          restore_user_state() {
+            [ "$restored" -eq 1 ] && return 0
+            echo '=== RESTORE USER STATE ==='
+            cp "$gif_backup" "$active"
+            cp "$prefs_backup" "$prefs"
+            chown mobile:mobile "$active" "$prefs"
+            chmod 0644 "$active" "$prefs"
+            rm -f "$media/Rejected.gif" "$media/load-in-progress" "$media/Pending.gif" "$media/pending-metadata.plist" "$media/Active.previous.gif" "$media/Active.gif.new"
+            restart_backboard || true
+            sleep 12
+            restored=1
+          }
+          on_exit() {
+            rc=$?
+            trap - EXIT
+            if [ "$restored" -ne 1 ]; then restore_user_state || true; fi
+            exit "$rc"
+          }
+          trap on_exit EXIT
+
+          echo '=== PRECHECK ==='
+          version=$(dpkg-query -W -f='${Version}' com.nightvibes33.gif2ani)
+          echo "installed_version=$version"
+          test "$version" = '3.2.1'
+          test -f "$active"
+          test -f "$prefs"
+          test -f /var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/Root.plist
+          test -f /var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/Gif2AniPrefs
+          cp "$active" "$gif_backup"
+          cp "$prefs" "$prefs_backup"
+          chmod 0644 "$gif_backup" "$prefs_backup"
+          active_size=$(wc -c < "$active" | tr -d ' ')
+          echo "active_size_before=$active_size"
+
+          echo '=== SETTINGS BUNDLE PROOF ==='
+          python3 - <<'PY'
+          import plistlib
+          p='/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/Root.plist'
+          with open(p,'rb') as f: root=plistlib.load(f)
+          items=root['items']
+          actions={x.get('action') for x in items if x.get('action')}
+          required={'showStatus','selectGIF','confirmRemoveGIF','chooseBackgroundColor','resetVisualAndPlaybackSettings','applyAndRespring'}
+          assert required <= actions
+          keys={x.get('key') for x in items if x.get('key')}
+          assert {'imageTransformation','customLoop','customDuration'} <= keys
+          loop=next(x for x in items if x.get('key')=='customLoop')
+          duration=next(x for x in items if x.get('key')=='customDuration')
+          assert loop['validValues']==[-1.0,0.0,1.0,2.0,3.0,5.0,10.0]
+          assert duration['validValues']==[-1.0,0.5,1.0,2.0,3.0,5.0,10.0,15.0,30.0,60.0]
+          print('settings_bundle_actions=pass')
+          print('settings_bundle_choices=pass')
+          PY
+          strings /var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/Gif2AniPrefs | grep -q 'Active.previous.gif'
+          strings /var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/Gif2AniPrefs | grep -q 'Gif2Ani Status'
+          strings /var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/Gif2AniPrefs | grep -q 'The settings could not be written to the real preferences file.'
+          echo settings_binary_actions=pass
+
+          echo '=== WRITE PARSED SETTINGS MATRIX ==='
+          python3 - "$prefs" <<'PY'
+          import plistlib,sys,time
+          p=sys.argv[1]
+          with open(p,'rb') as f: d=plistlib.load(f)
+          d.update(
+              isEnabled=True,
+              pendingReady=False,
+              imageTransformation='center',
+              customLoop=2.0,
+              customDuration=5.0,
+              backgroundColor='#123456:0.750',
+              lastAppliedAt=time.time(),
+          )
+          with open(p,'wb') as f: plistlib.dump(d,f)
+          with open(p,'rb') as f: verified=plistlib.load(f)
+          assert verified['isEnabled'] is True
+          assert verified['pendingReady'] is False
+          assert verified['imageTransformation']=='center'
+          assert float(verified['customLoop'])==2.0
+          assert float(verified['customDuration'])==5.0
+          assert verified['backgroundColor']=='#123456:0.750'
+          print('disk_settings_matrix=pass')
+          PY
+          chown mobile:mobile "$prefs"
+          chmod 0644 "$prefs"
+          rm -f "$media/Rejected.gif" "$media/load-in-progress" "$media/Pending.gif" "$media/pending-metadata.plist"
+          touch "$marker"
+          restart_backboard
+          sleep 12
+
+          echo '=== PARSED RUNTIME PROOF ==='
+          cat "$status"
+          python3 - "$status" "$active_size" "$active" <<'PY'
+          import plistlib,sys,os
+          status_path,expected_size,active=sys.argv[1],int(sys.argv[2]),sys.argv[3]
+          with open(status_path,'rb') as f: s=plistlib.load(f)
+          assert s['event']=='custom-animation-stable', s
+          assert s['attachmentPoint']=='dedicated-overlay-layer', s
+          assert s['appleLoaderHidden'] is True, s
+          assert int(s['frameCount']) > 0, s
+          assert abs(float(s['duration'])-5.0) < 0.001, s
+          assert abs(float(s['repeatCount'])-2.0) < 0.001, s
+          assert s['contentsGravity']=='center', s
+          assert os.path.getsize(active)==expected_size
+          print('runtime_event=pass')
+          print('runtime_duration=5.0')
+          print('runtime_repeat_count=2.0')
+          print('runtime_contents_gravity=center')
+          print('apple_loader_hidden=true')
+          PY
+          test ! -e "$media/Rejected.gif"
+          test ! -e "$media/load-in-progress"
+
+          restore_user_state
+          trap - EXIT
+
+          echo '=== FINAL RESTORED PROOF ==='
+          python3 - "$prefs" "$prefs_backup" "$active" "$gif_backup" "$status" <<'PY'
+          import plistlib,sys,hashlib
+          prefs,prefs_backup,active,gif_backup,status=sys.argv[1:]
+          def sha(path):
+              h=hashlib.sha256()
+              with open(path,'rb') as f:
+                  for chunk in iter(lambda:f.read(65536),b''): h.update(chunk)
+              return h.hexdigest()
+          assert sha(prefs)==sha(prefs_backup)
+          assert sha(active)==sha(gif_backup)
+          with open(status,'rb') as f: s=plistlib.load(f)
+          assert s['event']=='custom-animation-stable'
+          assert s['attachmentPoint']=='dedicated-overlay-layer'
+          assert s['appleLoaderHidden'] is True
+          print('preferences_restored=pass')
+          print('active_gif_restored=pass')
+          print('restored_runtime=pass')
+          PY
+          crashes=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \
+            \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' -o -name 'Preferences-*.ips' \) \
+            -newer "$marker" -print 2>/dev/null | wc -l | tr -d ' ')
+          echo "new_crash_reports=$crashes"
+          test "$crashes" = 0
+          /var/jb/usr/bin/killall -9 Preferences 2>/dev/null || killall -9 Preferences 2>/dev/null || true
+          echo settings_runtime_321_result=success
+          SH
+
+          chmod +x /tmp/verify-321-runtime.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            /tmp/verify-321-runtime.sh mobile@"$IPAD_HOST":/var/mobile/Media/verify-321-runtime.sh
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=60 \
+            -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" \
+            'sudo -S -p "" sh /var/mobile/Media/verify-321-runtime.sh' 2>&1 | tee -a gif2ani-321-settings-runtime.txt
+
+      - name: Publish parsed verification
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          p=Path('gif2ani-321-settings-runtime.txt')
+          text=p.read_text(errors='replace') if p.exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=['Gif2Ani 3.2.1 Parsed Settings Runtime Verification',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"verify={os.environ.get('VERIFY_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-1800:]]
+          Path('remote/gif2ani-321-settings-runtime.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/gif2ani-321-settings-runtime.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record Gif2Ani 3.2.1 parsed settings runtime [skip ci]"
+            git push origin HEAD:main
+          fi
