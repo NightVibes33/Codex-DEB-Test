@@ -1,12 +1,12 @@
 iPad Tailscale SSH Bridge
-run_id=30148551491
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30148551491
-commit=0fb250448cc6e5c982fdf61a72d94153d8ac4fff
+run_id=30148679058
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30148679058
+commit=b4942b152e66f3ab7354a3352a7d112e5b74c0ec
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
 install_ssh=success
-ssh=cancelled
+ssh=success
 
 --- sanitized SSH output ---
 Checking SSH host key over Tailscale...
@@ -16,16 +16,34 @@ Checking SSH host key over Tailscale...
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-=== iPad development environment ===
+=== iPad toolchain ===
 Darwin Bobbys-iPad 22.6.0 Darwin Kernel Version 22.6.0: Tue Jul  2 20:45:41 PDT 2024; root:xnu-8796.142.1.703.8~1/RELEASE_ARM64_S8000 iPad6,11 arm Darwin
 uid=0(root) gid=0(wheel) groups=0(wheel)
-git=git version 2.39.1
-python=Python 3.9.9
-clang=gh==== GitHub authentication checks ===
-gh=not-installed
-Warning: Permanently added 'github.com' (ED25519) to the list of known hosts.
-git@github.com: Permission denied (publickey).
-ssh_git_auth=0
+git version 2.39.1
+Python 3.9.9
+gh_path=missing
+ssh_path=/var/jb/usr/bin/ssh
+=== Existing GitHub authentication ===
+gh_authenticated=0
 credential_helper=none
-=== Clone Dopamine main on iPad ===
-Cloning into '/var/mobile/Documents/DarkSword-Workspace/Dopamine'...
+git@github.com: Permission denied (publickey).
+ssh_authenticated=0
+=== Fast clone of Dopamine main ===
+From https://github.com/NightVibes33/Dopamine
+ * branch            main       -> FETCH_HEAD
+Reset branch 'main'
+Your branch is up to date with 'origin/main'.
+repo=/var/mobile/Documents/DarkSword-Workspace/Dopamine
+source_head=97c5d20d312ac045136e34ad8f481a13621e1298
+[main 0ae8537] Record iPad 5 on-device DarkSword workspace
+ 1 file changed, 13 insertions(+)
+ create mode 100644 research/IPAD5_ONDEVICE_WORKSPACE.md
+local_commit=0ae85378a6294a424c8b63de0c72b8eb8161447f
+=== Direct push from iPad ===
+push_dry_run=failure
+fatal: could not read Username for 'https://github.com': terminal prompts disabled
+push=blocked-by-github-auth
+=== iPad deploy public key ===
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPoRypXIKG0OINrDhjzk2MIThJ8C2E21UF9aCdlqC3Pu NightVibes33-iPad6,11-DarkSword
+=== Done ===
+ssh_exit_code=0
