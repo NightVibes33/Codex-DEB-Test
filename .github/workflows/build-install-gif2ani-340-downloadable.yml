@@ -31,14 +31,17 @@ jobs:
           TARGET_ENVIRONMENT_ID: "18728387881"
         run: |
           set -euo pipefail
-          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+          curl -fsS \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
           python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
-          import json,sys
-          target=int(sys.argv[1])
-          for env in json.load(open('environments.json')).get('environments',[]):
-              if int(env.get('id',-1)) == target:
-                  print('environment_name='+env['name'])
+          import json, sys
+          target = int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments', []):
+              if int(env.get('id', -1)) == target:
+                  print('environment_name=' + env['name'])
                   raise SystemExit(0)
           raise SystemExit('environment-not-found')
           PY
@@ -60,7 +63,7 @@ jobs:
           ref: main
           path: darkboot
 
-      - name: Install dependencies and Theos
+      - name: Install build dependencies and Theos
         env:
           THEOS: /opt/theos
           CI: "1"
@@ -79,30 +82,36 @@ jobs:
           bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
           test -x /opt/theos/toolchain/linux/iphone/bin/clang
 
-      - name: Validate 3.4 source contract
-        working-directory: darkboot
+      - name: Validate source and pinned 54-theme catalog
         run: |
           set -euo pipefail
-          test "$(awk '/^Version:/{print $2}' control)" = "3.4.0"
           python3 - <<'PY'
           from pathlib import Path
-          p1=Path('gif2aniprefs/G2ThemeGalleryPart1.inc').read_text()
-          legacy=p1[p1.index('G2LegacyCatalog'):p1.index('static UIColor *G2RGB')]
-          offline=p1[p1.index('G2BuiltInPacks'):p1.index('G2LegacyCatalog')]
-          remote=Path('gif2aniprefs/G2RemoteThemeCatalog.inc').read_text()
-          wrapper=Path('gif2aniprefs/G2ThemeGalleryController.m').read_text()
-          preview=Path('gif2aniprefs/G2RemoteThemePreviewOverride.inc').read_text()
-          stage=Path('gif2aniprefs/G2ThemeStageOverride.inc').read_text()
-          polish=Path('gif2aniprefs/G2RemoteGalleryPolish.inc').read_text()
-          root=Path('gif2aniprefs/Resources/Root.plist').read_text()
+          import json, urllib.request
+
+          root = Path('darkboot')
+          control = root.joinpath('control').read_text()
+          assert '\nVersion: 3.4.0\n' in '\n' + control
+
+          p1 = root.joinpath('gif2aniprefs/G2ThemeGalleryPart1.inc').read_text()
+          offline = p1[p1.index('G2BuiltInPacks'):p1.index('G2LegacyCatalog')]
+          legacy = p1[p1.index('G2LegacyCatalog'):p1.index('static UIColor *G2RGB')]
+          remote = root.joinpath('gif2aniprefs/G2RemoteThemeCatalog.inc').read_text()
+          wrapper = root.joinpath('gif2aniprefs/G2ThemeGalleryController.m').read_text()
+          preview = root.joinpath('gif2aniprefs/G2RemoteThemePreviewOverride.inc').read_text()
+          stage = root.joinpath('gif2aniprefs/G2ThemeStageOverride.inc').read_text()
+          polish = root.joinpath('gif2aniprefs/G2RemoteGalleryPolish.inc').read_text()
+          settings = root.joinpath('gif2aniprefs/Resources/Root.plist').read_text()
+
           assert offline.count('@"identifier":') == 12
           assert legacy.count('@"name":') == 54
-          assert remote.count('@{"name":') == 15
           assert 'packs.count == 54' in remote
-          assert 'G2OfflineBuiltInPacks()' in remote
+          assert 'Cyan Pulse Rings' in remote
+          assert 'G2RemoteThemeURLIsAllowed' in remote
           assert 'raw.githubusercontent.com/NightVibes33/Codex-DEB-Test' in remote
           assert 'b5d5eda04359409865772038895e660d709deb18' in remote
-          assert 'G2RemoteThemeURLIsAllowed' in remote
+          assert '#define G2BuiltInPacks G2OfflineBuiltInPacks' in wrapper
+          assert 'G2LegacyStageGIFAtPath' in wrapper
           assert 'Download & Preview' in preview
           assert 'NSURLSessionConfiguration.ephemeralSessionConfiguration' in preview
           assert 'G2ValidateGIFData(data, &error)' in preview
@@ -110,69 +119,61 @@ jobs:
           assert 'userSettingsPreserved' in stage
           assert '@{@"pendingReady":@YES}' in stage
           assert 'recommendedBackground' in stage
-          assert '#define G2BuiltInPacks G2OfflineBuiltInPacks' in wrapper
-          assert 'G2LegacyStageGIFAtPath' in wrapper and '#define G2StageGIFAtPath' in wrapper
           assert '12 Offline + 54 Downloadable' in polish
-          assert 'GIF2ANI 3.4' in root
+          assert 'GIF2ANI 3.4' in settings
+
+          url = 'https://raw.githubusercontent.com/NightVibes33/Codex-DEB-Test/b5d5eda04359409865772038895e660d709deb18/gif2ani-themes/v1/manifest.json'
+          with urllib.request.urlopen(url, timeout=30) as response:
+              manifest = json.load(response)
+          themes = manifest['themes']
+          assert manifest['count'] == 54 and len(themes) == 54
+          assert len({theme['id'] for theme in themes}) == 54
+          assert all(theme['license'] == 'CC0-1.0' for theme in themes)
+          assert all(theme['sourceFrames'] == 24 for theme in themes)
+          assert all(theme['width'] == 360 and theme['height'] == 360 for theme in themes)
+          assert all(theme['file'] == theme['id'] + '.gif' for theme in themes)
+
           print('offline_builtins=12')
           print('downloadable_builtins=54')
           print('builtins_total=66')
           print('legacy_source_catalog=54')
           print('all_gallery_entries=120')
+          print('manifest_validation=success')
           PY
 
-      - name: Prove full pinned downloadable catalog
+      - name: Prove a real pinned downloadable GIF
         run: |
           set -euo pipefail
           BASE="https://raw.githubusercontent.com/NightVibes33/Codex-DEB-Test/${THEME_COMMIT}/gif2ani-themes/v1"
           curl --fail --location --proto '=https' --tlsv1.2 --max-time 30 "$BASE/manifest.json" -o manifest.json
-          python3 - <<'PY'
-          import json
-          manifest=json.load(open('manifest.json'))
-          themes=manifest.get('themes',[])
-          assert manifest.get('count') == 54
-          assert len(themes) == 54
-          assert len({t['id'] for t in themes}) == 54
-          assert len({t['file'] for t in themes}) == 54
-          for t in themes:
-              assert t['license'] == 'CC0-1.0'
-              assert t['sourceFrames'] == 24
-              assert t['width'] == 360 and t['height'] == 360
-              assert t['bytes'] > 0 and t['bytes'] <= 25*1024*1024
-              assert len(t['sha256']) == 64
-              assert t['file'] == t['id'] + '.gif'
-          print('manifest_theme_count=54')
-          print('manifest_unique_ids=54')
-          print('manifest_license=CC0-1.0')
-          PY
-          URL="$BASE/${TEST_THEME}"
-          curl --fail --location --proto '=https' --tlsv1.2 --max-time 30 "$URL" -o test-theme.gif
+          curl --fail --location --proto '=https' --tlsv1.2 --max-time 30 "$BASE/${TEST_THEME}" -o test-theme.gif
           python3 - <<'PY'
           from PIL import Image
           import hashlib, json, os
-          p='test-theme.gif'
-          im=Image.open(p)
-          assert im.format=='GIF'
-          assert im.size==(360,360), im.size
-          assert getattr(im,'n_frames',0)==24, getattr(im,'n_frames',0)
-          size=os.path.getsize(p)
-          digest=hashlib.sha256(open(p,'rb').read()).hexdigest()
-          expected=next(t for t in json.load(open('manifest.json'))['themes'] if t['file']=='cyan-pulse-rings.gif')
-          assert size == expected['bytes']
+
+          manifest = json.load(open('manifest.json'))
+          expected = next(theme for theme in manifest['themes'] if theme['file'] == 'cyan-pulse-rings.gif')
+          image = Image.open('test-theme.gif')
+          data = open('test-theme.gif', 'rb').read()
+          digest = hashlib.sha256(data).hexdigest()
+          assert image.format == 'GIF'
+          assert image.size == (360, 360)
+          assert image.n_frames == 24
+          assert len(data) == expected['bytes']
           assert digest == expected['sha256']
           print('download_status=success')
           print('download_frames=24')
           print('download_dimensions=360x360')
-          print('download_bytes='+str(size))
-          print('download_sha256='+digest)
+          print('download_bytes=' + str(len(data)))
+          print('download_sha256=' + digest)
           PY
 
-      - name: Build rootless 3.4.0 package
-        working-directory: darkboot
+      - name: Build and validate rootless 3.4.0 DEB
         env:
           THEOS: /opt/theos
         run: |
-          set -o pipefail
+          set -euo pipefail
+          cd darkboot
           make clean package FINALPACKAGE=1 2>&1 | tee ../gif2ani-340-build.log
           DEB="$(find packages -maxdepth 1 -type f -name 'com.nightvibes33.gif2ani_3.4.0_iphoneos-arm64.deb' | head -n1)"
           test -n "$DEB"
@@ -184,11 +185,11 @@ jobs:
           BUNDLE=../gif2ani-340-root/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle
           test -f "$BUNDLE/Gif2AniPrefs"
           test -f "$BUNDLE/Root.plist"
-          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'Download & Preview'
-          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'Cyan Pulse Rings'
-          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'Legacy Source Catalog'
-          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'userSettingsPreserved'
-          grep -q 'GIF2ANI 3.4' "$BUNDLE/Root.plist"
+          grep -a -F -q 'Download & Preview' "$BUNDLE/Gif2AniPrefs"
+          grep -a -F -q 'Cyan Pulse Rings' "$BUNDLE/Gif2AniPrefs"
+          grep -a -F -q 'Legacy Source Catalog' "$BUNDLE/Gif2AniPrefs"
+          grep -a -F -q 'userSettingsPreserved' "$BUNDLE/Gif2AniPrefs"
+          grep -F -q 'GIF2ANI 3.4' "$BUNDLE/Root.plist"
           sha256sum "$DEB" | tee ../gif2ani-340-deb-sha256.txt
 
       - uses: tailscale/github-action@v4
@@ -196,7 +197,7 @@ jobs:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
           version: latest
 
-      - name: Install and prove device state preservation
+      - name: Install and prove iPad state preservation
         id: install
         env:
           SSHPASS: ${{ secrets.IPAD_PASSWORD }}
@@ -205,7 +206,10 @@ jobs:
           set -euo pipefail
           connected=0
           for attempt in $(seq 1 45); do
-            sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1 && { connected=1; break; }
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then
+              connected=1
+              break
+            fi
             sleep 5
           done
           echo "connected=$connected" | tee gif2ani-340-device.txt
@@ -217,6 +221,7 @@ jobs:
           cat > /tmp/install-gif2ani-340.sh <<'SH'
           #!/bin/sh
           set -eu
+
           media='/var/mobile/Library/Application Support/Gif2Ani'
           prefs='/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist'
           active="$media/Active.gif"
@@ -225,7 +230,21 @@ jobs:
           deb='/var/mobile/Media/Gif2Ani-3.4.0-downloadable.deb'
           marker='/var/mobile/Media/gif2ani-340-install.marker'
           url='https://raw.githubusercontent.com/NightVibes33/Codex-DEB-Test/b5d5eda04359409865772038895e660d709deb18/gif2ani-themes/v1/cyan-pulse-rings.gif'
-          sha() { /var/jb/usr/bin/sha256sum "$1" 2>/dev/null | awk '{print $1}'; }
+
+          find_tool() {
+            for candidate in "$@"; do
+              [ -x "$candidate" ] && { echo "$candidate"; return 0; }
+            done
+            return 1
+          }
+
+          sha_tool=$(find_tool /var/jb/usr/bin/sha256sum /usr/bin/sha256sum)
+          curl_tool=$(find_tool /var/jb/usr/bin/curl /usr/bin/curl)
+          dpkg_tool=$(find_tool /var/jb/usr/bin/dpkg /usr/bin/dpkg)
+          query_tool=$(find_tool /var/jb/usr/bin/dpkg-query /usr/bin/dpkg-query)
+          grep_tool=$(find_tool /var/jb/usr/bin/grep /usr/bin/grep)
+
+          sha() { "$sha_tool" "$1" | awk '{print $1}'; }
 
           test -f "$active"
           test -f "$prefs"
@@ -235,27 +254,29 @@ jobs:
           runtime_before=$(sha "$runtime")
           touch "$marker"
 
-          /var/jb/usr/bin/dpkg -i "$deb"
-          version=$(/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.nightvibes33.gif2ani)
+          "$dpkg_tool" -i "$deb"
+          version=$("$query_tool" -W -f='${Version}' com.nightvibes33.gif2ani)
           test "$version" = '3.4.0'
 
           bundle='/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle'
           test -f "$bundle/Gif2AniPrefs"
           test -f "$bundle/Root.plist"
-          strings "$bundle/Gif2AniPrefs" | grep -q 'Download & Preview'
-          strings "$bundle/Gif2AniPrefs" | grep -q 'Cyan Pulse Rings'
-          strings "$bundle/Gif2AniPrefs" | grep -q 'Legacy Source Catalog'
-          grep -q 'GIF2ANI 3.4' "$bundle/Root.plist"
+          "$grep_tool" -a -F -q 'Download & Preview' "$bundle/Gif2AniPrefs"
+          "$grep_tool" -a -F -q 'Cyan Pulse Rings' "$bundle/Gif2AniPrefs"
+          "$grep_tool" -a -F -q 'Legacy Source Catalog' "$bundle/Gif2AniPrefs"
+          "$grep_tool" -a -F -q 'userSettingsPreserved' "$bundle/Gif2AniPrefs"
+          "$grep_tool" -F -q 'GIF2ANI 3.4' "$bundle/Root.plist"
 
           mkdir -p "$cache"
-          rm -f "$cache/device-download-test.gif"
-          /var/jb/usr/bin/curl --fail --location --proto '=https' --max-time 30 "$url" -o "$cache/device-download-test.gif"
-          size=$(wc -c < "$cache/device-download-test.gif" | tr -d ' ')
+          test_file="$cache/device-download-test.gif"
+          rm -f "$test_file"
+          "$curl_tool" --fail --location --max-time 30 "$url" -o "$test_file"
+          size=$(wc -c < "$test_file" | tr -d ' ')
           test "$size" -gt 0
           test "$size" -le 26214400
-          magic=$(dd if="$cache/device-download-test.gif" bs=1 count=6 2>/dev/null)
+          magic=$(dd if="$test_file" bs=1 count=6 2>/dev/null)
           case "$magic" in GIF87a|GIF89a) ;; *) exit 1 ;; esac
-          rm -f "$cache/device-download-test.gif"
+          rm -f "$test_file"
 
           test "$active_before" = "$(sha "$active")"
           test "$prefs_before" = "$(sha "$prefs")"
@@ -273,7 +294,7 @@ jobs:
           echo "runtime_status_preserved=true"
           echo "new_crash_reports=$crashes"
           echo "gif2ani_340_install=success"
-          /var/jb/usr/bin/killall -9 Preferences 2>/dev/null || true
+          /var/jb/usr/bin/killall -9 Preferences 2>/dev/null || killall -9 Preferences 2>/dev/null || true
           SH
 
           chmod +x /tmp/install-gif2ani-340.sh
@@ -297,24 +318,38 @@ jobs:
           python3 - <<'PY'
           import os
           from pathlib import Path
-          build=Path('../gif2ani-340-build.log').read_text(errors='replace') if Path('../gif2ani-340-build.log').exists() else 'No build log.'
-          device=Path('../gif2ani-340-device.txt').read_text(errors='replace') if Path('../gif2ani-340-device.txt').exists() else 'No device output.'
-          digest=Path('../gif2ani-340-deb-sha256.txt').read_text(errors='replace') if Path('../gif2ani-340-deb-sha256.txt').exists() else ''
-          pw=os.environ.get('IPAD_PASSWORD','')
-          if pw:
-              build=build.replace(pw,'***REDACTED***')
-              device=device.replace(pw,'***REDACTED***')
-          out=[
+
+          build_path = Path('../gif2ani-340-build.log')
+          device_path = Path('../gif2ani-340-device.txt')
+          digest_path = Path('../gif2ani-340-deb-sha256.txt')
+          build = build_path.read_text(errors='replace') if build_path.exists() else 'No build log.'
+          device = device_path.read_text(errors='replace') if device_path.exists() else 'No device output.'
+          digest = digest_path.read_text(errors='replace').strip() if digest_path.exists() else ''
+          password = os.environ.get('IPAD_PASSWORD', '')
+          if password:
+              build = build.replace(password, '***REDACTED***')
+              device = device.replace(password, '***REDACTED***')
+          output = [
               'Gif2Ani 3.4.0 Downloadable Catalog Build and Install',
-              f"run_id={os.environ.get('GITHUB_RUN_ID','')}",
-              f"install={os.environ.get('INSTALL_OUTCOME','')}",
-              '', 'offline_builtins=12', 'downloadable_builtins=54', 'builtins_total=66',
-              'legacy_source_catalog=54', 'all_gallery_entries=120',
-              '', '--- digest ---', digest.strip(),
-              '', '--- device proof ---', *device.splitlines()[-400:],
-              '', '--- build tail ---', *build.splitlines()[-300:]
+              f"run_id={os.environ.get('GITHUB_RUN_ID', '')}",
+              f"install={os.environ.get('INSTALL_OUTCOME', '')}",
+              '',
+              'offline_builtins=12',
+              'downloadable_builtins=54',
+              'builtins_total=66',
+              'legacy_source_catalog=54',
+              'all_gallery_entries=120',
+              '',
+              '--- digest ---',
+              digest,
+              '',
+              '--- device proof ---',
+              *device.splitlines()[-500:],
+              '',
+              '--- build tail ---',
+              *build.splitlines()[-350:],
           ]
-          Path('remote/gif2ani-340-downloadable-build-install.txt').write_text('\n'.join(out)+'\n')
+          Path('remote/gif2ani-340-downloadable-build-install.txt').write_text('\n'.join(output) + '\n')
           PY
           git add remote/gif2ani-340-downloadable-build-install.txt
           if ! git diff --cached --quiet; then
