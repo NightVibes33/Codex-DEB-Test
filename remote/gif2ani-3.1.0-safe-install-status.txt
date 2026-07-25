@@ -1,0 +1,59 @@
+Gif2Ani 3.1.0 Safe-Mode Installation
+run_id=30166361809
+source_commit=552f38c455df9e99c9dffa918c161fdbf8abc790
+build=success
+tailscale=success
+wait_ssh=success
+install=success
+verify=success
+
+--- sanitized output ---
+[0;36m==> [1;39mCleaning…[m
+[1;31m> [1;3;39mMaking clean in gif2aniprefs…[m
+[0;36m==> [1;39mCleaning…[m
+[1;31m> [1;3;39mMaking all for tweak Gif2Ani…[m
+[0;31m==> [1;39mPreprocessing Tweak.xm…[m
+[0;32m==> [1;39mCompiling UIImage+animatedGIF.m (arm64)…[m
+[0;32m==> [1;39mCompiling G2PreferencesManager.m (arm64)…[m
+[0;32m==> [1;39mCompiling Tweak.xm (arm64)…[m
+[0;33m==> [1;39mLinking tweak Gif2Ani (arm64)…[m
+[0;34m==> [1;39mGenerating debug symbols for Gif2Ani…[m
+[0;34m==> [1;39mStripping Gif2Ani (arm64)…[m
+[0;34m==> [1;39mSigning Gif2Ani…[m
+[1;31m> [1;3;39mMaking all in gif2aniprefs…[m
+[1;31m> [1;3;39mMaking all for bundle Gif2AniPrefs…[m
+[0;35m==> [1;39mCopying resource directories into the bundle wrapper…[m
+[0;32m==> [1;39mCompiling gif2ani2RootListController.m (arm64)…[m
+[0;33m==> [1;39mLinking bundle Gif2AniPrefs (arm64)…[m
+[0;34m==> [1;39mGenerating debug symbols for Gif2AniPrefs…[m
+[0;34m==> [1;39mStripping Gif2AniPrefs (arm64)…[m
+[0;34m==> [1;39mSigning Gif2AniPrefs…[m
+[1;31m> [1;3;39mMaking stage for tweak Gif2Ani…[m
+[1;31m> [1;3;39mMaking stage in gif2aniprefs…[m
+[1;31m> [1;3;39mMaking stage for bundle Gif2AniPrefs…[m
+[0;36m==> [1;36mNotice:[m Neither plutil, ply, or libplist-utils are installed, so XML plist files were not optimized.
+dm.pl: building package `com.nightvibes33.gif2ani:iphoneos-arm64' in `./packages/com.nightvibes33.gif2ani_3.1.0_iphoneos-arm64.deb'
+14331cc9f91d5b8f11b4accc8518972b63e9ad67ab007295a7e6c0737207ad35  Gif2Ani-3.1.0-rootless.deb
+ssh_attempt=1
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== PRE-INSTALL RESET ===
+=== INSTALL 3.1.0 ===
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+(Reading database ... 19748 files and directories currently installed.)
+Preparing to unpack .../Gif2Ani-3.1.0-rootless.deb ...
+Unpacking com.nightvibes33.gif2ani (3.1.0) over (3.1.0) ...
+Setting up com.nightvibes33.gif2ani (3.1.0) ...
+Processing triggers for org.coolstar.sileo (2.5.1) ...
+=== VERIFY DISABLED INSTALL ===
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+installed_version=3.1.0
+enabled=false
+media_slots=empty
+backboard_restart=not_performed
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+recent_backboard_crashes=0
+safe_install_verified=yes
