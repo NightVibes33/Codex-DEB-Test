@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30149616504
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30149616504
-commit=bbaf8a272658d21510f8867c8a28200dac3245b4
+run_id=30149842515
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30149842515
+commit=0b10fdc688b8e189a9860e16593ca771e358cc42
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -9,24 +9,103 @@ install_ssh=success
 ssh=success
 
 --- sanitized SSH output ---
-Checking SSH host key over Tailscale...
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-=== GitHub SSH verification ===
-Hi NightVibes33! You've successfully authenticated, but GitHub does not provide shell access.
-ssh_authenticated=1
-local_head=0ae85378a6294a424c8b63de0c72b8eb8161447f
-local_subject=Record iPad 5 on-device DarkSword workspace
-=== Push from iPad ===
-To github.com:NightVibes33/Dopamine.git
-   97c5d20..0ae8537  HEAD -> main
-push_exit_code=0
-push=success
-pushed_head=0ae85378a6294a424c8b63de0c72b8eb8161447f
-bootstrap_private_key=erased
-github_auth=ssh-key
+timestamp=2026-07-25 00:10:02.00 -0500
+incident=F06661A2-2712-4B5B-8F01-299E791D2342
+bug_type=298
+os_version=iPhone OS 16.7.11 (20H360)
+clue=vm-compressor-space-shortage
+--- report=11 ---
+file=JetsamEvent-2026-07-25-001001.000.ips
+modified=2026-07-25 00:10:01 -0500
+bytes=161129
+timestamp=2026-07-25 00:10:01.00 -0500
+incident=C472F171-F4D1-422F-9ABC-1621237AD0F3
+bug_type=298
+os_version=iPhone OS 16.7.11 (20H360)
+clue=vm-compressor-space-shortage
+--- report=12 ---
+file=JetsamEvent-2026-07-25-001001.ips
+modified=2026-07-25 00:10:01 -0500
+bytes=156809
+timestamp=2026-07-25 00:10:01.00 -0500
+incident=3F7AA201-336E-4DA8-AC7B-EA38B2F0F62F
+bug_type=298
+os_version=iPhone OS 16.7.11 (20H360)
+clue=vm-compressor-space-shortage
+--- report=13 ---
+file=JetsamEvent-2026-07-25-001000.ips
+modified=2026-07-25 00:10:00 -0500
+bytes=161103
+timestamp=2026-07-25 00:10:00.00 -0500
+incident=F2B0585C-0CFD-460F-8304-17776AC931F5
+bug_type=298
+os_version=iPhone OS 16.7.11 (20H360)
+clue=vm-compressor-space-shortage
+--- report=14 ---
+file=JetsamEvent-2026-07-25-000958.000.ips
+modified=2026-07-25 00:09:58 -0500
+bytes=159466
+timestamp=2026-07-25 00:09:58.00 -0500
+incident=AD1FA46C-090E-493C-8471-DA86F6ED04CB
+bug_type=298
+os_version=iPhone OS 16.7.11 (20H360)
+clue=vm-compressor-space-shortage
+--- report=15 ---
+file=JetsamEvent-2026-07-25-000958.ips
+modified=2026-07-25 00:09:58 -0500
+bytes=166100
+timestamp=2026-07-25 00:09:58.00 -0500
+incident=CBB2F651-D78F-44D4-9D8F-09FD815C790A
+bug_type=298
+os_version=iPhone OS 16.7.11 (20H360)
+clue=vm-compressor-space-shortage
+--- report=16 ---
+file=JetsamEvent-2026-07-25-000955.ips
+modified=2026-07-25 00:09:55 -0500
+bytes=158445
+timestamp=2026-07-25 00:09:55.00 -0500
+incident=B6B1F01E-6ABB-4959-9E90-B9D7E2ECCCF4
+bug_type=298
+os_version=iPhone OS 16.7.11 (20H360)
+clue=vm-compressor-space-shortage
+--- report=17 ---
+file=JetsamEvent-2026-07-25-000953.ips
+modified=2026-07-25 00:09:53 -0500
+bytes=164882
+timestamp=2026-07-25 00:09:53.00 -0500
+incident=20A4EC84-F2D4-42EC-BC4F-07D24603B9CB
+bug_type=298
+os_version=iPhone OS 16.7.11 (20H360)
+clue=vm-compressor-space-shortage
+--- report=18 ---
+file=JetsamEvent-2026-07-25-000952.ips
+modified=2026-07-25 00:09:52 -0500
+bytes=160354
+timestamp=2026-07-25 00:09:52.00 -0500
+incident=C8D96F19-F391-4818-B3AA-A32FA9AC3745
+bug_type=298
+os_version=iPhone OS 16.7.11 (20H360)
+clue=vm-compressor-space-shortage
+--- report=19 ---
+file=JetsamEvent-2026-07-25-000948.ips
+modified=2026-07-25 00:09:48 -0500
+bytes=159404
+timestamp=2026-07-25 00:09:48.00 -0500
+incident=F2108664-B515-4CC9-AB4F-BA504CD06898
+bug_type=298
+os_version=iPhone OS 16.7.11 (20H360)
+clue=vm-compressor-space-shortage
+--- report=20 ---
+file=JetsamEvent-2026-07-25-000945.ips
+modified=2026-07-25 00:09:45 -0500
+bytes=156952
+timestamp=2026-07-25 00:09:45.00 -0500
+incident=68F0281A-757B-4342-A4E6-257899F11D02
+bug_type=298
+os_version=iPhone OS 16.7.11 (20H360)
+clue=vm-compressor-space-shortage
+=== Installed jailbreak apps ===
+app=/var/containers/Bundle/Application/EBC0B1B9-0064-43EA-B0B1-A6F742F41FD2/Paleramine.app modified=2026-07-21 04:46:18 -0500
+app=/private/var/containers/Bundle/Application/EBC0B1B9-0064-43EA-B0B1-A6F742F41FD2/Paleramine.app modified=2026-07-21 04:46:18 -0500
+=== End crash scan ===
 ssh_exit_code=0
