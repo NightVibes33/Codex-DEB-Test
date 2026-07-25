@@ -1,3 +1,0 @@
-trigger=rescue-remove-gif2ani
-requested_at=2026-07-25T15:31:00-05:00
-reason=instant-crash-after-gif-selection
