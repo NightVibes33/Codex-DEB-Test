@@ -1,4 +1,4 @@
 run=quick-gif2ani-status-ipad
-requested_at=2026-07-25T19:32:00-05:00
+requested_at=2026-07-25T16:18:00-05:00
 mode=read-only-bounded
-reason=retry-after-workflow-registration
+reason=inspect-physical-apply-test-state
