@@ -1,3 +1,4 @@
-verify=restart-backboardd-gif2ani
-requested_at=2026-07-25T15:35:00-05:00
-state=gif2ani-disabled-no-gif
+action=restart-backboardd-verify-gif2ani
+requested_at=2026-07-25T16:03:00-05:00
+state=gif2ani-disabled-no-media
+launchd_flags=0x4c00082
