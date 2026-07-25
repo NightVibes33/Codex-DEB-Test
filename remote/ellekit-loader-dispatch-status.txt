@@ -1,0 +1,7 @@
+ElleKit Loader Diagnostic Dispatch
+run_id=30167759310
+outcome=success
+
+curl_exit=0
+http_code=204
+ellekit_diagnostic_dispatched=yes
