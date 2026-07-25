@@ -26,6 +26,38 @@ if ! command -v xcodegen >/dev/null 2>&1; then
   exit 1
 fi
 
+# Full sideload builds include KittyStore/SideStore. Its Swift bridge sources
+# and RustBridge.xcframework are generated artifacts, not ordinary Git files.
+# Prepare them before XcodeGen so a clean CI checkout cannot reach the linker
+# with a missing -lrust_bridge input.
+if [[ "${LITTER_NYXIAN_PRIVATE_BUILD:-0}" == "1" ]]; then
+  minimuxer_root="$ROOT_DIR/ThirdParty/SideStore"
+  minimuxer_archive="$minimuxer_root/Source/Dependencies/minimuxer/RustBridge/lib/RustBridge.xcframework/ios-arm64/librust_bridge.a"
+  minimuxer_device_lib="$ROOT_DIR/apps/ios/GeneratedRust/ios-device/libminimuxer-ios.a"
+  minimuxer_swift="$ROOT_DIR/apps/ios/Sources/Litter/Generated/Minimuxer/minimuxer.generated.swift"
+
+  if [[ ! -s "$minimuxer_archive" || ! -s "$minimuxer_device_lib" || ! -s "$minimuxer_swift" ]]; then
+    echo "==> Building KittyStore minimuxer Rust bridge for full AlleyCat sideload build"
+    if command -v brew >/dev/null 2>&1; then
+      for formula in cmake pkgconf llvm; do
+        brew list "$formula" >/dev/null 2>&1 || brew install "$formula"
+      done
+    fi
+    (
+      cd "$ROOT_DIR"
+      tools/scripts/build-sidestore-minimuxer.sh
+    )
+  else
+    echo "==> Using existing KittyStore minimuxer Rust bridge"
+  fi
+
+  test -s "$minimuxer_archive"
+  test -s "$minimuxer_device_lib"
+  test -s "$minimuxer_swift"
+  grep -q 'startWithLogger' "$minimuxer_swift"
+  grep -q 'installIpa' "$minimuxer_swift"
+fi
+
 # Full sideload builds intentionally include emexDE/CoreCompiler. Those binary
 # support artifacts are release assets rather than normal Git source, so a
 # clean GitHub runner must restore them before XcodeGen resolves CoreCompiler.
