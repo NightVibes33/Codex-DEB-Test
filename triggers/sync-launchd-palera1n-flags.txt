@@ -1,0 +1,6 @@
+action=sync-launchd-palera1n-flags
+requested_at=2026-07-25T15:40:00-05:00
+state=gif2ani-disabled-no-media
+expected_live_flags=0x4c00082
+stale_spawn_flags=0x6c00082
+restart_scope=SpringBoard-and-backboardd-only
