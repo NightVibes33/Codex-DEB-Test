@@ -1,3 +1,4 @@
 dispatch=current-official-exit-v4
-requested_at=2026-07-25T19:25:00-05:00
+requested_at=2026-07-25T19:26:00-05:00
 state=gif2ani-3.1.1-disabled-no-gif
+reason=retry-after-dispatcher-registration
