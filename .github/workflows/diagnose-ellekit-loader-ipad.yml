@@ -1,4 +1,4 @@
-name: Trace Choicy and backboardd Injection V2
+name: Read Choicy Injection Rules
 
 on:
   workflow_dispatch:
@@ -52,7 +52,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends openssh-client sshpass
-      - name: Inspect Choicy and backboardd rules
+      - name: Read Choicy rules
         id: collect
         env:
           SSHPASS: ${{ secrets.IPAD_PASSWORD }}
@@ -66,66 +66,58 @@ jobs:
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             mobile@"$IPAD_HOST" 'sh -c '\''
-              dump_plist() {
-                p="$1"
-                echo "--- $p"
-                if command -v plutil >/dev/null 2>&1; then
-                  plutil -p "$p" 2>&1 || file "$p" 2>&1 || true
-                else
-                  file "$p" 2>&1 || true
-                fi
+              buddy="/var/jb/usr/libexec/PlistBuddy"
+              dump() {
+                f="$1"
+                echo "--- $f"
+                if [ -x "$buddy" ]; then "$buddy" -c Print "$f" 2>&1 || true; else file "$f" 2>&1 || true; fi
               }
 
-              echo "=== PACKAGES / PROCESSES ==="
-              dpkg-query -W ellekit com.nightvibes33.gif2ani 2>&1 || true
+              echo "=== CURRENT STATE ==="
+              dpkg-query -W ellekit com.nightvibes33.gif2ani com.opa334.choicy 2>&1 || true
               ps ax | grep -E "[b]ackboardd|[S]pringBoard" || true
-
-              echo "=== SAFE MODE GATES ==="
               echo "_MSSafeMode=$(/var/jb/usr/bin/launchctl getenv _MSSafeMode 2>/dev/null || true)"
               echo "_SafeMode=$(/var/jb/usr/bin/launchctl getenv _SafeMode 2>/dev/null || true)"
-              if [ -e /var/mobile/.eksafemode ]; then echo eksafemode_file=present; else echo eksafemode_file=absent; fi
 
-              echo "=== CHOICY PACKAGE FILES ==="
-              dpkg-query -W 2>/dev/null | grep -i choicy || true
-              dpkg-query -L com.opa334.choicy 2>&1 || true
-              ls -la /var/jb/usr/lib/TweakInject/Choicy* 2>&1 || true
-              for f in /var/jb/usr/lib/TweakInject/Choicy*.plist; do
-                [ -e "$f" ] || continue
-                dump_plist "$f"
+              echo "=== CHOICY DEFAULTS ==="
+              defaults read com.opa334.choicy 2>&1 || true
+
+              echo "=== CHOICY PREFERENCE FILE ==="
+              pref="/var/mobile/Library/Preferences/com.opa334.choicy.plist"
+              ls -la "$pref" 2>&1 || true
+              [ -e "$pref" ] && dump "$pref"
+
+              echo "=== CHOICY INJECTION FILTERS ==="
+              find /var/jb/usr/lib/TweakInject -maxdepth 1 -iname "*choicy*.plist" -print 2>/dev/null | while IFS= read -r f; do dump "$f"; done
+
+              echo "=== CHOICY SETTINGS SCHEMAS ==="
+              for f in \
+                "/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/ApplicationDaemon.plist" \
+                "/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/GlobalTweakConfiguration.plist" \
+                "/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/Root.plist"; do
+                [ -e "$f" ] && dump "$f"
               done
 
-              echo "=== CHOICY PREFERENCES ==="
-              find /var/mobile/Library/Preferences -maxdepth 1 -iname "*choicy*" -print 2>/dev/null || true
-              for f in /var/mobile/Library/Preferences/*choicy* /var/mobile/Library/Preferences/*Choicy*; do
-                [ -e "$f" ] || continue
-                dump_plist "$f"
-              done
+              echo "=== GIF2ANI FILTER ==="
+              dump /var/jb/usr/lib/TweakInject/Gif2Ani.plist
 
-              echo "=== BACKBOARDD TARGETING TWEAKS ==="
+              echo "=== BACKBOARDD FILTER MATCHES ==="
               for f in /var/jb/usr/lib/TweakInject/*.plist; do
                 [ -f "$f" ] || continue
                 if grep -a -q "backboardd" "$f" 2>/dev/null; then
-                  dump_plist "$f"
+                  echo "$f"
                 fi
               done
 
-              echo "=== BACKBOARDD LAUNCH STATE ==="
-              pid=$(ps ax | awk "/[b]ackboardd/{print \$1; exit}")
-              echo "backboardd_pid=$pid"
-              /var/jb/usr/bin/launchctl print system/com.apple.backboardd 2>&1 | grep -E "state =|path =|program =|environment|DYLD|SafeMode|inject|pid =" | head -100 || true
-
-              echo "=== GIF2ANI RUNTIME DIRECTORY ==="
+              echo "=== RUNTIME STATUS ==="
               media="/var/mobile/Library/Application Support/Gif2Ani"
-              ls -ld "$media" 2>&1 || true
-              ls -la "$media" 2>&1 || true
-              if [ -e "$media/runtime-status.plist" ]; then dump_plist "$media/runtime-status.plist"; else echo runtime_status=missing; fi
-
+              if [ -e "$media/runtime-status.plist" ]; then dump "$media/runtime-status.plist"; else echo runtime_status=missing; fi
               echo "=== RECENT CRASHES ==="
               find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name "backboardd-*.ips" -o -name "SpringBoard-*.ips" \) -mmin -30 -print 2>/dev/null || true
-            '\''' 2>&1 | tee choicy-backboardd-trace-v2.txt
+            '\''' 2>&1 | tee choicy-rules.txt
           code=${PIPESTATUS[0]}
           set -e
-          echo "ssh_exit=$code" | tee -a choicy-backboardd-trace-v2.txt
+          echo "ssh_exit=$code" | tee -a choicy-rules.txt
           exit "$code"
       - name: Publish status
         if: always()
@@ -135,14 +127,14 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git pull --rebase origin main
           {
-            echo "Choicy and backboardd Injection Trace V2"
+            echo "Choicy Injection Rules"
             echo "run_id=${GITHUB_RUN_ID}"
             echo "collect=${{ steps.collect.outcome }}"
             echo
-            cat choicy-backboardd-trace-v2.txt 2>/dev/null || echo "No output."
-          } > remote/choicy-backboardd-injection-trace-v2.txt
-          git add remote/choicy-backboardd-injection-trace-v2.txt
+            cat choicy-rules.txt 2>/dev/null || echo "No output."
+          } > remote/choicy-injection-rules.txt
+          git add remote/choicy-injection-rules.txt
           if ! git diff --cached --quiet; then
-            git commit -m "Record Choicy and backboardd injection trace V2 [skip ci]"
+            git commit -m "Record Choicy injection rules [skip ci]"
             git push origin HEAD:main
           fi
