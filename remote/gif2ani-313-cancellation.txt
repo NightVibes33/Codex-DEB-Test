@@ -1,0 +1,3 @@
+Outdated Gif2Ani 3.1.3 Test Cancellation
+run_id=30172282144
+cancel_run=30172228360 prior_status=in_progress head_sha=72659bd0fb8a93a7fafc3037e5af7fbb7ea10597 http=202
