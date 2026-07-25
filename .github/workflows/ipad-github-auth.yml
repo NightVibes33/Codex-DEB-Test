@@ -1,0 +1,165 @@
+name: Authorize iPad GitHub Push
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "remote/ipad-github-auth-trigger.txt"
+      - ".github/workflows/ipad-github-auth.yml"
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: ipad-github-auth
+  cancel-in-progress: true
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" \
+            > environments.json
+          environment_name="$(python3 - <<'PY'
+          import json
+          with open('environments.json', encoding='utf-8') as f:
+              data=json.load(f)
+          target=18728387881
+          for env in data.get('environments', []):
+              if int(env.get('id', -1)) == target:
+                  print(env['name'])
+                  break
+          PY
+          )"
+          test -n "$environment_name"
+          echo "environment_name=$environment_name" >> "$GITHUB_OUTPUT"
+
+  authorize-and-push:
+    needs: resolve-environment
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate secrets
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$GH_PAT" || { echo 'Missing environment secret GH_PAT'; exit 1; }
+          test -n "$TAILSCALE_AUTHKEY" || { echo 'Missing environment secret TAILSCALE_AUTHKEY'; exit 1; }
+          test -n "$IPAD_PASSWORD" || { echo 'Missing environment secret IPAD_PASSWORD'; exit 1; }
+
+      - name: Register iPad deploy key on Dopamine
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+          IPAD_PUBLIC_KEY: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPoRypXIKG0OINrDhjzk2MIThJ8C2E21UF9aCdlqC3Pu NightVibes33-iPad6,11-DarkSword
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' > deploy-key.json
+          import json, os
+          print(json.dumps({
+              'title': 'DarkSword iPad6,11',
+              'key': os.environ['IPAD_PUBLIC_KEY'],
+              'read_only': False,
+          }))
+          PY
+          code="$(curl --silent --show-error -o deploy-key-response.json -w '%{http_code}' \
+            -X POST \
+            -H 'Accept: application/vnd.github+json' \
+            -H "Authorization: Bearer $GH_PAT" \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            https://api.github.com/repos/NightVibes33/Dopamine/keys \
+            --data-binary @deploy-key.json)"
+          if [ "$code" = 201 ]; then
+            echo 'iPad deploy key registered with write access.'
+          elif [ "$code" = 422 ] && grep -qi 'key is already in use' deploy-key-response.json; then
+            echo 'iPad deploy key is already registered.'
+          else
+            echo "Deploy-key API failed with HTTP $code"
+            python3 - <<'PY'
+          import json
+          try:
+              with open('deploy-key-response.json', encoding='utf-8') as f:
+                  data=json.load(f)
+              print(data.get('message', 'Unknown GitHub API error'))
+          except Exception:
+              print('Unreadable GitHub API response')
+          PY
+            exit 1
+          fi
+          rm -f deploy-key.json deploy-key-response.json
+
+      - name: Join Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          ping: 100.116.117.65
+          version: latest
+
+      - name: Install SSH tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends openssh-client sshpass
+
+      - name: Push the iPad-created commit
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"
+          ssh-keyscan -T 15 -H 100.116.117.65 > "$HOME/.ssh/known_hosts"
+          {
+            printf '%s\n' "$IPAD_PASSWORD"
+            cat <<'REMOTE'
+          set -euo pipefail
+          export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
+          repo=/var/mobile/Documents/DarkSword-Workspace/Dopamine
+          test -d "$repo/.git"
+          cd "$repo"
+          mkdir -p /var/root/.ssh
+          chmod 700 /var/root/.ssh
+          ssh-keyscan -T 15 github.com >> /var/root/.ssh/known_hosts 2>/dev/null
+          chmod 600 /var/root/.ssh/known_hosts
+          git remote set-url origin git@github.com:NightVibes33/Dopamine.git
+          GIT_SSH_COMMAND='ssh -i /var/root/.ssh/darksword_github_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes' \
+            git push origin main
+          echo "pushed_head=$(git rev-parse HEAD)"
+          echo "remote_head=$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          REMOTE
+          } | sshpass -e ssh \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            mobile@100.116.117.65 \
+            'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s'
+
+      - name: Record success
+        run: |
+          set -euo pipefail
+          printf 'iPad GitHub authorization: success\nRepository: NightVibes33/Dopamine\nAuthentication: SSH deploy key\nToken stored on iPad: no\n' > remote/ipad-github-auth-status.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin main
+          git add remote/ipad-github-auth-status.txt
+          git commit -m 'Record iPad GitHub authorization [skip ci]' || exit 0
+          git push origin HEAD:main
