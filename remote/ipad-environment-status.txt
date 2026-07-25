@@ -1,0 +1,8 @@
+iPad GitHub environment resolution
+run_id=30147190175
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30147190175
+target_environment_id=18728387881
+environment_count=1
+resolved=true
+environment_name=TAILSCALE_AUTHKEY-
+environment_id=18728387881
