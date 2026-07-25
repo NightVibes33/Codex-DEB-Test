@@ -1,10 +1,9 @@
 Official palera1n Exit Safemode V3
-run_id=30168829599
+run_id=30168864645
 tailscale=success
 execute=failure
 
 --- sanitized output ---
-AppleTVOS12.4.sdk/usr/include/mach/mach_voucher_types.h
 AppleTVOS12.4.sdk/usr/include/mach/vm_types.h
 AppleTVOS12.4.sdk/usr/include/mach/mig_voucher_support.h
 AppleTVOS12.4.sdk/usr/include/mach/vm_purgable.h
@@ -548,11 +547,12 @@ AppleTVOS12.4.sdk/usr/lib/libcharset.tbd
 AppleTVOS12.4.sdk/usr/lib/libIOAccessoryManager.tbd
 AppleTVOS12.4.sdk/usr/lib/libbsm.0.tbd
 AppleTVOS12.4.sdk/usr/lib/libicucore.A.tbd
-AppleTVOS12.4.sdk/usr/lib/libbz2.tbd
+
+100 5693k  100 5693k    0     0  8626k      0 --:--:-- --:--:-- --:--:-- 8626k
+100 5693k  100 5693k    0     0  8625k   AppleTVOS12.4.sdk/usr/lib/libbz2.tbd
+   0 --:--:-- --:--:-- --:--:--     0
 AppleTVOS12.4.sdk/usr/lib/libSystem_asan.tbd
 AppleTVOS12.4.sdk/usr/lib/libnetwork.tbd
-
-100 5693k  100 5693k    0     0  9702k      0 --:--:-- --:--:-- --:--:-- 9702k
 AppleTVOS12.4.sdk/usr/lib/libAXSpeechManager.tbd
 AppleTVOS12.4.sdk/usr/lib/libmenu.tbd
 AppleTVOS12.4.sdk/usr/lib/libMobileGestaltExtensions.tbd
