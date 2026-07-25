@@ -4,6 +4,7 @@ set -euo pipefail
 : "${IPAD_HOST:?missing IPAD_HOST}"
 : "${IPAD_PASSWORD:?missing IPAD_PASSWORD}"
 export SSHPASS="$IPAD_PASSWORD"
+export THEOS=/opt/theos
 LOG="official-exit-v3.txt"
 : > "$LOG"
 exec > >(tee -a "$LOG") 2>&1
@@ -11,7 +12,7 @@ exec > >(tee -a "$LOG") 2>&1
 echo "=== BUILD RUNTIME-LINKED PALERA1N EXIT HELPER ==="
 sudo apt-get update
 sudo apt-get install -y --no-install-recommends bash curl build-essential git ca-certificates file openssh-client sshpass
-sudo rm -rf /opt/theos
+sudo rm -rf "$THEOS"
 sudo mkdir -p /opt
 sudo chown "$USER:$USER" /opt
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
