@@ -1,5 +1,5 @@
 Quick Gif2Ani Runtime Check
-run_id=30169777725
+run_id=30171039961
 probe=success
 
 --- sanitized output ---
@@ -10,8 +10,8 @@ dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 pa
 com.nightvibes33.gif2ani	3.1.1	install ok installed
 ellekit	1.1.3	install ok installed
 === PROCESSES ===
- 6314   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
- 6346   ??  ?s     0:00.00 /usr/libexec/backboardd
+10348   ??  ?s     0:00.00 /usr/libexec/backboardd
+10350   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
 === PREFS ===
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
