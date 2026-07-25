@@ -114,13 +114,12 @@ jobs:
       - name: Cross-compile official Codex CLI
         shell: bash
         env:
-          SDKROOT: ${{ env.SDKROOT }}
           SQLX_OFFLINE: 'true'
           CARGO_INCREMENTAL: '0'
           RUST_BACKTRACE: '1'
           MACOSX_DEPLOYMENT_TARGET: ''
         run: |
-          set -euxo pipefail
+          set -uxo pipefail
           cd upstream/openai-codex/codex-rs
           export SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
           export CC_aarch64_apple_ios="$(xcrun --sdk iphoneos --find clang)"
@@ -130,11 +129,39 @@ jobs:
           export CXXFLAGS_aarch64_apple_ios="$CFLAGS_aarch64_apple_ios"
           export BINDGEN_EXTRA_CLANG_ARGS_aarch64_apple_ios="$CFLAGS_aarch64_apple_ios"
 
+          set +e
           cargo build \
             --locked \
             --release \
             --target "$IOS_TARGET" \
-            -p codex-cli
+            -p codex-cli 2>&1 | tee "$GITHUB_WORKSPACE/codex-ios-build.log"
+          BUILD_STATUS=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$BUILD_STATUS" -ne 0 ]; then
+            mkdir -p "$GITHUB_WORKSPACE/build-diagnostics"
+            {
+              echo "Run: $GITHUB_RUN_ID"
+              echo "Commit: $GITHUB_SHA"
+              echo "Upstream: $(cat "$GITHUB_WORKSPACE/codex-ios-upstream-sha.txt" 2>/dev/null || true)"
+              echo
+              tail -n 500 "$GITHUB_WORKSPACE/codex-ios-build.log"
+            } > "$GITHUB_WORKSPACE/build-diagnostics/codex-ios-last-error.txt"
+            exit "$BUILD_STATUS"
+          fi
+
+      - name: Record compiler failure in repository
+        if: failure()
+        shell: bash
+        run: |
+          set -euxo pipefail
+          test -s build-diagnostics/codex-ios-last-error.txt || exit 0
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add build-diagnostics/codex-ios-last-error.txt
+          git commit -m 'Record Codex iOS compiler failure [skip ci]' || exit 0
+          git pull --rebase origin main
+          git push origin HEAD:main
 
       - name: Verify iOS Mach-O
         shell: bash
@@ -176,14 +203,28 @@ jobs:
           export HOME CODEX_HOME TERM
           mkdir -p "$CODEX_HOME"
           chmod 700 "$CODEX_HOME" 2>/dev/null || true
+          if [ ! -f "$CODEX_HOME/config.toml" ]; then
+            printf '%s\n' 'cli_auth_credentials_store = "file"' > "$CODEX_HOME/config.toml"
+            chmod 600 "$CODEX_HOME/config.toml" 2>/dev/null || true
+          fi
           exec /var/jb/usr/libexec/codex-ios/codex-real "$@"
           WRAPPER
           chmod 0755 "$PKGROOT/var/jb/usr/bin/codex"
 
+          cat > "$PKGROOT/var/jb/usr/bin/codex-root" <<'ROOTWRAPPER'
+          #!/var/jb/usr/bin/bash
+          set -e
+          export HOME=/var/mobile
+          export CODEX_HOME=/var/mobile/.codex
+          export TERM="${TERM:-xterm-256color}"
+          exec /var/jb/usr/libexec/codex-ios/codex-real --dangerously-bypass-approvals-and-sandbox "$@"
+          ROOTWRAPPER
+          chmod 0755 "$PKGROOT/var/jb/usr/bin/codex-root"
+
           cat > "$PKGROOT/var/jb/usr/bin/codex-ios-update" <<'UPDATER'
           #!/var/jb/usr/bin/bash
           set -euo pipefail
-          curl -fsSL https://codex-ios.vercel.app/install.sh | /var/jb/usr/bin/bash
+          curl -fsSL https://nightvibes33-codex-ios-cli.vercel.app/install.sh | /var/jb/usr/bin/bash
           UPDATER
           chmod 0755 "$PKGROOT/var/jb/usr/bin/codex-ios-update"
 
@@ -209,6 +250,7 @@ jobs:
           chmod 700 /var/mobile/.codex 2>/dev/null || true
           echo 'Codex iOS installed.'
           echo 'Run: codex login --device-auth'
+          echo 'Root mode after login: sudo -E codex-root'
           POSTINST
           chmod 0755 "$PKGROOT/DEBIAN/postinst"
 
@@ -220,12 +262,16 @@ jobs:
           dpkg-deb --info "$DEB"
           dpkg-deb --contents "$DEB" | tee dist/deb-contents.txt
 
-      - name: Upload workflow artifact
+      - name: Upload workflow outputs and diagnostics
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: codex-ios-iphoneos-arm64
-          path: dist/
-          if-no-files-found: error
+          name: codex-ios-${{ github.run_id }}
+          path: |
+            dist/
+            codex-ios-build.log
+            build-diagnostics/
+          if-no-files-found: warn
 
       - name: Publish stable GitHub release assets
         shell: bash
