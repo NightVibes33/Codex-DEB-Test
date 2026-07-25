@@ -93,10 +93,11 @@ jobs:
           wrapper=Path('gif2aniprefs/G2ThemeGalleryController.m').read_text()
           preview=Path('gif2aniprefs/G2RemoteThemePreviewOverride.inc').read_text()
           stage=Path('gif2aniprefs/G2ThemeStageOverride.inc').read_text()
+          polish=Path('gif2aniprefs/G2RemoteGalleryPolish.inc').read_text()
           root=Path('gif2aniprefs/Resources/Root.plist').read_text()
           assert offline.count('@"identifier":') == 12
           assert legacy.count('@"name":') == 54
-          assert remote.count('@{"name":') == 6 + 9
+          assert remote.count('@{"name":') == 15
           assert 'packs.count == 54' in remote
           assert 'G2OfflineBuiltInPacks()' in remote
           assert 'raw.githubusercontent.com/NightVibes33/Codex-DEB-Test' in remote
@@ -110,7 +111,8 @@ jobs:
           assert '@{@"pendingReady":@YES}' in stage
           assert 'recommendedBackground' in stage
           assert '#define G2BuiltInPacks G2OfflineBuiltInPacks' in wrapper
-          assert '#define G2StageGIFAtPath G2LegacyStageGIFAtPath' in wrapper
+          assert 'G2LegacyStageGIFAtPath' in wrapper and '#define G2StageGIFAtPath' in wrapper
+          assert '12 Offline + 54 Downloadable' in polish
           assert 'GIF2ANI 3.4' in root
           print('offline_builtins=12')
           print('downloadable_builtins=54')
@@ -119,26 +121,50 @@ jobs:
           print('all_gallery_entries=120')
           PY
 
-      - name: Prove pinned downloadable asset
+      - name: Prove full pinned downloadable catalog
         run: |
           set -euo pipefail
-          URL="https://raw.githubusercontent.com/NightVibes33/Codex-DEB-Test/${THEME_COMMIT}/gif2ani-themes/v1/${TEST_THEME}"
+          BASE="https://raw.githubusercontent.com/NightVibes33/Codex-DEB-Test/${THEME_COMMIT}/gif2ani-themes/v1"
+          curl --fail --location --proto '=https' --tlsv1.2 --max-time 30 "$BASE/manifest.json" -o manifest.json
+          python3 - <<'PY'
+          import json
+          manifest=json.load(open('manifest.json'))
+          themes=manifest.get('themes',[])
+          assert manifest.get('count') == 54
+          assert len(themes) == 54
+          assert len({t['id'] for t in themes}) == 54
+          assert len({t['file'] for t in themes}) == 54
+          for t in themes:
+              assert t['license'] == 'CC0-1.0'
+              assert t['sourceFrames'] == 24
+              assert t['width'] == 360 and t['height'] == 360
+              assert t['bytes'] > 0 and t['bytes'] <= 25*1024*1024
+              assert len(t['sha256']) == 64
+              assert t['file'] == t['id'] + '.gif'
+          print('manifest_theme_count=54')
+          print('manifest_unique_ids=54')
+          print('manifest_license=CC0-1.0')
+          PY
+          URL="$BASE/${TEST_THEME}"
           curl --fail --location --proto '=https' --tlsv1.2 --max-time 30 "$URL" -o test-theme.gif
           python3 - <<'PY'
           from PIL import Image
-          import hashlib, os
+          import hashlib, json, os
           p='test-theme.gif'
           im=Image.open(p)
           assert im.format=='GIF'
           assert im.size==(360,360), im.size
           assert getattr(im,'n_frames',0)==24, getattr(im,'n_frames',0)
           size=os.path.getsize(p)
-          assert 0 < size <= 25*1024*1024
+          digest=hashlib.sha256(open(p,'rb').read()).hexdigest()
+          expected=next(t for t in json.load(open('manifest.json'))['themes'] if t['file']=='cyan-pulse-rings.gif')
+          assert size == expected['bytes']
+          assert digest == expected['sha256']
           print('download_status=success')
           print('download_frames=24')
           print('download_dimensions=360x360')
           print('download_bytes='+str(size))
-          print('download_sha256='+hashlib.sha256(open(p,'rb').read()).hexdigest())
+          print('download_sha256='+digest)
           PY
 
       - name: Build rootless 3.4.0 package
@@ -285,8 +311,8 @@ jobs:
               '', 'offline_builtins=12', 'downloadable_builtins=54', 'builtins_total=66',
               'legacy_source_catalog=54', 'all_gallery_entries=120',
               '', '--- digest ---', digest.strip(),
-              '', '--- device proof ---', *device.splitlines()[-500:],
-              '', '--- build tail ---', *build.splitlines()[-400:]
+              '', '--- device proof ---', *device.splitlines()[-400:],
+              '', '--- build tail ---', *build.splitlines()[-300:]
           ]
           Path('remote/gif2ani-340-downloadable-build-install.txt').write_text('\n'.join(out)+'\n')
           PY
