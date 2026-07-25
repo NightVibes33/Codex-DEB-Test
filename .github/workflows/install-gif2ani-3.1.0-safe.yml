@@ -1,0 +1,251 @@
+name: Install Gif2Ani 3.1.0 Disabled in Safe Mode
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+  SOURCE_REPO: "https://github.com/NightVibes33/Dark-Boot.git"
+  SOURCE_COMMIT: "552f38c455df9e99c9dffa918c161fdbf8abc790"
+
+jobs:
+  resolve-environment:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.issue.title == '[Install Gif2Ani 3.1.0 Safe]'
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name']); raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  install:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build exact green source commit
+        id: build
+        env:
+          THEOS: /opt/theos
+          CI: "1"
+          SHELL: /bin/bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            bash curl sudo build-essential fakeroot rsync perl git libxml2 \
+            dpkg-dev unzip xz-utils ca-certificates python3 file openssh-client sshpass
+          sudo rm -rf /opt/theos
+          sudo mkdir -p /opt
+          sudo chown "$USER:$USER" /opt
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          git clone "$SOURCE_REPO" gif2ani-source
+          cd gif2ani-source
+          git checkout "$SOURCE_COMMIT"
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          make clean package FINALPACKAGE=1 2>&1 | tee ../gif2ani-safe-install.txt
+          DEB="$(find packages -maxdepth 1 -type f -name '*.deb' | head -n1)"
+          test -n "$DEB"
+          test "$(dpkg-deb --field "$DEB" Package)" = "com.nightvibes33.gif2ani"
+          test "$(dpkg-deb --field "$DEB" Version)" = "3.1.0"
+          test "$(dpkg-deb --field "$DEB" Architecture)" = "iphoneos-arm64"
+          cp "$DEB" ../Gif2Ani-3.1.0-rootless.deb
+          cd ..
+          sha256sum Gif2Ani-3.1.0-rootless.deb | tee -a gif2ani-safe-install.txt
+
+      - name: Join Tailscale without initial device ping
+        id: tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Wait for safe-mode SSH
+        id: wait_ssh
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 60); do
+            echo "ssh_attempt=$attempt" | tee -a gif2ani-safe-install.txt
+            if sshpass -e ssh -p 22 \
+              -o ConnectTimeout=5 -o ConnectionAttempts=1 \
+              -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+              mobile@"$IPAD_HOST" 'true' >/dev/null 2>&1; then
+              connected=1
+              break
+            fi
+            sleep 5
+          done
+          test "$connected" -eq 1
+
+      - name: Upload fixed DEB
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          sshpass -e scp -P 22 \
+            -o ConnectTimeout=15 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            Gif2Ani-3.1.0-rootless.deb mobile@"$IPAD_HOST":/var/mobile/Media/Gif2Ani-3.1.0-rootless.deb
+
+      - name: Install disabled with empty media slots
+        id: install_device
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            mobile@"$IPAD_HOST" 'sudo -S -p "" sh -c '\''
+              set -eu
+              echo "=== PRE-INSTALL SAFETY RESET ==="
+              rm -f /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib.disabled
+              rm -f /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist.disabled
+              rm -f /var/mobile/Library/Preferences/Respring.gif
+              rm -f /var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist
+              rm -rf "/var/mobile/Library/Application Support/Gif2Ani"
+
+              echo "=== INSTALL 3.1.0 ==="
+              dpkg -i /var/mobile/Media/Gif2Ani-3.1.0-rootless.deb
+
+              mkdir -p "/var/mobile/Library/Application Support/Gif2Ani"
+              chown mobile:mobile "/var/mobile/Library/Application Support/Gif2Ani"
+              chmod 0755 "/var/mobile/Library/Application Support/Gif2Ani"
+              rm -f "/var/mobile/Library/Application Support/Gif2Ani/Pending.gif"
+              rm -f "/var/mobile/Library/Application Support/Gif2Ani/Active.gif"
+              rm -f "/var/mobile/Library/Application Support/Gif2Ani/Rejected.gif"
+              rm -f "/var/mobile/Library/Application Support/Gif2Ani/load-in-progress"
+              rm -f "/var/mobile/Library/Application Support/Gif2Ani/pending-metadata.plist"
+
+              cat > /var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist <<'\''PLIST'\''
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>isEnabled</key><false/>
+<key>pendingReady</key><false/>
+<key>imageTransformation</key><string>resizeAspect</string>
+<key>customLoop</key><real>-1</real>
+<key>customDuration</key><real>-1</real>
+<key>backgroundColor</key><string>#000000</string>
+</dict></plist>
+PLIST
+              chown mobile:mobile /var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist
+              chmod 0644 /var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist
+
+              echo "=== VERIFY DISABLED INSTALL ==="
+              version=$(dpkg-query -W com.nightvibes33.gif2ani | cut -f2)
+              test "$version" = "3.1.0"
+              test -f /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib
+              test -f /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist
+              test -x /var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/Gif2AniPrefs
+              test -f /var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/Root.plist
+              test -f /var/jb/Library/PreferenceLoader/Preferences/Gif2Ani.plist
+              grep -q "<false/>" /var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist
+              test ! -e "/var/mobile/Library/Application Support/Gif2Ani/Pending.gif"
+              test ! -e "/var/mobile/Library/Application Support/Gif2Ani/Active.gif"
+              test ! -e "/var/mobile/Library/Application Support/Gif2Ani/Rejected.gif"
+              test ! -e "/var/mobile/Library/Application Support/Gif2Ani/load-in-progress"
+              killall -9 Preferences 2>/dev/null || true
+              echo "installed_version=$version"
+              echo "enabled=false"
+              echo "media_slots=empty"
+              echo "backboard_restart=not_performed"
+            '\''' 2>&1 | tee -a gif2ani-safe-install.txt
+
+      - name: Verify no new crash after disabled installation
+        id: verify
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          sleep 15
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            mobile@"$IPAD_HOST" 'sudo -S -p "" sh -c '\''
+              set -eu
+              version=$(dpkg-query -W com.nightvibes33.gif2ani | cut -f2)
+              test "$version" = "3.1.0"
+              recent=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f -name "backboardd-*.ips" -mmin -1 2>/dev/null | wc -l | tr -d " ")
+              echo "recent_backboard_crashes=$recent"
+              test "$recent" = "0"
+              test ! -e "/var/mobile/Library/Application Support/Gif2Ani/Active.gif"
+              echo "safe_install_verified=yes"
+            '\''' 2>&1 | tee -a gif2ani-safe-install.txt
+
+      - name: Upload installation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gif2ani-3.1.0-safe-install-${{ github.run_id }}
+          path: |
+            gif2ani-safe-install.txt
+            Gif2Ani-3.1.0-rootless.deb
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Publish sanitized status
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          TAILSCALE_OUTCOME: ${{ steps.tailscale.outcome }}
+          WAIT_OUTCOME: ${{ steps.wait_ssh.outcome }}
+          INSTALL_OUTCOME: ${{ steps.install_device.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('gif2ani-safe-install.txt').read_text(errors='replace') if Path('gif2ani-safe-install.txt').exists() else 'No output.'
+          password=os.environ.get('IPAD_PASSWORD','')
+          if password: text=text.replace(password,'***REDACTED***')
+          lines=[
+            'Gif2Ani 3.1.0 Safe-Mode Installation',
+            f"run_id={os.environ.get('GITHUB_RUN_ID','')}",
+            f"source_commit={os.environ.get('SOURCE_COMMIT','')}",
+            f"build={os.environ.get('BUILD_OUTCOME','')}",
+            f"tailscale={os.environ.get('TAILSCALE_OUTCOME','')}",
+            f"wait_ssh={os.environ.get('WAIT_OUTCOME','')}",
+            f"install={os.environ.get('INSTALL_OUTCOME','')}",
+            f"verify={os.environ.get('VERIFY_OUTCOME','')}",
+            '', '--- sanitized output ---', *text.splitlines()[-360:]
+          ]
+          Path('remote/gif2ani-3.1.0-safe-install-status.txt').write_text('\n'.join(lines)+'\n')
+          PY
+          git add remote/gif2ani-3.1.0-safe-install-status.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record Gif2Ani 3.1.0 safe installation [skip ci]"
+            git push origin HEAD:main
+          fi
