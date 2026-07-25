@@ -1,12 +1,12 @@
 iPad Tailscale SSH Bridge
-run_id=30148444578
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30148444578
-commit=7f1513f3f454df9239a44074d08d8385f7569b01
+run_id=30148551491
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30148551491
+commit=0fb250448cc6e5c982fdf61a72d94153d8ac4fff
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
 install_ssh=success
-ssh=success
+ssh=cancelled
 
 --- sanitized SSH output ---
 Checking SSH host key over Tailscale...
@@ -16,43 +16,16 @@ Checking SSH host key over Tailscale...
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-=== Dopamine iPad5 DarkSword matrix ===
-run_id=30148380383
-head_sha=f725e81a24603e57764967f093d2188118783879
-status=in_progress
-conclusion=None
-event=push
-url=https://github.com/NightVibes33/Dopamine/actions/runs/30148380383
---- job=Build stability control id=89654410042 status=in_progress conclusion=None ---
-step=1 name=Set up job status=completed conclusion=success
-step=2 name=Checkout main with submodules status=completed conclusion=success
-step=3 name=Select build profile status=completed conclusion=success
-step=4 name=Xcode setup status=completed conclusion=success
-step=5 name=Install Procursus status=completed conclusion=success
-step=6 name=Install build dependencies status=completed conclusion=success
-step=7 name=Install Theos and iOS SDK status=completed conclusion=success
-step=8 name=Build and install trustcache status=completed conclusion=success
-step=9 name=Download bootstraps status=completed conclusion=success
-step=10 name=Build IPA status=in_progress conclusion=None
-step=11 name=Package diagnostics status=pending conclusion=None
-step=12 name=Upload stability package status=pending conclusion=None
-step=23 name=Post Install Procursus status=pending conclusion=None
-step=24 name=Post Checkout main with submodules status=pending conclusion=None
---- job=Build stock control id=89654410479 status=in_progress conclusion=None ---
-step=1 name=Set up job status=completed conclusion=success
-step=2 name=Checkout main with submodules status=completed conclusion=success
-step=3 name=Select build profile status=completed conclusion=success
-step=4 name=Xcode setup status=completed conclusion=success
-step=5 name=Install Procursus status=completed conclusion=success
-step=6 name=Install build dependencies status=completed conclusion=success
-step=7 name=Install Theos and iOS SDK status=completed conclusion=success
-step=8 name=Build and install trustcache status=completed conclusion=success
-step=9 name=Download bootstraps status=completed conclusion=success
-step=10 name=Build IPA status=in_progress conclusion=None
-step=11 name=Package diagnostics status=pending conclusion=None
-step=12 name=Upload stock package status=pending conclusion=None
-step=23 name=Post Install Procursus status=pending conclusion=None
-step=24 name=Post Checkout main with submodules status=pending conclusion=None
-=== Artifacts ===
-artifact_count=0
-ssh_exit_code=0
+=== iPad development environment ===
+Darwin Bobbys-iPad 22.6.0 Darwin Kernel Version 22.6.0: Tue Jul  2 20:45:41 PDT 2024; root:xnu-8796.142.1.703.8~1/RELEASE_ARM64_S8000 iPad6,11 arm Darwin
+uid=0(root) gid=0(wheel) groups=0(wheel)
+git=git version 2.39.1
+python=Python 3.9.9
+clang=gh==== GitHub authentication checks ===
+gh=not-installed
+Warning: Permanently added 'github.com' (ED25519) to the list of known hosts.
+git@github.com: Permission denied (publickey).
+ssh_git_auth=0
+credential_helper=none
+=== Clone Dopamine main on iPad ===
+Cloning into '/var/mobile/Documents/DarkSword-Workspace/Dopamine'...
