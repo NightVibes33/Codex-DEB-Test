@@ -1,2 +1,3 @@
 dispatch=activate-ellekit-safe
-requested_at=2026-07-25T18:00:00-05:00
+requested_at=2026-07-25T18:01:00-05:00
+reason=retry-after-dispatcher-registration
