@@ -1,0 +1,2 @@
+patch=2026-07-25T23:59:00-05:00
+reason=runtime-generated-theme-name
