@@ -1,0 +1,154 @@
+name: Build Current Official ElleKit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - triggers/build-current-official-ellekit.txt
+
+permissions:
+  contents: write
+
+env:
+  ELLEKIT_REPO: https://github.com/palera1n/ellekit.git
+  ELLEKIT_COMMIT: 37d34cabc2d11931b24ab19d00fbd1c725e2589d
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select an installed Xcode 15 release
+        id: xcode
+        run: |
+          set -euo pipefail
+          echo '=== INSTALLED XCODE APPS ==='
+          ls -1 /Applications | grep '^Xcode' | sort -V || true
+          candidate=''
+          for path in /Applications/Xcode_15.4.app /Applications/Xcode_15.3.app /Applications/Xcode_15.2.app /Applications/Xcode_15.1.app /Applications/Xcode.app; do
+            if [ -d "$path" ]; then candidate="$path"; break; fi
+          done
+          test -n "$candidate"
+          sudo xcode-select --switch "$candidate"
+          xcodebuild -version
+          echo "selected_xcode=$candidate" >> "$GITHUB_OUTPUT"
+
+      - name: Bootstrap Procursus packaging tools
+        uses: dhinakg/procursus-action@main
+        with:
+          packages: ldid findutils sed coreutils dpkg
+          cache: true
+          cache-path: ~/__cache
+
+      - name: Clone pinned official source
+        run: |
+          set -euo pipefail
+          git clone "$ELLEKIT_REPO" ellekit-source
+          cd ellekit-source
+          git fetch --force --tags origin
+          git checkout --detach "$ELLEKIT_COMMIT"
+          test "$(git rev-parse HEAD)" = "$ELLEKIT_COMMIT"
+          git status --short
+          git describe --tags --always | tee ../source-version.txt
+
+      - name: Build release rootless package
+        id: compile
+        run: |
+          set -uo pipefail
+          : > ellekit-build.log
+          set +e
+          make -C ellekit-source deb-ios-rootless RELEASE=1 2>&1 | tee ellekit-build.log
+          code=${PIPESTATUS[0]}
+          set -e
+          echo "compile_exit=$code" | tee -a ellekit-build.log
+          exit "$code"
+
+      - name: Validate resulting package
+        id: validate
+        if: steps.compile.outcome == 'success'
+        run: |
+          set -euo pipefail
+          DEB="$(find ellekit-source/packages -maxdepth 1 -type f -name 'ellekit_*_iphoneos-arm64.deb' -print | head -n1)"
+          test -n "$DEB"
+          echo "$DEB" > ellekit-deb-path.txt
+          dpkg-deb --info "$DEB" | tee ellekit-package-info.txt
+          dpkg-deb --contents "$DEB" | tee ellekit-package-contents.txt
+          test "$(dpkg-deb --field "$DEB" Package)" = "ellekit"
+          test "$(dpkg-deb --field "$DEB" Architecture)" = "iphoneos-arm64"
+          rm -rf ellekit-package-root ellekit-package-control
+          dpkg-deb -x "$DEB" ellekit-package-root
+          dpkg-deb -e "$DEB" ellekit-package-control
+          test -f ellekit-package-root/var/jb/usr/lib/ellekit/pspawn.dylib
+          test -f ellekit-package-root/var/jb/usr/lib/ellekit/libinjector.dylib
+          test -f ellekit-package-root/var/jb/usr/lib/libellekit.dylib
+          test -x ellekit-package-root/var/jb/usr/libexec/ellekit/loader
+          test -L ellekit-package-root/var/jb/etc/rc.d/ellekit-loader
+          test -L ellekit-package-root/var/jb/usr/lib/TweakLoader.dylib
+          test -x ellekit-package-control/preinst
+          test -x ellekit-package-control/postinst
+          file ellekit-package-root/var/jb/usr/lib/ellekit/pspawn.dylib | tee ellekit-binary-info.txt | grep -q arm64
+          file ellekit-package-root/var/jb/usr/libexec/ellekit/loader | tee -a ellekit-binary-info.txt | grep -q arm64
+          shasum -a 256 "$DEB" | tee ellekit-sha256.txt
+          cp "$DEB" Current-Official-ElleKit-rootless.deb
+          echo "package_version=$(dpkg-deb --field "$DEB" Version)" | tee ellekit-validation.txt
+          echo "source_commit=$ELLEKIT_COMMIT" | tee -a ellekit-validation.txt
+          echo "validation=success" | tee -a ellekit-validation.txt
+
+      - name: Upload current official ElleKit DEB
+        if: steps.validate.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Current-Official-ElleKit-rootless
+          path: Current-Official-ElleKit-rootless.deb
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Current-Official-ElleKit-build-diagnostics-${{ github.run_id }}
+          path: |
+            source-version.txt
+            ellekit-build.log
+            ellekit-package-info.txt
+            ellekit-package-contents.txt
+            ellekit-binary-info.txt
+            ellekit-sha256.txt
+            ellekit-validation.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Publish sanitized build status
+        if: always()
+        env:
+          COMPILE_OUTCOME: ${{ steps.compile.outcome }}
+          VALIDATE_OUTCOME: ${{ steps.validate.outcome }}
+          SELECTED_XCODE: ${{ steps.xcode.outputs.selected_xcode }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          {
+            echo "Current Official ElleKit Build"
+            echo "run_id=${GITHUB_RUN_ID}"
+            echo "source_commit=${ELLEKIT_COMMIT}"
+            echo "selected_xcode=${SELECTED_XCODE}"
+            echo "compile=${COMPILE_OUTCOME}"
+            echo "validate=${VALIDATE_OUTCOME}"
+            echo
+            if [ -f ellekit-validation.txt ]; then cat ellekit-validation.txt; fi
+            if [ -f ellekit-sha256.txt ]; then cat ellekit-sha256.txt; fi
+            echo
+            echo '--- build tail ---'
+            if [ -f ellekit-build.log ]; then tail -n 220 ellekit-build.log; else echo 'No build log.'; fi
+          } > remote/current-official-ellekit-build.txt
+          git add remote/current-official-ellekit-build.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record current official ElleKit build [skip ci]"
+            git push origin HEAD:main
+          fi
