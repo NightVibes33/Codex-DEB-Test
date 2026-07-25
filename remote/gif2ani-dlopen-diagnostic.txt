@@ -1,5 +1,5 @@
 Gif2Ani Dlopen Diagnostic
-run_id=30169838236
+run_id=30169851597
 probe=success
 
 --- sanitized output ---
@@ -26,6 +26,6 @@ lrwxr-xr-x 1 root wheel     32 Jun 11  2024 /var/jb/Library/Frameworks/CydiaSubs
 === ENTITLEMENTS ===
 === PYTHON DLOPEN ===
 dlopen_success=yes
-handle=12919632
+handle=959312
 === CURRENT MARKER ===
 runtime_status=missing
