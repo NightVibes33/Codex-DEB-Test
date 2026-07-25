@@ -23,14 +23,11 @@ if grep -q 'codex-code-mode' codex-rs/core/Cargo.toml; then
   exit 1
 fi
 
-# arboard is a desktop clipboard backend. On an unknown Unix target it pulls
-# Wayland/X11 code whose socket flags and polling APIs do not exist on iOS.
-# Keep terminal input and normal text paste, but use the existing mobile stub for
-# native image clipboard access. Newer upstream revisions also have clipboard_copy;
-# patch it when present without requiring it in this pinned revision.
+# Apply the small platform cfg adaptations needed for an iOS Unix target.
 python3 - <<'PY'
 from pathlib import Path
 
+# arboard is a desktop clipboard backend. On iOS it otherwise pulls Wayland/X11.
 cargo = Path('codex-rs/tui/Cargo.toml')
 text = cargo.read_text()
 old = "[target.'cfg(not(target_os = \"android\"))'.dependencies]\narboard = { workspace = true }"
@@ -65,10 +62,24 @@ if copy.exists():
     )
     text = text.replace('unavailable on Android', 'unavailable on this mobile platform')
     copy.write_text(text)
+
+# set_core_file_size_limit_to_zero() is cfg(unix), but its error constant omitted
+# iOS even though libc::setrlimit and RLIMIT_CORE are available there.
+hardening = Path('codex-rs/process-hardening/src/lib.rs')
+text = hardening.read_text()
+old = '''    target_os = "macos",
+    target_os = "freebsd",'''
+new = '''    target_os = "macos",
+    target_os = "ios",
+    target_os = "freebsd",'''
+if old not in text:
+    raise SystemExit('process-hardening platform list changed upstream')
+hardening.write_text(text.replace(old, new, 1))
 PY
 
 grep -q 'target_os = "ios"' codex-rs/tui/Cargo.toml
 grep -q 'target_os = "ios"' codex-rs/tui/src/clipboard_paste.rs
+grep -q 'target_os = "ios"' codex-rs/process-hardening/src/lib.rs
 
 # OpenAI's rust-toolchain.toml lives inside codex-rs. Install the iOS standard
 # library into that exact pinned toolchain rather than the runner default.
@@ -84,4 +95,4 @@ test -d "$SYSROOT/lib/rustlib/aarch64-apple-ios/lib"
 # an explicit jailbreak-level run. OAuth endpoints and client IDs stay official.
 unset MACOSX_DEPLOYMENT_TARGET || true
 
-printf '%s\n' 'Upstream validation complete; using official pre-V8 Codex with iOS clipboard stubs, device-code OAuth, and the iOS Rust target.'
+printf '%s\n' 'Upstream validation complete; using official pre-V8 Codex with iOS platform cfgs, device-code OAuth, and the iOS Rust target.'
