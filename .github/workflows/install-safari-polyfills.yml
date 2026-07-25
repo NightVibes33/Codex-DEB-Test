@@ -86,15 +86,32 @@ jobs:
               echo "=== BEFORE ==="
               dpkg-query -s com.ps.polyfills 2>/dev/null | grep -E "^(Status|Version):" || echo "polyfills=not-installed"
               mkdir -p /var/jb/etc/apt/sources.list.d
-              printf "%s\n" "deb https://poomsmart.github.io/repo/ ./" > /var/jb/etc/apt/sources.list.d/poomsmart.list
-              echo "=== APT UPDATE ==="
-              apt-get update
+              printf "%s\n" "deb [trusted=yes] https://poomsmart.github.io/repo/ ./" > /var/jb/etc/apt/sources.list.d/poomsmart.list
+              APT_SOURCE="/var/jb/etc/apt/sources.list.d/poomsmart.list"
+              echo "=== ISOLATED APT UPDATE ==="
+              apt-get \
+                -o Dir::Etc::sourcelist="$APT_SOURCE" \
+                -o Dir::Etc::sourceparts="-" \
+                -o APT::Get::List-Cleanup="0" \
+                -o Acquire::AllowInsecureRepositories="true" \
+                -o Acquire::AllowDowngradeToInsecureRepositories="true" \
+                update
               echo "=== CANDIDATE ==="
-              apt-cache policy com.ps.polyfills || true
+              apt-cache \
+                -o Dir::Etc::sourcelist="$APT_SOURCE" \
+                -o Dir::Etc::sourceparts="-" \
+                policy com.ps.polyfills com.ps.polyfillsregexp || true
               echo "=== INSTALL ==="
-              DEBIAN_FRONTEND=noninteractive apt-get install -y com.ps.polyfills
+              DEBIAN_FRONTEND=noninteractive apt-get \
+                -o Dir::Etc::sourcelist="$APT_SOURCE" \
+                -o Dir::Etc::sourceparts="-" \
+                -o APT::Get::List-Cleanup="0" \
+                -o Acquire::AllowInsecureRepositories="true" \
+                -o Acquire::AllowDowngradeToInsecureRepositories="true" \
+                --allow-unauthenticated install -y com.ps.polyfills
               echo "=== VERIFY PACKAGE ==="
               dpkg-query -s com.ps.polyfills | grep -E "^(Package|Status|Version|Architecture):"
+              dpkg-query -s com.ps.polyfillsregexp 2>/dev/null | grep -E "^(Package|Status|Version|Architecture):" || true
               version=$(dpkg-query -W com.ps.polyfills | cut -f2)
               test -n "$version"
               test -f /var/jb/Library/MobileSubstrate/DynamicLibraries/Polyfills.dylib
@@ -133,7 +150,7 @@ jobs:
             f"run_id={os.environ.get('GITHUB_RUN_ID','')}",
             f"tailscale={os.environ.get('TAILSCALE_OUTCOME','')}",
             f"install={os.environ.get('INSTALL_OUTCOME','')}",
-            '', '--- sanitized output ---', *text.splitlines()[-260:]
+            '', '--- sanitized output ---', *text.splitlines()[-300:]
           ]
           Path('remote/safari-polyfills-status.txt').write_text('\n'.join(out)+'\n')
           PY
