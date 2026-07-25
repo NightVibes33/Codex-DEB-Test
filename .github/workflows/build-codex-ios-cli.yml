@@ -117,10 +117,10 @@ jobs:
           SQLX_OFFLINE: 'true'
           CARGO_INCREMENTAL: '0'
           RUST_BACKTRACE: '1'
-          MACOSX_DEPLOYMENT_TARGET: ''
         run: |
           set -uxo pipefail
           cd upstream/openai-codex/codex-rs
+          unset MACOSX_DEPLOYMENT_TARGET || true
           export SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
           export CC_aarch64_apple_ios="$(xcrun --sdk iphoneos --find clang)"
           export CXX_aarch64_apple_ios="$(xcrun --sdk iphoneos --find clang++)"
