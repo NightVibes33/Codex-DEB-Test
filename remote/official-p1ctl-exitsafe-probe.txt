@@ -1,8 +1,19 @@
 Official p1ctl Exit Safemode Probe
 run_id=30170707166
 build=success
-exit_safe=cancelled
-verify=skipped
+exit_safe=success
+verify=cancelled
 
 --- sanitized output ---
-No output.
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== P1CTL FLAGS BEFORE ===
+0x4c00082
+palerain_option_rootless
+palerain_option_ssv
+palerain_option_bind_mount
+palerain_option_overlay
+palerain_option_verbose_boot
+=== P1CTL EXITSAFE ===
+Timeout, server 100.116.117.65 not responding.
+p1ctl_ssh_exit=255
+reconnected=1
