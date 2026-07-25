@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30147508560
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30147508560
-commit=c10ec96dafe1eb93e932d52391bae2113bbd9d15
+run_id=30148028733
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30148028733
+commit=850e69f9cff62b2fc6e95b811e6e537b52811b15
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -9,103 +9,25 @@ install_ssh=success
 ssh=success
 
 --- sanitized SSH output ---
-lrwxr-xr-x 1 root wheel 27 Jul 31  2024 /var/jb/usr/bin/llvm-lto-16 -> ../lib/llvm-16/bin/llvm-lto
-lrwxr-xr-x 1 root wheel 28 Jul 31  2024 /var/jb/usr/bin/llvm-lto2-16 -> ../lib/llvm-16/bin/llvm-lto2
-lrwxr-xr-x 1 root wheel 26 Jul 31  2024 /var/jb/usr/bin/llvm-mc-16 -> ../lib/llvm-16/bin/llvm-mc
-lrwxr-xr-x 1 root wheel 27 Jul 31  2024 /var/jb/usr/bin/llvm-mca-16 -> ../lib/llvm-16/bin/llvm-mca
-lrwxr-xr-x 1 root wheel 26 Jul 31  2024 /var/jb/usr/bin/llvm-ml-16 -> ../lib/llvm-16/bin/llvm-ml
-lrwxr-xr-x 1 root wheel 34 Jul 31  2024 /var/jb/usr/bin/llvm-modextract-16 -> ../lib/llvm-16/bin/llvm-modextract
-lrwxr-xr-x 1 root wheel 26 Jul 31  2024 /var/jb/usr/bin/llvm-mt-16 -> ../lib/llvm-16/bin/llvm-mt
-lrwxr-xr-x 1 root wheel 26 Jul 31  2024 /var/jb/usr/bin/llvm-nm-16 -> ../lib/llvm-16/bin/llvm-nm
-lrwxr-xr-x 1 root wheel 31 Jul 31  2024 /var/jb/usr/bin/llvm-objcopy-16 -> ../lib/llvm-16/bin/llvm-objcopy
-lrwxr-xr-x 1 root wheel 31 Jul 31  2024 /var/jb/usr/bin/llvm-objdump-16 -> ../lib/llvm-16/bin/llvm-objdump
-lrwxr-xr-x 1 root wheel 34 Jul 31  2024 /var/jb/usr/bin/llvm-opt-report-16 -> ../lib/llvm-16/bin/llvm-opt-report
--rwxr-xr-x 1 root wheel 92K Aug 10  2024 /var/jb/usr/bin/llvm-otool
-lrwxr-xr-x 1 root wheel 29 Jul 31  2024 /var/jb/usr/bin/llvm-otool-16 -> ../lib/llvm-16/bin/llvm-otool
-lrwxr-xr-x 1 root wheel 31 Jul 31  2024 /var/jb/usr/bin/llvm-pdbutil-16 -> ../lib/llvm-16/bin/llvm-pdbutil
-lrwxr-xr-x 1 root wheel 32 Jul 31  2024 /var/jb/usr/bin/llvm-profdata-16 -> ../lib/llvm-16/bin/llvm-profdata
-lrwxr-xr-x 1 root wheel 31 Jul 31  2024 /var/jb/usr/bin/llvm-profgen-16 -> ../lib/llvm-16/bin/llvm-profgen
-lrwxr-xr-x 1 root wheel 30 Jul 31  2024 /var/jb/usr/bin/llvm-ranlib-16 -> ../lib/llvm-16/bin/llvm-ranlib
-lrwxr-xr-x 1 root wheel 26 Jul 31  2024 /var/jb/usr/bin/llvm-rc-16 -> ../lib/llvm-16/bin/llvm-rc
-lrwxr-xr-x 1 root wheel 31 Jul 31  2024 /var/jb/usr/bin/llvm-readelf-16 -> ../lib/llvm-16/bin/llvm-readelf
-lrwxr-xr-x 1 root wheel 31 Jul 31  2024 /var/jb/usr/bin/llvm-readobj-16 -> ../lib/llvm-16/bin/llvm-readobj
-lrwxr-xr-x 1 root wheel 30 Jul 31  2024 /var/jb/usr/bin/llvm-reduce-16 -> ../lib/llvm-16/bin/llvm-reduce
-lrwxr-xr-x 1 root wheel 40 Jul 31  2024 /var/jb/usr/bin/llvm-remark-size-diff-16 -> ../lib/llvm-16/bin/llvm-remark-size-diff
-lrwxr-xr-x 1 root wheel 34 Jul 31  2024 /var/jb/usr/bin/llvm-remarkutil-16 -> ../lib/llvm-16/bin/llvm-remarkutil
-lrwxr-xr-x 1 root wheel 30 Jul 31  2024 /var/jb/usr/bin/llvm-rtdyld-16 -> ../lib/llvm-16/bin/llvm-rtdyld
-lrwxr-xr-x 1 root wheel 27 Jul 31  2024 /var/jb/usr/bin/llvm-sim-16 -> ../lib/llvm-16/bin/llvm-sim
-lrwxr-xr-x 1 root wheel 28 Jul 31  2024 /var/jb/usr/bin/llvm-size-16 -> ../lib/llvm-16/bin/llvm-size
-lrwxr-xr-x 1 root wheel 29 Jul 31  2024 /var/jb/usr/bin/llvm-split-16 -> ../lib/llvm-16/bin/llvm-split
-lrwxr-xr-x 1 root wheel 30 Jul 31  2024 /var/jb/usr/bin/llvm-stress-16 -> ../lib/llvm-16/bin/llvm-stress
-lrwxr-xr-x 1 root wheel 31 Jul 31  2024 /var/jb/usr/bin/llvm-strings-16 -> ../lib/llvm-16/bin/llvm-strings
-lrwxr-xr-x 1 root wheel 29 Jul 31  2024 /var/jb/usr/bin/llvm-strip-16 -> ../lib/llvm-16/bin/llvm-strip
-lrwxr-xr-x 1 root wheel 34 Jul 31  2024 /var/jb/usr/bin/llvm-symbolizer-16 -> ../lib/llvm-16/bin/llvm-symbolizer
-lrwxr-xr-x 1 root wheel 33 Jul 31  2024 /var/jb/usr/bin/llvm-tapi-diff-16 -> ../lib/llvm-16/bin/llvm-tapi-diff
-lrwxr-xr-x 1 root wheel 30 Jul 31  2024 /var/jb/usr/bin/llvm-tblgen-16 -> ../lib/llvm-16/bin/llvm-tblgen
-lrwxr-xr-x 1 root wheel 35 Jul 31  2024 /var/jb/usr/bin/llvm-tli-checker-16 -> ../lib/llvm-16/bin/llvm-tli-checker
-lrwxr-xr-x 1 root wheel 31 Jul 31  2024 /var/jb/usr/bin/llvm-undname-16 -> ../lib/llvm-16/bin/llvm-undname
-lrwxr-xr-x 1 root wheel 31 Jul 31  2024 /var/jb/usr/bin/llvm-windres-16 -> ../lib/llvm-16/bin/llvm-windres
-lrwxr-xr-x 1 root wheel 28 Jul 31  2024 /var/jb/usr/bin/llvm-xray-16 -> ../lib/llvm-16/bin/llvm-xray
--rwxr-xr-x 1 root wheel 165K Jan 17  2023 /var/jb/usr/bin/ldid
-16.0.0
-=== SDK/header availability ===
-drwxr-xr-x 8 root wheel 256 Jan 10  2026 /var/jb/usr/include
-=== Kernel/dyld search ===
-/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/System/Library/Caches/com.apple.kernelcaches/kernelcache
-/private/preboot/Cryptexes/OS/System/DriverKit/System/Library/dyld/dyld_shared_cache_arm64.symbols
-/private/preboot/Cryptexes/OS/System/DriverKit/System/Library/dyld/dyld_shared_cache_arm64
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.32
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.35
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.03
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.04
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.05
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.02
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.34
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.33
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.11
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.16
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.29
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.20
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.42.dyldlinkedit
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.18
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.26
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.19
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.21
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.17
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.10
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.09
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.36
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.41.dylddata
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.31
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.38
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.07
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.01
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.39
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.06
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.symbols
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.30
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.08
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.37
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.15
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.12
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.24
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.23
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.22
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.25
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.13
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.14
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.40
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.27.dylddata
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64.28.dyldlinkedit
-/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64
-=== Low-memory baseline ===
-nofiles=256
-Pages free:                                1009.
-Pages active:                             41425.
-Pages inactive:                           40856.
-Pages wired down:                         25230.
-Pages occupied by compressor:             17811.
-=== Minimal native compile test ===
-clang-16 executable missing
-=== Done ===
+Checking SSH host key over Tailscale...
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
+=== NightVibes33/Dopamine branches ===
+2.x	e89072adc591881146c9513a616fa68b7323d6a7
+main	790896fb8e3ad5d43a696cc65c1d50b50055f338
+main-backup-before-installer	9b0b648346c96151556214e9100ee8029f2e7d80
+research/ipad5-16.7.11-support-lab	2ec6a8fa380276270a69c34c4ac410f1d4e5ff7b
+research/ipad5-darksword	9b0b648346c96151556214e9100ee8029f2e7d80
+research/paleramine-no-pc	4e5d6d601692b8393a5fd67b6db6fdba83c5d2a8
+research/paleramine-runtime-preentry	808cffc8b27614d8db1b5d465345dfc06391e571
+branch_count=7
+=== Branches containing likely DarkSword/iPad work ===
+candidate=research/ipad5-16.7.11-support-lab	2ec6a8fa380276270a69c34c4ac410f1d4e5ff7b
+candidate=research/ipad5-darksword	9b0b648346c96151556214e9100ee8029f2e7d80
+candidate=research/paleramine-no-pc	4e5d6d601692b8393a5fd67b6db6fdba83c5d2a8
+candidate=research/paleramine-runtime-preentry	808cffc8b27614d8db1b5d465345dfc06391e571
 ssh_exit_code=0
