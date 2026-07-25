@@ -1,0 +1,150 @@
+Official ElleKit DEB Inspection
+run_id=30170307863
+inspection=success
+
+--- sanitized output ---
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== DOWNLOAD ===
+Get:1 https://ellekit.space ./ ellekit 1.1.3 [353 kB]
+Fetched 353 kB in 1s (653 kB/s)
+W: Download is performed unsandboxed as root as file '/private/var/mobile/Media/ellekit-official-inspect/ellekit_1.1.3_iphoneos-arm64.deb' couldn't be accessed by user '_apt'. - pkgAcquire::Run (13: Permission denied)
+deb=/var/mobile/Media/ellekit-official-inspect/ellekit_1.1.3_iphoneos-arm64.deb
+-rw-r--r-- 1 root wheel 352628 Jul 21 11:42 /var/mobile/Media/ellekit-official-inspect/ellekit_1.1.3_iphoneos-arm64.deb
+b6fa34a45629f1eba602678d3322ad06d077b52e015223f99a989883652b277b  /var/mobile/Media/ellekit-official-inspect/ellekit_1.1.3_iphoneos-arm64.deb
+=== CONTROL ===
+Package: ellekit
+Name: ElleKit
+Version: 1.1.3
+Architecture: iphoneos-arm64
+Maintainer: Dhinak G <dhinak@dhinak.net>
+Conflicts: com.ex.substitute, org.coolstar.libhooker, science.xnu.substitute, mobilesubstrate, com.saurik.substrate.safemode
+Replaces: com.ex.libsubstitute, org.coolstar.libhooker, mobilesubstrate
+Provides: mobilesubstrate (= 99), org.coolstar.libhooker (= 1.6.9)
+Author: Evelyn
+Section: Tweak Injection
+Priority: optional
+Icon: https://ellekit.space/logos/logo.png
+Description: ElleKit tweak injection libraries and loader
+=== MAINTAINER SCRIPTS ===
+--- control/preinst
+#!/usr/bin/env bash
+
+abort() {
+    echo "Error: $*" >&2
+    exit 1
+}
+
+OLDPATH="/var/jb/Library/MobileSubstrate/DynamicLibraries"
+NEWPATH="/var/jb/usr/lib/TweakInject"
+
+if [ "$1" != "install" ]; then
+    exit 0
+fi
+
+if ! [ -d "$NEWPATH" ]; then
+    if [ -e "$NEWPATH" ]; then
+        # WTF?
+        abort "TweakInject exists and is not a directory"
+    fi
+    mkdir "$NEWPATH" || abort "Failed to create TweakInject directory"
+fi
+
+if ! [ -L "$OLDPATH" ]; then
+    if [ -d "$OLDPATH" ]; then
+        mv "$OLDPATH"/* "$NEWPATH" || abort "Failed to copy DynamicLibraries to TweakInject"
+        rm -rf "$OLDPATH" || abort "Failed to remove DynamicLibraries"
+    fi
+    if [ -e "$OLDPATH" ]; then
+        # WTF?
+        abort "DynamicLibraries exists and is not a symlink"
+    fi
+    mkdir -p "/var/jb/Library/MobileSubstrate" || abort "Failed to create MobileSubstrate directory"
+    ln -s "$NEWPATH" "$OLDPATH" || abort "Failed to symlink DynamicLibraries to TweakInject"
+fi
+
+exit 0
+--- control/postinst
+#!/usr/bin/env bash
+
+# from https://theapplewiki.com/wiki/Dev:Packaging
+function finish() {
+    f="${1}"
+
+    # No control fd: bail out
+    [[ -z "${f}" || -z "${CYDIA}" ]] && return
+    cydia=(${CYDIA})
+
+    # Cydia control fd version != 1: bail out
+    [[ ${cydia[1]} -eq 1 ]] || return
+
+    echo "finish:${f}" >&${cydia[0]}
+}
+
+function run_loader() {
+    /var/jb/usr/libexec/ellekit/loader
+}
+
+# Remove log if it exists
+rm -f /var/jb/var/mobile/log.txt
+# Older builds of ElleKit previously always put the log file here
+if [[ -f /var/mobile/log.txt ]]; then
+    rm /var/mobile/log.txt
+fi
+
+if [[ -f /dev/rmd0 ]]; then
+    # checkra1n based jailbreak (palera1n-c, odysseyra1n)
+
+    # if [[ -f /var/jb/.palecursus_strapped && -f /cores/binpack/usr/lib/systemhook.dylib ]]; then
+    #     # palera1n v2.0.0 beta ?'s systemhook loads /var/jb/usr/lib/TweakInject.dylib
+    #     true
+    # else
+    #     run_loader
+    # fi
+
+    # palera1n changes not currently implemented, so always run loader
+    run_loader
+elif [[ -f /var/jb/.installed_dopamine || -f /var/jb/.installed_fugu15max ||
+    -f /var/jb/.installed_meowbrek ||
+    -f /var/jb/.xia0o0o0o_jb_installed ]]; then
+    # Dopamine/meowbrek2/Def1nit3lyN0tAJa1lbr3akTool systemhooks load /var/jb/usr/lib/TweakLoader.dylib
+    true
+elif [[ -f /.installed_taurine || -f /.installed_odyssey ]]; then
+    # Taurine and Odyssey (but not odysseyra1n) load /usr/lib/TweakInject.dylib
+    true
+else
+    # Run loader on all unrecognized jailbreaks
+    run_loader
+fi
+
+finish usreboot
+control/prerm=absent
+--- control/postrm
+#!/usr/bin/env bash
+
+# from https://theapplewiki.com/wiki/Dev:Packaging
+function finish() {
+    f="${1}"
+
+    # No control fd: bail out
+    [[ -z "${f}" || -z "${CYDIA}" ]] && return
+    cydia=(${CYDIA})
+
+    # Cydia control fd version != 1: bail out
+    [[ ${cydia[1]} -eq 1 ]] || return
+
+    echo "finish:${f}" >&${cydia[0]}
+}
+
+finish usreboot
+=== OFFICIAL FILE CHECKSUMS ===
+34619f5b536c63d7801e13e471a0a2986e6f6fa98ff07313d1840742094a24bd  root/var/jb/usr/libexec/ellekit/loader
+a7bd185e42196ae8e7fbccc0a667cd29b21cc4e184a69ef058bdbe3abc70465f  root/var/jb/usr/lib/ellekit/pspawn.dylib
+25e9d47fd811e49c88ceb5d5bae34554d0df357aad25b7cf88eeff374dea1af3  root/var/jb/usr/lib/ellekit/libinjector.dylib
+=== INSTALLED FILE CHECKSUMS ===
+34619f5b536c63d7801e13e471a0a2986e6f6fa98ff07313d1840742094a24bd  /var/jb/usr/libexec/ellekit/loader
+a7bd185e42196ae8e7fbccc0a667cd29b21cc4e184a69ef058bdbe3abc70465f  /var/jb/usr/lib/ellekit/pspawn.dylib
+25e9d47fd811e49c88ceb5d5bae34554d0df357aad25b7cf88eeff374dea1af3  /var/jb/usr/lib/ellekit/libinjector.dylib
+=== BYTE COMPARISON ===
+loader_match=yes
+pspawn_match=yes
+libinjector_match=yes
