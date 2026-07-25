@@ -1,5 +1,5 @@
 Quick Gif2Ani Status
-run_id=30169765969
+run_id=30171765943
 collect=success
 
 --- sanitized output ---
@@ -18,12 +18,13 @@ ellekit	1.1.3	install ok installed
 === SAFE MODE GATES ===
 _MSSafeMode=_SafeMode=safemode_file=absent
 === PROCESSES ===
- 6314   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
- 6346   ??  ?s     0:00.00 /usr/libexec/backboardd
+11432   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+11433   ??  ?s     0:00.00 /usr/libexec/backboardd
 === GIF2ANI FILES ===
-total 0
-drwxr-xr-x  2 mobile mobile  64 Jul 25 11:49 .
+total 4
+drwxr-xr-x  3 mobile mobile  96 Jul 25 14:31 .
 drwxr-xr-x 28 mobile mobile 896 Jul 25 11:49 ..
+-rw-r--r--  1 mobile wheel  776 Jul 25 14:31 runtime-status.plist
 === PREFERENCES ===
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -36,11 +37,38 @@ drwxr-xr-x 28 mobile mobile 896 Jul 25 11:49 ..
   <key>backgroundColor</key><string>#000000</string>
 </dict></plist>
 === RUNTIME MARKER ===
-cat: '/var/mobile/Library/Application Support/Gif2Ani/runtime-status.plist': No such file or directory
-runtime_status=missing
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>BKDisplayRenderOverlaySpinny</key>
+	<true/>
+	<key>event</key>
+	<string>tweak-loaded-no-media-decode</string>
+	<key>frameCount</key>
+	<integer>0</integer>
+	<key>gifExists</key>
+	<false/>
+	<key>process</key>
+	<string>backboardd</string>
+	<key>safetyLimits</key>
+	<dict>
+		<key>maximumDecodedFrames</key>
+		<integer>24</integer>
+		<key>maximumEstimatedDecodedBytes</key>
+		<integer>50331648</integer>
+		<key>maximumInputBytes</key>
+		<integer>26214400</integer>
+		<key>maximumPixelDimension</key>
+		<integer>640</integer>
+	</dict>
+	<key>timestamp</key>
+	<real>1785007882.327544</real>
+</dict>
+</plist>
 === DYLIB / FILTER ===
--rwxr-xr-x 1 root wheel 89104 Jul 25 12:02 /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib
--rw-r--r-- 1 root wheel   313 Jul 25 12:02 /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist
+-rwxr-xr-x 1 root wheel 89104 Jul 25 14:30 /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib
+-rw-r--r-- 1 root wheel   313 Jul 25 14:30 /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
