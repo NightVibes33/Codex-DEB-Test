@@ -120,7 +120,7 @@ jobs:
           CARGO_INCREMENTAL: '0'
           RUST_BACKTRACE: '1'
           V8_FROM_SOURCE: '1'
-          GN_ARGS: 'target_os="ios" ios_deployment_target="16.0" use_xcode_clang=true ios_enable_code_signing=false treat_warnings_as_errors=false'
+          GN_ARGS: 'target_os="ios" target_environment="device" ios_deployment_target="16.0" use_xcode_clang=true ios_enable_code_signing=false treat_warnings_as_errors=false'
           PRINT_GN_ARGS: '1'
         run: |
           set -uxo pipefail
