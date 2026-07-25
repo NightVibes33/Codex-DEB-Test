@@ -1,0 +1,21 @@
+name: Dispatch Final Gif2Ani 3.4 Proof
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/dispatch-gif2ani-340-final.txt
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch build and device proof
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run build-install-gif2ani-340-downloadable.yml --repo "$GITHUB_REPOSITORY" --ref main
