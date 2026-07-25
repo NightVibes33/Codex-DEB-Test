@@ -1,0 +1,2 @@
+dispatch=check-gif2ani-3.1.1-injection
+requested_at=2026-07-25T17:10:00-05:00
