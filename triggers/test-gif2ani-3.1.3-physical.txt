@@ -1,0 +1,5 @@
+action=validate-gif2ani-3.1.3-physical
+requested_at=2026-07-25T17:05:00-05:00
+source_commit=08fa314c83382edd0a6fbe1648b525be697921fd
+source_frames=84
+cleanup=mandatory-disabled-no-media
