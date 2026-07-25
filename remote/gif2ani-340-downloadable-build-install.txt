@@ -1,0 +1,18 @@
+Gif2Ani 3.4.0 Downloadable Catalog Build and Install
+run_id=30179273924
+install=skipped
+
+offline_builtins=12
+downloadable_builtins=54
+builtins_total=66
+legacy_source_catalog=54
+all_gallery_entries=120
+
+--- digest ---
+
+
+--- device proof ---
+No device output.
+
+--- build tail ---
+No build log.
