@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30151079779
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30151079779
-commit=472caf9c27a12993c245cdab76455ddb47d25318
+run_id=30151146975
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30151146975
+commit=60b413a86a5db452f44b452d1c85ed79ad778d7d
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -16,30 +16,14 @@ Checking SSH host key over Tailscale...
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-+ git fetch origin ipad5/adaptive-lowmem-v1
-From github.com:NightVibes33/Dopamine
- * branch            ipad5/adaptive-lowmem-v1 -> FETCH_HEAD
-+ git switch ipad5/adaptive-lowmem-v1
-Already on 'ipad5/adaptive-lowmem-v1'
-M	BaseBin/_external/modules/litehook
-M	BaseBin/opainject
-Your branch is up to date with 'origin/ipad5/adaptive-lowmem-v1'.
-+ git reset --hard origin/ipad5/adaptive-lowmem-v1
-HEAD is now at 027e478 Add adaptive low-memory DarkSword profile for iPad 5
-+ git config user.name NightVibes33 iPad
-+ git config user.email NightVibes33@users.noreply.github.com
-+ git diff --check
-+ git add .github/workflows/ipad5-adaptive-lowmem.yml
-+ git commit -m Add adaptive iPad5 DarkSword build workflow
-[ipad5/adaptive-lowmem-v1 020358a] Add adaptive iPad5 DarkSword build workflow
- 1 file changed, 136 insertions(+)
- create mode 100644 .github/workflows/ipad5-adaptive-lowmem.yml
-+ git rev-parse HEAD
-020358a8549ab0a33482d3656b42ed3809fc515f
-+ git push origin HEAD:ipad5/adaptive-lowmem-v1
-To github.com:NightVibes33/Dopamine.git
-   027e478..020358a  HEAD -> ipad5/adaptive-lowmem-v1
-branch=ipad5/adaptive-lowmem-v1
-workflow_head=020358a8549ab0a33482d3656b42ed3809fc515f
-workflow_push=success
+workflow_total_count=1
+---
+run_id=30151105627
+head_sha=020358a8549ab0a33482d3656b42ed3809fc515f
+status=in_progress
+conclusion=None
+event=push
+created_at=2026-07-25T08:26:29Z
+updated_at=2026-07-25T08:26:32Z
+url=https://github.com/NightVibes33/Dopamine/actions/runs/30151105627
 ssh_exit_code=0
