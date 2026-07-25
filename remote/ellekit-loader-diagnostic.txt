@@ -1,5 +1,5 @@
 ElleKit Loader Diagnostic
-run_id=30167714978
+run_id=30167768417
 collect=success
 
 --- sanitized output ---
@@ -56,8 +56,8 @@ dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 pa
 === PROCESSES ===
  1825   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
  1857   ??  ?s     0:00.00 /usr/libexec/backboardd
- 2202   ??  ?s     0:00.00 sudo -S -p  sh /var/mobile/Media/diagnose-ellekit.sh
- 2203   ??  ?      0:00.00 sh /var/mobile/Media/diagnose-ellekit.sh
+ 2237   ??  ?s     0:00.00 sudo -S -p  sh /var/mobile/Media/diagnose-ellekit.sh
+ 2238   ??  ?      0:00.00 sh /var/mobile/Media/diagnose-ellekit.sh
 === LAUNCHCTL LIST MATCHES ===
 === BOOTSTRAP DIRECTORIES ===
 /var/jb/Library:
