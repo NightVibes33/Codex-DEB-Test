@@ -39,13 +39,18 @@ if [[ "${LITTER_NYXIAN_PRIVATE_BUILD:-0}" == "1" ]]; then
   if [[ ! -s "$minimuxer_archive" || ! -s "$minimuxer_device_lib" || ! -s "$minimuxer_swift" ]]; then
     echo "==> Building KittyStore minimuxer Rust bridge for full AlleyCat sideload build"
     if command -v brew >/dev/null 2>&1; then
-      for formula in cmake pkgconf llvm; do
+      # plist_plus vendors libplist and must generate configure from
+      # configure.ac on a clean checkout. These are build-time requirements,
+      # not optional linker packages.
+      for formula in autoconf automake libtool cmake pkgconf llvm; do
         brew list "$formula" >/dev/null 2>&1 || brew install "$formula"
       done
     fi
     (
       cd "$ROOT_DIR"
-      tools/scripts/build-sidestore-minimuxer.sh
+      env \
+        LITTER_MINIMUXER_MIN_IOS="${IOS_DEPLOYMENT_TARGET:-${IPHONEOS_DEPLOYMENT_TARGET:-16.1}}" \
+        tools/scripts/build-sidestore-minimuxer.sh
     )
   else
     echo "==> Using existing KittyStore minimuxer Rust bridge"
