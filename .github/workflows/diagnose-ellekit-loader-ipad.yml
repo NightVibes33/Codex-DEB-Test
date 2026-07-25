@@ -79,12 +79,7 @@ jobs:
               done
 
               echo "=== BACKBOARDD SERVICE ENVIRONMENT ==="
-              /var/jb/usr/bin/launchctl print system/com.apple.backboardd 2>&1 | awk '\''
-                /default environment = \{/ {show=1; count=0}
-                /environment = \{/ {show=1; count=0}
-                show {print; count++}
-                show && count>35 {show=0}
-              '\'' || true
+              /var/jb/usr/bin/launchctl print system/com.apple.backboardd 2>&1 | grep -A 35 -E "default environment =|environment =" | head -90 || true
 
               echo "=== BACKBOARDD PROCESS ENVIRONMENT ==="
               pid=$(ps ax | awk "/[b]ackboardd/{print \$1; exit}")
