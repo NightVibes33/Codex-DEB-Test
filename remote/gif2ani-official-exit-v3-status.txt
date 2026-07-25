@@ -1,9 +1,10 @@
 Official palera1n Exit Safemode V3
-run_id=30169048809
+run_id=30169016144
 tailscale=success
 execute=failure
 
 --- sanitized output ---
+AppleTVOS12.4.sdk/usr/include/mach/vm_attributes.h
 AppleTVOS12.4.sdk/usr/include/mach/sync_policy.h
 AppleTVOS12.4.sdk/usr/include/mach/vm_sync.h
 AppleTVOS12.4.sdk/usr/include/mach/exception.h
@@ -523,7 +524,7 @@ AppleTVOS12.4.sdk/usr/lib/libIOAccessoryManager.tbd
 AppleTVOS12.4.sdk/usr/lib/libbsm.0.tbd
 AppleTVOS12.4.sdk/usr/lib/libicucore.A.tbd
 
-100 5693k  100 5693k    0     0  9213k      0 --:--:-- --:--:-- --:--:-- 9213k
+100 5693k  100 5693k    0     0  8033k      0 --:--:-- --:--:-- --:--:-- 8033k
 AppleTVOS12.4.sdk/usr/lib/libbz2.tbd
 AppleTVOS12.4.sdk/usr/lib/libSystem_asan.tbd
 AppleTVOS12.4.sdk/usr/lib/libnetwork.tbd
@@ -601,6 +602,5 @@ exit_command_ssh_exit=255
 === WAIT FOR IPAD AFTER OFFICIAL EXIT ===
 reconnected_after_official_exit=1
 Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
-Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
-dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
- missing 'Maintainer' field
+client_loop: send disconnect: Broken pipe
+scp: Connection closed
