@@ -14,9 +14,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  DARK_BOOT_ARTIFACT_ID: "8619962046"
-  DARK_BOOT_SHA256: "87e63557439e4cc918451dfc7a6542cff8d48c6ddee50e06fe5b12a985141a7c"
   DARK_BOOT_VERSION: "2.0.0"
+  DARK_BOOT_SOURCE_COMMIT: "7f0cde680d75c39541ce267eb8a5eb7f7a3dec5b"
   IPAD_HOST: "100.116.117.65"
 
 jobs:
@@ -61,7 +60,7 @@ jobs:
     environment:
       name: ${{ needs.resolve-environment.outputs.environment_name }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - name: Checkout bridge repository
         uses: actions/checkout@v4
@@ -75,23 +74,44 @@ jobs:
           test -n "$TAILSCALE_AUTHKEY"
           test -n "$IPAD_PASSWORD"
 
-      - name: Download exact Dark-Boot artifact
+      - name: Build verified Dark-Boot production source
+        env:
+          THEOS: /opt/theos
+          CI: "1"
+          SHELL: /bin/bash
         run: |
           set -euo pipefail
-          mkdir -p dark-boot-artifact
-          curl --fail --location --retry 3 --retry-delay 2 \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/NightVibes33/Dark-Boot/actions/artifacts/${DARK_BOOT_ARTIFACT_ID}/zip" \
-            -o dark-boot-artifact.zip
-          unzip -q dark-boot-artifact.zip -d dark-boot-artifact
-          DEB="$(find dark-boot-artifact -type f -name 'com.nightvibes33.darkboot_2.0.0_iphoneos-arm64.deb' -print -quit)"
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            bash curl sudo build-essential fakeroot rsync perl zip git libxml2 \
+            dpkg-dev unzip xz-utils ca-certificates
+
+          sudo rm -rf /opt/theos dark-boot-src
+          sudo mkdir -p /opt
+          sudo chown "$USER:$USER" /opt
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          test -x /opt/theos/toolchain/linux/iphone/bin/clang
+          test -x /opt/theos/toolchain/linux/iphone/bin/clang++
+
+          git init dark-boot-src
+          git -C dark-boot-src remote add origin https://github.com/NightVibes33/Dark-Boot.git
+          git -C dark-boot-src fetch --depth 1 origin "$DARK_BOOT_SOURCE_COMMIT"
+          git -C dark-boot-src checkout --detach FETCH_HEAD
+          test "$(git -C dark-boot-src rev-parse HEAD)" = "$DARK_BOOT_SOURCE_COMMIT"
+
+          make -C dark-boot-src clean package FINALPACKAGE=1
+          DEB="$(find dark-boot-src/packages -maxdepth 1 -type f -name 'com.nightvibes33.darkboot_2.0.0_iphoneos-arm64.deb' -print -quit)"
           test -n "$DEB"
-          echo "${DARK_BOOT_SHA256}  $DEB" | sha256sum -c -
           dpkg-deb --field "$DEB" Package | grep -Fx 'com.nightvibes33.darkboot'
           dpkg-deb --field "$DEB" Version | grep -Fx "$DARK_BOOT_VERSION"
           dpkg-deb --field "$DEB" Architecture | grep -Fx 'iphoneos-arm64'
+          dpkg-deb --contents "$DEB" | tee built-package-contents.txt
+          grep -q 'DarkBoot.dylib' built-package-contents.txt
+          grep -q 'DarkBootPrefs.bundle' built-package-contents.txt
+          grep -q 'PreferenceLoader/Preferences/DarkBoot.plist' built-package-contents.txt
+          dpkg-deb --ctrl-tarfile "$DEB" | tar -tvf - | grep -q './postinst'
           cp "$DEB" ./Dark-Boot-2.0.0-rootless.deb
+          sha256sum ./Dark-Boot-2.0.0-rootless.deb | tee built-package-sha256.txt
 
       - name: Join Tailscale
         id: tailscale
@@ -146,7 +166,7 @@ jobs:
               -o StrictHostKeyChecking=yes \
               -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
               mobile@"$IPAD_HOST" \
-              'sudo -S -p "" sh -c '\''echo device=$(uname -m); echo ios=$(sw_vers -productVersion 2>/dev/null || true); echo springboard_pid=$(pgrep -x SpringBoard | head -n1 || true); dpkg-query -W -f="installed_before=${Version}\n" com.nightvibes33.darkboot 2>/dev/null || echo installed_before=none'\'''
+              'sudo -S -p "" sh -c '\''echo device=$(uname -m); echo springboard_pid=$(pgrep -x SpringBoard | head -n1 || true); version=$(dpkg-query -W com.nightvibes33.darkboot 2>/dev/null | awk "{print \\$2}" || true); echo installed_before=${version:-none}'\'''
           } | tee install-status.txt
 
       - name: Install package and allow post-install respring
@@ -169,7 +189,7 @@ jobs:
           code=${PIPESTATUS[1]}
           set -e
           echo "install_ssh_exit=$code" | tee -a install-status.txt
-          # A respring can intentionally terminate SSH after dpkg succeeds.
+          # The package postinst intentionally starts sbreload and may close SSH.
           if [ "$code" -ne 0 ] && [ "$code" -ne 255 ]; then
             exit "$code"
           fi
@@ -203,7 +223,7 @@ jobs:
             'sudo -S -p "" sh -c '\''
               set -eu
               echo "=== POST-INSTALL ==="
-              version=$(dpkg-query -W -f="${Version}" com.nightvibes33.darkboot)
+              version=$(dpkg-query -W com.nightvibes33.darkboot | awk "{print \\$2}")
               echo "installed_version=$version"
               test "$version" = "2.0.0"
               test -f /var/jb/Library/MobileSubstrate/DynamicLibraries/DarkBoot.dylib
@@ -226,7 +246,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dark-boot-ipad-install-${{ github.run_id }}
-          path: install-status.txt
+          path: |
+            install-status.txt
+            built-package-sha256.txt
           retention-days: 7
 
       - name: Publish sanitized install status
@@ -244,6 +266,7 @@ jobs:
           import os
           from pathlib import Path
           text = Path('install-status.txt').read_text(errors='replace') if Path('install-status.txt').exists() else 'No install status was produced.'
+          digest = Path('built-package-sha256.txt').read_text(errors='replace').strip() if Path('built-package-sha256.txt').exists() else 'not-produced'
           password = os.environ.get('IPAD_PASSWORD', '')
           if password:
               text = text.replace(password, '***REDACTED***')
@@ -252,6 +275,8 @@ jobs:
               f"run_id={os.environ.get('GITHUB_RUN_ID', '')}",
               f"run_url=https://github.com/{os.environ.get('GITHUB_REPOSITORY', '')}/actions/runs/{os.environ.get('GITHUB_RUN_ID', '')}",
               f"commit={os.environ.get('GITHUB_SHA', '')}",
+              f"source_commit={os.environ.get('DARK_BOOT_SOURCE_COMMIT', '')}",
+              f"built_package={digest}",
               f"tailscale={os.environ.get('TAILSCALE_OUTCOME', '')}",
               f"install_step={os.environ.get('INSTALL_OUTCOME', '')}",
               '',
