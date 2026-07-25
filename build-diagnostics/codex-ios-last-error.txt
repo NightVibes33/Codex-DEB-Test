@@ -1,36 +1,18 @@
-Run: 30136497740
-Commit: 804ccc25ccc0960250282fc78d23bb9a8495fb70
+Run: 30137002803
+Commit: 1f9565e00e604abfe16462fba4e80408f1fac1ef
 Upstream: 63fe5a6b71d45dfff24a6a1e5da0699e054f145d
 
-   Compiling derivative v2.2.0
-   Compiling annotate-snippets v0.9.2
-   Compiling tokio-test v0.4.5
-   Compiling fd-lock v4.0.4
-   Compiling globset v0.4.18
-   Compiling yasna v0.5.2
-   Compiling starlark v0.14.2
-   Compiling icu_decimal_data v2.2.0
-   Compiling home v0.5.12
-   Compiling rustyline v14.0.0
-   Compiling rcgen v0.14.7
-   Compiling starlark_syntax v0.14.2
-   Compiling rama-http-core v0.3.0-alpha.4
-   Compiling starlark_derive v0.14.2
-   Compiling serde_with_macros v3.17.0
-   Compiling debugserver-types v0.5.0
-   Compiling image v0.25.9
-   Compiling display_container v0.9.0
    Compiling codex-utils-home-dir v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/home-dir)
    Compiling textwrap v0.11.0
    Compiling rama-unix v0.3.0-alpha.4
    Compiling rama-udp v0.3.0-alpha.4
    Compiling lru v0.16.3
    Compiling erased-serde v0.3.31
-   Compiling strsim v0.10.0
    Compiling cmp_any v0.8.1
    Compiling maplit v1.0.2
-   Compiling rama-http-backend v0.3.0-alpha.4
+   Compiling strsim v0.10.0
    Compiling codex-utils-cache v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/cache)
+   Compiling rama-http-backend v0.3.0-alpha.4
    Compiling rama-socks5 v0.3.0-alpha.4
    Compiling serde_with v3.17.0
    Compiling rama-tls-rustls v0.3.0-alpha.4
@@ -44,13 +26,13 @@ Upstream: 63fe5a6b71d45dfff24a6a1e5da0699e054f145d
    Compiling codex-utils-path-uri v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/path-uri)
    Compiling codex-extension-items v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/ext/items)
    Compiling chardetng v0.1.17
+   Compiling codex-execpolicy v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/execpolicy)
    Compiling codex-utils-string v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/string)
    Compiling strum_macros v0.28.0
-   Compiling codex-execpolicy v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/execpolicy)
    Compiling codex-async-utils v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/async-utils)
    Compiling quick-xml v0.41.0
-   Compiling sys-locale v0.3.2
    Compiling wildmatch v2.6.1
+   Compiling sys-locale v0.3.2
    Compiling codex-protocol v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/protocol)
    Compiling gix-trace v0.1.18
    Compiling gix-validate v0.11.0
@@ -68,13 +50,13 @@ Upstream: 63fe5a6b71d45dfff24a6a1e5da0699e054f145d
    Compiling prodash v31.0.0
    Compiling thiserror-impl v1.0.69
    Compiling zlib-rs v0.6.3
-   Compiling heapless v0.8.0
    Compiling rustversion v1.0.22
+   Compiling heapless v0.8.0
    Compiling hash32 v0.3.1
    Compiling objc2 v0.6.3
-   Compiling gix-features v0.46.2
    Compiling zstd-sys v2.0.16+zstd.1.5.7
    Compiling gix-error v0.2.1
+   Compiling gix-features v0.46.2
    Compiling opentelemetry v0.31.0
    Compiling objc2-encode v4.1.0
    Compiling faster-hex v0.10.0
@@ -106,40 +88,40 @@ Upstream: 63fe5a6b71d45dfff24a6a1e5da0699e054f145d
    Compiling pin-project v1.1.10
    Compiling event-listener-strategy v0.5.4
    Compiling gix-fs v0.19.2
+   Compiling zstd v0.13.3
    Compiling eventsource-stream v0.2.3
-   Compiling hyper-timeout v0.5.2
+   Compiling codex-http-client v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/http-client)
    Compiling prost-derive v0.14.3
+   Compiling hyper-timeout v0.5.2
    Compiling rand_chacha v0.3.1
+   Compiling codex-websocket-client v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/websocket-client)
    Compiling hmac v0.12.1
    Compiling universal-hash v0.5.1
    Compiling opaque-debug v0.3.1
-   Compiling rand v0.8.6
    Compiling prost v0.14.3
+   Compiling codex-client v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/codex-client)
+   Compiling rand v0.8.6
    Compiling tonic v0.14.3
    Compiling async-channel v2.5.0
    Compiling gix-chunk v0.7.0
    Compiling arc-swap v1.9.0
    Compiling nonempty v0.12.0
+   Compiling codex-api v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/codex-api)
    Compiling gix-tempfile v21.0.2
-   Compiling objc2-core-image v0.3.2
-   Compiling tonic-prost v0.14.3
-   Compiling objc2-user-notifications v0.3.2
    Compiling objc2-quartz-core v0.3.2
-   Compiling zstd v0.13.3
-   Compiling codex-http-client v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/http-client)
-   Compiling objc2-cloud-kit v0.3.2
+   Compiling objc2-user-notifications v0.3.2
+   Compiling tonic-prost v0.14.3
    Compiling objc2-core-location v0.3.2
    Compiling objc2-core-data v0.3.2
+   Compiling objc2-core-image v0.3.2
+   Compiling objc2-cloud-kit v0.3.2
    Compiling objc2-core-text v0.3.2
-   Compiling codex-websocket-client v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/websocket-client)
-   Compiling codex-client v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/codex-client)
-   Compiling codex-api v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/codex-api)
    Compiling objc2-core-graphics v0.3.2
    Compiling opentelemetry_sdk v0.31.0
    Compiling gethostname v1.1.0
    Compiling const-hex v1.17.0
-   Compiling objc2-ui-kit v0.3.2
    Compiling opentelemetry-proto v0.31.0
+   Compiling objc2-ui-kit v0.3.2
    Compiling gix-lock v21.0.2
    Compiling opentelemetry-http v0.31.0
    Compiling curve25519-dalek v4.1.3
@@ -156,13 +138,11 @@ Upstream: 63fe5a6b71d45dfff24a6a1e5da0699e054f145d
    Compiling gix-ref v0.61.0
    Compiling unic-langid-impl v0.9.6
    Compiling http v0.2.12
-   Compiling os_info v3.14.0
-   Compiling codex-otel v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/otel)
    Compiling serde_path_to_error v0.1.20
-   Compiling base64ct v1.8.3
-   Compiling vsimd v0.8.0
    Compiling outref v0.5.2
    Compiling toml_writer v1.0.6+spec-1.1.0
+   Compiling vsimd v0.8.0
+   Compiling base64ct v1.8.3
    Compiling base64-simd v0.8.0
    Compiling pem-rfc7468 v0.7.0
    Compiling http-body v0.4.6
@@ -174,8 +154,8 @@ Upstream: 63fe5a6b71d45dfff24a6a1e5da0699e054f145d
    Compiling clru v0.6.3
    Compiling bytes-utils v0.1.4
    Compiling serde_spanned v1.0.4
-   Compiling toml v0.9.11+spec-1.1.0
    Compiling aws-smithy-types v1.4.7
+   Compiling toml v0.9.11+spec-1.1.0
    Compiling gix-pack v0.68.0
    Compiling gix-transport v0.55.1
    Compiling der v0.7.10
@@ -183,13 +163,15 @@ Upstream: 63fe5a6b71d45dfff24a6a1e5da0699e054f145d
    Compiling gix-shallow v0.10.0
    Compiling gix-config-value v0.17.1
    Compiling maybe-async v0.2.10
-   Compiling similar v2.7.0
    Compiling unicode-bom v2.0.3
+   Compiling similar v2.7.0
    Compiling tree-sitter-language v0.1.7
-   Compiling gix-config v0.54.0
    Compiling gix-protocol v0.59.0
-   Compiling spki v0.7.3
+   Compiling gix-config v0.54.0
    Compiling gix-refspec v0.39.0
+   Compiling os_info v3.14.0
+   Compiling codex-otel v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/otel)
+   Compiling spki v0.7.3
    Compiling gix-odb v0.78.0
    Compiling gix-discover v0.49.0
    Compiling gix-traverse v0.55.0
@@ -201,25 +183,25 @@ Upstream: 63fe5a6b71d45dfff24a6a1e5da0699e054f145d
    Compiling aws-smithy-runtime-api-macros v1.0.0
    Compiling downcast-rs v1.2.1
    Compiling aws-smithy-runtime-api v1.12.0
+   Compiling codex-git-utils v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/git-utils)
    Compiling rust-embed-utils v8.11.0
    Compiling rust-embed-impl v8.11.0
    Compiling type-map v0.5.1
    Compiling poly1305 v0.8.0
-   Compiling codex-git-utils v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/git-utils)
    Compiling tree-sitter v0.25.10
-   Compiling toml v0.5.11
    Compiling basic-toml v0.1.10
+   Compiling toml v0.5.11
    Compiling tree-sitter-bash v0.25.1
-   Compiling self_cell v1.2.2
    Compiling env_home v0.1.0
-   Compiling which v8.0.0
+   Compiling self_cell v1.2.2
    Compiling self_cell v0.10.3
-   Compiling i18n-config v0.4.8
+   Compiling which v8.0.0
    Compiling find-crate v0.6.3
+   Compiling i18n-config v0.4.8
    Compiling intl-memoizer v0.5.3
    Compiling fluent-syntax v0.11.1
-   Compiling intl_pluralrules v7.0.2
    Compiling fluent-langneg v0.13.1
+   Compiling intl_pluralrules v7.0.2
    Compiling salsa20 v0.10.2
    Compiling codex-utils-path v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/path-utils)
    Compiling signature v2.2.0
@@ -245,16 +227,16 @@ Upstream: 63fe5a6b71d45dfff24a6a1e5da0699e054f145d
    Compiling i18n-embed v0.15.4
    Compiling chacha20poly1305 v0.10.1
    Compiling windows-strings v0.1.0
-   Compiling aws-smithy-http v0.62.6
    Compiling aws-credential-types v1.2.11
+   Compiling aws-smithy-http v0.62.6
    Compiling hkdf v0.12.4
    Compiling filedescriptor v0.8.3
    Compiling darling_core v0.23.0
    Compiling cookie-factory v0.3.3
    Compiling aws-types v1.3.11
    Compiling secrecy v0.10.3
-   Compiling windows-interface v0.58.0
    Compiling windows-implement v0.58.0
+   Compiling windows-interface v0.58.0
    Compiling serial2 v0.2.33
    Compiling base64 v0.21.7
    Compiling io_tee v0.1.1
@@ -264,27 +246,27 @@ Upstream: 63fe5a6b71d45dfff24a6a1e5da0699e054f145d
    Compiling windows-core v0.58.0
    Compiling i18n-embed-fl v0.9.4
    Compiling scrypt v0.11.0
-   Compiling aws-smithy-http-client v1.1.12
    Compiling aws-smithy-observability v0.1.5
+   Compiling aws-smithy-http-client v1.1.12
    Compiling polyval v0.6.2
    Compiling aes v0.8.4
    Compiling debugid v0.8.0
    Compiling keccak v0.1.6
    Compiling keyring v3.6.3
    Compiling dirs-sys-next v0.1.2
-   Compiling codex-windows-sandbox v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/windows-sandbox-rs)
-   Compiling chunked_transfer v1.5.0
-   Compiling ascii v1.1.0
-   Compiling object v0.37.3
    Compiling bech32 v0.9.1
-   Compiling age v0.11.2
+   Compiling object v0.37.3
+   Compiling ascii v1.1.0
+   Compiling chunked_transfer v1.5.0
+   Compiling codex-windows-sandbox v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/windows-sandbox-rs)
    Compiling tiny_http v0.12.0
+   Compiling age v0.11.2
    Compiling dirs-next v2.0.0
    Compiling codex-keyring-store v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/keyring-store)
    Compiling sha3 v0.10.9
    Compiling sentry-types v0.46.1
-   Compiling ghash v0.5.1
    Compiling aws-smithy-runtime v1.9.5
+   Compiling ghash v0.5.1
    Compiling windows v0.58.0
    Compiling codex-utils-pty v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/pty)
    Compiling darling v0.23.0
@@ -300,11 +282,11 @@ Upstream: 63fe5a6b71d45dfff24a6a1e5da0699e054f145d
    Compiling hybrid-array v0.2.3
    Compiling ff v0.13.1
    Compiling glob v0.3.3
-   Compiling base16ct v0.2.0
    Compiling gimli v0.32.3
+   Compiling base16ct v0.2.0
    Compiling sec1 v0.7.3
-   Compiling ml-kem v0.2.3
    Compiling addr2line v0.25.1
+   Compiling ml-kem v0.2.3
    Compiling group v0.13.0
    Compiling crypto_box v0.9.1
    Compiling jsonwebtoken v9.3.1
@@ -319,12 +301,12 @@ Upstream: 63fe5a6b71d45dfff24a6a1e5da0699e054f145d
    Compiling axum-core v0.5.6
    Compiling crypto-bigint v0.5.5
    Compiling rustc-demangle v0.1.27
+   Compiling vcpkg v0.2.15
    Compiling libm v0.2.16
    Compiling matchit v0.8.4
-   Compiling vcpkg v0.2.15
    Compiling codex-utils-template v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/template)
-   Compiling libsqlite3-sys v0.37.0
    Compiling axum v0.8.8
+   Compiling libsqlite3-sys v0.37.0
    Compiling backtrace v0.3.76
    Compiling elliptic-curve v0.13.8
    Compiling codex-agent-identity v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/agent-identity)
@@ -335,8 +317,8 @@ Upstream: 63fe5a6b71d45dfff24a6a1e5da0699e054f145d
    Compiling findshlibs v0.10.2
    Compiling cfg_aliases v0.2.1
    Compiling nix v0.30.1
-   Compiling codex-exec-server v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/exec-server)
    Compiling codex-login v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/login)
+   Compiling codex-exec-server v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/exec-server)
    Compiling rfc6979 v0.4.0
    Compiling core-foundation v0.10.1
    Compiling sentry-contexts v0.46.1
@@ -359,13 +341,13 @@ Upstream: 63fe5a6b71d45dfff24a6a1e5da0699e054f145d
    Compiling sentry-debug-images v0.46.1
    Compiling calendrical_calculations v0.2.4
    Compiling rustls-platform-verifier v0.7.0
-   Compiling aws-sdk-sso v1.91.0
-   Compiling aws-sdk-ssooidc v1.93.0
    Compiling aws-sdk-signin v1.2.0
+   Compiling aws-sdk-ssooidc v1.93.0
+   Compiling aws-sdk-sso v1.91.0
    Compiling schemars_derive v1.2.1
    Compiling rmcp v1.8.0
-   Compiling icu_calendar_data v2.2.0
    Compiling rustix v0.38.44
+   Compiling icu_calendar_data v2.2.0
    Compiling schemars v1.2.1
    Compiling aws-config v1.8.12
    Compiling reqwest v0.13.4
@@ -379,12 +361,12 @@ Upstream: 63fe5a6b71d45dfff24a6a1e5da0699e054f145d
    Compiling libloading v0.8.9
    Compiling resb v0.1.2
    Compiling sse-stream v0.2.1
+   Compiling pastey v0.2.1
+   Compiling is_ci v1.2.0
    Compiling bindgen v0.72.1
    Compiling codex-collaboration-mode-templates v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/collaboration-mode-templates)
-   Compiling is_ci v1.2.0
-   Compiling pastey v0.2.1
-   Compiling sqlx-core v0.9.0
    Compiling codex-models-manager v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/models-manager)
+   Compiling sqlx-core v0.9.0
    Compiling zoneinfo64 v0.3.0
    Compiling codex-feedback v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/feedback)
    Compiling codex-aws-auth v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/aws-auth)
@@ -400,23 +382,39 @@ Upstream: 63fe5a6b71d45dfff24a6a1e5da0699e054f145d
    Compiling diplomat_core v0.15.0
    Compiling supports-color v2.1.0
    Compiling codex-model-provider v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/model-provider)
-   Compiling codex-plugin v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/plugin)
    Compiling sqlx-sqlite v0.9.0
+   Compiling codex-plugin v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/plugin)
    Compiling icu_calendar v2.2.1
    Compiling gzip-header v1.0.0
    Compiling timezone_provider v0.2.3
    Compiling supports-color v3.0.2
    Compiling fslock v0.2.1
-   Compiling ixdtf v0.6.4
-   Compiling dotenvy v0.15.7
    Compiling foldhash v0.1.5
+   Compiling dotenvy v0.15.7
+   Compiling ixdtf v0.6.4
    Compiling sqlx-macros-core v0.9.0
-   Compiling hashbrown v0.15.5
    Compiling temporal_rs v0.2.3
+   Compiling hashbrown v0.15.5
    Compiling v8 v149.2.0
    Compiling diplomat v0.15.0
    Compiling diplomat-runtime v0.15.1
    Compiling temporal_capi v0.2.3
+   Compiling sqlx-macros v0.9.0
+   Compiling codex-code-mode-protocol v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/code-mode-protocol)
+   Compiling num-complex v0.4.6
+   Compiling deno_core_icudata v0.77.0
+   Compiling symphonia-core v0.6.0
+   Compiling codex-connectors v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/connectors)
+   Compiling codex-context-fragments v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/context-fragments)
+   Compiling bzip2-sys v0.1.13+1.0.8
+   Compiling lzma-sys v0.1.20
+   Compiling sqlx v0.9.0
+   Compiling codex-state v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/state)
+   Compiling codex-rmcp-client v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/rmcp-client)
+   Compiling codex-experimental-api-macros v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/codex-experimental-api-macros)
+   Compiling jsonptr v0.7.1
+   Compiling codex-app-server-protocol v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/app-server-protocol)
+warning: v8@149.2.0: Not using sccache or ccache
 error: failed to run custom build command for `v8 v149.2.0`
 
 Caused by:
@@ -448,47 +446,49 @@ Caused by:
   cargo:rerun-if-env-changed=CARGO_ENCODED_RUSTFLAGS
   cargo:rustc-link-lib=static=rusty_v8
   lockfile: "/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/target/aarch64-apple-ios/release/build/v8.fslock"
-  cargo:rustc-env=RUSTY_V8_SRC_BINDING_PATH=/Users/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/v8-149.2.0/gen/src_binding_release_aarch64-apple-ios.rs
-  static lib URL: https://github.com/denoland/rusty_v8/releases/download/v149.2.0/librusty_v8_release_aarch64-apple-ios.a.gz
-  cargo:rustc-link-search=/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/target/aarch64-apple-ios/release/gn_out/obj
-  Looking for download in '"/Users/runner/.cargo/.rusty_v8/https___github_com_denoland_rusty_v8_releases_download_v149_2_0_librusty_v8_release_aarch64_apple_ios_a_gz"'
-  Downloading https://github.com/denoland/rusty_v8/releases/download/v149.2.0/librusty_v8_release_aarch64-apple-ios.a.gz
-  Trying with Python...
-  Downloading https://github.com/denoland/rusty_v8/releases/download/v149.2.0/librusty_v8_release_aarch64-apple-ios.a.gz...
-  HTTP Error 404: Not Found
-  Python downloader failed, trying with curl.
+  Downloading https://storage.googleapis.com/chrome-infra-packages/store/SHA256/8ddaee81360e1eb1a0a1da0ea7f123f7b399925a083da8195bd5e029d7db26a0?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=chrome-infra-packages%40appspot.gserviceaccount.com%2F20260725%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260725T005400Z&X-Goog-Expires=7199&X-Goog-Signature=0e5bc9b096639a7c43b735031353b168fdd84b8c27ac2a3aa3dfe468118516d8fdf2a153d027a911679b1460349109d9e5562cdde5cb1e9c2a35089a46bfe5033e5898715f0136a1658e97e9635396574354ae7b3e1e2ef1b4e5170c749be913316e173e3f1be330106233dec6a5ad374c6e7b2d52214e91d94dff7f232f8d7544ab05c55a6779b69f4cb3f30bf13c35de2d3d7929a5aeb20e9acde1ae8f60735e26d6c4f0e8725c268cf87213b810687bb37147b36c8b3a50346e0caa6d670368cd85ca4042dc151551cc1a952971d3e820cb919f9371a536ba7317a60b7a9c6f6075a04f655f1391d2efdedbd09228f859563955a2f40cb2153a69d77f863d&X-Goog-SignedHeaders=host... Done.
+  Downloading https://storage.googleapis.com/chrome-infra-packages/store/SHA256/c5e9b4ffab3b2edefbc41849fc81f116c8d047b258906becc061be9ecaf04afd?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=chrome-infra-packages%40appspot.gserviceaccount.com%2F20260725%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260725T003212Z&X-Goog-Expires=7199&X-Goog-Signature=3f95b2f69718204ca4b135942cac29062948e0c60f1e414f436f7a017646168a5997b47a67b591f2c598438f50d281bc7527d6a8bdb9043d9263a0cfb51f0e4e474c19c71d05e568ffef56c771211ff5083eb1949d72e488817a57fd126e0681917a2d5c38379348059e139ca5fab9d7cffbd8f02410cd87b06784bce06fdf65f93aace4968dd15c5755eda045683c64c11d3975b26da355b28ed861180c6e5b692886e6a3da3a50cc18179f778a3091da331811cbeda7a01390c62428bc64ba16b1387bdb372dc9925d2d039247805fa6a3735620e73488e4d3e2b6ff882d1c5b2f126a38f05a20e7c3628c2177c36c52e6c023af0a459d0a47fb9156179d82&X-Goog-SignedHeaders=host... Done.
+  Downloading https://storage.googleapis.com/chromium-browser-clang/Mac_arm64/rust-toolchain-4c4205163abcbd08948b3efab796c543ba1ea687-2-llvmorg-23-init-10931-g20b6ec66.tar.xz... Done.
+  using Chromium's clang
+  clang_base_path (downloaded) /Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/target/aarch64-apple-ios/release/clang
+  Downloading https://commondatastorage.googleapis.com/chromium-browser-clang/Mac_arm64/clang-llvmorg-23-init-10931-g20b6ec66-3.tar.xz .......... Done.
+  cargo:warning=Not using sccache or ccache
+  The current directory is /Users/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/v8-149.2.0
+  gn gen --root=/Users/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/v8-149.2.0 /Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/target/aarch64-apple-ios/release/gn_out
+  ERROR at //build/config/apple/mobile_config.gni:103:3: Assertion failed.
+    assert(filter_include([ target_environment ], _target_environments) != [],
+    ^-----
+  target_environment must be in ["simulator", "device", "catalyst"]: 
+  See //build/config/compiler/pgo/pgo.gni:13:3: whence it was imported.
+    import("//build/config/apple/mobile_config.gni")
+    ^----------------------------------------------
+  See //build/config/profiling/profiling.gni:5:1: whence it was imported.
+  import("//build/config/compiler/pgo/pgo.gni")
+  ^-------------------------------------------
+  See //build/config/sanitizers/sanitizers.gni:9:1: whence it was imported.
+  import("//build/config/profiling/profiling.gni")
+  ^----------------------------------------------
+  See //build/config/v8_target_cpu.gni:5:1: whence it was imported.
+  import("//build/config/sanitizers/sanitizers.gni")
+  ^------------------------------------------------
+  See //build/config/arm.gni:6:1: whence it was imported.
+  import("//build/config/v8_target_cpu.gni")
+  ^----------------------------------------
+  See //v8/BUILD.gn:8:1: whence it was imported.
+  import("//build/config/arm.gni")
+  ^------------------------------
+  See //BUILD.gn:16:5: which caused the file to be included.
+      "//v8:v8",
+      ^--------
 
   --- stderr
-  Traceback (most recent call last):
-    File "/Users/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/v8-149.2.0/./tools/download_file.py", line 63, in <module>
-      sys.exit(main())
-               ~~~~^^
-    File "/Users/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/v8-149.2.0/./tools/download_file.py", line 58, in main
-      DownloadUrl(args.url, f)
-      ~~~~~~~~~~~^^^^^^^^^^^^^
-    File "/Users/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/v8-149.2.0/./tools/download_file.py", line 44, in DownloadUrl
-      raise e
-    File "/Users/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/v8-149.2.0/./tools/download_file.py", line 28, in DownloadUrl
-      response = urlopen(url)
-    File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 187, in urlopen
-      return opener.open(url, data, timeout)
-             ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
-    File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 493, in open
-      response = meth(req, response)
-    File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 602, in http_response
-      response = self.parent.error(
-          'http', request, response, code, msg, hdrs)
-    File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 531, in error
-      return self._call_chain(*args)
-             ~~~~~~~~~~~~~~~~^^^^^^^
-    File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 464, in _call_chain
-      result = func(*args)
-    File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 611, in http_error_default
-      raise HTTPError(req.full_url, code, msg, hdrs, fp)
-  urllib.error.HTTPError: HTTP Error 404: Not Found
 
-  thread 'main' (85005) panicked at /Users/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/v8-149.2.0/build.rs:732:3:
-  assertion failed: status.success()
+  thread 'main' (76477) panicked at /Users/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/v8-149.2.0/build.rs:1130:3:
+  assertion failed: Command::new(gn()).arg(format!("--root={}",
+                                                      dirs.root.display())).arg(format!("--script-executable={}",
+                                                  python())).arg("gen").arg(&gn_out_dir).arg("--ide=json").arg("--args=".to_owned()
+                                  +
+                                  &args).stdout(Stdio::inherit()).stderr(Stdio::inherit()).envs(env::vars()).status().expect("Could not run `gn`").success()
   stack backtrace:
      0: __rustc::rust_begin_unwind
                at /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/std/src/panicking.rs:689:5
@@ -496,8 +496,8 @@ Caused by:
                at /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/core/src/panicking.rs:80:14
      2: core::panicking::panic
                at /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/core/src/panicking.rs:150:5
-     3: build_script_build::download_file
-     4: build_script_build::download_static_lib_binaries
+     3: build_script_build::run_gn_gen
+     4: build_script_build::build_v8
      5: build_script_build::main
      6: core::ops::function::FnOnce::call_once
   note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
