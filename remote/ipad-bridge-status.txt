@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30151146975
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30151146975
-commit=60b413a86a5db452f44b452d1c85ed79ad778d7d
+run_id=30151712004
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30151712004
+commit=fa6c826feab586732dd89e5468d78ddbd97fb6ba
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -16,14 +16,30 @@ Checking SSH host key over Tailscale...
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-workflow_total_count=1
----
-run_id=30151105627
-head_sha=020358a8549ab0a33482d3656b42ed3809fc515f
-status=in_progress
-conclusion=None
-event=push
-created_at=2026-07-25T08:26:29Z
-updated_at=2026-07-25T08:26:32Z
-url=https://github.com/NightVibes33/Dopamine/actions/runs/30151105627
+download=starting
+artifact_bytes=54919696
+ipa_sha256=8cd2777ac994a6b56d401044ba8de0940d08b6fec847b3e0fae25ecac685250a
+artifact_verification=success
+bundle_id=com.opa334.Dopamine
+bundle_version=2.4.99
+minimum_os=15.0
+embedded_adaptive_markers=success
+installer_candidates=/var/jb/usr/bin/appinst,/var/containers/Bundle/Application/4541A08E-1D66-47EB-AC1E-4050977B1D77/TrollStore.app/trollstorehelper,/private/var/containers/Bundle/Application/4541A08E-1D66-47EB-AC1E-4050977B1D77/TrollStore.app/trollstorehelper
+installer=/var/jb/usr/bin/appinst
+install_command=/var/jb/usr/bin/appinst /var/mobile/Documents/DarkSword-Workspace/AdaptiveInstall/artifact/Dopamine-iPad5-DarkSword-adaptive.ipa [verified-ipa]
+appinst (App Installer)
+Copyright (C) 2014-2024 Karen/あけみ
+** PLEASE DO NOT USE APPINST FOR PIRACY **
+You seem to have installed appinst from an APT repository that is not cydia.akemi.ai.
+Please make sure that you download AppSync Unified from the official repository to ensure proper operation.
+Initialising appinst installation session ID oowBBCXScQZ266F4dUlRrxViwPWtwDLh (PID 11295)…
+Installing "com.opa334.Dopamine"…
+Cleaning up appinst session ID oowBBCXScQZ266F4dUlRrxViwPWtwDLh (PID 11295)…
+Deleting temporary directory…
+Successfully installed "com.opa334.Dopamine"!
+
+installer_exit_code=0
+installed_paths=/var/containers/Bundle/Application/C3340F54-6E16-481E-AED5-6563409189AF/Dopamine.app,/private/var/containers/Bundle/Application/C3340F54-6E16-481E-AED5-6563409189AF/Dopamine.app
+install_result=success-not-launched
+important=do-not-run-dopamine-while-paleramine-kernel-is-active
 ssh_exit_code=0
