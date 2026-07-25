@@ -1,0 +1,82 @@
+name: Check Gif2Ani Exit-Safe Run
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/check-gif2ani-exit-safe-run.txt
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Query latest exit-safe workflow run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fsS \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/exit-safemode-test-gif2ani-3.1.1.yml/runs?per_page=5" > runs.json
+          python3 - <<'PY'
+          import json, os, urllib.request
+          from pathlib import Path
+
+          data=json.load(open('runs.json'))
+          runs=data.get('workflow_runs',[])
+          out=['Gif2Ani Exit-Safe Workflow Status']
+          if not runs:
+              out.append('latest_run=missing')
+          else:
+              run=runs[0]
+              out += [
+                  f"run_id={run.get('id')}",
+                  f"status={run.get('status')}",
+                  f"conclusion={run.get('conclusion')}",
+                  f"event={run.get('event')}",
+                  f"head_sha={run.get('head_sha')}",
+                  f"created_at={run.get('created_at')}",
+                  f"updated_at={run.get('updated_at')}",
+                  f"html_url={run.get('html_url')}",
+                  '',
+                  'recent_runs:',
+              ]
+              for item in runs:
+                  out.append(f"{item.get('id')} status={item.get('status')} conclusion={item.get('conclusion')} created={item.get('created_at')}")
+
+              req=urllib.request.Request(
+                  f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{run['id']}/jobs?per_page=100",
+                  headers={
+                      'Accept':'application/vnd.github+json',
+                      'Authorization':f"Bearer {os.environ['GH_TOKEN']}",
+                      'X-GitHub-Api-Version':'2022-11-28',
+                  },
+              )
+              jobs=json.load(urllib.request.urlopen(req)).get('jobs',[])
+              out += ['', 'jobs:']
+              for job in jobs:
+                  out.append(f"job={job.get('name')} status={job.get('status')} conclusion={job.get('conclusion')} id={job.get('id')}")
+                  for step in job.get('steps',[]):
+                      out.append(f"  step={step.get('number')} {step.get('name')} status={step.get('status')} conclusion={step.get('conclusion')}")
+          Path('remote/gif2ani-311-exit-safe-run-status.txt').write_text('\n'.join(out)+'\n')
+          print('\n'.join(out))
+          PY
+      - name: Publish status
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          git add remote/gif2ani-311-exit-safe-run-status.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record Gif2Ani exit-safe workflow status [skip ci]"
+            git push origin HEAD:main
+          fi
