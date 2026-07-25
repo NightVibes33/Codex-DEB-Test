@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30149420621
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30149420621
-commit=f8a404c977668826fd2eb40ba8eb478c42cc0803
+run_id=30149492572
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30149492572
+commit=edee2ab8e7ff93c53f6446b952ac1b4993594d27
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -16,13 +16,7 @@ Checking SSH host key over Tailscale...
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-token_decrypt=success
-github_login=NightVibes33
-ssh_authorization=account-key-created
-ssh_test=authenticated
-fatal: cannot run ssh -i /var/mobile/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new: No such file or directory
-fatal: unable to fork
-
-push_exit_code=128
-bootstrap_error=push-failed
-ssh_exit_code=1
+=== GitHub SSH verification ===
+Hi NightVibes33! You've successfully authenticated, but GitHub does not provide shell access.
+/var/jb/usr/bin/sh: 32: Syntax error: Unterminated quoted string
+ssh_exit_code=2
