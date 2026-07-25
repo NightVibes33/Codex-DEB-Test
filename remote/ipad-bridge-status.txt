@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30158653369
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30158653369
-commit=960ec666a3e1aa3237951c046fca8926262e797f
+run_id=30159693755
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30159693755
+commit=3436d54c34a7d4f5c0fc603f5a650f531be1ed6c
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -16,88 +16,44 @@ Checking SSH host key over Tailscale...
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-=== TrollStore installation verification ===
-verified_at_utc=2026-07-25T12:51:32Z
+=== iPad dual-boot storage feasibility ===
+verified_at_utc=2026-07-25T13:25:58Z
 identity=uid=0(root) gid=0(wheel) groups=0(wheel)
 model=J71tAP
 ios_version=16.7.11
 ios_build=20H360
-=== Package database ===
-package=com.kdt.trollpad version=1.2.1 status=rc 
-=== Registered apps mentioning TrollStore ===
-com.hammerandchisel.discord : /private/var/containers/Bundle/Application/76AA5788-7232-4F82-832E-F171B6AFE8F2/Discord.app
-com.jbdotparty.PancakeStore : /private/var/containers/Bundle/Application/D381462D-806B-4D58-BA26-9EDEBBED56CC/PancakeStore.app
-com.opa334.trollnonce : /private/var/containers/Bundle/Application/4E9D6B84-1E2E-4D7A-A342-FA48C9204E6E/TrollNonce.app
-ph.telegra.Telegraph : /private/var/containers/Bundle/Application/D4A78BF7-C2F7-4726-A3D0-B5F21F718887/Telegram.app
-com.idevicecentral.toolkit : /private/var/containers/Bundle/Application/E0470BE4-1BAB-4367-82AF-31ED4AF53C0C/iDevice Toolkit.app
-com.34306.mdc0 : /private/var/containers/Bundle/Application/CA0052A9-D0E0-48D9-8F78-55ADE9D83650/mdc0.app
---
-app.ish.iSH : /private/var/containers/Bundle/Application/BC53E4F2-976D-4855-BEB0-34FBAF144323/iSH.app
-com.plisteditor.SamoExc : /private/var/containers/Bundle/Application/D8CD582B-A169-4389-961F-DE27F7C03893/plistEditor.app
-com.opa334.TrollStore : /private/var/containers/Bundle/Application/4541A08E-1D66-47EB-AC1E-4050977B1D77/TrollStore.app
-com.powen.ModMyIPA : /private/var/containers/Bundle/Application/18F4ADCF-715E-4673-A6C5-00B661E36045/ModMyIPA.app
-com.wtfapps.apollo16 : /private/var/containers/Bundle/Application/928D4CCD-71A2-4165-B146-F881842D30D3/BitLife.app
-com.apple.mobilemail : /private/var/containers/Bundle/Application/CF3D14E6-DEF2-4DDF-9256-89436FF575DD/MobileMail.app
---
-com.libii.nailsalon : /private/var/containers/Bundle/Application/F5B77A38-EB25-421B-83A7-35576041B1F9/nailsalon.app
-com.cokepokes.AppStorePlus : /private/var/containers/Bundle/Application/38839394-178B-4011-917A-F45B9DB70D3B/AppStorePlus.app
-com.fiore.trolldecrypt : /private/var/containers/Bundle/Application/B04E7DFA-36E9-4579-ABDE-2EF9E11A7E1B/TrollDecrypt.app
-Ed0ardo.CyPwnStore : /private/var/containers/Bundle/Application/FF00E46E-AC99-4DD8-9C2B-F52ED03E1085/CyPwn Store.app
-com.outfit7.mytalkingtomfriends : /private/var/containers/Bundle/Application/C4992D6D-EF50-44A9-B703-4C6444883409/TomFriends-row.app
-com.hhnios.HackStore : /private/var/containers/Bundle/Application/FDE63686-9242-4CF5-939E-AF61620F6A9E/HackStoreIPA.app
-ai.perplexity.app : /private/var/containers/Bundle/Application/853E8699-F131-4AF6-9395-19F9DA37E0F0/Perplexity.app
-com.nightvibes33.paleramine.ipad5 : /private/var/containers/Bundle/Application/EBC0B1B9-0064-43EA-B0B1-A6F742F41FD2/Paleramine.app
-live.cclerc.trollbox : /private/var/containers/Bundle/Application/2816D68F-6C28-4EDA-BE6D-682CF37EE69F/TrollBox.app
-com.outfit7.mytalkingangela : /private/var/containers/Bundle/Application/4D39AF2C-19F1-41FC-ACC8-F82335447156/MyAngela-row.app
-com.ea.sims3deluxe.ipad.inc : /private/var/containers/Bundle/Application/942B1E56-6090-479B-80CD-8227817444C0/SIMS3_UNIVERSAL.app
-=== App bundles ===
-trollstore_app_bundles=2
----
-app_path=/private/var/containers/Bundle/Application/4541A08E-1D66-47EB-AC1E-4050977B1D77/TrollStore.app
-display_name=
-bundle_name=
-bundle_id=com.opa334.TrollStore
-short_version=
-bundle_version=2.1
-executable=TrollStore
-binary_size=  File: "/private/var/containers/Bundle/Application/4541A08E-1D66-47EB-AC1E-4050977B1D77/TrollStore.app/TrollStore"
-    ID: 10000040000001a Namelen: ?       Type: apfs
-Block size: 4096       Fundamental block size: 4096
-Blocks: Total: 7808393    Free: 1313136    Available: 1313136
-Inodes: Total: 52682131   Free: 52525440
-278835
-binary_type=/private/var/containers/Bundle/Application/4541A08E-1D66-47EB-AC1E-4050977B1D77/TrollStore.app/TrollStore: Mach-O 64-bit arm64 executable, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|PIE>
-entitlements_begin
-	<key>application-identifier</key>
-	<key>com.apple.private.security.container-manager</key>
-	<key>com.apple.private.security.no-sandbox</key>
-	<key>com.apple.private.security.storage.MobileDocuments</key>
-	<key>platform-application</key>
-entitlements_end
----
-app_path=/var/containers/Bundle/Application/4541A08E-1D66-47EB-AC1E-4050977B1D77/TrollStore.app
-display_name=
-bundle_name=
-bundle_id=com.opa334.TrollStore
-short_version=
-bundle_version=2.1
-executable=TrollStore
-binary_size=  File: "/var/containers/Bundle/Application/4541A08E-1D66-47EB-AC1E-4050977B1D77/TrollStore.app/TrollStore"
-    ID: 10000040000001a Namelen: ?       Type: apfs
-Block size: 4096       Fundamental block size: 4096
-Blocks: Total: 7808393    Free: 1313128    Available: 1313128
-Inodes: Total: 52681815   Free: 52525120
-278835
-binary_type=/var/containers/Bundle/Application/4541A08E-1D66-47EB-AC1E-4050977B1D77/TrollStore.app/TrollStore: Mach-O 64-bit arm64 executable, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|PIE>
-entitlements_begin
-	<key>application-identifier</key>
-	<key>com.apple.private.security.container-manager</key>
-	<key>com.apple.private.security.no-sandbox</key>
-	<key>com.apple.private.security.storage.MobileDocuments</key>
-	<key>platform-application</key>
-entitlements_end
-=== TrollStore support files and helpers ===
-=== Running processes ===
-10758 /var/containers/Bundle/Application/4541A08E-1D66-47EB-AC1E-4050977B1D77/TrollStore.app/TrollStore
+=== Filesystem capacity ===
+path=/
+com.apple.os.update-8579078043F0FC7B23462C6FC23605D3A3BB1E07@/dev/disk1s1   30Gi  4.2Gi  5.0Gi    46%  237568 52353560    0%   /
+com.apple.os.update-8579078043F0FC7B23462C6FC23605D3A3BB1E07@/dev/disk1s1    31233572 4427016   5235356    46%  237568 52353560    0%   /
+path=/private/var
+/dev/disk1s2   30Gi   16Gi  5.0Gi    77%  156703 52353560    0%   /private/var
+/dev/disk1s2    31233572 17123740   5235356    77%  156703 52353560    0%   /private/var
+path=/var/mobile
+/dev/disk1s2   30Gi   16Gi  5.0Gi    77%  156703 52353560    0%   /private/var
+/dev/disk1s2    31233572 17123740   5235356    77%  156703 52353560    0%   /private/var
+path=/private/preboot
+/dev/disk1s5   30Gi  4.2Gi  5.0Gi    46%   27029 52353560    0%   /private/preboot
+/dev/disk1s5    31233572 4371716   5235356    46%   27029 52353560    0%   /private/preboot
+path=/var/jb
+/dev/disk1s5   30Gi  4.2Gi  5.0Gi    46%   27029 52353560    0%   /private/preboot
+/dev/disk1s5    31233572 4371716   5235356    46%   27029 52353560    0%   /private/preboot
+statvfs path=/ total_bytes=31983177728 used_bytes=26622173184 available_bytes=5361004544 total_gib=29.79 used_gib=24.79 available_gib=4.99
+statvfs path=/private/var total_bytes=31983177728 used_bytes=26622173184 available_bytes=5361004544 total_gib=29.79 used_gib=24.79 available_gib=4.99
+statvfs path=/var/mobile total_bytes=31983177728 used_bytes=26622173184 available_bytes=5361004544 total_gib=29.79 used_gib=24.79 available_gib=4.99
+statvfs path=/private/preboot total_bytes=31983177728 used_bytes=26622173184 available_bytes=5361004544 total_gib=29.79 used_gib=24.79 available_gib=4.99
+statvfs path=/var/jb total_bytes=31983177728 used_bytes=26622173184 available_bytes=5361004544 total_gib=29.79 used_gib=24.79 available_gib=4.99
+=== Key storage consumers ===
+du path=/private/preboot kib=6875092 gib=6.56
+du path=/var/mobile kib=3578892 gib=3.41
+du path=/var/jb kib=0 gib=0.00
+=== Mount layout ===
+com.apple.os.update-8579078043F0FC7B23462C6FC23605D3A3BB1E07@/dev/disk1s1 on / (apfs, sealed, local, nosuid, read-only, journaled, noatime)
+/dev/disk1s5 on /private/preboot (apfs, local, nosuid, journaled, noatime)
+/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/usr/standalone/firmware on /usr/standalone/firmware (bindfs, local, nodev, nosuid, read-only, nobrowse)
+/dev/disk1s2 on /private/var (apfs, local, nodev, nosuid, journaled, noatime, protect)
+/dev/disk1s6 on /private/var/MobileSoftwareUpdate (apfs, local, nodev, nosuid, journaled, noatime, nobrowse)
+/dev/disk1s4 on /private/var/hardware (apfs, local, nodev, nosuid, journaled, noatime, nobrowse)
+/private/var/hardware/FactoryData/System/Library/Caches/com.apple.factorydata on /System/Library/Caches/com.apple.factorydata (bindfs, local, nodev, nosuid, read-only, nobrowse)
 verification=read-only-complete
 ssh_exit_code=0
