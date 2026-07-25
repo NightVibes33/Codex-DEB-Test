@@ -1,32 +1,63 @@
 #!/bin/sh
 set -eu
 export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
-python3 <<'PY'
-import json
-from pathlib import Path
+export HOME=/var/mobile
 
-root = Path('/var/mobile/Library/Logs/CrashReporter')
-files = sorted(root.glob('JetsamEvent-*.ips'), key=lambda p: p.stat().st_mtime, reverse=True)[:5]
-for path in files:
-    lines = path.read_text(errors='replace').splitlines()
-    meta = json.loads(lines[0]) if lines else {}
-    data = json.loads('\n'.join(lines[1:])) if len(lines) > 1 else {}
-    print('---')
-    print('file=' + path.name)
-    print('timestamp=' + str(meta.get('timestamp')))
-    print('largest=' + str(data.get('largestProcess')))
-    memory = data.get('memoryStatus') or {}
-    pages = memory.get('memoryPages') or {}
-    print('free_pages=' + str(pages.get('free')))
-    print('compressor_size=' + str(memory.get('compressorSize')))
-    procs = data.get('processes') or []
-    procs = sorted(procs, key=lambda p: int(p.get('rpages') or 0), reverse=True)
-    for proc in procs[:15]:
-        print('proc=' + json.dumps({
-            'name': proc.get('name'),
-            'pid': proc.get('pid'),
-            'rpages': proc.get('rpages'),
-            'reason': proc.get('reason'),
-            'priority': proc.get('priority')
-        }, separators=(',', ':')))
+echo '=== Memory before cleanup ==='
+vm_stat 2>/dev/null | sed -n '1,20p' || true
+printf 'node_count='; pgrep -x node 2>/dev/null | wc -l | tr -d ' '
+
+echo '=== Live Node process inventory ==='
+python3 <<'PY'
+import os
+import re
+import subprocess
+
+try:
+    text = subprocess.check_output(
+        ['ps', '-axo', 'pid=,ppid=,etime=,state=,command='],
+        text=True,
+        stderr=subprocess.STDOUT,
+    )
+except subprocess.CalledProcessError as exc:
+    print(exc.output)
+    raise
+
+rows = []
+for line in text.splitlines():
+    match = re.match(r'^\s*(\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s+(.*)$', line)
+    if not match:
+        continue
+    pid, ppid, elapsed, state, command = match.groups()
+    executable = command.strip().split(' ', 1)[0]
+    if os.path.basename(executable) != 'node':
+        continue
+    rows.append((int(pid), int(ppid), elapsed, state, command.strip()))
+
+all_pids = {int(m.group(1)) for line in text.splitlines() if (m := re.match(r'^\s*(\d+)\s+', line))}
+print(f'live_node_count={len(rows)}')
+for pid, ppid, elapsed, state, command in rows:
+    parent_exists = int(ppid in all_pids)
+    print(f'node pid={pid} ppid={ppid} parent_exists={parent_exists} elapsed={elapsed} state={state} command={command[:400]}')
+    if subprocess.call(['sh', '-c', 'command -v lsof >/dev/null 2>&1']) == 0:
+        try:
+            details = subprocess.check_output(
+                ['lsof', '-a', '-p', str(pid), '-d', 'cwd', '-Fn'],
+                text=True,
+                stderr=subprocess.DEVNULL,
+                timeout=4,
+            ).strip().replace('\n', ' ')
+            if details:
+                print(f'cwd pid={pid} {details[:500]}')
+        except Exception:
+            pass
 PY
+
+echo '=== Parent process snapshot ==='
+for pid in $(pgrep -x node 2>/dev/null || true); do
+  ppid=$(ps -p "$pid" -o ppid= 2>/dev/null | tr -d ' ' || true)
+  [ -n "$ppid" ] || continue
+  ps -p "$ppid" -o pid=,ppid=,etime=,state=,command= 2>/dev/null || true
+done
+
+echo 'cleanup_phase=inventory-only'
