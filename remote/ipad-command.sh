@@ -1,63 +1,110 @@
 #!/bin/sh
 set -eu
-
 export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
 export HOME=/var/mobile
 
-printf '%s\n' '=== iPad rootless jailbreak verification ==='
+echo '=== TrollStore installation verification ==='
 printf 'verified_at_utc='; date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || true
-printf 'effective_identity='; id
-printf 'kernel_machine='; uname -m
-printf 'kernel_release='; uname -r
+printf 'identity='; id
+printf 'model='; sysctl -n hw.model 2>/dev/null || true
 
-if command -v sysctl >/dev/null 2>&1; then
-  printf 'hardware_model='; sysctl -n hw.model 2>/dev/null || true
-fi
-
-SYSTEM_VERSION_PLIST=/System/Library/CoreServices/SystemVersion.plist
-if [ -f "$SYSTEM_VERSION_PLIST" ] && command -v python3 >/dev/null 2>&1; then
-  python3 - "$SYSTEM_VERSION_PLIST" <<'PY'
-import plistlib, sys
-with open(sys.argv[1], 'rb') as handle:
-    data = plistlib.load(handle)
-print('product_name=' + str(data.get('ProductName', '')))
-print('product_version=' + str(data.get('ProductVersion', '')))
-print('build_version=' + str(data.get('ProductBuildVersion', '')))
+if [ -f /System/Library/CoreServices/SystemVersion.plist ] && command -v python3 >/dev/null 2>&1; then
+  python3 - <<'PY'
+import plistlib
+p='/System/Library/CoreServices/SystemVersion.plist'
+with open(p,'rb') as f: d=plistlib.load(f)
+print('ios_version=' + str(d.get('ProductVersion','')))
+print('ios_build=' + str(d.get('ProductBuildVersion','')))
 PY
 fi
 
-if [ -d /var/jb ]; then
-  echo 'rootless_prefix=/var/jb'
-  echo 'rootless_prefix_present=yes'
-  ls -ld /var/jb
+echo '=== Package database ==='
+if command -v dpkg-query >/dev/null 2>&1; then
+  dpkg-query -W -f='package=${Package} version=${Version} status=${db:Status-Abbrev}\n' 2>/dev/null | grep -Ei 'trollstore|trollhelper|troll' || true
 else
-  echo 'rootless_prefix_present=no'
+  echo 'dpkg_query=missing'
 fi
 
-if command -v dpkg >/dev/null 2>&1; then
-  printf 'dpkg_architecture='; dpkg --print-architecture 2>/dev/null || true
-  echo 'jailbreak_packages_begin'
-  dpkg-query -W -f='${Package}\t${Version}\n' 2>/dev/null | grep -Ei 'palera1n|ellekit|substitute|substrate|sileo|zebra|procursus' || true
-  echo 'jailbreak_packages_end'
+echo '=== Registered apps mentioning TrollStore ==='
+if command -v uicache >/dev/null 2>&1; then
+  uicache -l 2>/dev/null | grep -i -A3 -B2 troll || true
 else
-  echo 'dpkg_present=no'
+  echo 'uicache=missing'
 fi
 
-for path in \
-  /var/jb/Library/MobileSubstrate/DynamicLibraries \
-  /var/jb/usr/lib/TweakInject \
-  /var/jb/Library/PreferenceBundles \
-  /var/jb/usr/bin \
-  /var/jb/usr/lib; do
-  if [ -e "$path" ]; then
-    printf 'path_present=yes path=%s\n' "$path"
-  else
-    printf 'path_present=no path=%s\n' "$path"
-  fi
+echo '=== App bundles ==='
+find \
+  /var/containers/Bundle/Application \
+  /private/var/containers/Bundle/Application \
+  /Applications \
+  /var/jb/Applications \
+  /private/preboot \
+  -maxdepth 7 -type d \( -iname '*TrollStore*.app' -o -iname '*TrollHelper*.app' -o -iname '*PersistenceHelper*.app' \) 2>/dev/null | sort -u > /tmp/trollstore-apps.txt || true
+
+if [ ! -s /tmp/trollstore-apps.txt ]; then
+  echo 'trollstore_app_bundles=0'
+else
+  printf 'trollstore_app_bundles='; wc -l < /tmp/trollstore-apps.txt | tr -d ' '
+  while IFS= read -r app; do
+    echo '---'
+    echo "app_path=$app"
+    if [ -f "$app/Info.plist" ] && command -v python3 >/dev/null 2>&1; then
+      python3 - "$app/Info.plist" <<'PY'
+import plistlib,sys
+try:
+    with open(sys.argv[1],'rb') as f: d=plistlib.load(f)
+except Exception as e:
+    print('plist_error='+type(e).__name__)
+    raise SystemExit
+for key,label in [
+ ('CFBundleDisplayName','display_name'),
+ ('CFBundleName','bundle_name'),
+ ('CFBundleIdentifier','bundle_id'),
+ ('CFBundleShortVersionString','short_version'),
+ ('CFBundleVersion','bundle_version'),
+ ('CFBundleExecutable','executable')]:
+    print(label+'='+str(d.get(key,'')))
+PY
+    fi
+    exe=""
+    if command -v python3 >/dev/null 2>&1 && [ -f "$app/Info.plist" ]; then
+      exe=$(python3 - "$app/Info.plist" <<'PY'
+import plistlib,sys
+try:
+    with open(sys.argv[1],'rb') as f: d=plistlib.load(f)
+    print(d.get('CFBundleExecutable',''))
+except Exception: pass
+PY
+)
+    fi
+    if [ -n "$exe" ] && [ -f "$app/$exe" ]; then
+      printf 'binary_size='; stat -f '%z' "$app/$exe" 2>/dev/null || stat -c '%s' "$app/$exe" 2>/dev/null || true
+      printf 'binary_type='; file "$app/$exe" 2>/dev/null || true
+      if command -v ldid >/dev/null 2>&1; then
+        echo 'entitlements_begin'
+        ldid -e "$app/$exe" 2>/dev/null | grep -E 'platform-application|private.security|application-identifier|no-container|unsandboxed|get-task-allow' || true
+        echo 'entitlements_end'
+      fi
+    fi
+  done < /tmp/trollstore-apps.txt
+fi
+
+echo '=== TrollStore support files and helpers ==='
+for p in \
+  /var/mobile/Library/TrollStore \
+  /private/var/mobile/Library/TrollStore \
+  /var/containers/Bundle/Application/.TrollStore \
+  /private/var/containers/Bundle/Application/.TrollStore \
+  /usr/local/bin/trollstorehelper \
+  /var/jb/usr/local/bin/trollstorehelper \
+  /var/jb/usr/bin/trollstorehelper \
+  /private/preboot/*/jb/usr/local/bin/trollstorehelper; do
+  for match in $p; do
+    [ -e "$match" ] && echo "support_path=$match"
+  done
 done
 
-if [ -f /var/jb/.installed_palera1n ]; then
-  echo 'palera1n_marker=/var/jb/.installed_palera1n'
-fi
+echo '=== Running processes ==='
+ps -ax -o pid=,comm= 2>/dev/null | grep -Ei 'TrollStore|trollstore|trollhelper|PersistenceHelper' || true
 
-printf '%s\n' 'verification_result=completed-read-only'
+echo 'verification=read-only-complete'
