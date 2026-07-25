@@ -1,0 +1,23 @@
+Quick Gif2Ani Runtime Workflow Status
+run_id=30171039961
+status=completed
+conclusion=success
+event=push
+head_sha=bd8abbe554b506f920f6b93b3b0c1123a2fc0249
+created_at=2026-07-25T19:09:05Z
+updated_at=2026-07-25T19:09:55Z
+job=resolve-environment status=completed conclusion=success id=89712112504
+  step=1 Set up job status=completed conclusion=success
+  step=2 Run set -euo pipefail status=completed conclusion=success
+  step=3 Complete job status=completed conclusion=success
+job=check status=completed conclusion=success id=89712120952
+  step=1 Set up job status=completed conclusion=success
+  step=2 Run actions/checkout@v4 status=completed conclusion=success
+  step=3 Run tailscale/github-action@v4 status=completed conclusion=success
+  step=4 Run sudo apt-get update && sudo apt-get install -y --no-install-recommends openssh-client sshpass status=completed conclusion=success
+  step=5 Create minimal device probe status=completed conclusion=success
+  step=6 Run minimal probe status=completed conclusion=success
+  step=7 Publish result status=completed conclusion=success
+  step=13 Post Run tailscale/github-action@v4 status=completed conclusion=success
+  step=14 Post Run actions/checkout@v4 status=completed conclusion=success
+  step=15 Complete job status=completed conclusion=success
