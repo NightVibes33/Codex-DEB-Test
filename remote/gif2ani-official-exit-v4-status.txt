@@ -1,10 +1,9 @@
 Official palera1n Exit Safemode V4
-run_id=30169338234
+run_id=30169363614
 tailscale=success
 execute=failure
 
 --- sanitized output ---
-AppleTVOS12.4.sdk/usr/include/simd/packed.h
 AppleTVOS12.4.sdk/usr/include/simd/vector_types.h
 AppleTVOS12.4.sdk/usr/include/simd/vector_make.h
 AppleTVOS12.4.sdk/usr/include/simd/simd.h
@@ -418,11 +417,12 @@ AppleTVOS12.4.sdk/usr/lib/libcharset.tbd
 AppleTVOS12.4.sdk/usr/lib/libIOAccessoryManager.tbd
 AppleTVOS12.4.sdk/usr/lib/libbsm.0.tbd
 AppleTVOS12.4.sdk/usr/lib/libicucore.A.tbd
+
+100 5693k  100 5693k    0     0  9437k      0 --:--:-- --:--:-- --:--:-- 9437k
+100 5693k  100 5693k    0     0  9435k      0 --:--:-- --:--:-- --:--:--     0
 AppleTVOS12.4.sdk/usr/lib/libbz2.tbd
 AppleTVOS12.4.sdk/usr/lib/libSystem_asan.tbd
 AppleTVOS12.4.sdk/usr/lib/libnetwork.tbd
-
-100 5693k  100 5693k    0     0  7654k      0 --:--:-- --:--:-- --:--:-- 11.9M
 AppleTVOS12.4.sdk/usr/lib/libAXSpeechManager.tbd
 AppleTVOS12.4.sdk/usr/lib/libmenu.tbd
 AppleTVOS12.4.sdk/usr/lib/libMobileGestaltExtensions.tbd
@@ -473,32 +473,32 @@ AppleTVOS12.4.sdk/Entitlements.plist
 [0;34m==> [1;34mTheos Installer:[m Theos has been successfully installed! Restart your shell and then run $THEOS/bin/nic.pl to get started.
 === THEOS PATHS ===
 total 124
-drwxrwxrwx+ 15 runner runner  4096 Jul 25 18:18 .
-drwxrwxrwx+ 15 runner runner  4096 Jul 25 18:18 ..
-drwxrwxrwx+  8 runner runner  4096 Jul 25 18:18 .git
-drwxrwxrwx+  4 runner runner  4096 Jul 25 18:18 .github
--rw-rw-rw-+  1 runner runner    89 Jul 25 18:18 .gitignore
--rw-rw-rw-+  1 runner runner   750 Jul 25 18:18 .gitmodules
--rw-rw-rw-+  1 runner runner  5219 Jul 25 18:18 CODE_OF_CONDUCT.md
--rw-rw-rw-+  1 runner runner 35367 Jul 25 18:18 LICENSE.md
--rw-rw-rw-+  1 runner runner  1045 Jul 25 18:18 Prefix.pch
--rw-rw-rw-+  1 runner runner  3290 Jul 25 18:18 README.md
-drwxrwxrwx+  2 runner runner  4096 Jul 25 18:18 bin
-drwxrwxrwx+  3 runner runner  4096 Jul 25 18:18 docs
-drwxrwxrwx+  3 runner runner  4096 Jul 25 18:18 extras
-drwxrwxrwx+  2 runner runner  4096 Jul 25 18:18 include
-drwxrwxrwx+  3 runner runner  4096 Jul 25 18:18 lib
-drwxrwxrwx+  8 runner runner  4096 Jul 25 18:18 makefiles
-drwxrwxrwx+  2 runner runner  4096 Jul 25 18:18 mod
--rw-rw-rw-+  1 runner runner   657 Jul 25 18:18 package.json
-drwxrwxrwx+  4 runner runner  4096 Jul 25 18:18 sdks
-drwxrwxrwx+  2 runner runner  4096 Jul 25 18:18 templates
-drwxrwxrwx+  3 runner runner  4096 Jul 25 18:18 toolchain
-drwxrwxrwx+ 11 runner runner  4096 Jul 25 18:18 vendor
+drwxrwxrwx+ 15 runner runner  4096 Jul 25 18:19 .
+drwxrwxrwx+ 15 runner runner  4096 Jul 25 18:19 ..
+drwxrwxrwx+  8 runner runner  4096 Jul 25 18:19 .git
+drwxrwxrwx+  4 runner runner  4096 Jul 25 18:19 .github
+-rw-rw-rw-+  1 runner runner    89 Jul 25 18:19 .gitignore
+-rw-rw-rw-+  1 runner runner   750 Jul 25 18:19 .gitmodules
+-rw-rw-rw-+  1 runner runner  5219 Jul 25 18:19 CODE_OF_CONDUCT.md
+-rw-rw-rw-+  1 runner runner 35367 Jul 25 18:19 LICENSE.md
+-rw-rw-rw-+  1 runner runner  1045 Jul 25 18:19 Prefix.pch
+-rw-rw-rw-+  1 runner runner  3290 Jul 25 18:19 README.md
+drwxrwxrwx+  2 runner runner  4096 Jul 25 18:19 bin
+drwxrwxrwx+  3 runner runner  4096 Jul 25 18:19 docs
+drwxrwxrwx+  3 runner runner  4096 Jul 25 18:19 extras
+drwxrwxrwx+  2 runner runner  4096 Jul 25 18:19 include
+drwxrwxrwx+  3 runner runner  4096 Jul 25 18:19 lib
+drwxrwxrwx+  8 runner runner  4096 Jul 25 18:19 makefiles
+drwxrwxrwx+  2 runner runner  4096 Jul 25 18:19 mod
+-rw-rw-rw-+  1 runner runner   657 Jul 25 18:19 package.json
+drwxrwxrwx+  4 runner runner  4096 Jul 25 18:19 sdks
+drwxrwxrwx+  2 runner runner  4096 Jul 25 18:19 templates
+drwxrwxrwx+  3 runner runner  4096 Jul 25 18:19 toolchain
+drwxrwxrwx+ 11 runner runner  4096 Jul 25 18:19 vendor
 total 16
-drwxrwxrwx+  4 runner runner 4096 Jul 25 18:18 .
-drwxrwxrwx+ 15 runner runner 4096 Jul 25 18:18 ..
--rw-rw-rw-+  1 runner runner    0 Jul 25 18:18 .keep
+drwxrwxrwx+  4 runner runner 4096 Jul 25 18:19 .
+drwxrwxrwx+ 15 runner runner 4096 Jul 25 18:19 ..
+-rw-rw-rw-+  1 runner runner    0 Jul 25 18:19 .keep
 drwxr-xr-x+  4 runner runner 4096 Nov 23  2023 AppleTVOS12.4.sdk
 drwxr-xr-x+  5 runner runner 4096 Nov 23  2023 iPhoneOS16.5.sdk
 selected_sdk=/opt/theos/sdks/iPhoneOS16.5.sdk
