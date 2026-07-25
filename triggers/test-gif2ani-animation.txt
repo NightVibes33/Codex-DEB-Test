@@ -1,4 +1,4 @@
 test=gif2ani-darksword-pulse
-requested_at=2026-07-25T16:25:00-05:00
+requested_at=2026-07-25T16:27:00-05:00
 state=enable-safe-generated-gif
-reason=apply-prefs-then-springboard-only-respring
+reason=rerun-after-apply-sequence-registration
