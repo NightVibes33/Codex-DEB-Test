@@ -1,2 +1,0 @@
-trigger=verify-gif2ani-3.0.0
-requested_at=2026-07-25T15:07:00Z
