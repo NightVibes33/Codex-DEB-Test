@@ -9,7 +9,7 @@ on:
       - ".github/workflows/ipad-select-github-key-and-run.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: ipad-select-github-key-and-run
@@ -151,3 +151,37 @@ jobs:
           path: ipad-select-key-output.txt
           if-no-files-found: warn
           retention-days: 7
+
+      - name: Publish sanitized status
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          output = Path('ipad-select-key-output.txt')
+          text = output.read_text(errors='replace') if output.exists() else 'No output file was created.'
+          password = os.environ.get('IPAD_PASSWORD', '')
+          if password:
+              text = text.replace(password, '***REDACTED***')
+          lines = [
+              'iPad GitHub SSH key selection and adaptive patch',
+              f"run_id={os.environ.get('GITHUB_RUN_ID', '')}",
+              f"run_url=https://github.com/{os.environ.get('GITHUB_REPOSITORY', '')}/actions/runs/{os.environ.get('GITHUB_RUN_ID', '')}",
+              f"source_commit={os.environ.get('GITHUB_SHA', '')}",
+              '',
+              '--- sanitized output ---',
+          ]
+          lines.extend(text.splitlines()[-220:])
+          Path('remote/ipad-key-patch-status.txt').write_text('\n'.join(lines) + '\n')
+          PY
+          git add remote/ipad-key-patch-status.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record iPad GitHub key and patch status [skip ci]"
+            git push origin HEAD:main
+          fi
