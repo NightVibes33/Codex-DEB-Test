@@ -1,0 +1,60 @@
+Launchd Tweak Injection Flags Repair
+run_id=30171496323
+build=success
+repair=failure
+
+--- sanitized output ---
+=== repair-build.txt ===
+make: Entering directory '/home/runner/work/Codex-DEB-Test/Codex-DEB-Test/launchdflags'
+make: Entering directory '/home/runner/work/Codex-DEB-Test/Codex-DEB-Test/launchdflags'
+[0;36m==> [1;39mCleaning…[m
+make: Leaving directory '/home/runner/work/Codex-DEB-Test/Codex-DEB-Test/launchdflags'
+[1;31m> [1;3;39mMaking all for tool launchdflags…[m
+[0;32m==> [1;39mCompiling main.c (arm64)…[m
+[0;33m==> [1;39mLinking tool launchdflags (arm64)…[m
+[0;34m==> [1;39mGenerating debug symbols for launchdflags…[m
+[0;34m==> [1;39mStripping launchdflags (arm64)…[m
+[0;34m==> [1;39mSigning launchdflags…[m
+make: Leaving directory '/home/runner/work/Codex-DEB-Test/Codex-DEB-Test/launchdflags'
+make: Entering directory '/home/runner/work/Codex-DEB-Test/Codex-DEB-Test/flagprobe'
+make: Entering directory '/home/runner/work/Codex-DEB-Test/Codex-DEB-Test/flagprobe'
+[0;36m==> [1;39mCleaning…[m
+make: Leaving directory '/home/runner/work/Codex-DEB-Test/Codex-DEB-Test/flagprobe'
+[1;31m> [1;3;39mMaking all for tweak LaunchdFlagProbe…[m
+[0;32m==> [1;39mCompiling Probe.m (arm64)…[m
+[0;33m==> [1;39mLinking tweak LaunchdFlagProbe (arm64)…[m
+[0;34m==> [1;39mGenerating debug symbols for LaunchdFlagProbe…[m
+[0;34m==> [1;39mStripping LaunchdFlagProbe (arm64)…[m
+[0;34m==> [1;39mSigning LaunchdFlagProbe…[m
+make: Leaving directory '/home/runner/work/Codex-DEB-Test/Codex-DEB-Test/flagprobe'
+make_exit=0
+launchdflags-tool:      Mach-O 64-bit arm64 executable, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|PIE>
+LaunchdFlagProbe.dylib: Mach-O 64-bit arm64 dynamically linked shared library, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|NO_REEXPORTED_DYLIBS>
+
+=== launchd-repair.txt ===
+connected=1
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== JAILBREAKD FLAGS BEFORE ===
+0x4c00082
+=== SET LAUNCHD FLAGS ===
+requested_flags=0x4c00082
+pipe_routine=0
+reply=<dictionary: 0xe8e806e20> { count = 0, transaction: 0, voucher = 0x0, contents =
+}
+launchd_error=0
+=== TEMP PROCESS ENV ===
+USER=mobile
+__CF_USER_TEXT_ENCODING=0x1F5:0:0
+HOME=/var/mobile
+LOGNAME=mobile
+PATH=/usr/bin:/bin:/usr/sbin:/sbin
+JB_TWEAKLOADER_PATH=@default
+SHELL=/bin/sh
+JB_ROOT_PATH=/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus
+PWD=/
+XPC_FLAGS=0x0
+JB_PINFO_FLAGS=0x4c00082
+XPC_SERVICE_NAME=com.nightvibes33.launchdflagprobe
+=== TEMP CONSTRUCTOR MARKER ===
+grep: /var/mobile/Library/Application Support/Gif2Ani/LaunchdFlagProbe-sh.txt: No such file or directory
+repair_ssh_exit=2
