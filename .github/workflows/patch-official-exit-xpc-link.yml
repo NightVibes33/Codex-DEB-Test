@@ -1,0 +1,49 @@
+name: Patch Official Exit XPC Link
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/patch-official-exit-xpc-link.txt
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Link private XPC stub from SDK system directory
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('.github/workflows/official-exit-palera1n-safemode.yml')
+          text = path.read_text()
+          old = '''          exitpale_CFLAGS = -fblocks -Wall -Wextra
+          exitpale_CODESIGN_FLAGS = -Sentitlements.plist
+'''
+          new = '''          exitpale_CFLAGS = -fblocks -Wall -Wextra
+          exitpale_LDFLAGS = -L$(THEOS_SDK_PATH)/usr/lib/system -lxpc
+          exitpale_CODESIGN_FLAGS = -Sentitlements.plist
+'''
+          if new in text:
+              print('xpc_link_patch=already_present')
+          elif old in text:
+              path.write_text(text.replace(old, new, 1))
+              print('xpc_link_patch=applied')
+          else:
+              raise SystemExit('expected_makefile_block_not_found')
+          PY
+          grep -n 'exitpale_.*FLAGS' .github/workflows/official-exit-palera1n-safemode.yml
+      - name: Commit patch
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/official-exit-palera1n-safemode.yml
+          if ! git diff --cached --quiet; then
+            git commit -m "Fix official Exit Safemode XPC linking [skip ci]"
+            git push origin HEAD:main
+          fi
