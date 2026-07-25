@@ -1,0 +1,23 @@
+ElleKit Safe Activation
+run_id=30168000444
+activate=success
+reconnect=success
+verify=failure
+
+--- sanitized output ---
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+=== RUN ELLEKIT LOADER ===
+ellekit_loader_exit=0
+=== SCHEDULE USERSPACE REBOOT ===
+userspace_reboot_scheduled=yes
+activation_ssh_exit=0
+reconnected_after_userspace=yes
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
