@@ -1,0 +1,293 @@
+name: Officially Exit palera1n Safe Mode V2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/official-exit-palera1n-safemode-v2.txt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  exit-safe-mode:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build official palera1n XPC command helper
+        id: build
+        run: |
+          set -euo pipefail
+          : > official-exit-v2.txt
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends bash curl git ca-certificates file openssh-client sshpass
+          sudo rm -rf /opt/theos
+          sudo mkdir -p /opt
+          sudo chown "$USER:$USER" /opt
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)" 2>&1 | tee -a official-exit-v2.txt
+
+          SDK="$(find /opt/theos/sdks -maxdepth 1 -type d -name 'iPhoneOS*.sdk' | sort -V | tail -n1)"
+          CLANG=/opt/theos/toolchain/linux/iphone/bin/clang
+          LDID=/opt/theos/bin/ldid
+          XPC_TBD="$SDK/usr/lib/system/libxpc.tbd"
+          test -d "$SDK"
+          test -x "$CLANG"
+          test -f "$XPC_TBD"
+
+          cat > exitpale.c <<'CC'
+          #include <stdint.h>
+          #include <stdio.h>
+          #include <stdlib.h>
+
+          typedef void *xpc_object_t;
+          typedef void *xpc_connection_t;
+          typedef const void *xpc_type_t;
+          typedef void (^xpc_handler_t)(xpc_object_t);
+
+          extern const struct _xpc_type_s _xpc_type_error;
+          #define XPC_TYPE_ERROR ((xpc_type_t)&_xpc_type_error)
+
+          extern xpc_connection_t xpc_connection_create_mach_service(const char *, void *, uint64_t);
+          extern void xpc_connection_set_event_handler(xpc_connection_t, xpc_handler_t);
+          extern void xpc_connection_activate(xpc_connection_t);
+          extern void xpc_connection_cancel(xpc_connection_t);
+          extern xpc_object_t xpc_connection_send_message_with_reply_sync(xpc_connection_t, xpc_object_t);
+          extern xpc_object_t xpc_dictionary_create(const char * const *, const xpc_object_t *, size_t);
+          extern void xpc_dictionary_set_uint64(xpc_object_t, const char *, uint64_t);
+          extern int64_t xpc_dictionary_get_int64(xpc_object_t, const char *);
+          extern const char *xpc_dictionary_get_string(xpc_object_t, const char *);
+          extern xpc_type_t xpc_get_type(xpc_object_t);
+          extern void xpc_release(xpc_object_t);
+
+          int main(void) {
+              const uint64_t JBD_CMD_EXIT_SAFE_MODE = 10;
+              xpc_connection_t connection = xpc_connection_create_mach_service(
+                  "in.palera.palera1nd.systemwide", NULL, 0
+              );
+              if (connection == NULL || xpc_get_type(connection) == XPC_TYPE_ERROR) {
+                  fprintf(stderr, "connection_create_failed\n");
+                  return 70;
+              }
+              xpc_connection_set_event_handler(connection, ^(xpc_object_t event) { (void)event; });
+              xpc_connection_activate(connection);
+              xpc_object_t request = xpc_dictionary_create(NULL, NULL, 0);
+              if (request == NULL) {
+                  xpc_connection_cancel(connection);
+                  xpc_release(connection);
+                  fprintf(stderr, "request_create_failed\n");
+                  return 72;
+              }
+              xpc_dictionary_set_uint64(request, "cmd", JBD_CMD_EXIT_SAFE_MODE);
+              xpc_object_t reply = xpc_connection_send_message_with_reply_sync(connection, request);
+              xpc_release(request);
+              xpc_connection_cancel(connection);
+              xpc_release(connection);
+              if (reply == NULL || xpc_get_type(reply) == XPC_TYPE_ERROR) {
+                  fprintf(stderr, "xpc_reply_error\n");
+                  if (reply != NULL) xpc_release(reply);
+                  return 71;
+              }
+              int64_t error = xpc_dictionary_get_int64(reply, "error");
+              const char *message = xpc_dictionary_get_string(reply, "message");
+              const char *description = xpc_dictionary_get_string(reply, "errorDescription");
+              printf("jailbreakd_error=%lld\n", (long long)error);
+              if (message) printf("jailbreakd_message=%s\n", message);
+              if (description) printf("jailbreakd_error_description=%s\n", description);
+              xpc_release(reply);
+              return error == 0 ? 0 : (int)error;
+          }
+          CC
+
+          cat > entitlements.plist <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>platform-application</key><true/>
+            <key>com.apple.private.security.no-container</key><true/>
+            <key>com.apple.private.security.system-application</key><true/>
+            <key>in.palera.loader.bootstrapper</key><true/>
+            <key>in.palera.private.launchd-commands.client</key><true/>
+            <key>get-task-allow</key><true/>
+          </dict></plist>
+          PLIST
+
+          "$CLANG" -target arm64-apple-ios15.0 -isysroot "$SDK" -fblocks \
+            exitpale.c "$XPC_TBD" -framework CoreFoundation -o exitpale \
+            2>&1 | tee -a official-exit-v2.txt
+          "$LDID" -Sentitlements.plist exitpale
+          chmod 0755 exitpale
+          file exitpale | tee -a official-exit-v2.txt | grep -q arm64
+          echo "helper_build=success" | tee -a official-exit-v2.txt
+
+      - name: Join Tailscale
+        id: tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Upload helper and prepare disabled clean state
+        id: prepare
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 36); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          test "$connected" -eq 1
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null exitpale mobile@"$IPAD_HOST":/var/mobile/Media/exitpale-v2
+
+          cat > prepare-v2.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media="/var/mobile/Library/Application Support/Gif2Ani"
+          prefs="/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist"
+          marker="/var/mobile/Media/gif2ani-official-exit-v2.marker"
+          test "$(dpkg-query -W com.nightvibes33.gif2ani | cut -f2)" = "3.1.1"
+          mkdir -p "$media"
+          printf '%s\n' \
+            '<?xml version="1.0" encoding="UTF-8"?>' \
+            '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+            '<plist version="1.0"><dict>' \
+            '  <key>isEnabled</key><false/>' \
+            '  <key>pendingReady</key><false/>' \
+            '  <key>imageTransformation</key><string>resizeAspect</string>' \
+            '  <key>customLoop</key><real>-1</real>' \
+            '  <key>customDuration</key><real>-1</real>' \
+            '  <key>backgroundColor</key><string>#000000</string>' \
+            '</dict></plist>' > "$prefs"
+          chown mobile:mobile "$media" "$prefs"
+          chmod 0755 "$media"
+          chmod 0644 "$prefs"
+          chmod 0755 /var/mobile/Media/exitpale-v2
+          rm -f "$media/Pending.gif" "$media/Active.gif" "$media/Rejected.gif" "$media/load-in-progress" "$media/runtime-status.plist"
+          touch "$marker"
+          echo "prepared_disabled_clean_state=yes"
+          SH
+          chmod +x prepare-v2.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null prepare-v2.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" \
+            'sudo -S -p "" sh /var/mobile/Media/prepare-v2.sh' 2>&1 | tee -a official-exit-v2.txt
+
+      - name: Send official palera1n Exit Safemode command
+        id: exit_command
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -uo pipefail
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=20 -o ServerAliveInterval=3 -o ServerAliveCountMax=2 \
+            -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            mobile@"$IPAD_HOST" 'sudo -S -p "" /var/mobile/Media/exitpale-v2' \
+            2>&1 | tee -a official-exit-v2.txt
+          code=${PIPESTATUS[1]}
+          set -e
+          echo "exit_command_ssh_exit=$code" | tee -a official-exit-v2.txt
+          if [ "$code" -ne 0 ] && [ "$code" -ne 255 ]; then exit "$code"; fi
+
+      - name: Reconnect and verify disabled normal injection
+        id: verify
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          sleep 10
+          connected=0
+          for attempt in $(seq 1 72); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          echo "reconnected_after_official_exit=$connected" | tee -a official-exit-v2.txt
+          test "$connected" -eq 1
+          sleep 10
+
+          cat > verify-v2.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media="/var/mobile/Library/Application Support/Gif2Ani"
+          marker="/var/mobile/Media/gif2ani-official-exit-v2.marker"
+          test "$(dpkg-query -W com.nightvibes33.gif2ani | cut -f2)" = "3.1.1"
+          test ! -e "$media/Pending.gif"
+          test ! -e "$media/Active.gif"
+          test ! -e "$media/Rejected.gif"
+          test ! -e "$media/load-in-progress"
+          test -f "$media/runtime-status.plist"
+          cat "$media/runtime-status.plist"
+          grep -a -q 'tweak-loaded-no-media-decode' "$media/runtime-status.plist"
+          crashes=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -newer "$marker" -print 2>/dev/null | wc -l | tr -d ' ')
+          echo "crashes_after_official_exit=$crashes"
+          test "$crashes" = "0"
+          echo "official_exit_and_normal_injection=success"
+          ps ax | grep -E '[b]ackboardd|[S]pringBoard' || true
+          SH
+          chmod +x verify-v2.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null verify-v2.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" \
+            'sudo -S -p "" sh /var/mobile/Media/verify-v2.sh' 2>&1 | tee -a official-exit-v2.txt
+
+      - name: Publish sanitized status
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          PREPARE_OUTCOME: ${{ steps.prepare.outcome }}
+          EXIT_OUTCOME: ${{ steps.exit_command.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('official-exit-v2.txt').read_text(errors='replace') if Path('official-exit-v2.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=['Official palera1n Exit Safemode V2',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"build={os.environ.get('BUILD_OUTCOME','')}",f"prepare={os.environ.get('PREPARE_OUTCOME','')}",f"exit_command={os.environ.get('EXIT_OUTCOME','')}",f"verify={os.environ.get('VERIFY_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-500:]]
+          Path('remote/gif2ani-official-exit-v2-status.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/gif2ani-official-exit-v2-status.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record official palera1n Exit Safemode V2 [skip ci]"
+            git push origin HEAD:main
+          fi
