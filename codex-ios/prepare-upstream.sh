@@ -25,8 +25,9 @@ fi
 
 # arboard is a desktop clipboard backend. On an unknown Unix target it pulls
 # Wayland/X11 code whose socket flags and polling APIs do not exist on iOS.
-# Keep terminal-mediated OSC 52 copy, but use the existing unsupported-platform
-# clipboard stubs for iOS image paste and native clipboard operations.
+# Keep terminal input and normal text paste, but use the existing mobile stub for
+# native image clipboard access. Newer upstream revisions also have clipboard_copy;
+# patch it when present without requiring it in this pinned revision.
 python3 - <<'PY'
 from pathlib import Path
 
@@ -52,22 +53,22 @@ text = text.replace('unsupported on Android', 'unsupported on this mobile platfo
 paste.write_text(text)
 
 copy = Path('codex-rs/tui/src/clipboard_copy.rs')
-text = copy.read_text()
-text = text.replace(
-    '#[cfg(all(not(target_os = "android"), not(target_os = "linux")))]',
-    '#[cfg(all(not(any(target_os = "android", target_os = "ios")), not(target_os = "linux")))]',
-)
-text = text.replace(
-    '#[cfg(target_os = "android")]',
-    '#[cfg(any(target_os = "android", target_os = "ios"))]',
-)
-text = text.replace('unavailable on Android', 'unavailable on this mobile platform')
-copy.write_text(text)
+if copy.exists():
+    text = copy.read_text()
+    text = text.replace(
+        '#[cfg(all(not(target_os = "android"), not(target_os = "linux")))]',
+        '#[cfg(all(not(any(target_os = "android", target_os = "ios")), not(target_os = "linux")))]',
+    )
+    text = text.replace(
+        '#[cfg(target_os = "android")]',
+        '#[cfg(any(target_os = "android", target_os = "ios"))]',
+    )
+    text = text.replace('unavailable on Android', 'unavailable on this mobile platform')
+    copy.write_text(text)
 PY
 
 grep -q 'target_os = "ios"' codex-rs/tui/Cargo.toml
 grep -q 'target_os = "ios"' codex-rs/tui/src/clipboard_paste.rs
-grep -q 'target_os = "ios"' codex-rs/tui/src/clipboard_copy.rs
 
 # OpenAI's rust-toolchain.toml lives inside codex-rs. Install the iOS standard
 # library into that exact pinned toolchain rather than the runner default.
