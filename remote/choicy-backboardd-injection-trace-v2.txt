@@ -1,0 +1,108 @@
+Choicy and backboardd Injection Trace V2
+run_id=30170233384
+collect=success
+
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== PACKAGES / PROCESSES ===
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+com.nightvibes33.gif2ani	3.1.1
+ellekit	1.1.3
+ 7629   ??  ?s     0:00.00 /usr/libexec/backboardd
+ 7636   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+ 7985   ??  ?s     0:00.00 sh -c \012    dump_plist() {\012      p="$1"\012      echo "--- $p"\012      if command -v plutil >/dev/null 2>&1; then\012        plutil -p "$p" 2>&1 || file "$p" 2>&1 || true\012      else\012        file "$p" 2>&1 || true\012      fi\012    }\012\012    echo "=== PACKAGES / PROCESSES ==="\012    dpkg-query -W ellekit com.nightvibes33.gif2ani 2>&1 || true\012    ps ax | grep -E "[b]ackboardd|[S]pringBoard" || true\012\012    echo "=== SAFE MODE GATES ==="\012    echo "_MSSafeMode=$(/var/jb/usr/bin/launchctl getenv _MSSafeMode 2>/dev/null || true)"\012    echo "_SafeMode=$(/var/jb/usr/bin/launchctl getenv _SafeMode 2>/dev/null || true)"\012    if [ -e /var/mobile/.eksafemode ]; then echo eksafemode_file=present; else echo eksafemode_file=absent; fi\012\012    echo "=== CHOICY PACKAGE FILES ==="\012    dpkg-query -W 2>/dev/null | grep -i choicy || true\012    dpkg-query -L com.opa334.choicy 2>&1 || true\012    ls -la /var/jb/usr/lib/TweakInject/Choicy* 2>&1 || true\012    for f in /var/jb/usr/lib/TweakInject/Choicy*.plist; do\012      [ -e "$f" ] || continue\012      dump_plist "$f"\012    done\012\012    echo "=== CHOICY PREFERENCES ==="\012    find /var/mobile/Library/Preferences -maxdepth 1 -iname "*choicy*" -print 2>/dev/null || true\012    for f in /var/mobile/Library/Preferences/*choicy* /var/mobile/Library/Preferences/*Choicy*; do\012      [ -e "$f" ] || continue\012      dump_plist "$f"\012    done\012\012    echo "=== BACKBOARDD TARGETING TWEAKS ==="\012    for f in /var/jb/usr/lib/TweakInject/*.plist; do\012      [ -f "$f" ] || continue\012      if grep -a -q "backboardd" "$f" 2>/dev/null; then\012        dump_plist "$f"\012      fi\012    done\012\012    echo "=== BACKBOARDD LAUNCH STATE ==="\012    pid=$(ps ax | awk "/[b]ackboardd/{print \$1; exit}")\012    echo "backboardd_pid=$pid"\012    /var/jb/usr/bin/launchctl print system/com.apple.backboardd 2>&1 | grep -E "state =|path =|program =|environment|DYLD|SafeMode|inject|pid =" | head -100 || true\012\012    echo "=== GIF2ANI RUNTIME DIRECTORY ==="\012    media="/var/mobile/Library/Application Support/Gif2Ani"\012    ls -ld "$media" 2>&1 || true\012    ls -la "$media" 2>&1 || true\012    if [ -e "$media/runtime-status.plist" ]; then dump_plist "$media/runtime-status.plist"; else echo runtime_status=missing; fi\012\012    echo "=== RECENT CRASHES ==="\012    find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name "backboardd-*.ips" -o -name "SpringBoard-*.ips" \) -mmin -30 -print 2>/dev/null || true\012  
+=== SAFE MODE GATES ===
+_MSSafeMode=
+_SafeMode=
+eksafemode_file=absent
+=== CHOICY PACKAGE FILES ===
+com.opa334.choicy	1.5.3-2
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+/.
+/var
+/var/jb
+/var/jb/Library
+/var/jb/Library/Application Support
+/var/jb/Library/Application Support/Choicy.bundle
+/var/jb/Library/Application Support/Choicy.bundle/AppLaunchIcon@2x.png
+/var/jb/Library/Application Support/Choicy.bundle/AppLaunchIcon@3x.png
+/var/jb/Library/Application Support/Choicy.bundle/AppLaunchIcon_Big@2x.png
+/var/jb/Library/Application Support/Choicy.bundle/AppLaunchIcon_Big@3x.png
+/var/jb/Library/Application Support/Choicy.bundle/AppLaunchIcon_Crossed@2x.png
+/var/jb/Library/Application Support/Choicy.bundle/AppLaunchIcon_Crossed@3x.png
+/var/jb/Library/Application Support/Choicy.bundle/AppLaunchIcon_Crossed_Big@2x.png
+/var/jb/Library/Application Support/Choicy.bundle/AppLaunchIcon_Crossed_Big@3x.png
+/var/jb/Library/Application Support/Choicy.bundle/ar.lproj
+/var/jb/Library/Application Support/Choicy.bundle/ar.lproj/Localizable.strings
+/var/jb/Library/Application Support/Choicy.bundle/de.lproj
+/var/jb/Library/Application Support/Choicy.bundle/de.lproj/Localizable.strings
+/var/jb/Library/Application Support/Choicy.bundle/el.lproj
+/var/jb/Library/Application Support/Choicy.bundle/el.lproj/Localizable.strings
+/var/jb/Library/Application Support/Choicy.bundle/en.lproj
+/var/jb/Library/Application Support/Choicy.bundle/en.lproj/Localizable.strings
+/var/jb/Library/Application Support/Choicy.bundle/he.lproj
+/var/jb/Library/Application Support/Choicy.bundle/he.lproj/Localizable.strings
+/var/jb/Library/Application Support/Choicy.bundle/ru.lproj
+/var/jb/Library/Application Support/Choicy.bundle/ru.lproj/Localizable.strings
+/var/jb/Library/Application Support/Choicy.bundle/zh_CN.lproj
+/var/jb/Library/Application Support/Choicy.bundle/zh_CN.lproj/Localizable.strings
+/var/jb/Library/Application Support/Choicy.bundle/zh_Hans.lproj
+/var/jb/Library/Application Support/Choicy.bundle/zh_Hans.lproj/Localizable.strings
+/var/jb/Library/Application Support/Choicy.bundle/zh_TW.lproj
+/var/jb/Library/Application Support/Choicy.bundle/zh_TW.lproj/Localizable.strings
+/var/jb/Library/MobileSubstrate
+/var/jb/Library/MobileSubstrate/DynamicLibraries
+/var/jb/Library/MobileSubstrate/DynamicLibraries/   Choicy.dylib
+/var/jb/Library/MobileSubstrate/DynamicLibraries/   Choicy.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/ChoicySB.dylib
+/var/jb/Library/MobileSubstrate/DynamicLibraries/ChoicySB.plist
+/var/jb/Library/PreferenceBundles
+/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle
+/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/ApplicationDaemon.plist
+/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/ChoicyIcon@2x.png
+/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/ChoicyIcon@3x.png
+/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/ChoicyPrefs
+/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/Credits.plist
+/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/Credits@2x.png
+/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/Credits@3x.png
+/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/Donate@2x.png
+/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/Donate@3x.png
+/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/GitHub@2x.png
+/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/GitHub@3x.png
+/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/GlobalTweakConfiguration.plist
+/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/Info.plist
+/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/Mastodon@2x.png
+/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/Mastodon@3x.png
+/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/Root.plist
+/var/jb/Library/PreferenceLoader
+/var/jb/Library/PreferenceLoader/Preferences
+/var/jb/Library/PreferenceLoader/Preferences/ChoicyPrefs.plist
+-rwxr-xr-x 1 root wheel 204304 Jul 11  2025 /var/jb/usr/lib/TweakInject/ChoicySB.dylib
+-rw-r--r-- 1 root wheel    126 Jul 11  2025 /var/jb/usr/lib/TweakInject/ChoicySB.plist
+--- /var/jb/usr/lib/TweakInject/ChoicySB.plist
+Error: Object not found at keypath "p" in file /var/jb/usr/lib/TweakInject/ChoicySB.plist
+=== CHOICY PREFERENCES ===
+/var/mobile/Library/Preferences/com.opa334.choicy.plist
+--- /var/mobile/Library/Preferences/com.opa334.choicy.plist
+Error: Object not found at keypath "p" in file /var/mobile/Library/Preferences/com.opa334.choicy.plist
+=== BACKBOARDD TARGETING TWEAKS ===
+--- /var/jb/usr/lib/TweakInject/Gif2Ani.plist
+Error: Object not found at keypath "p" in file /var/jb/usr/lib/TweakInject/Gif2Ani.plist
+=== BACKBOARDD LAUNCH STATE ===
+backboardd_pid=7629
+	path = /System/Library/LaunchDaemons/com.apple.backboardd.plist
+	state = running
+	program = /usr/libexec/backboardd
+	default environment = {
+	environment = {
+	pid = 7629
+	job state = running
+=== GIF2ANI RUNTIME DIRECTORY ===
+drwxr-xr-x 2 mobile mobile 64 Jul 25 11:49 /var/mobile/Library/Application Support/Gif2Ani
+total 0
+drwxr-xr-x  2 mobile mobile  64 Jul 25 11:49 .
+drwxr-xr-x 28 mobile mobile 896 Jul 25 11:49 ..
+runtime_status=missing
+=== RECENT CRASHES ===
+ssh_exit=0
