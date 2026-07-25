@@ -1,4 +1,3 @@
-verify=post-exitsafe-injection
-requested_at=2026-07-25T15:10:00-05:00
-state=official-p1ctl-exitsafe-completed-reconnected
-mode=read-only-no-reboot
+verify=gif2ani-runtime-state-v2
+requested_at=2026-07-25T15:28:00-05:00
+mode=read-only-capture
