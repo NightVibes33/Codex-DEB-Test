@@ -30,16 +30,19 @@ jobs:
           xcrun --sdk iphoneos --show-sdk-path
           brew install ldid dpkg python@3.11
           PY311="$(brew --prefix python@3.11)/bin/python3.11"
-          test -x "$PY311"
-          echo "PYTHON=$PY311" >> "$GITHUB_ENV"
-          echo "$(brew --prefix python@3.11)/libexec/bin" >> "$GITHUB_PATH"
+          "$PY311" -m venv "$RUNNER_TEMP/node-python"
+          "$RUNNER_TEMP/node-python/bin/python" -m pip install --upgrade pip setuptools
+          echo "$RUNNER_TEMP/node-python/bin" >> "$GITHUB_PATH"
+          echo "PYTHON=$RUNNER_TEMP/node-python/bin/python" >> "$GITHUB_ENV"
 
       - name: Verify compatible Python
         run: |
           set -euxo pipefail
           "$PYTHON" --version
           "$PYTHON" - <<'PY'
+          import distutils
           from distutils.version import StrictVersion
+          print(distutils.__file__)
           print(StrictVersion('1.0'))
           PY
 
@@ -59,7 +62,6 @@ jobs:
           set -euxo pipefail
           export GYP_DEFINES="target_arch=arm64 host_os=mac target_os=ios"
           export IPHONEOS_DEPLOYMENT_TARGET="$IOS_DEPLOYMENT_TARGET"
-          export PYTHON="$PYTHON"
           "$PYTHON" ./configure \
             --dest-os=ios \
             --dest-cpu=arm64 \
@@ -138,14 +140,14 @@ jobs:
           printf '%s\n' \
             'Package: nodejs-mobile' \
             'Name: Node.js Mobile CLI (Rootless)' \
-            "Version: ${BUILT_VERSION}-9" \
+            "Version: ${BUILT_VERSION}-10" \
             "Architecture: ${PACKAGE_ARCH}" \
             'Description: Native Node.js Mobile CLI for rootless iOS 16+' \
             'Maintainer: NightVibes33' \
             'Section: Development' \
             'Priority: optional' \
             'Depends: firmware (>= 16.0)' > "$ROOT/DEBIAN/control"
-          DEB="nodejs-mobile_${BUILT_VERSION}-9_${PACKAGE_ARCH}.deb"
+          DEB="nodejs-mobile_${BUILT_VERSION}-10_${PACKAGE_ARCH}.deb"
           dpkg-deb --root-owner-group --build "$ROOT" "$DEB"
           echo "DEB=$DEB" >> "$GITHUB_ENV"
 
@@ -165,7 +167,7 @@ jobs:
           grep -Eq 'platform IOS|platform 2' packaged-build-version.txt
           ldid -e "$BIN" >/dev/null
           dpkg-deb -f "$DEB" Architecture | grep -qx "$PACKAGE_ARCH"
-          dpkg-deb -f "$DEB" Version | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+-9$'
+          dpkg-deb -f "$DEB" Version | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+-10$'
 
       - uses: actions/upload-artifact@v4
         with:
