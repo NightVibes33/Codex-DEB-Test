@@ -1,0 +1,33 @@
+Official p1ctl Exit Safemode Probe
+run_id=30170690036
+build=success
+exit_safe=success
+verify=success
+
+--- sanitized output ---
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== P1CTL FLAGS BEFORE ===
+0x4c00082
+palerain_option_rootless
+palerain_option_ssv
+palerain_option_bind_mount
+palerain_option_overlay
+palerain_option_verbose_boot
+=== P1CTL EXITSAFE ===
+Timeout, server 100.116.117.65 not responding.
+p1ctl_ssh_exit=255
+reconnected=1
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== P1CTL FLAGS AFTER ===
+0x4c00082
+palerain_option_rootless
+palerain_option_ssv
+palerain_option_bind_mount
+palerain_option_overlay
+palerain_option_verbose_boot
+=== PROBE MARKERS ===
+ls: cannot access '/var/mobile/Library/Application Support/Gif2Ani/P1Probe-*.txt': No such file or directory
+=== GIF2ANI MARKER ===
+runtime_status=missing
+=== RECENT CRASHES ===
+probe_files_removed=yes
