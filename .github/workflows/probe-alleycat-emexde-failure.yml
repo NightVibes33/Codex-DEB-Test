@@ -1,0 +1,70 @@
+name: Probe AlleyCat emexDE Failure
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/probe-alleycat-emexde-failure.yml
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    env:
+      FAILED_JOB_ID: '89648238054'
+      RELEASE_REPO: NightVibes33/litter
+      RELEASE_TAG: emexde-corecompiler
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Capture failed job and release diagnostics
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          mkdir -p build-diagnostics
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/jobs/${FAILED_JOB_ID}/logs" > /tmp/job.log 2>/tmp/job-api-error.txt
+          job_status=$?
+          gh api "/repos/${RELEASE_REPO}/releases/tags/${RELEASE_TAG}" > /tmp/release.json 2>/tmp/release-api-error.txt
+          release_status=$?
+          {
+            echo '# AlleyCat emexDE failure probe'
+            echo
+            echo "- Failed job: ${FAILED_JOB_ID}"
+            echo "- Job-log API status: ${job_status}"
+            echo "- Release: ${RELEASE_REPO}@${RELEASE_TAG}"
+            echo "- Release API status: ${release_status}"
+            echo
+            echo '## Release assets'
+            echo '```text'
+            if [[ "$release_status" -eq 0 ]]; then
+              jq -r '.assets[] | "\(.name)\t\(.size) bytes\t\(.browser_download_url)"' /tmp/release.json
+            else
+              cat /tmp/release-api-error.txt
+            fi
+            echo '```'
+            echo
+            echo '## Failed step errors'
+            echo '```text'
+            if [[ "$job_status" -eq 0 ]]; then
+              grep -nEi 'error:|curl:|404|403|not found|missing release|failed|Process completed' /tmp/job.log | tail -n 120 || true
+              echo
+              echo '--- final 220 lines ---'
+              tail -n 220 /tmp/job.log || true
+            else
+              cat /tmp/job-api-error.txt
+            fi
+            echo '```'
+          } > build-diagnostics/alleycat-emexde-probe.md
+
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add build-diagnostics/alleycat-emexde-probe.md
+          git commit -m 'Record AlleyCat emexDE probe [skip ci]' || exit 0
+          git pull --rebase origin main
+          git push origin HEAD:main
