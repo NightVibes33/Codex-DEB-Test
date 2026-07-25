@@ -82,15 +82,16 @@ jobs:
 
           cat > /tmp/select-key.sh <<'REMOTE'
           set -eu
+          export HOME=/var/mobile
           export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
           REPO=/var/mobile/Documents/DarkSword-Workspace/Dopamine
-          KEY=/var/root/.ssh/darksword_github_ed25519
-          KNOWN_HOSTS=/var/root/.ssh/known_hosts
-          WRAPPER=/var/root/.ssh/github-ssh-wrapper
+          KEY=/var/mobile/.ssh/id_ed25519
+          KNOWN_HOSTS=/var/mobile/.ssh/known_hosts
+          WRAPPER=/var/mobile/.ssh/github-ssh-wrapper
 
           echo '=== Existing GitHub SSH identity ==='
           test -f "$KEY" || { echo 'existing_key=missing'; exit 40; }
-          chmod 700 /var/root/.ssh
+          chmod 700 /var/mobile/.ssh
           chmod 600 "$KEY"
           ssh-keyscan -T 15 github.com >> "$KNOWN_HOSTS" 2>/dev/null || true
           sort -u "$KNOWN_HOSTS" -o "$KNOWN_HOSTS"
