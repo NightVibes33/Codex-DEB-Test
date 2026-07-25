@@ -88,8 +88,23 @@ jobs:
           chmod 0755 "$media"
           chmod 0644 "$prefs"
           rm -f "$media/Pending.gif" "$media/Active.gif" "$media/Rejected.gif" "$media/load-in-progress" "$media/runtime-status.plist"
-          touch "$marker"
 
+          echo "=== SAFE MODE GATES BEFORE ==="
+          echo "_MSSafeMode=$($launchctl_bin getenv _MSSafeMode 2>/dev/null || true)"
+          echo "_SafeMode=$($launchctl_bin getenv _SafeMode 2>/dev/null || true)"
+          if [ -e /var/mobile/.eksafemode ]; then echo "eksafemode_file=present"; else echo "eksafemode_file=absent"; fi
+
+          "$launchctl_bin" unsetenv _MSSafeMode 2>/dev/null || true
+          "$launchctl_bin" unsetenv _SafeMode 2>/dev/null || true
+          rm -f /var/mobile/.eksafemode
+
+          echo "=== SAFE MODE GATES AFTER ==="
+          echo "_MSSafeMode=$($launchctl_bin getenv _MSSafeMode 2>/dev/null || true)"
+          echo "_SafeMode=$($launchctl_bin getenv _SafeMode 2>/dev/null || true)"
+          test ! -e /var/mobile/.eksafemode
+          echo "safe_mode_gates_cleared=yes"
+
+          touch "$marker"
           echo "=== RUN ELLEKIT LOADER ==="
           "$loader"
           echo "ellekit_loader_exit=0"
@@ -106,8 +121,12 @@ jobs:
           set -eu
           media="/var/mobile/Library/Application Support/Gif2Ani"
           marker="/var/mobile/Media/ellekit-safe-activation.marker"
+          launchctl_bin="/var/jb/usr/bin/launchctl"
           test "$(dpkg-query -W com.nightvibes33.gif2ani | cut -f2)" = "3.1.1"
           test "$(dpkg-query -W ellekit | cut -f2)" = "1.1.3"
+          test -z "$($launchctl_bin getenv _MSSafeMode 2>/dev/null || true)"
+          test -z "$($launchctl_bin getenv _SafeMode 2>/dev/null || true)"
+          test ! -e /var/mobile/.eksafemode
           test ! -e "$media/Pending.gif"
           test ! -e "$media/Active.gif"
           test ! -e "$media/Rejected.gif"
