@@ -51,7 +51,68 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends openssh-client sshpass
-      - name: Collect loader diagnostics
+      - name: Create loader diagnostic script
+        run: |
+          cat > gif2ani-loader-check.sh <<'SH'
+          #!/bin/sh
+          set +e
+          echo "=== DEVICE / PROCESSES ==="
+          uname -a
+          sw_vers 2>/dev/null || true
+          ps ax | grep -Ei '[b]ackboardd|[S]pringBoard|[e]llekit|[s]ubstrate|[s]ubstitute|[l]ibhooker|[s]afe' || true
+
+          echo "=== INJECTION PACKAGES ==="
+          dpkg-query -W 2>/dev/null | grep -Ei 'ellekit|substrate|substitute|libhooker|safemode|palera1n' || true
+
+          echo "=== ELLEKIT / LOADER FILES ==="
+          find /var/jb -maxdepth 6 \( -iname '*ellekit*' -o -iname '*substrate*' -o -iname '*substitute*' -o -iname '*libhooker*' \) -print 2>/dev/null | head -n 300
+
+          echo "=== SAFE MODE FILES ==="
+          find /var/mobile /var/jb -maxdepth 6 \( -iname '*safemode*' -o -iname '*safe-mode*' -o -iname '*.disabled' \) -print 2>/dev/null | head -n 300
+
+          echo "=== GIF2ANI BINARY ==="
+          file /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib 2>&1 || true
+          if command -v otool >/dev/null 2>&1; then otool -L /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib; fi
+          if [ -x /var/jb/usr/bin/otool ]; then /var/jb/usr/bin/otool -L /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib; fi
+          if command -v ldid >/dev/null 2>&1; then ldid -e /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib 2>&1 || true; fi
+          cat /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist 2>&1 || true
+
+          echo "=== OTHER BACKBOARDD FILTERS ==="
+          for plist in /var/jb/Library/MobileSubstrate/DynamicLibraries/*.plist; do
+            [ -f "$plist" ] || continue
+            if grep -a -q 'backboardd' "$plist" 2>/dev/null; then
+              echo "--- $plist"
+              cat "$plist"
+            fi
+          done
+
+          echo "=== LOADED IMAGE CHECKS ==="
+          pid=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')
+          echo "backboardd_pid=$pid"
+          if command -v lsof >/dev/null 2>&1; then lsof -p "$pid" 2>&1 | grep -Ei 'Gif2Ani|ElleKit|substrate|substitute|libhooker' || true; fi
+          if command -v vmmap >/dev/null 2>&1; then vmmap "$pid" 2>&1 | grep -Ei 'Gif2Ani|ElleKit|substrate|substitute|libhooker' || true; fi
+
+          echo "=== LAUNCHD LOADER SERVICES ==="
+          launchctl print system 2>/dev/null | grep -Ei -C 3 'ellekit|substrate|substitute|libhooker' | head -n 400 || true
+
+          echo "=== AVAILABLE CONTROL TOOLS ==="
+          for tool in ellekitctl ellekitd sbreload notifyutil launchctl; do
+            command -v "$tool" 2>/dev/null || true
+            [ -x "/var/jb/usr/bin/$tool" ] && echo "/var/jb/usr/bin/$tool"
+          done
+          for tool in /var/jb/usr/bin/*elle* /var/jb/usr/sbin/*elle*; do [ -e "$tool" ] && ls -l "$tool"; done
+
+          echo "=== RECENT LOADER LOGS ==="
+          if command -v log >/dev/null 2>&1; then
+            log show --last 15m --style compact --predicate 'eventMessage CONTAINS[c] "Gif2Ani" OR eventMessage CONTAINS[c] "ElleKit" OR eventMessage CONTAINS[c] "substrate" OR process == "backboardd"' 2>/dev/null | tail -n 500 || true
+          fi
+
+          echo "=== RUNTIME STATUS ==="
+          status="/var/mobile/Library/Application Support/Gif2Ani/runtime-status.plist"
+          if [ -f "$status" ]; then cat "$status"; else echo "runtime_status=missing"; fi
+          SH
+          chmod +x gif2ani-loader-check.sh
+      - name: Upload and execute diagnostic
         id: collect
         env:
           SSHPASS: ${{ secrets.IPAD_PASSWORD }}
@@ -62,63 +123,8 @@ jobs:
             if sshpass -e ssh -p 22 -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then break; fi
             sleep 5
           done
-          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh -c '\''
-            set +e
-            echo "=== DEVICE / PROCESSES ==="
-            uname -a
-            sw_vers 2>/dev/null || true
-            ps ax | grep -Ei "[b]ackboardd|[S]pringBoard|[e]llekit|[s]ubstrate|[s]ubstitute|[l]ibhooker|[s]afe" || true
-
-            echo "=== INJECTION PACKAGES ==="
-            dpkg-query -W 2>/dev/null | grep -Ei "ellekit|substrate|substitute|libhooker|safemode|palera1n" || true
-
-            echo "=== ELLEKIT / LOADER FILES ==="
-            find /var/jb -maxdepth 6 \( -iname "*ellekit*" -o -iname "*substrate*" -o -iname "*substitute*" -o -iname "*libhooker*" \) -print 2>/dev/null | head -n 300
-
-            echo "=== SAFE MODE FILES ==="
-            find /var/mobile /var/jb -maxdepth 6 \( -iname "*safemode*" -o -iname "*safe-mode*" -o -iname "*.disabled" \) -print 2>/dev/null | head -n 300
-
-            echo "=== GIF2ANI BINARY ==="
-            file /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib 2>&1 || true
-            if command -v otool >/dev/null 2>&1; then otool -L /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib; fi
-            if [ -x /var/jb/usr/bin/otool ]; then /var/jb/usr/bin/otool -L /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib; fi
-            if command -v ldid >/dev/null 2>&1; then ldid -e /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib 2>&1 || true; fi
-            cat /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist 2>&1 || true
-
-            echo "=== OTHER BACKBOARDD FILTERS ==="
-            for plist in /var/jb/Library/MobileSubstrate/DynamicLibraries/*.plist; do
-              [ -f "$plist" ] || continue
-              if grep -a -q "backboardd" "$plist" 2>/dev/null; then
-                echo "--- $plist"
-                cat "$plist"
-              fi
-            done
-
-            echo "=== LOADED IMAGE CHECKS ==="
-            pid=$(ps ax | awk "/[b]ackboardd/{print \$1; exit}")
-            echo "backboardd_pid=$pid"
-            if command -v lsof >/dev/null 2>&1; then lsof -p "$pid" 2>&1 | grep -Ei "Gif2Ani|ElleKit|substrate|substitute|libhooker" || true; fi
-            if command -v vmmap >/dev/null 2>&1; then vmmap "$pid" 2>&1 | grep -Ei "Gif2Ani|ElleKit|substrate|substitute|libhooker" || true; fi
-
-            echo "=== LAUNCHD LOADER SERVICES ==="
-            launchctl print system 2>/dev/null | grep -Ei -C 3 "ellekit|substrate|substitute|libhooker" | head -n 400 || true
-
-            echo "=== AVAILABLE CONTROL TOOLS ==="
-            for tool in ellekitctl ellekitd sbreload notifyutil launchctl; do
-              command -v "$tool" 2>/dev/null || true
-              [ -x "/var/jb/usr/bin/$tool" ] && echo "/var/jb/usr/bin/$tool"
-            done
-            for tool in /var/jb/usr/bin/*elle* /var/jb/usr/sbin/*elle*; do [ -e "$tool" ] && ls -l "$tool"; done
-
-            echo "=== RECENT LOADER LOGS ==="
-            if command -v log >/dev/null 2>&1; then
-              log show --last 15m --style compact --predicate '\''eventMessage CONTAINS[c] "Gif2Ani" OR eventMessage CONTAINS[c] "ElleKit" OR eventMessage CONTAINS[c] "substrate" OR process == "backboardd"'\'' 2>/dev/null | tail -n 500 || true
-            fi
-
-            echo "=== RUNTIME STATUS ==="
-            status="/var/mobile/Library/Application Support/Gif2Ani/runtime-status.plist"
-            if [ -f "$status" ]; then cat "$status"; else echo "runtime_status=missing"; fi
-          '\''' 2>&1 | tee gif2ani-loader-diagnostic.txt
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null gif2ani-loader-check.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/gif2ani-loader-check.sh' 2>&1 | tee gif2ani-loader-diagnostic.txt
       - name: Publish loader diagnostic
         if: always()
         env:
