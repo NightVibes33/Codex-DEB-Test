@@ -1,0 +1,5 @@
+repair=official-palera1n-exit-safe-mode
+requested_at=2026-07-25T14:46:00-05:00
+state=gif2ani-3.1.1-disabled-no-media
+expected_live_flags=0x4c00082
+stale_spawn_flags=0x6c00082
