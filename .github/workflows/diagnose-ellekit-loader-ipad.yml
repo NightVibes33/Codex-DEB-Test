@@ -135,11 +135,16 @@ jobs:
             <key>get-task-allow</key><true/>
           </dict></plist>
           PLIST
-          make -C dlopenprobe clean all FINALPACKAGE=1
+          set +e
+          make -C dlopenprobe clean all FINALPACKAGE=1 2>&1 | tee dlopen-build.txt
+          make_code=${PIPESTATUS[0]}
+          set -e
+          echo "make_exit=$make_code" | tee -a dlopen-build.txt
+          test "$make_code" -eq 0
           BIN="$(find dlopenprobe/.theos -type f -name dlopenprobe -perm -111 | head -n1)"
           test -n "$BIN"
           cp "$BIN" dlopenprobe-tool
-          file dlopenprobe-tool | grep -q arm64
+          file dlopenprobe-tool | tee -a dlopen-build.txt | grep -q arm64
       - uses: tailscale/github-action@v4
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
@@ -187,7 +192,11 @@ jobs:
             echo "build=$BUILD_OUTCOME"
             echo "collect=$COLLECT_OUTCOME"
             echo
-            cat dlopen-diagnostic.txt 2>/dev/null || echo "No output."
+            echo "=== BUILD LOG ==="
+            tail -n 240 dlopen-build.txt 2>/dev/null || echo "No build log."
+            echo
+            echo "=== DEVICE LOG ==="
+            cat dlopen-diagnostic.txt 2>/dev/null || echo "No device output."
           } > remote/tweakloader-dlopen-diagnostic.txt
           git add remote/tweakloader-dlopen-diagnostic.txt
           if ! git diff --cached --quiet; then
