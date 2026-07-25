@@ -1,133 +1,125 @@
 #!/bin/sh
 set -eu
-export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
+export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
 export HOME=/var/mobile
 
 python3 <<'PY'
+import hashlib
 import os
+import plistlib
+import shutil
 import subprocess
+import sys
+import urllib.request
+import zipfile
 from pathlib import Path
 
-repo = Path('/var/mobile/Documents/DarkSword-Workspace/Dopamine')
-branch = 'ipad5/adaptive-lowmem-v1'
-ssh_key = Path('/var/mobile/.ssh/id_ed25519')
-ssh_wrapper = Path('/var/mobile/.ssh/github-ipad-ssh')
-workflow = repo / '.github/workflows/ipad5-adaptive-publish.yml'
+url = 'https://sdmntprwestus3.oaiusercontent.com/files/00000000-7d88-81fd-bb6b-818045031037/raw?se=2026-07-25T08:51:19Z&sp=r&sv=2026-02-06&sr=b&scid=1b301e93-e3fa-523c-a204-65e143bc4c7d&skoid=2d2fbb03-9efb-4ad0-a91c-1db2f5a47997&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-07-25T08:06:38Z&ske=2026-07-27T08:06:38Z&sks=b&skv=2026-02-06&sig=dCoxzxYeISnZBzdO4qQdn0rz32XWz%2B%2BhtvsgDU2v084%3D'
+expected_ipa_sha = '8cd2777ac994a6b56d401044ba8de0940d08b6fec847b3e0fae25ecac685250a'
+expected_source_sha = '020358a8549ab0a33482d3656b42ed3809fc515f'
+root = Path('/var/mobile/Documents/DarkSword-Workspace/AdaptiveInstall')
+artifact = root / 'Dopamine-iPad5-DarkSword-adaptive.zip'
+stage = root / 'artifact'
+ipa = stage / 'Dopamine-iPad5-DarkSword-adaptive.ipa'
 
-ssh_wrapper.write_text(
-    '#!/bin/sh\n'
-    'exec /var/jb/usr/bin/ssh -i /var/mobile/.ssh/id_ed25519 '
-    '-o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new "$@"\n'
-)
-ssh_wrapper.chmod(0o700)
-env = os.environ.copy()
-env['HOME'] = '/var/mobile'
-env['GIT_SSH'] = str(ssh_wrapper)
-env['GIT_TERMINAL_PROMPT'] = '0'
+root.mkdir(parents=True, exist_ok=True)
+if stage.exists():
+    shutil.rmtree(stage)
+stage.mkdir(parents=True)
 
-def run(args):
-    print('+', ' '.join(args), flush=True)
-    p = subprocess.run(args, cwd=repo, env=env, text=True,
-                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    if p.stdout:
-        print(p.stdout.rstrip(), flush=True)
-    if p.returncode != 0:
-        raise SystemExit(f'publish_workflow_error={args[0]}:{p.returncode}')
-    return p
+print('download=starting', flush=True)
+req = urllib.request.Request(url, headers={'User-Agent':'NightVibes33-iPad6,11-installer'})
+with urllib.request.urlopen(req, timeout=120) as response, artifact.open('wb') as out:
+    shutil.copyfileobj(response, out, length=1024 * 1024)
+print(f'artifact_bytes={artifact.stat().st_size}', flush=True)
 
-run(['git', 'fetch', 'origin', branch])
-run(['git', 'switch', branch])
-run(['git', 'reset', '--hard', f'origin/{branch}'])
-run(['git', 'config', 'user.name', 'NightVibes33 iPad'])
-run(['git', 'config', 'user.email', 'NightVibes33@users.noreply.github.com'])
+with zipfile.ZipFile(artifact) as z:
+    z.extractall(stage)
+if not ipa.is_file():
+    raise SystemExit('install_error=ipa-missing-in-artifact')
 
-workflow.parent.mkdir(parents=True, exist_ok=True)
-workflow.write_text(r'''name: "Dopamine: publish iPad 5 adaptive IPA"
+h = hashlib.sha256()
+with ipa.open('rb') as f:
+    for block in iter(lambda: f.read(1024 * 1024), b''):
+        h.update(block)
+actual = h.hexdigest()
+print(f'ipa_sha256={actual}', flush=True)
+if actual != expected_ipa_sha:
+    raise SystemExit('install_error=ipa-checksum-mismatch')
 
-on:
-  push:
-    branches:
-      - ipad5/adaptive-lowmem-v1
-    paths:
-      - ".github/workflows/ipad5-adaptive-publish.yml"
+manifest = (stage / 'adaptive-manifest.txt').read_text(errors='replace')
+if f'source_sha={expected_source_sha}' not in manifest:
+    raise SystemExit('install_error=manifest-source-mismatch')
+if 'profile=adaptive-lowmem-v1' not in manifest:
+    raise SystemExit('install_error=manifest-profile-mismatch')
+print('artifact_verification=success', flush=True)
 
-permissions:
-  actions: read
-  contents: write
+with zipfile.ZipFile(ipa) as z:
+    info = plistlib.loads(z.read('Payload/Dopamine.app/Info.plist'))
+    names = z.namelist()
+    framework_path = 'Payload/Dopamine.app/Frameworks/DarkSword.framework/DarkSword'
+    if framework_path not in names:
+        raise SystemExit('install_error=darksword-framework-missing')
+    framework = z.read(framework_path)
 
-jobs:
-  publish:
-    name: Publish verified adaptive IPA
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      GH_TOKEN: ${{ github.token }}
-      SOURCE_RUN_ID: "30151105627"
-      ARTIFACT_ID: "8617729734"
-      SOURCE_SHA: "020358a8549ab0a33482d3656b42ed3809fc515f"
-      IPA_SHA256: "8cd2777ac994a6b56d401044ba8de0940d08b6fec847b3e0fae25ecac685250a"
-      TAG: "ipad5-adaptive-v1-020358a"
+print('bundle_id=' + str(info.get('CFBundleIdentifier')), flush=True)
+print('bundle_version=' + str(info.get('CFBundleShortVersionString')), flush=True)
+print('minimum_os=' + str(info.get('MinimumOSVersion')), flush=True)
+if info.get('CFBundleIdentifier') != 'com.opa334.Dopamine':
+    raise SystemExit('install_error=unexpected-bundle-id')
+for marker in (b'balanced-512MB', b'compact-384MB', b'minimum-256MB', b'DarkSword-iPad5-Adaptive.log'):
+    if marker not in framework:
+        raise SystemExit('install_error=adaptive-marker-missing:' + marker.decode())
+print('embedded_adaptive_markers=success', flush=True)
 
-    steps:
-      - name: Checkout publisher branch
-        uses: actions/checkout@v4
-        with:
-          ref: ipad5/adaptive-lowmem-v1
-          fetch-depth: 0
+candidates = []
+for name in ('trollstorehelper', 'appinst'):
+    found = shutil.which(name)
+    if found:
+        candidates.append(Path(found))
+for fixed in (
+    '/usr/local/bin/trollstorehelper',
+    '/var/jb/usr/local/bin/trollstorehelper',
+    '/var/jb/usr/bin/trollstorehelper',
+    '/var/jb/usr/bin/appinst',
+    '/usr/bin/appinst',
+):
+    p = Path(fixed)
+    if p.is_file() and p not in candidates:
+        candidates.append(p)
+for base in (Path('/var/containers/Bundle/Application'), Path('/private/var/containers/Bundle/Application')):
+    if base.is_dir():
+        for p in base.glob('*/TrollStore.app/trollstorehelper'):
+            if p.is_file() and p not in candidates:
+                candidates.append(p)
 
-      - name: Download exact successful artifact
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p release
-          gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > artifact.zip
-          unzip -q artifact.zip -d release
-          test -s release/Dopamine-iPad5-DarkSword-adaptive.ipa
-          test -s release/adaptive-manifest.txt
+print('installer_candidates=' + ','.join(str(p) for p in candidates), flush=True)
+if not candidates:
+    print('install_result=staged-no-installer-found', flush=True)
+    print('staged_ipa=' + str(ipa), flush=True)
+    raise SystemExit(0)
 
-      - name: Verify source and checksums
-        shell: bash
-        run: |
-          set -euo pipefail
-          actual="$(sha256sum release/Dopamine-iPad5-DarkSword-adaptive.ipa | awk '{print $1}')"
-          test "$actual" = "$IPA_SHA256"
-          grep -Fx "source_sha=${SOURCE_SHA}" release/adaptive-manifest.txt
-          grep -Fx "workflow_run=${SOURCE_RUN_ID}" release/adaptive-manifest.txt
-          grep -Fx "profile=adaptive-lowmem-v1" release/adaptive-manifest.txt
-          printf '%s  %s\n' "$actual" 'Dopamine-iPad5-DarkSword-adaptive.ipa' > release/verified.sha256
+installer = candidates[0]
+if installer.name == 'trollstorehelper':
+    cmd = [str(installer), 'install', str(ipa)]
+else:
+    cmd = [str(installer), str(ipa)]
+print('installer=' + str(installer), flush=True)
+print('install_command=' + ' '.join(cmd[:2]) + ' [verified-ipa]', flush=True)
+proc = subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=180)
+print(proc.stdout[-4000:] if proc.stdout else '', flush=True)
+print(f'installer_exit_code={proc.returncode}', flush=True)
+if proc.returncode != 0:
+    raise SystemExit('install_error=installer-failed')
 
-      - name: Create or update prerelease
-        shell: bash
-        run: |
-          set -euo pipefail
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" \
-              release/Dopamine-iPad5-DarkSword-adaptive.ipa \
-              release/Dopamine-iPad5-DarkSword-adaptive.ipa.sha256 \
-              release/verified.sha256 \
-              release/adaptive-manifest.txt \
-              release/adaptive-dSYMs.tar.gz \
-              --clobber
-          else
-            gh release create "$TAG" \
-              --target "$SOURCE_SHA" \
-              --prerelease \
-              --title "iPad 5 DarkSword adaptive low-memory v1" \
-              --notes "Experimental iPad6,11/iPad6,12 iOS 16.7.x build. Compile, package, source, and checksum gates passed. Stock-boot exploit success is not yet validated. IPA SHA-256: ${IPA_SHA256}." \
-              release/Dopamine-iPad5-DarkSword-adaptive.ipa \
-              release/Dopamine-iPad5-DarkSword-adaptive.ipa.sha256 \
-              release/verified.sha256 \
-              release/adaptive-manifest.txt \
-              release/adaptive-dSYMs.tar.gz
-          fi
-          gh release view "$TAG" --json tagName,isPrerelease,targetCommitish,url
-''')
-
-run(['git', 'diff', '--check'])
-run(['git', 'add', str(workflow.relative_to(repo))])
-run(['git', 'commit', '-m', 'Add verified adaptive IPA prerelease publisher'])
-head = run(['git', 'rev-parse', 'HEAD']).stdout.strip()
-run(['git', 'push', 'origin', f'HEAD:{branch}'])
-print(f'publisher_head={head}')
-print('publisher_push=success')
+installed = []
+for base in (Path('/var/containers/Bundle/Application'), Path('/private/var/containers/Bundle/Application')):
+    if base.is_dir():
+        installed.extend(base.glob('*/Dopamine.app'))
+print('installed_paths=' + ','.join(str(p) for p in installed), flush=True)
+if not installed:
+    print('install_result=installer-success-app-path-not-yet-visible', flush=True)
+else:
+    print('install_result=success-not-launched', flush=True)
+print('important=do-not-run-dopamine-while-paleramine-kernel-is-active', flush=True)
 PY
