@@ -1,0 +1,94 @@
+name: Verify Gif2Ani 3.1.4 Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/verify-gif2ani-314-build.txt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  DARK_BOOT_COMMIT: "f4e6671b260da63d17935cb6d3b15311393f4f51"
+
+concurrency:
+  group: verify-gif2ani-314-build
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout source
+        id: source
+        run: |
+          set -euo pipefail
+          git clone https://github.com/NightVibes33/Dark-Boot.git source
+          cd source
+          git checkout "$DARK_BOOT_COMMIT"
+          test "$(awk '/^Version:/{print $2}' control)" = "3.1.4"
+      - name: Install dependencies and Theos
+        id: toolchain
+        env:
+          THEOS: /opt/theos
+          CI: "1"
+          SHELL: /bin/bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends bash curl sudo build-essential fakeroot rsync perl git libxml2 dpkg-dev unzip xz-utils ca-certificates python3 file
+          sudo rm -rf /opt/theos
+          sudo mkdir -p /opt
+          sudo chown "$USER:$USER" /opt
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          test -x /opt/theos/toolchain/linux/iphone/bin/clang
+      - name: Compile package
+        id: compile
+        env:
+          THEOS: /opt/theos
+        run: |
+          set -o pipefail
+          cd source
+          make clean package FINALPACKAGE=1 2>&1 | tee ../verify-314-build.log
+          rc=${PIPESTATUS[0]}
+          cd ..
+          if [ "$rc" -eq 0 ]; then
+            DEB="$(find source/packages -maxdepth 1 -type f -name 'com.nightvibes33.gif2ani_3.1.4_iphoneos-arm64.deb' | head -n1)"
+            test -n "$DEB"
+            dpkg-deb --field "$DEB" | tee verify-314-deb-fields.txt
+            sha256sum "$DEB" | tee verify-314-sha256.txt
+          fi
+          exit "$rc"
+      - name: Publish verification
+        if: always()
+        env:
+          SOURCE_OUTCOME: ${{ steps.source.outcome }}
+          TOOLCHAIN_OUTCOME: ${{ steps.toolchain.outcome }}
+          COMPILE_OUTCOME: ${{ steps.compile.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          {
+            echo "Gif2Ani 3.1.4 Build Verification"
+            echo "run_id=${GITHUB_RUN_ID}"
+            echo "source=${SOURCE_OUTCOME}"
+            echo "toolchain=${TOOLCHAIN_OUTCOME}"
+            echo "compile=${COMPILE_OUTCOME}"
+            echo
+            cat verify-314-deb-fields.txt 2>/dev/null || true
+            cat verify-314-sha256.txt 2>/dev/null || true
+            echo
+            echo "--- build log tail ---"
+            tail -n 300 verify-314-build.log 2>/dev/null || true
+          } > remote/gif2ani-314-build-verification.txt
+          git add remote/gif2ani-314-build-verification.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record Gif2Ani 3.1.4 build verification [skip ci]"
+            git push origin HEAD:main
+          fi
