@@ -1,0 +1,82 @@
+Gif2Ani 3.1.4 Live Fix
+run_id=30173276633
+install=success
+
+--- sanitized output ---
+connected=1
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== PRECHECK ===
+active_size_before=600246
+old_backboardd=12641
+old_springboard=12643
+=== INSTALL 3.1.4 ===
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+(Reading database ... 19748 files and directories currently installed.)
+Preparing to unpack .../Gif2Ani-3.1.4-live-fix.deb ...
+Unpacking com.nightvibes33.gif2ani (3.1.4) over (3.1.3) ...
+Setting up com.nightvibes33.gif2ani (3.1.4) ...
+Processing triggers for org.coolstar.sileo (2.5.1) ...
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+installed_version=3.1.4
+active_size_after_install=600246
+=== FORCE VERIFIED ENABLED STATE ===
+=== RESTART BACKBOARD ===
+new_backboardd=12777
+new_springboard=12790
+=== PHYSICAL RESULT ===
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>BKDisplayRenderOverlaySpinny</key>
+	<true/>
+	<key>animationPending</key>
+	<false/>
+	<key>event</key>
+	<string>custom-animation-stable</string>
+	<key>frameCount</key>
+	<integer>6</integer>
+	<key>gifExists</key>
+	<true/>
+	<key>media</key>
+	<dict>
+		<key>decodedFrames</key>
+		<integer>6</integer>
+		<key>decodedHeight</key>
+		<integer>358</integer>
+		<key>decodedWidth</key>
+		<integer>480</integer>
+		<key>estimatedDecodedBytes</key>
+		<integer>4124160</integer>
+		<key>inputBytes</key>
+		<integer>600246</integer>
+		<key>sourceFrames</key>
+		<integer>6</integer>
+		<key>sourceHeight</key>
+		<integer>358</integer>
+		<key>sourceWidth</key>
+		<integer>480</integer>
+	</dict>
+	<key>process</key>
+	<string>backboardd</string>
+	<key>safetyLimits</key>
+	<dict>
+		<key>maximumDecodedFrames</key>
+		<integer>24</integer>
+		<key>maximumEstimatedDecodedBytes</key>
+		<integer>50331648</integer>
+		<key>maximumInputBytes</key>
+		<integer>26214400</integer>
+		<key>maximumPixelDimension</key>
+		<integer>640</integer>
+		<key>maximumSourceFrames</key>
+		<integer>240</integer>
+	</dict>
+	<key>timestamp</key>
+	<real>1785010723.624285</real>
+</dict>
+</plist>
+new_crash_reports=0
+live_fix_result=success
