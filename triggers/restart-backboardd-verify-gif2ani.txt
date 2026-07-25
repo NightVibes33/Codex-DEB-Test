@@ -1,0 +1,3 @@
+verify=restart-backboardd-gif2ani
+requested_at=2026-07-25T15:35:00-05:00
+state=gif2ani-disabled-no-gif
