@@ -1,8 +1,14 @@
 # AlleyCat unsigned IPA failure
 
-- Run: 30145503959
-- Commit: 5533da601cb98f786685608c1af7fc9b8cc00e97
+- Run: 30146101117
+- Commit: a6d6f2e60fbf502a063fe492f215b99060c603e4
 - Workflow: ios-unsigned-ipa.yml
+- Rust cache hit: true
+
+## runtime-build tail
+```text
+Using cached AlleyCat GeneratedRust assets
+```
 
 ## xcodebuild tail
 ```text
