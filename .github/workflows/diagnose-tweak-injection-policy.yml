@@ -88,28 +88,47 @@ jobs:
           done
           for f in /var/mobile/.eksafemode /var/mobile/.safemode /var/jb/.safemode /var/jb/var/mobile/.eksafemode; do [ -e "$f" ] && echo "$f=present" || echo "$f=absent"; done
 
-          echo '=== CHOICY PACKAGE / FILTERS ==='
+          echo '=== PACKAGE POLICY ==='
           dpkg-query -W 2>/dev/null | grep -Ei 'choicy|ellekit|substrate|libhooker|substitute|palera1n' || true
+          apt-cache policy ellekit 2>&1 || true
+
+          echo '=== CHOICY FILTERS AS XML ==='
           for f in /var/jb/usr/lib/TweakInject/*Choicy*.plist /var/jb/Library/MobileSubstrate/DynamicLibraries/*Choicy*.plist; do
             [ -f "$f" ] || continue
             echo "--- $f"
-            cat "$f"
+            plutil -convert xml1 -o - "$f" 2>/dev/null || cat "$f"
           done
 
-          echo '=== CHOICY / INJECTION PREFERENCES ==='
+          echo '=== CHOICY PREFERENCES AS XML ==='
+          seen=''
           find /var/mobile/Library/Preferences /var/jb/var/mobile/Library/Preferences -maxdepth 1 -type f \
-            \( -iname '*choicy*' -o -iname '*ellekit*' -o -iname '*substrate*' -o -iname '*libhooker*' -o -iname '*palera1n*' -o -iname '*safemode*' \) -print 2>/dev/null | sort | while read f; do
+            -iname '*choicy*' -print 2>/dev/null | sort -u | while read f; do
               echo "--- $f"
-              if command -v plutil >/dev/null 2>&1; then plutil -p "$f" 2>/dev/null || cat "$f"; else cat "$f"; fi
+              plutil -convert xml1 -o - "$f" 2>/dev/null || { echo 'base64:'; base64 "$f"; }
             done
+          echo '--- defaults read com.opa334.choicy'
+          HOME=/var/mobile defaults read com.opa334.choicy 2>&1 || true
 
-          echo '=== GLOBAL PREFERENCE KEY SEARCH ==='
-          grep -aR -Ei 'DisableTweak|disable.*inject|tweak.*disable|safe.?mode|backboardd|SpringBoard' \
-            /var/mobile/Library/Preferences/com.opa334.choicyprefs.plist \
-            /var/mobile/Library/Preferences 2>/dev/null | head -n 300 || true
+          echo '=== BACKBOARDD TARGETING FILTERS ==='
+          for f in /var/jb/usr/lib/TweakInject/*.plist; do
+            [ -f "$f" ] || continue
+            if grep -a -q 'backboardd' "$f" 2>/dev/null; then
+              echo "--- $f"
+              plutil -convert xml1 -o - "$f" 2>/dev/null || cat "$f"
+            fi
+          done
+
+          echo '=== LOADED LIBRARIES BEFORE LOADER ==='
+          for pid in 1 "$bb" "$sb"; do
+            [ -n "$pid" ] || continue
+            echo "--- pid=$pid"
+            if command -v lsof >/dev/null 2>&1; then lsof -p "$pid" 2>/dev/null | grep -Ei 'systemhook|ellekit|TweakInject|TweakLoader|libinjector|Choicy|Gif2Ani' || true; fi
+            if command -v vmmap >/dev/null 2>&1; then vmmap "$pid" 2>/dev/null | grep -Ei 'systemhook|ellekit|TweakInject|TweakLoader|libinjector|Choicy|Gif2Ani' || true; fi
+            if command -v dyld_info >/dev/null 2>&1; then dyld_info -process "$pid" 2>/dev/null | grep -Ei 'systemhook|ellekit|TweakInject|TweakLoader|libinjector|Choicy|Gif2Ani' || true; fi
+          done
 
           echo '=== ELLEKIT FILES / SIGNATURES ==='
-          ls -l /var/jb/etc/rc.d/ellekit-loader /var/jb/usr/libexec/ellekit/loader /var/jb/usr/lib/ellekit/pspawn.dylib /var/jb/usr/lib/ellekit/libinjector.dylib
+          ls -l /var/jb/etc/rc.d/ellekit-loader /var/jb/usr/libexec/ellekit/loader /var/jb/usr/lib/ellekit/pspawn.dylib /var/jb/usr/lib/ellekit/libinjector.dylib /var/jb/usr/lib/TweakLoader.dylib /var/jb/usr/lib/TweakInject.dylib
           file /var/jb/usr/libexec/ellekit/loader /var/jb/usr/lib/ellekit/pspawn.dylib /var/jb/usr/lib/ellekit/libinjector.dylib 2>&1 || true
           if [ -x /var/jb/usr/bin/ldid ]; then
             echo '--- pspawn entitlements'; /var/jb/usr/bin/ldid -e /var/jb/usr/lib/ellekit/pspawn.dylib 2>&1 || true
@@ -120,10 +139,17 @@ jobs:
           timeout 20 /var/jb/usr/libexec/ellekit/loader 2>&1
           loader_code=$?
           echo "loader_exit=$loader_code"
-
-          echo '=== POST-LOADER STATE ==='
           sleep 5
-          ps -axo user,pid,ppid,command 2>/dev/null | grep -E '[l]aunchd|[b]ackboardd|[S]pringBoard' || true
+
+          echo '=== LOADED LIBRARIES AFTER LOADER ==='
+          for pid in 1 "$bb" "$sb"; do
+            [ -n "$pid" ] || continue
+            echo "--- pid=$pid"
+            if command -v lsof >/dev/null 2>&1; then lsof -p "$pid" 2>/dev/null | grep -Ei 'systemhook|ellekit|TweakInject|TweakLoader|libinjector|pspawn|Choicy|Gif2Ani' || true; fi
+            if command -v vmmap >/dev/null 2>&1; then vmmap "$pid" 2>/dev/null | grep -Ei 'systemhook|ellekit|TweakInject|TweakLoader|libinjector|pspawn|Choicy|Gif2Ani' || true; fi
+            if command -v dyld_info >/dev/null 2>&1; then dyld_info -process "$pid" 2>/dev/null | grep -Ei 'systemhook|ellekit|TweakInject|TweakLoader|libinjector|pspawn|Choicy|Gif2Ani' || true; fi
+          done
+
           echo '=== RECENT CRASHES ==='
           find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' -o -name 'launchd-*.ips' \) -mmin -30 -print 2>/dev/null
           SH
@@ -146,11 +172,11 @@ jobs:
           text=Path('injection-policy-diagnostic.txt').read_text(errors='replace') if Path('injection-policy-diagnostic.txt').exists() else 'No output.'
           pw=os.environ.get('IPAD_PASSWORD','')
           if pw: text=text.replace(pw,'***REDACTED***')
-          out=['iPad Tweak Injection Policy Diagnostic',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"collect={os.environ.get('COLLECT_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-1200:]]
-          Path('remote/ipad-tweak-injection-policy.txt').write_text('\n'.join(out)+'\n')
+          out=['iPad Tweak Injection Policy Diagnostic V2',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"collect={os.environ.get('COLLECT_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-1200:]]
+          Path('remote/ipad-tweak-injection-policy-v2.txt').write_text('\n'.join(out)+'\n')
           PY
-          git add remote/ipad-tweak-injection-policy.txt
+          git add remote/ipad-tweak-injection-policy-v2.txt
           if ! git diff --cached --quiet; then
-            git commit -m "Record iPad tweak injection policy diagnostic [skip ci]"
+            git commit -m "Record iPad tweak injection policy V2 [skip ci]"
             git push origin HEAD:main
           fi
