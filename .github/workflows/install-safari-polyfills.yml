@@ -1,6 +1,10 @@
 name: Install Safari Polyfills on iPad
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/install-safari-polyfills.txt
   workflow_dispatch:
   issues:
     types: [opened]
@@ -14,6 +18,7 @@ env:
 jobs:
   resolve-environment:
     if: >-
+      github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' ||
       (github.actor == 'NightVibes33' && github.event.issue.title == '[Install Safari Polyfills]')
     runs-on: ubuntu-latest
@@ -39,6 +44,7 @@ jobs:
 
   install:
     if: >-
+      github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' ||
       (github.actor == 'NightVibes33' && github.event.issue.title == '[Install Safari Polyfills]')
     needs: resolve-environment
