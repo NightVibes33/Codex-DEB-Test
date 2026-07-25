@@ -1,0 +1,241 @@
+name: Sync Launchd Flags with Signed Python
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/sync-launchd-flags-python.txt
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name']); raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  sync:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends openssh-client sshpass
+      - name: Create signed-Python sync scripts
+        run: |
+          cat > launchd-sync.py <<'PY'
+          import ctypes, sys
+
+          FLAGS = 0x4C00082
+          lib = ctypes.CDLL('/usr/lib/system/libxpc.dylib')
+          libc = ctypes.CDLL('/usr/lib/libSystem.B.dylib')
+
+          class OsAllocOnce(ctypes.Structure):
+              _fields_ = [('once', ctypes.c_long), ('ptr', ctypes.c_void_p)]
+
+          class XpcGlobalData(ctypes.Structure):
+              _fields_ = [
+                  ('xpc_flags', ctypes.c_uint64),
+                  ('task_bootstrap_port', ctypes.c_uint32),
+                  ('xpc_bootstrap_pipe', ctypes.c_void_p),
+              ]
+
+          table_type = OsAllocOnce * 16
+          table = table_type.in_dll(lib, '_os_alloc_once_table')
+          if not table[1].ptr:
+              raise SystemExit('libxpc global data is missing')
+          global_data = XpcGlobalData.from_address(table[1].ptr)
+          pipe = global_data.xpc_bootstrap_pipe
+          print(f'bootstrap_pipe=0x{pipe:x}' if pipe else 'bootstrap_pipe=missing')
+          if not pipe:
+              raise SystemExit(80)
+
+          lib.xpc_dictionary_create.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t]
+          lib.xpc_dictionary_create.restype = ctypes.c_void_p
+          lib.xpc_dictionary_set_uint64.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_uint64]
+          lib.xpc_dictionary_set_bool.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_bool]
+          lib.xpc_dictionary_get_int64.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+          lib.xpc_dictionary_get_int64.restype = ctypes.c_int64
+          lib.xpc_copy_description.argtypes = [ctypes.c_void_p]
+          lib.xpc_copy_description.restype = ctypes.c_void_p
+          lib.xpc_release.argtypes = [ctypes.c_void_p]
+          lib._xpc_pipe_interface_routine.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p), ctypes.c_uint64]
+          lib._xpc_pipe_interface_routine.restype = ctypes.c_int
+          libc.free.argtypes = [ctypes.c_void_p]
+
+          message = lib.xpc_dictionary_create(None, None, 0)
+          if not message:
+              raise SystemExit(81)
+          lib.xpc_dictionary_set_uint64(message, b'cmd', 3)
+          lib.xpc_dictionary_set_uint64(message, b'flags', FLAGS)
+          lib.xpc_dictionary_set_bool(message, b'jailbreak', True)
+          reply = ctypes.c_void_p()
+          routine_error = lib._xpc_pipe_interface_routine(pipe, 0, message, ctypes.byref(reply), 0)
+          lib.xpc_release(message)
+          print(f'flags_sent=0x{FLAGS:x}')
+          print(f'routine_error={routine_error}')
+          if not reply.value:
+              raise SystemExit(82)
+          error = lib.xpc_dictionary_get_int64(reply, b'error')
+          desc_ptr = lib.xpc_copy_description(reply)
+          if desc_ptr:
+              print('reply=' + ctypes.string_at(desc_ptr).decode('utf-8', 'replace'))
+              libc.free(desc_ptr)
+          print(f'launchd_error={error}')
+          lib.xpc_release(reply)
+          if routine_error != 0 or error != 0:
+              raise SystemExit(83)
+          print('launchd_flag_sync=success')
+          PY
+
+          cat > run-python-sync.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media="/var/mobile/Library/Application Support/Gif2Ani"
+          prefs="/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist"
+          marker="/var/mobile/Media/python-launchd-sync.marker"
+          cp -L /var/jb/usr/bin/python3 /var/mobile/Media/python3-launchsync
+          cat > /var/mobile/Media/python3-launchsync-entitlements.plist <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>platform-application</key><true/>
+            <key>com.apple.private.security.no-container</key><true/>
+            <key>in.palera.private.launchd-commands.client</key><true/>
+            <key>in.palera.loader.bootstrapper</key><true/>
+          </dict></plist>
+          PLIST
+          chmod 0755 /var/mobile/Media/python3-launchsync
+          /var/jb/usr/bin/ldid -S/var/mobile/Media/python3-launchsync-entitlements.plist /var/mobile/Media/python3-launchsync
+          echo '=== SIGNED PYTHON ENTITLEMENTS ==='
+          /var/jb/usr/bin/ldid -e /var/mobile/Media/python3-launchsync
+          mkdir -p "$media"
+          printf '%s\n' \
+            '<?xml version="1.0" encoding="UTF-8"?>' \
+            '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+            '<plist version="1.0"><dict><key>isEnabled</key><false/><key>pendingReady</key><false/><key>imageTransformation</key><string>resizeAspect</string><key>customLoop</key><real>-1</real><key>customDuration</key><real>-1</real><key>backgroundColor</key><string>#000000</string></dict></plist>' > "$prefs"
+          chown mobile:mobile "$media" "$prefs"
+          chmod 0755 "$media"
+          chmod 0644 "$prefs"
+          rm -f "$media/Pending.gif" "$media/Active.gif" "$media/Rejected.gif" "$media/load-in-progress" "$media/runtime-status.plist"
+          touch "$marker"
+          old_bb=$(pgrep -x backboardd | head -n1)
+          old_sb=$(pgrep -x SpringBoard | head -n1)
+          echo "old_backboardd_pid=$old_bb"
+          echo "old_springboard_pid=$old_sb"
+          PYTHONHOME=/var/jb/usr /var/mobile/Media/python3-launchsync /var/mobile/Media/launchd-sync.py
+          /var/jb/usr/bin/killall -9 backboardd SpringBoard 2>/dev/null || true
+          echo process_restart_requested=yes
+          SH
+          chmod +x run-python-sync.sh
+
+          cat > verify-python-sync.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media="/var/mobile/Library/Application Support/Gif2Ani"
+          marker="/var/mobile/Media/python-launchd-sync.marker"
+          test "$(dpkg-query -W com.nightvibes33.gif2ani | cut -f2)" = "3.1.1"
+          test ! -e "$media/Pending.gif"
+          test ! -e "$media/Active.gif"
+          test ! -e "$media/Rejected.gif"
+          test ! -e "$media/load-in-progress"
+          test -f "$media/runtime-status.plist"
+          cat "$media/runtime-status.plist"
+          grep -a -q 'tweak-loaded-no-media-decode' "$media/runtime-status.plist"
+          crashes=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -newer "$marker" -print 2>/dev/null | wc -l | tr -d ' ')
+          echo "post_sync_crashes=$crashes"
+          test "$crashes" = "0"
+          echo "python_launchd_sync_and_gif2ani_loaded=success"
+          ps ax | grep -E '[b]ackboardd|[S]pringBoard' || true
+          rm -f /var/mobile/Media/python3-launchsync /var/mobile/Media/python3-launchsync-entitlements.plist /var/mobile/Media/launchd-sync.py /var/mobile/Media/run-python-sync.sh /var/mobile/Media/verify-python-sync.sh
+          SH
+          chmod +x verify-python-sync.sh
+      - name: Upload and sync launchd
+        id: sync_flags
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 60); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          test "$connected" -eq 1
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null launchd-sync.py run-python-sync.sh verify-python-sync.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=60 -o ServerAliveInterval=10 -o ServerAliveCountMax=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/run-python-sync.sh' 2>&1 | tee python-launchd-sync.txt
+          code=${PIPESTATUS[1]}
+          set -e
+          echo "sync_ssh_exit=$code" | tee -a python-launchd-sync.txt
+          if [ "$code" -ne 0 ] && [ "$code" -ne 255 ]; then exit "$code"; fi
+      - name: Reconnect and verify
+        id: verify
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          sleep 8
+          connected=0
+          for attempt in $(seq 1 90); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          echo "reconnected=$connected" | tee -a python-launchd-sync.txt
+          test "$connected" -eq 1
+          sleep 20
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=45 -o ServerAliveInterval=10 -o ServerAliveCountMax=4 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/verify-python-sync.sh' 2>&1 | tee -a python-launchd-sync.txt
+      - name: Publish result
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          SYNC_OUTCOME: ${{ steps.sync_flags.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('python-launchd-sync.txt').read_text(errors='replace') if Path('python-launchd-sync.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=['Signed Python Launchd Flag Sync',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"sync={os.environ.get('SYNC_OUTCOME','')}",f"verify={os.environ.get('VERIFY_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-500:]]
+          Path('remote/signed-python-launchd-flag-sync.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/signed-python-launchd-flag-sync.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record signed Python launchd flag sync [skip ci]"
+            git push origin HEAD:main
+          fi
