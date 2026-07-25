@@ -1,0 +1,210 @@
+name: Safe Mode Rescue Gif2Ani
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.issue.title == '[Safe Mode Rescue Gif2Ani]'
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name']); raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  rescue:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.issue.title == '[Safe Mode Rescue Gif2Ani]'
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Join Tailscale without requiring iPad ping
+        id: tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - name: Install SSH tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends openssh-client sshpass
+      - name: Wait for safe-mode SSH and remove Gif2Ani
+        id: rescue
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -uo pipefail
+          : > safe-mode-rescue.txt
+          connected=0
+          for attempt in $(seq 1 60); do
+            echo "ssh_attempt=$attempt" | tee -a safe-mode-rescue.txt
+            if sshpass -e ssh -p 22 \
+              -o ConnectTimeout=5 -o ConnectionAttempts=1 \
+              -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+              mobile@"$IPAD_HOST" 'true' >/dev/null 2>&1; then
+              connected=1
+              break
+            fi
+            sleep 5
+          done
+          test "$connected" -eq 1
+
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=15 -o ServerAliveInterval=3 -o ServerAliveCountMax=2 \
+            -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            mobile@"$IPAD_HOST" 'sudo -S -p "" sh -c '\''
+              set -u
+              echo "=== PRESERVE FAILURE EVIDENCE ==="
+              date
+              sw_vers 2>/dev/null || true
+              dpkg-query -s com.nightvibes33.gif2ani 2>/dev/null | grep -E "^(Package|Status|Version|Architecture):" || true
+              ls -lah "/var/mobile/Library/Application Support/Gif2Ani" 2>/dev/null || true
+              ls -lah /var/mobile/Library/Preferences/Respring.gif 2>/dev/null || true
+              if [ -f /var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist ]; then
+                echo "--- preferences ---"
+                cat /var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist
+              fi
+              echo "--- recent backboardd crash files ---"
+              find /var/mobile/Library/Logs/CrashReporter /var/mobile/Library/Logs/DiagnosticLogs \
+                -type f -mmin -180 2>/dev/null | grep -E "backboardd|SpringBoard|Gif2Ani" | tail -n 50 || true
+
+              echo "=== DISABLE INJECTION FIRST ==="
+              dylib=/var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib
+              plist=/var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist
+              [ -e "$plist" ] && mv -f "$plist" "$plist.disabled" || true
+              [ -e "$dylib" ] && mv -f "$dylib" "$dylib.disabled" || true
+              echo "injection_disabled=yes"
+
+              echo "=== REMOVE PACKAGE AND LIVE DATA ==="
+              dpkg --purge com.nightvibes33.gif2ani 2>&1 || true
+              rm -f "$plist" "$plist.disabled" "$dylib" "$dylib.disabled"
+              rm -rf /var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle
+              rm -f /var/jb/Library/PreferenceLoader/Preferences/Gif2Ani.plist
+              rm -f /var/mobile/Library/Preferences/Respring.gif
+              rm -f /var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist
+              rm -rf "/var/mobile/Library/Application Support/Gif2Ani"
+              rm -f /var/mobile/Media/Gif2Ani-3.0.0-rootless.deb
+              echo "gif2ani_removed=yes"
+
+              killall -9 Preferences 2>/dev/null || true
+              if [ -x /var/jb/usr/bin/sbreload ]; then
+                /var/jb/usr/bin/sbreload
+              elif [ -x /usr/bin/sbreload ]; then
+                /usr/bin/sbreload
+              else
+                killall -9 SpringBoard 2>/dev/null || true
+              fi
+            '\''' 2>&1 | tee -a safe-mode-rescue.txt
+          code=${PIPESTATUS[1]}
+          set -e
+          echo "rescue_ssh_exit=$code" | tee -a safe-mode-rescue.txt
+          if [ "$code" -ne 0 ] && [ "$code" -ne 255 ]; then exit "$code"; fi
+          sleep 20
+
+      - name: Reconnect and verify package is absent
+        id: verify
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 24); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'true'; then
+              connected=1
+              break
+            fi
+            sleep 5
+          done
+          test "$connected" -eq 1
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=15 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            mobile@"$IPAD_HOST" 'sudo -S -p "" sh -c '\''
+              set -eu
+              if dpkg-query -s com.nightvibes33.gif2ani 2>/dev/null | grep -q "^Status: install ok installed$"; then exit 41; fi
+              test ! -e /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib
+              test ! -e /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist
+              test ! -e /var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle
+              test ! -e /var/jb/Library/PreferenceLoader/Preferences/Gif2Ani.plist
+              test ! -e /var/mobile/Library/Preferences/Respring.gif
+              echo "gif2ani_package=absent"
+              echo "gif2ani_files=absent"
+              echo "selected_gif=absent"
+              ps ax | grep -E "[b]ackboardd|[S]pringBoard" || true
+              echo "recovery_verified=yes"
+            '\''' 2>&1 | tee -a safe-mode-rescue.txt
+
+      - name: Upload rescue evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: safe-mode-gif2ani-rescue-${{ github.run_id }}
+          path: safe-mode-rescue.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Publish sanitized status
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          TAILSCALE_OUTCOME: ${{ steps.tailscale.outcome }}
+          RESCUE_OUTCOME: ${{ steps.rescue.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('safe-mode-rescue.txt').read_text(errors='replace') if Path('safe-mode-rescue.txt').exists() else 'No output.'
+          password=os.environ.get('IPAD_PASSWORD','')
+          if password: text=text.replace(password,'***REDACTED***')
+          lines=[
+            'Gif2Ani Safe Mode Rescue',
+            f"run_id={os.environ.get('GITHUB_RUN_ID','')}",
+            f"tailscale={os.environ.get('TAILSCALE_OUTCOME','')}",
+            f"rescue={os.environ.get('RESCUE_OUTCOME','')}",
+            f"verify={os.environ.get('VERIFY_OUTCOME','')}",
+            '', '--- sanitized output ---', *text.splitlines()[-420:]
+          ]
+          Path('remote/gif2ani-safe-mode-rescue-status.txt').write_text('\n'.join(lines)+'\n')
+          PY
+          git add remote/gif2ani-safe-mode-rescue-status.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record Gif2Ani safe-mode rescue [skip ci]"
+            git push origin HEAD:main
+          fi
