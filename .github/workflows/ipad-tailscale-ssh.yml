@@ -156,7 +156,7 @@ jobs:
                 -o StrictHostKeyChecking=yes \
                 -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
                 "$IPAD_USER@$IPAD_HOST" \
-                'sudo -k; exec sudo -S -p "" /bin/sh -s' \
+                'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
                 2>&1 | tee -a ipad-output.txt
           ssh_status=${PIPESTATUS[1]}
           set -e
