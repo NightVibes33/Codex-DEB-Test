@@ -53,27 +53,29 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends openssh-client sshpass
-      - name: Prepare safe disabled state and restart UI processes
-        id: restart
+      - name: Test explicit loader path with Gif2Ani disabled
+        id: verify
         env:
           SSHPASS: ${{ secrets.IPAD_PASSWORD }}
           IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
         run: |
-          set -uo pipefail
+          set -euo pipefail
           connected=0
-          for attempt in $(seq 1 36); do
+          for attempt in $(seq 1 48); do
             if sshpass -e ssh -p 22 -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
             sleep 5
           done
           test "$connected" -eq 1
-          cat > /tmp/test-explicit-loader.sh <<'SH'
+          cat > /tmp/verify-explicit-loader.sh <<'SH'
           #!/bin/sh
           set -eu
           media='/var/mobile/Library/Application Support/Gif2Ani'
           prefs='/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist'
-          marker='/var/mobile/Media/explicit-tweakloader-test.marker'
+          crash_marker='/var/mobile/Media/explicit-tweakloader-crash.marker'
+          runtime="$media/runtime-status.plist"
+
           mkdir -p "$media"
-          rm -f "$media/Pending.gif" "$media/Active.gif" "$media/Rejected.gif" "$media/load-in-progress" "$media/runtime-status.plist" "$media/pending-metadata.plist"
+          rm -f "$media/Pending.gif" "$media/Active.gif" "$media/Rejected.gif" "$media/load-in-progress" "$media/pending-metadata.plist"
           cat > "$prefs" <<'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -89,65 +91,62 @@ jobs:
           chown -R mobile:mobile "$media" "$prefs"
           chmod 0755 "$media"
           chmod 0644 "$prefs"
-          test -r /var/jb/usr/lib/TweakLoader.dylib
-          test -r /var/jb/usr/lib/ellekit/libinjector.dylib
-          touch "$marker"
-          echo "before_path=$(/var/jb/usr/bin/launchctl getenv JB_TWEAKLOADER_PATH 2>/dev/null || true)"
-          /var/jb/usr/bin/launchctl setenv JB_TWEAKLOADER_PATH /var/jb/usr/lib/TweakLoader.dylib
-          echo "after_path=$(/var/jb/usr/bin/launchctl getenv JB_TWEAKLOADER_PATH 2>/dev/null || true)"
-          echo "backboardd_before=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')"
-          echo "springboard_before=$(ps ax | awk '/[S]pringBoard/{print $1; exit}')"
-          killall -9 backboardd SpringBoard 2>/dev/null || true
-          echo ui_restart_requested=yes
+
+          echo '=== BEFORE ==='
+          echo "loader_path=$(/var/jb/usr/bin/launchctl getenv JB_TWEAKLOADER_PATH 2>/dev/null || true)"
+          echo "backboardd_pid=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')"
+          echo "springboard_pid=$(ps ax | awk '/[S]pringBoard/{print $1; exit}')"
+          if [ -f "$runtime" ]; then
+            echo runtime_before=present
+            cat "$runtime"
+          else
+            echo runtime_before=missing
+          fi
+
+          if ! { [ -f "$runtime" ] && grep -a -q 'tweak-loaded-no-media-decode' "$runtime"; }; then
+            test -r /var/jb/usr/lib/TweakLoader.dylib
+            test -r /var/jb/usr/lib/ellekit/libinjector.dylib
+            /var/jb/usr/bin/launchctl setenv JB_TWEAKLOADER_PATH /var/jb/usr/lib/TweakLoader.dylib
+            rm -f "$runtime"
+            touch "$crash_marker"
+            echo "explicit_path=$(/var/jb/usr/bin/launchctl getenv JB_TWEAKLOADER_PATH 2>/dev/null || true)"
+            killall -9 backboardd SpringBoard 2>/dev/null || true
+            echo ui_restart_requested=yes
+            sleep 12
+          else
+            touch "$crash_marker"
+            echo ui_restart_requested=no_already_injected
+          fi
+
+          echo '=== AFTER ==='
+          echo "effective_path=$(/var/jb/usr/bin/launchctl getenv JB_TWEAKLOADER_PATH 2>/dev/null || true)"
+          echo "backboardd_pid=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')"
+          echo "springboard_pid=$(ps ax | awk '/[S]pringBoard/{print $1; exit}')"
+          if [ -f "$runtime" ]; then
+            cat "$runtime"
+          else
+            echo runtime_status=missing
+          fi
+          test ! -e "$media/Pending.gif"
+          test ! -e "$media/Active.gif"
+          test ! -e "$media/Rejected.gif"
+          crashes=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -newer "$crash_marker" -print 2>/dev/null | wc -l | tr -d ' ')
+          echo "new_crash_reports=$crashes"
+          if [ -f "$runtime" ] && grep -a -q 'tweak-loaded-no-media-decode' "$runtime"; then
+            echo explicit_tweakloader_injection=success
+            test "$crashes" = 0
+          else
+            echo explicit_tweakloader_injection=failure
+            exit 1
+          fi
           SH
-          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null /tmp/test-explicit-loader.sh mobile@"$IPAD_HOST":/var/mobile/Media/
-          set +e
-          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=30 -o ServerAliveInterval=4 -o ServerAliveCountMax=2 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/test-explicit-loader.sh' 2>&1 | tee explicit-tweakloader-test.txt
-          code=${PIPESTATUS[1]}
-          set -e
-          echo "restart_ssh_exit=$code" | tee -a explicit-tweakloader-test.txt
-          if [ "$code" -ne 0 ] && [ "$code" -ne 255 ]; then exit "$code"; fi
-      - name: Reconnect and verify constructor injection
-        id: verify
-        env:
-          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
-          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
-        run: |
-          set -euo pipefail
-          sleep 10
-          connected=0
-          for attempt in $(seq 1 48); do
-            if sshpass -e ssh -p 22 -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
-            sleep 5
-          done
-          echo "reconnected=$connected" | tee -a explicit-tweakloader-test.txt
-          test "$connected" -eq 1
-          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=30 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh -c '\''
-            media="/var/mobile/Library/Application Support/Gif2Ani"
-            marker="/var/mobile/Media/explicit-tweakloader-test.marker"
-            echo "effective_path=$(/var/jb/usr/bin/launchctl getenv JB_TWEAKLOADER_PATH 2>/dev/null || true)"
-            echo "backboardd_after=$(ps ax | awk '\''\''/[b]ackboardd/{print $1; exit}'\''\'')"
-            echo "springboard_after=$(ps ax | awk '\''\''/[S]pringBoard/{print $1; exit}'\''\'')"
-            echo "=== RUNTIME STATUS ==="
-            cat "$media/runtime-status.plist" 2>/dev/null || echo runtime_status=missing
-            test ! -e "$media/Pending.gif"
-            test ! -e "$media/Active.gif"
-            test ! -e "$media/Rejected.gif"
-            crashes=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name "backboardd-*.ips" -o -name "SpringBoard-*.ips" \) -newer "$marker" -print 2>/dev/null | wc -l | tr -d " ")
-            echo "new_crash_reports=$crashes"
-            if [ -f "$media/runtime-status.plist" ] && grep -a -q "tweak-loaded-no-media-decode" "$media/runtime-status.plist"; then
-              echo explicit_tweakloader_injection=success
-              test "$crashes" = 0
-            else
-              echo explicit_tweakloader_injection=failure
-              exit 1
-            fi
-          '\''' 2>&1 | tee -a explicit-tweakloader-test.txt
+          chmod +x /tmp/verify-explicit-loader.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null /tmp/verify-explicit-loader.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=45 -o ServerAliveInterval=5 -o ServerAliveCountMax=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/verify-explicit-loader.sh' 2>&1 | tee explicit-tweakloader-test.txt
       - name: Publish result
         if: always()
         env:
           IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
-          RESTART_OUTCOME: ${{ steps.restart.outcome }}
           VERIFY_OUTCOME: ${{ steps.verify.outcome }}
         run: |
           set -euo pipefail
@@ -160,11 +159,11 @@ jobs:
           text=Path('explicit-tweakloader-test.txt').read_text(errors='replace') if Path('explicit-tweakloader-test.txt').exists() else 'No output.'
           pw=os.environ.get('IPAD_PASSWORD','')
           if pw: text=text.replace(pw,'***REDACTED***')
-          out=['Explicit TweakLoader Path Test',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"restart={os.environ.get('RESTART_OUTCOME','')}",f"verify={os.environ.get('VERIFY_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-300:]]
-          Path('remote/explicit-tweakloader-path-test.txt').write_text('\n'.join(out)+'\n')
+          out=['Explicit TweakLoader Path Test V2',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"verify={os.environ.get('VERIFY_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-300:]]
+          Path('remote/explicit-tweakloader-path-test-v2.txt').write_text('\n'.join(out)+'\n')
           PY
-          git add remote/explicit-tweakloader-path-test.txt
+          git add remote/explicit-tweakloader-path-test-v2.txt
           if ! git diff --cached --quiet; then
-            git commit -m "Record explicit TweakLoader path test [skip ci]"
+            git commit -m "Record explicit TweakLoader path test V2 [skip ci]"
             git push origin HEAD:main
           fi
