@@ -1,0 +1,51 @@
+name: Observe Clean AlleyCat Run
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/observe-clean-alleycat-run.yml
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    env:
+      TARGET_SHA: a2ea86be84ada0ce4ba844617930b00039fef411
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Record clean run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sleep 10
+          runs="$RUNNER_TEMP/runs.json"
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/ios-unsigned-ipa.yml/runs?per_page=30" > "$runs"
+          run_id="$(jq -r --arg sha "$TARGET_SHA" '.workflow_runs[] | select(.head_sha==$sha) | .id' "$runs" | head -1)"
+          status="$(jq -r --arg sha "$TARGET_SHA" '.workflow_runs[] | select(.head_sha==$sha) | .status' "$runs" | head -1)"
+          conclusion="$(jq -r --arg sha "$TARGET_SHA" '.workflow_runs[] | select(.head_sha==$sha) | (.conclusion // "")' "$runs" | head -1)"
+          mkdir -p build-diagnostics
+          {
+            echo '# Clean AlleyCat run'
+            echo
+            echo "- Commit: $TARGET_SHA"
+            echo "- Run: ${run_id:-not-found}"
+            echo "- Status: ${status:-not-found}"
+            echo "- Conclusion: ${conclusion:-}"
+          } > build-diagnostics/alleycat-clean-run.md
+      - name: Commit observation
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add build-diagnostics/alleycat-clean-run.md
+          git commit -m 'Record clean AlleyCat run [skip ci]' || exit 0
+          git pull --rebase origin main
+          git push origin HEAD:main
