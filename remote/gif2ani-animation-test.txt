@@ -1,0 +1,6 @@
+Gif2Ani Animation Test
+run_id=30171706941
+test=skipped
+
+--- sanitized output ---
+No output.
