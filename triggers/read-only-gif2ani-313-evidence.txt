@@ -1,0 +1,3 @@
+action=read-only-gif2ani-3.1.3-evidence
+requested_at=2026-07-25T17:48:00-05:00
+verify=stable-84-to-24-zero-crashes-final-disabled
