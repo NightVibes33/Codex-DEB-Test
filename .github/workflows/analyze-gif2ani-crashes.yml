@@ -1,0 +1,198 @@
+name: Analyze Gif2Ani Crash Logs
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.issue.title == '[Analyze Gif2Ani Crashes]'
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name']); raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  analyze:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Join Tailscale
+        id: tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - name: Install SSH tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends openssh-client sshpass
+      - name: Copy recent crash reports
+        id: copy_logs
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p crashlogs
+          ssh_opts=(-p 22 -o ConnectTimeout=15 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null)
+          sshpass -e ssh "${ssh_opts[@]}" mobile@"$IPAD_HOST" \
+            'find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name "backboardd-*.ips" -o -name "SpringBoard-*.ips" \) -mmin -360 -print 2>/dev/null | sort | tail -n 12' \
+            > crash-paths.txt
+          test -s crash-paths.txt
+          while IFS= read -r remote_path; do
+            [ -n "$remote_path" ] || continue
+            sshpass -e scp "${ssh_opts[@]}" mobile@"$IPAD_HOST:$remote_path" crashlogs/
+          done < crash-paths.txt
+          ls -lah crashlogs
+      - name: Parse fault details without device identifiers
+        id: parse
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from collections import Counter
+
+          def parse_objects(text):
+              decoder=json.JSONDecoder()
+              objects=[]
+              pos=0
+              while pos < len(text):
+                  while pos < len(text) and text[pos].isspace(): pos += 1
+                  if pos >= len(text): break
+                  try:
+                      obj,end=decoder.raw_decode(text,pos)
+                      objects.append(obj)
+                      pos=end
+                  except json.JSONDecodeError:
+                      nl=text.find('\n',pos)
+                      if nl < 0: break
+                      pos=nl+1
+              return objects
+
+          def image_name(frame, images):
+              idx=frame.get('imageIndex')
+              if isinstance(idx,int) and 0 <= idx < len(images):
+                  image=images[idx]
+                  return image.get('name') or Path(image.get('path','')).name or f'image[{idx}]'
+              return f'image[{idx}]' if idx is not None else 'unknown'
+
+          files=sorted(Path('crashlogs').glob('*.ips'))
+          lines=[f'Crash files analyzed: {len(files)}','']
+          signatures=[]
+          for path in files:
+              text=path.read_text(errors='replace')
+              objs=parse_objects(text)
+              header=objs[0] if objs else {}
+              body=objs[-1] if objs else {}
+              proc=body.get('procName') or header.get('app_name') or path.name.split('-')[0]
+              exception=body.get('exception') or {}
+              termination=body.get('termination') or {}
+              fault=body.get('faultingThread')
+              threads=body.get('threads') or []
+              images=body.get('usedImages') or []
+              frames=[]
+              if isinstance(fault,int) and 0 <= fault < len(threads):
+                  frames=(threads[fault].get('frames') or [])[:18]
+              signature=(proc,str(exception.get('type')),str(exception.get('signal')),str(termination.get('namespace')),str(termination.get('code')))
+              signatures.append(signature)
+
+              lines += [f'=== {path.name} ===',
+                        f'process={proc}',
+                        f'captureTime={body.get("captureTime") or header.get("timestamp") or "unknown"}',
+                        f'exception_type={exception.get("type")}',
+                        f'exception_signal={exception.get("signal")}',
+                        f'exception_codes={exception.get("codes") or exception.get("rawCodes")}',
+                        f'termination_namespace={termination.get("namespace")}',
+                        f'termination_code={termination.get("code")}',
+                        f'termination_indicator={termination.get("indicator")}',
+                        f'termination_reason={termination.get("byProc") or termination.get("reason")}',
+                        f'faultingThread={fault}',
+                        f'gif2ani_text_reference={"Gif2Ani" in text or "gif2ani" in text.lower()}',
+                        f'memory_reference={any(k in text for k in ("EXC_RESOURCE", "MEMORY", "memorystatus", "jetsam"))}',
+                        'faulting_frames:']
+              for i,frame in enumerate(frames):
+                  symbol=frame.get('symbol') or frame.get('symbolLocation') or ''
+                  lines.append(f'  {i:02d} {image_name(frame,images)} {symbol} offset={frame.get("imageOffset")}')
+              relevant=[]
+              for image in images:
+                  name=(image.get('name') or '')
+                  p=(image.get('path') or '')
+                  combined=(name+' '+p).lower()
+                  if any(token in combined for token in ('gif2ani','substrate','ellekit','libhooker')):
+                      relevant.append(name or Path(p).name)
+              lines.append('relevant_images=' + (', '.join(relevant) if relevant else 'none-listed'))
+              for key in ('asi','ktriageinfo','vmSummary','memoryStatus','legacyInfo'):
+                  value=body.get(key)
+                  if value:
+                      rendered=str(value).replace('\n',' ')[:1200]
+                      lines.append(f'{key}={rendered}')
+              lines.append('')
+
+          lines += ['=== Signature counts ===']
+          for sig,count in Counter(signatures).most_common():
+              lines.append(f'{count}x process={sig[0]} exception={sig[1]} signal={sig[2]} termination={sig[3]}/{sig[4]}')
+          Path('crash-analysis.txt').write_text('\n'.join(lines)+'\n')
+          print(Path('crash-analysis.txt').read_text())
+          PY
+      - name: Upload private crash evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gif2ani-crash-analysis-${{ github.run_id }}
+          path: |
+            crashlogs/*.ips
+            crash-analysis.txt
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Publish sanitized analysis
+        if: always()
+        env:
+          COPY_OUTCOME: ${{ steps.copy_logs.outcome }}
+          PARSE_OUTCOME: ${{ steps.parse.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          {
+            echo "Gif2Ani Crash Analysis"
+            echo "run_id=${GITHUB_RUN_ID}"
+            echo "copy_logs=${COPY_OUTCOME}"
+            echo "parse=${PARSE_OUTCOME}"
+            echo
+            if [ -f crash-analysis.txt ]; then cat crash-analysis.txt; else echo "No analysis produced."; fi
+          } > remote/gif2ani-crash-analysis.txt
+          git add remote/gif2ani-crash-analysis.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record Gif2Ani crash analysis [skip ci]"
+            git push origin HEAD:main
+          fi
