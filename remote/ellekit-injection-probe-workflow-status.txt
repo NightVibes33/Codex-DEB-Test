@@ -1,0 +1,22 @@
+ElleKit Injection Probe Workflow Status
+run_id=30169992162
+status=in_progress
+conclusion=None
+event=push
+head_sha=3aeab626055859829f7de82c5bd8a5ba3c0edb27
+created_at=2026-07-25T18:37:17Z
+updated_at=2026-07-25T18:37:27Z
+job=resolve-environment status=completed conclusion=success id=89709392775
+  step=1 Set up job status=completed conclusion=success
+  step=2 Run set -euo pipefail status=completed conclusion=success
+  step=3 Complete job status=completed conclusion=success
+job=probe status=in_progress conclusion=None id=89709400718
+  step=1 Set up job status=completed conclusion=success
+  step=2 Run actions/checkout@v4 status=completed conclusion=success
+  step=3 Build constructor-only probe status=completed conclusion=success
+  step=4 Run tailscale/github-action@v4 status=completed conclusion=success
+  step=5 Upload and activate probe status=in_progress conclusion=None
+  step=6 Reconnect, inspect, and remove probe files status=pending conclusion=None
+  step=7 Publish result status=pending conclusion=None
+  step=13 Post Run tailscale/github-action@v4 status=pending conclusion=None
+  step=14 Post Run actions/checkout@v4 status=pending conclusion=None
