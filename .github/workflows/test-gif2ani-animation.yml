@@ -115,9 +115,21 @@ jobs:
           media='/var/mobile/Library/Application Support/Gif2Ani'
           prefs='/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist'
           marker='/var/mobile/Media/gif2ani-animation-test.marker'
+
+          write_disabled() {
+            cat > "$prefs" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict><key>isEnabled</key><false/><key>pendingReady</key><false/><key>imageTransformation</key><string>resizeAspect</string><key>customLoop</key><real>-1</real><key>customDuration</key><real>-1</real><key>backgroundColor</key><string>#020308</string></dict></plist>
+          PLIST
+            chown mobile:mobile "$prefs"
+            chmod 0644 "$prefs"
+          }
+
           mkdir -p "$media"
           chmod 0777 "$media"
-          rm -f "$media/Pending.gif" "$media/Rejected.gif" "$media/load-in-progress" "$media/runtime-status.plist"
+          write_disabled
+          rm -f "$media/Pending.gif" "$media/Active.gif" "$media/Rejected.gif" "$media/load-in-progress" "$media/runtime-status.plist"
           cp /var/mobile/Media/DarkSword-Test.gif "$media/Active.gif"
           chown mobile:mobile "$media/Active.gif"
           chmod 0644 "$media/Active.gif"
@@ -136,15 +148,56 @@ jobs:
           chown mobile:mobile "$prefs"
           chmod 0644 "$prefs"
           touch "$marker"
-          echo '=== PRE-TEST ==='
-          ls -l "$media/Active.gif" "$prefs"
-          ps ax | grep -E '[b]ackboardd|[S]pringBoard' || true
-          if [ -x /var/jb/usr/bin/sbreload ]; then
-            /var/jb/usr/bin/sbreload
-          else
-            /var/jb/usr/bin/killall -9 SpringBoard 2>/dev/null || true
+
+          echo '=== APPLY PREFERENCES ==='
+          if [ -x /var/jb/usr/bin/notifyutil ]; then
+            /var/jb/usr/bin/notifyutil -p 'com.nightvibes33.gif2ani/ReloadPrefs' || true
+          elif command -v notifyutil >/dev/null 2>&1; then
+            notifyutil -p 'com.nightvibes33.gif2ani/ReloadPrefs' || true
           fi
+          sleep 3
+          cat "$media/runtime-status.plist" 2>/dev/null || true
+
+          if ! grep -a -q 'preferences-reloaded-without-media-decode' "$media/runtime-status.plist" 2>/dev/null; then
+            echo 'notification_reload_not_confirmed=yes'
+            oldbb=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')
+            /var/jb/usr/bin/killall -9 backboardd 2>/dev/null || true
+            for attempt in $(seq 1 45); do
+              newbb=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')
+              [ -n "$newbb" ] && [ "$newbb" != "$oldbb" ] && break
+              sleep 1
+            done
+            sleep 6
+          fi
+
+          bbpid=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')
+          oldsb=$(ps ax | awk '/[S]pringBoard/{print $1; exit}')
+          echo "backboardd_before=$bbpid"
+          echo "springboard_before=$oldsb"
+          echo '=== TRIGGER SPRINGBOARD-ONLY RESPRING ==='
+          /var/jb/usr/bin/killall -9 SpringBoard 2>/dev/null || true
+          for attempt in $(seq 1 45); do
+            newsb=$(ps ax | awk '/[S]pringBoard/{print $1; exit}')
+            [ -n "$newsb" ] && [ "$newsb" != "$oldsb" ] && break
+            sleep 1
+          done
           sleep 12
+          bbafter=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')
+          echo "backboardd_after_first=$bbafter"
+          if [ "$bbafter" != "$bbpid" ]; then
+            echo 'backboardd_restarted_during_first_respring=yes'
+            bbpid="$bbafter"
+            oldsb=$(ps ax | awk '/[S]pringBoard/{print $1; exit}')
+            sleep 5
+            /var/jb/usr/bin/killall -9 SpringBoard 2>/dev/null || true
+            for attempt in $(seq 1 45); do
+              newsb=$(ps ax | awk '/[S]pringBoard/{print $1; exit}')
+              [ -n "$newsb" ] && [ "$newsb" != "$oldsb" ] && break
+              sleep 1
+            done
+            sleep 12
+          fi
+
           echo '=== RUNTIME STATUS ==='
           cat "$media/runtime-status.plist" 2>/dev/null || echo runtime_status=missing
           echo '=== MEDIA SLOTS ==='
@@ -153,28 +206,14 @@ jobs:
           done
           crashes=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -newer "$marker" -print 2>/dev/null | wc -l | tr -d ' ')
           echo "new_crash_reports=$crashes"
-          success=0
           if [ "$crashes" = "0" ] && [ -f "$media/runtime-status.plist" ] && grep -a -q 'custom-animation-stable' "$media/runtime-status.plist" && [ -f "$media/Active.gif" ] && [ ! -e "$media/Rejected.gif" ] && [ ! -e "$media/load-in-progress" ]; then
-            success=1
-          fi
-          if [ "$success" = "1" ]; then
             echo gif2ani_animation_test=success
             rm -f /var/mobile/Media/DarkSword-Test.gif
             exit 0
           fi
+
           echo gif2ani_animation_test=failure
-          python3 - <<'PY' 2>/dev/null || true
-          import plistlib
-          p='/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist'
-          try:
-              d=plistlib.load(open(p,'rb'))
-          except Exception:
-              d={}
-          d['isEnabled']=False
-          plistlib.dump(d,open(p,'wb'))
-          PY
-          chown mobile:mobile "$prefs" 2>/dev/null || true
-          chmod 0644 "$prefs" 2>/dev/null || true
+          write_disabled
           rm -f "$media/Active.gif" "$media/load-in-progress" /var/mobile/Media/DarkSword-Test.gif
           if [ "$crashes" != "0" ]; then /var/jb/usr/bin/killall -9 backboardd 2>/dev/null || true; fi
           exit 92
