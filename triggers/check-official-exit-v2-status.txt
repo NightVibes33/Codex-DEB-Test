@@ -1,2 +1,3 @@
 check=official-exit-v2-status
-requested_at=2026-07-25T18:30:00-05:00
+requested_at=2026-07-25T18:31:00-05:00
+reason=retry-after-workflow-registration
