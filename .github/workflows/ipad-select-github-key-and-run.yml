@@ -1,4 +1,4 @@
-name: iPad select GitHub SSH key and run patch
+name: iPad use existing GitHub SSH key and run patch
 
 on:
   workflow_dispatch:
@@ -68,7 +68,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends openssh-client sshpass
 
-      - name: Select existing iPad GitHub key and run patch
+      - name: Use existing iPad GitHub key and run patch
         env:
           IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
           SSHPASS: ${{ secrets.IPAD_PASSWORD }}
@@ -82,49 +82,35 @@ jobs:
 
           cat > /tmp/select-key.sh <<'REMOTE'
           set -eu
-          export HOME=/var/mobile
           export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
-          SSH_DIR="$HOME/.ssh"
           REPO=/var/mobile/Documents/DarkSword-Workspace/Dopamine
-          mkdir -p "$SSH_DIR"
-          chmod 700 "$SSH_DIR"
+          KEY=/var/root/.ssh/darksword_github_ed25519
+          KNOWN_HOSTS=/var/root/.ssh/known_hosts
 
-          echo '=== Existing SSH identities ==='
-          found=0
-          selected=''
-          for key in "$SSH_DIR"/*; do
-              [ -f "$key" ] || continue
-              case "$key" in
-                  *.pub|*/authorized_keys|*/known_hosts|*/known_hosts.old|*/config|*/environment|*/github-ssh-wrapper*) continue ;;
-              esac
-              if ! ssh-keygen -y -f "$key" >/dev/null 2>&1; then
-                  continue
-              fi
-              found=$((found + 1))
-              chmod 600 "$key"
-              printf 'candidate=%s fingerprint=' "$(basename "$key")"
-              ssh-keygen -lf "$key" | awk '{print $2, $4}'
-              auth_output="$(ssh -i "$key" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=accept-new -T git@github.com </dev/null 2>&1 || true)"
-              if printf '%s' "$auth_output" | grep -q 'successfully authenticated'; then
-                  selected="$key"
-                  printf 'github_auth=success key=%s\n' "$(basename "$key")"
-                  break
-              fi
-              printf 'github_auth=not_selected key=%s\n' "$(basename "$key")"
-          done
+          echo '=== Existing GitHub SSH identity ==='
+          test -f "$KEY" || { echo 'existing_key=missing'; exit 40; }
+          chmod 700 /var/root/.ssh
+          chmod 600 "$KEY"
+          ssh-keyscan -T 15 github.com >> "$KNOWN_HOSTS" 2>/dev/null || true
+          sort -u "$KNOWN_HOSTS" -o "$KNOWN_HOSTS"
+          chmod 600 "$KNOWN_HOSTS"
+          printf 'key_name=%s fingerprint=' "$(basename "$KEY")"
+          ssh-keygen -lf "$KEY" | awk '{print $2, $4}'
 
-          printf 'private_key_candidates=%s\n' "$found"
-          if [ -z "$selected" ]; then
-              echo 'github_auth=failure_no_existing_key_was_accepted'
+          auth_output="$(ssh -i "$KEY" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" -T git@github.com </dev/null 2>&1 || true)"
+          if ! printf '%s' "$auth_output" | grep -q 'successfully authenticated'; then
+              echo 'github_auth=failure'
+              printf '%s\n' "$auth_output"
               exit 41
           fi
+          echo 'github_auth=success'
 
-          export GIT_SSH_COMMAND="ssh -i $selected -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new"
+          export GIT_SSH_COMMAND="ssh -i $KEY -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS"
           cd "$REPO"
+          git remote set-url origin git@github.com:NightVibes33/Dopamine.git
           git config core.sshCommand "$GIT_SSH_COMMAND"
-          printf 'repo_remote='; git remote get-url origin
           git ls-remote origin HEAD >/dev/null
-          printf 'selected_key=%s\n' "$(basename "$selected")"
+          printf 'repo_remote='; git remote get-url origin
           echo 'git_remote_auth=success'
           REMOTE
 
