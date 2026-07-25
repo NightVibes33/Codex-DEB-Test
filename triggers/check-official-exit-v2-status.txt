@@ -1,3 +1,3 @@
-check=official-p1ctl-exitsafe-probe-status
-requested_at=2026-07-25T14:55:00-05:00
-reason=refresh-live-p1ctl-job-state-2
+check=p1ctl-probe-cleanup-status
+requested_at=2026-07-25T21:25:00-05:00
+reason=inspect-cleanup-run
