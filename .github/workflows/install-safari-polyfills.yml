@@ -1,0 +1,138 @@
+name: Install Safari Polyfills on iPad
+
+on:
+  workflow_dispatch:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.actor == 'NightVibes33' && github.event.issue.title == '[Install Safari Polyfills]')
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name']); raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  install:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.actor == 'NightVibes33' && github.event.issue.title == '[Install Safari Polyfills]')
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Join Tailscale
+        id: tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          ping: ${{ env.IPAD_HOST }}
+          version: latest
+      - name: Prepare SSH
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends openssh-client sshpass
+          mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+          ssh-keyscan -T 20 -H -p 22 "$IPAD_HOST" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+      - name: Install maintained Polyfills package
+        id: install_polyfills
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -uo pipefail
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=20 -o ServerAliveInterval=5 -o ServerAliveCountMax=3 \
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            mobile@"$IPAD_HOST" 'sudo -S -p "" sh -c '\''
+              set -eu
+              echo "=== BEFORE ==="
+              dpkg-query -s com.ps.polyfills 2>/dev/null | grep -E "^(Status|Version):" || echo "polyfills=not-installed"
+              mkdir -p /var/jb/etc/apt/sources.list.d
+              printf "%s\n" "deb https://poomsmart.github.io/repo/ ./" > /var/jb/etc/apt/sources.list.d/poomsmart.list
+              echo "=== APT UPDATE ==="
+              apt-get update
+              echo "=== CANDIDATE ==="
+              apt-cache policy com.ps.polyfills || true
+              echo "=== INSTALL ==="
+              DEBIAN_FRONTEND=noninteractive apt-get install -y com.ps.polyfills
+              echo "=== VERIFY PACKAGE ==="
+              dpkg-query -s com.ps.polyfills | grep -E "^(Package|Status|Version|Architecture):"
+              version=$(dpkg-query -W com.ps.polyfills | cut -f2)
+              test -n "$version"
+              test -f /var/jb/Library/MobileSubstrate/DynamicLibraries/Polyfills.dylib
+              test -f /var/jb/Library/MobileSubstrate/DynamicLibraries/Polyfills.plist
+              test -d /var/jb/Library/PreferenceBundles/PolyfillsPreferences.bundle
+              echo "polyfills_version=$version"
+              echo "polyfills_files=present"
+              killall -9 MobileSafari 2>/dev/null || true
+              killall -9 SafariViewService 2>/dev/null || true
+              killall -9 com.apple.WebKit.WebContent 2>/dev/null || true
+              echo "safari_processes_restarted=yes"
+            '\''' 2>&1 | tee safari-polyfills-install.txt
+          code=${PIPESTATUS[1]}
+          set -e
+          echo "install_ssh_exit=$code" | tee -a safari-polyfills-install.txt
+          exit "$code"
+      - name: Publish sanitized status
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          TAILSCALE_OUTCOME: ${{ steps.tailscale.outcome }}
+          INSTALL_OUTCOME: ${{ steps.install_polyfills.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('safari-polyfills-install.txt').read_text(errors='replace') if Path('safari-polyfills-install.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=[
+            'Safari Polyfills Installation',
+            f"run_id={os.environ.get('GITHUB_RUN_ID','')}",
+            f"tailscale={os.environ.get('TAILSCALE_OUTCOME','')}",
+            f"install={os.environ.get('INSTALL_OUTCOME','')}",
+            '', '--- sanitized output ---', *text.splitlines()[-260:]
+          ]
+          Path('remote/safari-polyfills-status.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/safari-polyfills-status.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record Safari Polyfills installation [skip ci]"
+            git push origin HEAD:main
+          fi
