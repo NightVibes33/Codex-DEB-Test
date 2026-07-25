@@ -1,0 +1,41 @@
+name: Patch Image Enumerator V2 VM API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/patch-image-enumerator-v2-vm.txt
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Replace unsupported mach_vm API
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.github/workflows/enumerate-jailbreak-process-images-v2.yml')
+          s=p.read_text()
+          s=s.replace('          #include <mach/mach_vm.h>\n','')
+          s=s.replace('mach_vm_address_t','vm_address_t')
+          s=s.replace('mach_vm_size_t','vm_size_t')
+          s=s.replace('mach_vm_read_overwrite','vm_read_overwrite')
+          p.write_text(s)
+          PY
+          grep -nE 'vm_read_overwrite|vm_address_t|vm_size_t|mach_vm' .github/workflows/enumerate-jailbreak-process-images-v2.yml
+      - name: Commit patch
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          git add .github/workflows/enumerate-jailbreak-process-images-v2.yml
+          if ! git diff --cached --quiet; then
+            git commit -m "Use supported vm_read_overwrite API [skip ci]"
+            git push origin HEAD:main
+          fi
