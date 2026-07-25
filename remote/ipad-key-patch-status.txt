@@ -1,0 +1,13 @@
+iPad GitHub SSH key selection and adaptive patch
+run_id=30151132885
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30151132885
+source_commit=3b37785deee328c7aad9ceb8b32b2a6e4e697d34
+
+--- sanitized output ---
+=== Existing SSH identities ===
+candidate=id_ed25519 fingerprint=SHA256:YRKLYeQN2Oca6KsPX8HE9yQ8qbLZ7PMRa3BOqvKn3KQ (ED25519)
+github_auth=success key=id_ed25519
+private_key_candidates=1
+repo_remote=git@github.com:NightVibes33/Dopamine.git
+fatal: cannot run ssh -i /var/mobile/.ssh/id_ed25519 -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new: No such file or directory
+fatal: unable to fork
