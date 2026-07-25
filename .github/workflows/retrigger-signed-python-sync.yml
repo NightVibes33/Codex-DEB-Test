@@ -1,0 +1,31 @@
+name: Retrigger Signed Python Sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/retrigger-signed-python-sync-*.txt
+
+permissions:
+  contents: write
+
+jobs:
+  retrigger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Touch signed Python trigger
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          {
+            echo "sync=launchd-flags-signed-python"
+            echo "requested_by_run=${GITHUB_RUN_ID}"
+            echo "requested_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "state=gif2ani-disabled-no-gif"
+          } > triggers/sync-launchd-flags-python.txt
+          git add triggers/sync-launchd-flags-python.txt
+          git commit -m "Retrigger signed Python launchd sync"
+          git push origin HEAD:main
