@@ -1,3 +1,3 @@
-patch=install-313-theos-path
-requested_at=2026-07-25T17:16:00-05:00
-reason=retry-after-workflow-registration
+patch=install-313-complete-toolchain
+requested_at=2026-07-25T17:27:00-05:00
+reason=mirror-proven-final-builder
