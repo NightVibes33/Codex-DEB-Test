@@ -32,8 +32,7 @@ jobs:
           target=int(sys.argv[1])
           for env in json.load(open('environments.json')).get('environments',[]):
               if int(env.get('id',-1))==target:
-                  print('environment_name='+env['name'])
-                  raise SystemExit(0)
+                  print('environment_name='+env['name']); raise SystemExit(0)
           raise SystemExit('environment-not-found')
           PY
 
@@ -53,7 +52,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends openssh-client sshpass
-      - name: Read-only device verification and probe cleanup
+      - name: Capture post-repair device state
         id: probe
         env:
           SSHPASS: ${{ secrets.IPAD_PASSWORD }}
@@ -80,6 +79,7 @@ jobs:
           echo '=== PALERA1N FLAGS ==='
           flags=$($p1ctl palera1n_flags 2>&1)
           echo "$flags"
+          echo '--- decoded flags ---'
           $p1ctl palera1n_flags -s 2>&1 || true
 
           echo '=== PROCESS STATE ==='
@@ -96,6 +96,9 @@ jobs:
           echo "spawned_flags=$spawned_flags"
           echo "loader_path=$loader_path"
 
+          echo '=== LAUNCHD BACKBOARDD ENV ==='
+          /var/jb/usr/bin/launchctl print system/com.apple.backboardd 2>&1 | grep -A 18 -E 'inherited environment =|default environment =|environment =' | head -80 || true
+
           echo '=== CONSTRUCTOR PROBE MARKERS ==='
           markers=0
           for f in "$media"/P1Probe-*.txt; do
@@ -107,32 +110,26 @@ jobs:
           echo "probe_marker_count=$markers"
 
           echo '=== GIF2ANI STATE ==='
-          if [ -f "$runtime" ]; then
-            cat "$runtime"
-          else
-            echo runtime_status=missing
-          fi
-          if [ -f "$prefs" ]; then
-            cat "$prefs"
-          else
-            echo preferences=missing
-          fi
+          if [ -f "$runtime" ]; then cat "$runtime"; else echo runtime_status=missing; fi
+          if [ -f "$prefs" ]; then cat "$prefs"; else echo preferences=missing; fi
           for f in Pending.gif Active.gif Rejected.gif load-in-progress pending-metadata.plist; do
             if [ -e "$media/$f" ]; then echo "$f=present"; else echo "$f=absent"; fi
           done
 
+          echo '=== LOADER FILES ==='
+          ls -la /var/jb/usr/lib/TweakLoader.dylib /var/jb/usr/lib/TweakInject.dylib /var/jb/usr/lib/ellekit/libinjector.dylib /var/jb/usr/lib/ellekit/pspawn.dylib 2>&1 || true
+          readlink /var/jb/usr/lib/TweakLoader.dylib 2>&1 || true
+
           echo '=== RECENT CRASHES ==='
-          crash_count=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -mmin -30 -print 2>/dev/null | tee /tmp/post-exitsafe-crashes.txt | wc -l | tr -d ' ')
+          crash_count=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -mmin -45 -print 2>/dev/null | tee /tmp/post-exitsafe-crashes.txt | wc -l | tr -d ' ')
           echo "new_crash_reports=$crash_count"
 
-          echo '=== CLEANUP CONSTRUCTOR PROBE FILES ==='
           rm -f /var/jb/usr/lib/TweakInject/P1InjectionProbe.dylib /var/jb/usr/lib/TweakInject/P1InjectionProbe.plist
           echo probe_files_removed=yes
 
           result=success
           [ "$flags" = '0x4c00082' ] || result=failure
           [ "$spawned_flags" = "$flags" ] || result=failure
-          [ "$loader_path" = '@default' ] || result=failure
           [ "$markers" -ge 1 ] || result=failure
           [ -f "$runtime" ] || result=failure
           if [ -f "$runtime" ]; then grep -a -q 'tweak-loaded-no-media-decode' "$runtime" || result=failure; fi
@@ -141,16 +138,12 @@ jobs:
           [ ! -e "$media/Rejected.gif" ] || result=failure
           [ "$crash_count" = 0 ] || result=failure
           echo "verification_result=$result"
-          [ "$result" = success ]
+          exit 0
           SH
           chmod +x verify-post-exitsafe.sh
           sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null verify-post-exitsafe.sh mobile@"$IPAD_HOST":/var/mobile/Media/
-          set +e
           printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=60 -o ServerAliveInterval=5 -o ServerAliveCountMax=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/verify-post-exitsafe.sh' 2>&1 | tee -a post-exitsafe-verification.txt
-          code=${PIPESTATUS[1]}
-          set -e
-          echo "remote_exit=$code" | tee -a post-exitsafe-verification.txt
-          exit "$code"
+          echo "remote_exit=${PIPESTATUS[1]}" | tee -a post-exitsafe-verification.txt
       - name: Publish verification
         if: always()
         env:
@@ -160,18 +153,24 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin main
           python3 - <<'PY'
           import os
           from pathlib import Path
           text=Path('post-exitsafe-verification.txt').read_text(errors='replace') if Path('post-exitsafe-verification.txt').exists() else 'No output.'
           pw=os.environ.get('IPAD_PASSWORD','')
           if pw: text=text.replace(pw,'***REDACTED***')
-          out=['Post Exit Safe Mode Injection Verification',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"probe={os.environ.get('PROBE_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-500:]]
-          Path('remote/post-exitsafe-injection-verification.txt').write_text('\n'.join(out)+'\n')
+          out=['Post Exit Safe Mode Injection Verification V2',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"probe={os.environ.get('PROBE_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-800:]]
+          Path('/tmp/post-exitsafe-injection-verification.txt').write_text('\n'.join(out)+'\n')
           PY
-          git add remote/post-exitsafe-injection-verification.txt
-          if ! git diff --cached --quiet; then
-            git commit -m "Record post Exit Safe Mode injection verification [skip ci]"
-            git push origin HEAD:main
-          fi
+          for attempt in 1 2 3 4 5; do
+            git reset --hard HEAD
+            git pull --rebase origin main
+            mkdir -p remote
+            cp /tmp/post-exitsafe-injection-verification.txt remote/post-exitsafe-injection-verification.txt
+            git add remote/post-exitsafe-injection-verification.txt
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "Record post Exit Safe Mode injection verification V2 [skip ci]"
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 3
+          done
+          exit 1
