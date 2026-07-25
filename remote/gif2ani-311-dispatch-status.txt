@@ -1,0 +1,7 @@
+Gif2Ani 3.1.1 Runtime Dispatch
+run_id=30166761193
+outcome=success
+
+curl_exit=0
+http_code=204
+runtime_test_dispatched=yes
