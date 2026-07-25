@@ -33,12 +33,14 @@ jobs:
           IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
         run: |
           set -euo pipefail
+          : > validation-error.txt
           if [ -z "$TAILSCALE_AUTHKEY" ]; then
-            echo "Missing repository secret: TAILSCALE_AUTHKEY" >&2
-            exit 1
+            echo "Missing repository secret: TAILSCALE_AUTHKEY" | tee -a validation-error.txt >&2
           fi
           if [ -z "$IPAD_PASSWORD" ]; then
-            echo "Missing repository secret: IPAD_PASSWORD" >&2
+            echo "Missing repository secret: IPAD_PASSWORD" | tee -a validation-error.txt >&2
+          fi
+          if [ -s validation-error.txt ]; then
             exit 1
           fi
 
@@ -143,9 +145,12 @@ jobs:
               f"tailscale={os.environ.get('TAILSCALE_OUTCOME', '')}",
               f"install_ssh={os.environ.get('INSTALL_SSH_OUTCOME', '')}",
               f"ssh={os.environ.get('SSH_OUTCOME', '')}",
-              "",
-              "--- sanitized SSH output ---",
           ]
+          validation = Path("validation-error.txt")
+          if validation.exists() and validation.stat().st_size:
+              lines.extend(["", "--- validation error ---"])
+              lines.extend(validation.read_text(errors="replace").splitlines())
+          lines.extend(["", "--- sanitized SSH output ---"])
           output = Path("ipad-output.txt")
           if output.exists():
               text = output.read_text(errors="replace")
