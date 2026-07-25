@@ -1,0 +1,231 @@
+name: Validate Race-Fixed Gif2Ani 3.1.3
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - triggers/test-gif2ani-3.1.3-racefix.txt
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gif2ani-313-racefix-device
+  cancel-in-progress: true
+
+env:
+  IPAD_HOST: "100.116.117.65"
+  SOURCE_REPO: "https://github.com/NightVibes33/Dark-Boot.git"
+  SOURCE_COMMIT: "6fc336a6d02827f95d3bbeb29cedba935de67a34"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1)) == target:
+                  print('environment_name='+env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  validate:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build exact race-fixed source
+        id: build
+        env:
+          THEOS: /opt/theos
+          CI: "1"
+          SHELL: /bin/bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            bash curl build-essential fakeroot rsync perl git libxml2 dpkg-dev \
+            unzip xz-utils ca-certificates python3 python3-pil file openssh-client sshpass
+          sudo rm -rf /opt/theos
+          sudo mkdir -p /opt
+          sudo chown "$USER:$USER" /opt
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          git clone "$SOURCE_REPO" gif2ani-source
+          cd gif2ani-source
+          git checkout "$SOURCE_COMMIT"
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          set +e
+          make clean package FINALPACKAGE=1 2>&1 | tee ../gif2ani-313-racefix-build.txt
+          code=${PIPESTATUS[0]}
+          set -e
+          echo "build_exit=$code" | tee -a ../gif2ani-313-racefix-build.txt
+          test "$code" -eq 0
+          DEB="$(find packages -maxdepth 1 -type f -name '*.deb' | head -n1)"
+          test -n "$DEB"
+          test "$(dpkg-deb --field "$DEB" Version)" = "3.1.3"
+          cp "$DEB" ../Gif2Ani-3.1.3-racefix.deb
+          cd ..
+          sha256sum Gif2Ani-3.1.3-racefix.deb | tee -a gif2ani-313-racefix-build.txt
+
+      - name: Generate 84-frame test GIF
+        id: generate
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from PIL import Image, ImageDraw
+          frames=[]
+          for i in range(84):
+              im=Image.new('RGB',(320,240),(0,0,0))
+              d=ImageDraw.Draw(im)
+              x=(i*7)%268
+              y=65+((i*5)%110)
+              d.rectangle((x,y,x+52,y+52),fill=(245,245,255))
+              d.rectangle((0,0,319,239),outline=((i*5)%256,70,255),width=3)
+              d.line((0,120,319,120),fill=(30,80,200),width=2)
+              d.ellipse((145+(i%11),105-(i%7),175+(i%11),135-(i%7)),outline=(255,40,110),width=2)
+              frames.append(im)
+          frames[0].save('Gif2Ani-84-frame-racefix.gif',save_all=True,append_images=frames[1:],duration=400,loop=0,optimize=False,disposal=2)
+          check=Image.open('Gif2Ani-84-frame-racefix.gif')
+          assert check.n_frames == 84
+          assert check.size == (320,240)
+          print('source_frames=84 duration_seconds=33.6 dimensions=320x240')
+          PY
+          bytes=$(stat -c %s Gif2Ani-84-frame-racefix.gif)
+          echo "input_bytes=$bytes" | tee gif2ani-313-racefix-gif.txt
+          test "$bytes" -gt 0
+          test "$bytes" -lt 26214400
+          sha256sum Gif2Ani-84-frame-racefix.gif | tee -a gif2ani-313-racefix-gif.txt
+
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Run physical test with mandatory cleanup
+        id: physical
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 60); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          echo "connected=$connected" | tee gif2ani-313-racefix-device.txt
+          test "$connected" -eq 1
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            Gif2Ani-3.1.3-racefix.deb Gif2Ani-84-frame-racefix.gif scripts/validate-gif2ani-313-racefix.sh \
+            mobile@"$IPAD_HOST":/var/mobile/Media/
+          chmod_cmd='chmod 0755 /var/mobile/Media/validate-gif2ani-313-racefix.sh'
+          sshpass -e ssh -p 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" "$chmod_cmd"
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=90 -o ServerAliveInterval=8 -o ServerAliveCountMax=10 \
+            -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/validate-gif2ani-313-racefix.sh' \
+            2>&1 | tee -a gif2ani-313-racefix-device.txt
+          code=${PIPESTATUS[1]}
+          set -e
+          echo "remote_exit=$code" | tee -a gif2ani-313-racefix-device.txt
+          exit "$code"
+
+      - name: Verify final disabled state
+        if: always()
+        id: final
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 45); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          echo "final_connected=$connected" | tee -a gif2ani-313-racefix-device.txt
+          test "$connected" -eq 1
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=30 \
+            -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh -c '\''
+              media="/var/mobile/Library/Application Support/Gif2Ani"
+              prefs="/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist"
+              version=$(dpkg-query -W -f="${Version}" com.nightvibes33.gif2ani)
+              echo "final_version=$version"
+              test "$version" = "3.1.3"
+              grep -a -q "<key>isEnabled</key><false/>" "$prefs"
+              test ! -e "$media/Pending.gif"
+              test ! -e "$media/Active.gif"
+              test ! -e "$media/Rejected.gif"
+              test ! -e "$media/load-in-progress"
+              bb=$(ps ax | awk "/[b]ackboardd/{print \$1; exit}")
+              env=$(ps eww -p "$bb" 2>/dev/null || true)
+              printf "%s\n" "$env" | grep -q "JB_PINFO_FLAGS=0x4c00082"
+              echo "final_backboardd=$bb"
+              echo final_state=gif2ani_3.1.3_racefix_installed_disabled_no_media
+            '\''' 2>&1 | tee -a gif2ani-313-racefix-device.txt
+
+      - name: Publish result
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          GENERATE_OUTCOME: ${{ steps.generate.outcome }}
+          PHYSICAL_OUTCOME: ${{ steps.physical.outcome }}
+          FINAL_OUTCOME: ${{ steps.final.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          build=Path('gif2ani-313-racefix-build.txt').read_text(errors='replace') if Path('gif2ani-313-racefix-build.txt').exists() else 'No build output.'
+          gif=Path('gif2ani-313-racefix-gif.txt').read_text(errors='replace') if Path('gif2ani-313-racefix-gif.txt').exists() else 'No GIF output.'
+          device=Path('gif2ani-313-racefix-device.txt').read_text(errors='replace') if Path('gif2ani-313-racefix-device.txt').exists() else 'No device output.'
+          text='\n'.join([
+              'Gif2Ani 3.1.3 Race-Fix Physical Validation',
+              f"run_id={os.environ.get('GITHUB_RUN_ID','')}",
+              f"source_commit={os.environ.get('SOURCE_COMMIT','')}",
+              f"build={os.environ.get('BUILD_OUTCOME','')}",
+              f"generate={os.environ.get('GENERATE_OUTCOME','')}",
+              f"physical={os.environ.get('PHYSICAL_OUTCOME','')}",
+              f"final={os.environ.get('FINAL_OUTCOME','')}",
+              '', '--- build output ---', build,
+              '', '--- generated GIF ---', gif,
+              '', '--- device output ---', device,
+          ])
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          Path('/tmp/gif2ani-313-racefix-status.txt').write_text(text+'\n')
+          PY
+          for attempt in 1 2 3 4 5; do
+            git reset --hard HEAD
+            git pull --rebase origin main
+            mkdir -p remote
+            cp /tmp/gif2ani-313-racefix-status.txt remote/gif2ani-313-racefix-status.txt
+            git add remote/gif2ani-313-racefix-status.txt
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "Record Gif2Ani 3.1.3 race-fix validation [skip ci]"
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 3
+          done
+          exit 1
