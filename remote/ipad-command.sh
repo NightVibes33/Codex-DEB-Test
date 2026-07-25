@@ -1,6 +1,6 @@
 #!/bin/sh
 set -eu
-export PATH="/var/jb/usr/bin:/var/jb/usr/usr/sbin:/var/jb/usr/sbin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
+export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
 export HOME=/var/mobile
 
 python3 <<'PY'
@@ -10,10 +10,9 @@ from pathlib import Path
 
 repo = Path('/var/mobile/Documents/DarkSword-Workspace/Dopamine')
 branch = 'ipad5/adaptive-lowmem-v1'
-expected_remote = '0ae85378a6294a424c8b63de0c72b8eb8161447f'
-expected_local = '027e478f8e16fd9d8044fc29cade307c65cb3715'
 ssh_key = Path('/var/mobile/.ssh/id_ed25519')
 ssh_wrapper = Path('/var/mobile/.ssh/github-ipad-ssh')
+workflow = repo / '.github/workflows/ipad5-adaptive-lowmem.yml'
 
 ssh_wrapper.write_text(
     '#!/bin/sh\n'
@@ -33,25 +32,160 @@ def run(args, check=True):
     if p.stdout:
         print(p.stdout.rstrip(), flush=True)
     if check and p.returncode != 0:
-        raise SystemExit(f'publish_error=command-failed:{args[0]}:{p.returncode}')
+        raise SystemExit(f'workflow_error=command-failed:{args[0]}:{p.returncode}')
     return p
 
-local = run(['git', 'rev-parse', 'HEAD']).stdout.strip()
-current_branch = run(['git', 'branch', '--show-current']).stdout.strip()
-print(f'current_branch={current_branch}')
-print(f'local_head={local}')
-if current_branch != branch or local != expected_local:
-    raise SystemExit('publish_error=unexpected-local-state')
-
 run(['git', 'fetch', 'origin', branch])
-remote = run(['git', 'rev-parse', 'FETCH_HEAD']).stdout.strip()
-print(f'remote_head_before={remote}')
-if remote != expected_remote:
-    raise SystemExit('publish_error=remote-branch-changed')
+run(['git', 'switch', branch])
+run(['git', 'reset', '--hard', f'origin/{branch}'])
+run(['git', 'config', 'user.name', 'NightVibes33 iPad'])
+run(['git', 'config', 'user.email', 'NightVibes33@users.noreply.github.com'])
 
-lease = f'--force-with-lease=refs/heads/{branch}:{expected_remote}'
-run(['git', 'push', lease, '-u', 'origin', f'HEAD:refs/heads/{branch}'])
+workflow.parent.mkdir(parents=True, exist_ok=True)
+workflow.write_text(r'''name: "Dopamine: iPad 5 adaptive DarkSword"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - ipad5/adaptive-lowmem-v1
+    paths:
+      - ".github/workflows/ipad5-adaptive-lowmem.yml"
+      - "Application/**"
+      - "BaseBin/**"
+      - "research/IPAD5_ADAPTIVE_LOWMEM_V1.md"
+
+concurrency:
+  group: ipad5-adaptive-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build adaptive iPad5 IPA
+    runs-on: macos-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout adaptive branch with submodules
+        uses: actions/checkout@v4
+        with:
+          ref: ipad5/adaptive-lowmem-v1
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Verify exact adaptive source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p output
+          test "$(git branch --show-current)" = "ipad5/adaptive-lowmem-v1"
+          grep -n 'iPad5-Adaptive' Application/Dopamine/Exploits/DarkSword/DarkSword.m
+          grep -n 'balanced-512MB' Application/Dopamine/Exploits/DarkSword/DarkSword.m
+          grep -n 'compact-384MB' Application/Dopamine/Exploits/DarkSword/DarkSword.m
+          grep -n 'minimum-256MB' Application/Dopamine/Exploits/DarkSword/DarkSword.m
+          grep -n 'surface_munlock(searchMappingAddress, searchMappingSize)' Application/Dopamine/Exploits/DarkSword/DarkSword.m
+          git diff --check HEAD^ HEAD
+          git diff HEAD^ HEAD -- Application/Dopamine/Exploits/DarkSword/DarkSword.m > output/adaptive-source.patch
+
+      - name: Xcode setup
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install Procursus
+        uses: dhinakg/procursus-action@main
+        with:
+          packages: ldid findutils sed coreutils make
+
+      - name: Install build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          brew install make libarchive openssl
+          echo "PATH=$(brew --prefix make)/libexec/gnubin:$PATH" >> "$GITHUB_ENV"
+
+      - name: Install Theos and iOS SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          export BASEDIR="$PWD"
+          export THEOS="$BASEDIR/theos"
+          mkdir -p "$THEOS"
+          curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos > install-theos.sh
+          gsed -E "/^\s*get_theos\s*$/,+1 s/^(\s*)(get_sdks)\s*$/\1mkdir -p \${THEOS}\/sdks\n\1touch \${THEOS}\/sdks\/sdk\n\1\2/g" -i install-theos.sh
+          bash install-theos.sh
+          curl -fL https://github.com/theos/sdks/releases/latest/download/iPhoneOS16.5.sdk.tar.xz -o "$THEOS/sdks/iPhoneOS16.5.sdk.tar.xz"
+          tar -xf "$THEOS/sdks/iPhoneOS16.5.sdk.tar.xz" -C "$THEOS/sdks"
+          rm "$THEOS/sdks/iPhoneOS16.5.sdk.tar.xz"
+
+      - name: Build and install trustcache
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/CRKatri/trustcache
+          cd trustcache
+          export CFLAGS="${CFLAGS:-} -I$(brew --prefix openssl)/include -arch arm64"
+          export LDFLAGS="${LDFLAGS:-} -L$(brew --prefix openssl)/lib -arch arm64"
+          gmake -j"$(sysctl -n hw.logicalcpu)" OPENSSL=1
+          sudo cp trustcache /opt/procursus/bin/
+
+      - name: Download bootstraps
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Application/Dopamine/Resources
+          ./download_bootstraps.sh
+
+      - name: Build adaptive IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          export BASEDIR="$PWD"
+          export THEOS="$BASEDIR/theos"
+          gmake -j"$(sysctl -n hw.logicalcpu)" NIGHTLY=1
+          test -s Application/Dopamine.ipa
+
+      - name: Package adaptive diagnostics
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp Application/Dopamine.ipa output/Dopamine-iPad5-DarkSword-adaptive.ipa
+          shasum -a 256 output/Dopamine-iPad5-DarkSword-adaptive.ipa > output/Dopamine-iPad5-DarkSword-adaptive.ipa.sha256
+          {
+            echo "profile=adaptive-lowmem-v1"
+            echo "repository=${GITHUB_REPOSITORY}"
+            echo "source_sha=$(git rev-parse HEAD)"
+            echo "source_short_sha=$(git rev-parse --short HEAD)"
+            echo "workflow_run=${GITHUB_RUN_ID}"
+            echo "workflow_attempt=${GITHUB_RUN_ATTEMPT}"
+            echo "built_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "xcode=$(xcodebuild -version | tr '\n' ' ')"
+            echo "submodules:"
+            git submodule status --recursive
+          } > output/adaptive-manifest.txt
+          find . -type d -name '*.dSYM' -prune -print > output/adaptive-dsym-paths.txt
+          if [ -s output/adaptive-dsym-paths.txt ]; then
+            tar -czf output/adaptive-dSYMs.tar.gz -T output/adaptive-dsym-paths.txt
+          fi
+
+      - name: Upload adaptive package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Dopamine-iPad5-DarkSword-adaptive
+          path: output/
+          if-no-files-found: error
+          retention-days: 14
+''')
+
+run(['git', 'diff', '--check'])
+run(['git', 'add', str(workflow.relative_to(repo))])
+run(['git', 'commit', '-m', 'Add adaptive iPad5 DarkSword build workflow'])
+head = run(['git', 'rev-parse', 'HEAD']).stdout.strip()
+run(['git', 'push', 'origin', f'HEAD:{branch}'])
 print(f'branch={branch}')
-print(f'pushed_head={local}')
-print('ipad_push=success')
+print(f'workflow_head={head}')
+print('workflow_push=success')
 PY
