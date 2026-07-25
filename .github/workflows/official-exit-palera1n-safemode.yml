@@ -77,7 +77,7 @@ jobs:
           MK
 
           cat > exitpale/main.c <<'CC'
-          #include <xpc/xpc.h>
+          #include "xpc/xpc.h"
           #include <stdint.h>
           #include <stdio.h>
 
