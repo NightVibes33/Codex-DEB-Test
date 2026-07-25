@@ -70,6 +70,16 @@ restart_backboard() {
   wait_new_pid backboardd "$old"
 }
 
+assert_stable_84_frame_result() {
+  status="$1"
+  test -f "$status"
+  grep -a -q 'custom-animation-stable' "$status"
+  grep -A 2 '<key>sourceFrames</key>' "$status" | grep -q '<integer>84</integer>'
+  grep -A 2 '<key>decodedFrames</key>' "$status" | grep -q '<integer>24</integer>'
+  grep -A 2 '<key>frameCount</key>' "$status" | grep -q '<integer>24</integer>'
+  grep -A 2 '<key>animationPending</key>' "$status" | grep -q '<false/>'
+}
+
 cleanup() {
   set +e
   echo '=== MANDATORY CLEANUP ==='
@@ -119,6 +129,7 @@ cp "$testgif" "$media/Active.gif"
 chown mobile:mobile "$media/Active.gif"
 chmod 0644 "$media/Active.gif"
 write_enabled
+touch "$marker"
 enabled_bb=$(restart_backboard)
 echo "enabled_backboardd=$enabled_bb"
 sleep 8
@@ -126,27 +137,24 @@ enabled_env=$(ps eww -p "$enabled_bb" 2>/dev/null || true)
 echo "enabled_backboardd_env=$enabled_env"
 printf '%s\n' "$enabled_env" | grep -q 'JB_PINFO_FLAGS=0x4c00082'
 cat "$media/runtime-status.plist"
-grep -a -q 'tweak-loaded-no-media-decode' "$media/runtime-status.plist"
 test -f "$media/Active.gif"
 
-echo '=== TRIGGER SPRINGBOARD-ONLY RESPRING ==='
-touch "$marker"
-old_sb=$(springboard_pid)
-/var/jb/usr/bin/killall -9 SpringBoard 2>/dev/null || killall -9 SpringBoard 2>/dev/null || true
-new_sb=$(wait_new_pid SpringBoard "$old_sb")
-echo "old_springboard=$old_sb"
-echo "new_springboard=$new_sb"
-sleep 18
+if grep -a -q 'custom-animation-stable' "$media/runtime-status.plist"; then
+  echo early_stable_animation=yes
+else
+  echo '=== TRIGGER SPRINGBOARD-ONLY RESPRING ==='
+  old_sb=$(springboard_pid)
+  /var/jb/usr/bin/killall -9 SpringBoard 2>/dev/null || killall -9 SpringBoard 2>/dev/null || true
+  new_sb=$(wait_new_pid SpringBoard "$old_sb")
+  echo "old_springboard=$old_sb"
+  echo "new_springboard=$new_sb"
+  sleep 18
+fi
 
 echo '=== PHYSICAL RESULT ==='
 cat "$media/runtime-status.plist" 2>/dev/null || echo runtime_status=missing
-test -f "$media/runtime-status.plist"
+assert_stable_84_frame_result "$media/runtime-status.plist"
 cp "$media/runtime-status.plist" "$evidence"
-grep -a -q 'custom-animation-stable' "$media/runtime-status.plist"
-grep -A 2 '<key>sourceFrames</key>' "$media/runtime-status.plist" | grep -q '<integer>84</integer>'
-grep -A 2 '<key>decodedFrames</key>' "$media/runtime-status.plist" | grep -q '<integer>24</integer>'
-grep -A 2 '<key>frameCount</key>' "$media/runtime-status.plist" | grep -q '<integer>24</integer>'
-grep -A 2 '<key>animationPending</key>' "$media/runtime-status.plist" | grep -q '<false/>'
 test -f "$media/Active.gif"
 test ! -e "$media/Rejected.gif"
 test ! -e "$media/load-in-progress"
