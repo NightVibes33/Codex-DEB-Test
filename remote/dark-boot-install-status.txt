@@ -1,7 +1,19 @@
 Dark-Boot 2.0.1 iPad Repair
-run_id=30160857046
+run_id=30160948032
 source_commit=6800cd10809ae3b442b218784a3180722f8a9560
-tailscale=skipped
-install_step=skipped
+tailscale=success
+install_step=success
 
-No install output.
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+(Reading database ... 19748 files and directories currently installed.)
+Preparing to unpack .../Dark-Boot-2.0.1-rootless.deb ...
+Unpacking com.nightvibes33.darkboot (2.0.1) over (2.0.0) ...
+Setting up com.nightvibes33.darkboot (2.0.1) ...
+Processing triggers for org.coolstar.sileo (2.5.1) ...
+install_ssh_exit=0
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+installed_version=2.0.1
+installed_settings_specifiers=45
+settings_bundle=real-controls-present
