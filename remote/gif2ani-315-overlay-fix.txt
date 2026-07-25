@@ -1,0 +1,60 @@
+Gif2Ani 3.1.5 Overlay Fix
+run_id=30173729381
+install=failure
+
+--- sanitized output ---
+connected=1
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== PRECHECK ===
+active_size_before=360114
+old_backboardd=12826
+old_springboard=12828
+=== INSTALL 3.1.5 ===
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+(Reading database ... 19748 files and directories currently installed.)
+Preparing to unpack .../Gif2Ani-3.1.5-overlay-fix.deb ...
+Unpacking com.nightvibes33.gif2ani (3.1.5) over (3.1.4) ...
+Setting up com.nightvibes33.gif2ani (3.1.5) ...
+Processing triggers for org.coolstar.sileo (2.5.1) ...
+installed_version=3.1.5
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+active_size_after_install=360114
+=== ENABLE AND RESTART BACKBOARD ===
+new_backboardd=12920
+new_springboard=12933
+=== OVERLAY RESULT ===
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>BKDisplayRenderOverlaySpinny</key>
+	<true/>
+	<key>animationPending</key>
+	<false/>
+	<key>event</key>
+	<string>tweak-loaded-no-media-decode</string>
+	<key>frameCount</key>
+	<integer>0</integer>
+	<key>gifExists</key>
+	<false/>
+	<key>process</key>
+	<string>backboardd</string>
+	<key>safetyLimits</key>
+	<dict>
+		<key>maximumDecodedFrames</key>
+		<integer>24</integer>
+		<key>maximumEstimatedDecodedBytes</key>
+		<integer>50331648</integer>
+		<key>maximumInputBytes</key>
+		<integer>26214400</integer>
+		<key>maximumPixelDimension</key>
+		<integer>640</integer>
+		<key>maximumSourceFrames</key>
+		<integer>240</integer>
+	</dict>
+	<key>timestamp</key>
+	<real>1785011534.36305</real>
+</dict>
+</plist>
