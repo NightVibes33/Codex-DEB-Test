@@ -1,4 +1,5 @@
-action=reload-palera1n-launchd-environment
-requested_at=2026-07-25T15:18:00-05:00
+action=reload-palera1n-launchd-environment-v2
+requested_at=2026-07-25T15:25:00-05:00
 state=gif2ani-disabled-no-media
+method=p1ctl-symlink-reload
 expected_flags=0x4c00082
