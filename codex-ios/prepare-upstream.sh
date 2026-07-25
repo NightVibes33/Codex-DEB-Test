@@ -9,7 +9,12 @@ test -f codex-rs/cli/src/main.rs
 test -f codex-rs/login/src/device_code_auth.rs
 
 grep -q 'device-auth' codex-rs/cli/src/main.rs
-grep -q 'aarch64-apple-ios' "$(rustc --print sysroot)/lib/rustlib/components" || true
+
+# The upstream checkout pins its own Rust toolchain. Install the iOS standard
+# library into that exact toolchain rather than only into the runner default.
+rustup show active-toolchain
+rustup target add aarch64-apple-ios
+rustc --print target-list | grep -qx aarch64-apple-ios
 
 # iOS has no Codex platform sandbox implementation. Upstream already maps
 # non-macOS/Linux/Windows hosts to SandboxType::None. The jailbroken-device
@@ -20,4 +25,4 @@ grep -q 'aarch64-apple-ios' "$(rustc --print sysroot)/lib/rustlib/components" ||
 # build. Clear it and use only IPHONEOS_DEPLOYMENT_TARGET in the workflow.
 unset MACOSX_DEPLOYMENT_TARGET || true
 
-printf '%s\n' 'Upstream validation complete; using official device-code OAuth and iOS target.'
+printf '%s\n' 'Upstream validation complete; pinned toolchain has the iOS target and official device-code OAuth is unchanged.'
