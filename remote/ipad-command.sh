@@ -3,37 +3,86 @@ set -eu
 export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
 export HOME=/var/mobile
 
-WORK_ROOT=/var/mobile/Documents/DarkSword-Workspace
-REPO_DIR=$WORK_ROOT/Dopamine
-SSH_KEY=/var/mobile/.ssh/id_ed25519
-SSH_WRAPPER=/var/mobile/.ssh/github-ipad-ssh
-BOOT_PRIVATE=$WORK_ROOT/.github-bootstrap/bootstrap-rsa-private.json
-SSH_LOG=/tmp/ipad-github-ssh.log
+python3 <<'PY'
+import os
+import subprocess
+from pathlib import Path
 
-[ -d "$REPO_DIR/.git" ] || { echo push_error=ipad-repo-missing; exit 1; }
-[ -s "$SSH_KEY" ] || { echo push_error=ipad-ssh-key-missing; exit 1; }
+work_root = Path('/var/mobile/Documents/DarkSword-Workspace')
+repo_dir = work_root / 'Dopamine'
+ssh_key = Path('/var/mobile/.ssh/id_ed25519')
+ssh_wrapper = Path('/var/mobile/.ssh/github-ipad-ssh')
+boot_private = work_root / '.github-bootstrap' / 'bootstrap-rsa-private.json'
 
-printf '%s\n' '#!/bin/sh' 'exec /var/jb/usr/bin/ssh -i /var/mobile/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new "$@"' > "$SSH_WRAPPER"
-chmod 700 "$SSH_WRAPPER"
-chown mobile:mobile "$SSH_WRAPPER" 2>/dev/null || true
+if not (repo_dir / '.git').is_dir():
+    raise SystemExit('push_error=ipad-repo-missing')
+if not ssh_key.is_file():
+    raise SystemExit('push_error=ipad-ssh-key-missing')
 
-echo '=== GitHub SSH verification ==='
-/var/jb/usr/bin/ssh -i "$SSH_KEY" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -T git@github.com > "$SSH_LOG" 2>&1 || true
-cat "$SSH_LOG"
-grep -q 'successfully authenticated' "$SSH_LOG" || { echo ssh_authenticated=0; exit 1; }
-echo ssh_authenticated=1
+ssh_wrapper.write_text(
+    '#!/bin/sh\n'
+    'exec /var/jb/usr/bin/ssh -i /var/mobile/.ssh/id_ed25519 '
+    '-o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new "$@"\n'
+)
+ssh_wrapper.chmod(0o700)
 
-cd "$REPO_DIR"
-git remote set-url origin git@github.com:NightVibes33/Dopamine.git
-printf 'local_head='; git rev-parse HEAD
-printf 'local_subject='; git log -1 --pretty=%s
+base_env = os.environ.copy()
+base_env['HOME'] = '/var/mobile'
+base_env['GIT_TERMINAL_PROMPT'] = '0'
 
-echo '=== Push from iPad ==='
-GIT_SSH="$SSH_WRAPPER" GIT_TERMINAL_PROMPT=0 git push origin HEAD:main
-echo push=success
-printf 'pushed_head='; git rev-parse HEAD
+print('=== GitHub SSH verification ===')
+ssh_test = subprocess.run(
+    [
+        '/var/jb/usr/bin/ssh',
+        '-i', str(ssh_key),
+        '-o', 'IdentitiesOnly=yes',
+        '-o', 'StrictHostKeyChecking=accept-new',
+        '-T', 'git@github.com',
+    ],
+    text=True,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.STDOUT,
+    env=base_env,
+)
+print(ssh_test.stdout.strip())
+if 'successfully authenticated' not in ssh_test.stdout:
+    raise SystemExit('ssh_authenticated=0')
+print('ssh_authenticated=1')
 
-rm -f "$BOOT_PRIVATE" "$SSH_LOG"
-rmdir "$WORK_ROOT/.github-bootstrap" 2>/dev/null || true
-echo bootstrap_private_key=erased
-echo github_auth=ssh-key
+subprocess.run(
+    ['git', 'remote', 'set-url', 'origin', 'git@github.com:NightVibes33/Dopamine.git'],
+    cwd=repo_dir,
+    check=True,
+    env=base_env,
+)
+local_head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo_dir, text=True, env=base_env).strip()
+local_subject = subprocess.check_output(['git', 'log', '-1', '--pretty=%s'], cwd=repo_dir, text=True, env=base_env).strip()
+print(f'local_head={local_head}')
+print(f'local_subject={local_subject}')
+
+push_env = dict(base_env)
+push_env['GIT_SSH'] = str(ssh_wrapper)
+print('=== Push from iPad ===')
+push = subprocess.run(
+    ['git', 'push', 'origin', 'HEAD:main'],
+    cwd=repo_dir,
+    text=True,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.STDOUT,
+    env=push_env,
+)
+print(push.stdout.strip())
+print(f'push_exit_code={push.returncode}')
+if push.returncode != 0:
+    raise SystemExit('push_error=git-push-failed')
+
+print('push=success')
+print(f'pushed_head={local_head}')
+boot_private.unlink(missing_ok=True)
+try:
+    boot_private.parent.rmdir()
+except OSError:
+    pass
+print('bootstrap_private_key=erased')
+print('github_auth=ssh-key')
+PY
