@@ -1,0 +1,211 @@
+name: ElleKit Process Injection Probe
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/ellekit-injection-probe.txt
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  probe:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build constructor-only probe
+        id: build
+        env:
+          THEOS: /opt/theos
+          THEOS_MAKE_PATH: /opt/theos/makefiles
+          CI: "1"
+          SHELL: /bin/bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends bash curl build-essential git ca-certificates file openssh-client sshpass
+          sudo rm -rf /opt/theos
+          sudo mkdir -p /opt
+          sudo chown "$USER:$USER" /opt
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          mkdir -p injectprobe
+          cat > injectprobe/Makefile <<'MK'
+          ARCHS = arm64
+          TARGET = iphone:clang:latest:15.0
+          THEOS_PACKAGE_SCHEME = rootless
+          TWEAK_NAME = InjectionProbe
+          InjectionProbe_FILES = Probe.m
+          InjectionProbe_FRAMEWORKS = Foundation
+          InjectionProbe_CFLAGS = -fobjc-arc
+          include $(THEOS)/makefiles/common.mk
+          include $(THEOS_MAKE_PATH)/tweak.mk
+          MK
+          cat > injectprobe/Probe.m <<'MM'
+          #import <Foundation/Foundation.h>
+          #include <unistd.h>
+
+          __attribute__((constructor)) static void InjectionProbeInit(void) {
+              @autoreleasepool {
+                  NSString *process = NSProcessInfo.processInfo.processName ?: @"unknown";
+                  NSString *directory = @"/var/mobile/Library/Application Support/Gif2Ani";
+                  [[NSFileManager defaultManager] createDirectoryAtPath:directory withIntermediateDirectories:YES attributes:nil error:nil];
+                  NSString *safe = [process stringByReplacingOccurrencesOfString:@"/" withString:@"_"];
+                  NSString *path = [directory stringByAppendingPathComponent:[NSString stringWithFormat:@"InjectionProbe-%@.txt", safe]];
+                  NSString *body = [NSString stringWithFormat:@"process=%@\npid=%d\ntimestamp=%.0f\n", process, getpid(), [NSDate.date timeIntervalSince1970]];
+                  [body writeToFile:path atomically:YES encoding:NSUTF8StringEncoding error:nil];
+              }
+          }
+          MM
+          cat > injectprobe/InjectionProbe.plist <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict><key>Filter</key><dict><key>Executables</key><array><string>SpringBoard</string><string>backboardd</string></array></dict></dict></plist>
+          PLIST
+          make -C injectprobe clean all FINALPACKAGE=1
+          PROBE="$(find injectprobe/.theos -type f -name InjectionProbe.dylib | head -n1)"
+          test -n "$PROBE"
+          cp "$PROBE" InjectionProbe.dylib
+          cp injectprobe/InjectionProbe.plist InjectionProbe.plist
+          file InjectionProbe.dylib | grep -q arm64
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - name: Upload and activate probe
+        id: activate
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 60); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          test "$connected" -eq 1
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null InjectionProbe.dylib InjectionProbe.plist mobile@"$IPAD_HOST":/var/mobile/Media/
+          cat > activate-probe.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media="/var/mobile/Library/Application Support/Gif2Ani"
+          prefs="/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist"
+          mkdir -p "$media"
+          chmod 0777 "$media"
+          rm -f "$media"/InjectionProbe-*.txt "$media/Pending.gif" "$media/Active.gif" "$media/Rejected.gif" "$media/load-in-progress"
+          printf '%s\n' \
+            '<?xml version="1.0" encoding="UTF-8"?>' \
+            '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+            '<plist version="1.0"><dict><key>isEnabled</key><false/><key>pendingReady</key><false/><key>imageTransformation</key><string>resizeAspect</string><key>customLoop</key><real>-1</real><key>customDuration</key><real>-1</real><key>backgroundColor</key><string>#000000</string></dict></plist>' > "$prefs"
+          chown mobile:mobile "$prefs"
+          chmod 0644 "$prefs"
+          cp /var/mobile/Media/InjectionProbe.dylib /var/jb/usr/lib/TweakInject/InjectionProbe.dylib
+          cp /var/mobile/Media/InjectionProbe.plist /var/jb/usr/lib/TweakInject/InjectionProbe.plist
+          chown root:wheel /var/jb/usr/lib/TweakInject/InjectionProbe.dylib /var/jb/usr/lib/TweakInject/InjectionProbe.plist
+          chmod 0755 /var/jb/usr/lib/TweakInject/InjectionProbe.dylib
+          chmod 0644 /var/jb/usr/lib/TweakInject/InjectionProbe.plist
+          /var/jb/usr/libexec/ellekit/loader
+          sleep 4
+          nohup sh -c 'sleep 2; /var/jb/usr/bin/launchctl reboot userspace' >/var/mobile/Media/injection-probe-reboot.log 2>&1 </dev/null &
+          echo probe_reboot_scheduled=yes
+          SH
+          chmod +x activate-probe.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null activate-probe.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=25 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/activate-probe.sh' 2>&1 | tee injection-probe.txt
+          code=${PIPESTATUS[1]}
+          set -e
+          echo "activation_ssh_exit=$code" | tee -a injection-probe.txt
+          if [ "$code" -ne 0 ] && [ "$code" -ne 255 ]; then exit "$code"; fi
+      - name: Reconnect, inspect, and remove probe files
+        id: verify
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          sleep 10
+          connected=0
+          for attempt in $(seq 1 90); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          echo "reconnected=$connected" | tee -a injection-probe.txt
+          test "$connected" -eq 1
+          sleep 20
+          cat > verify-probe.sh <<'SH'
+          #!/bin/sh
+          set +e
+          media="/var/mobile/Library/Application Support/Gif2Ani"
+          echo '=== PROBE MARKERS ==='
+          ls -l "$media"/InjectionProbe-*.txt 2>&1
+          for f in "$media"/InjectionProbe-*.txt; do [ -f "$f" ] && { echo "--- $f"; cat "$f"; }; done
+          echo '=== GIF2ANI MARKER ==='
+          cat "$media/runtime-status.plist" 2>/dev/null || echo runtime_status=missing
+          echo '=== PROCESSES ==='
+          ps ax | grep -E '[b]ackboardd|[S]pringBoard'
+          echo '=== RECENT CRASHES ==='
+          find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -mmin -20 -print 2>/dev/null
+          rm -f /var/jb/usr/lib/TweakInject/InjectionProbe.dylib /var/jb/usr/lib/TweakInject/InjectionProbe.plist
+          echo probe_files_removed=yes
+          SH
+          chmod +x verify-probe.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null verify-probe.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=30 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/verify-probe.sh' 2>&1 | tee -a injection-probe.txt
+      - name: Publish result
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          ACTIVATE_OUTCOME: ${{ steps.activate.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('injection-probe.txt').read_text(errors='replace') if Path('injection-probe.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=['ElleKit Process Injection Probe',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"build={os.environ.get('BUILD_OUTCOME','')}",f"activate={os.environ.get('ACTIVATE_OUTCOME','')}",f"verify={os.environ.get('VERIFY_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-350:]]
+          Path('remote/ellekit-injection-probe.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/ellekit-injection-probe.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record ElleKit process injection probe [skip ci]"
+            git push origin HEAD:main
+          fi
