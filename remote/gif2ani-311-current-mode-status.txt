@@ -1,0 +1,10 @@
+Gif2Ani Current Device Mode
+run_id=30167492658
+tailscale=success
+read_state=failure
+
+--- sanitized output ---
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+Sorry, try again.
+Sorry, try again.
+sudo: 3 incorrect password attempts
