@@ -1,3 +1,4 @@
-dispatch=ellekit-launch-injection-trace
-requested_at=2026-07-25T20:28:00-05:00
-reason=rerun-after-fixed-revision-registration
+dispatch=cancel-redundant-p1ctl-probe
+requested_at=2026-07-25T20:33:00-05:00
+target_run_id=30170707166
+reason=previous-p1ctl-run-already-cleared-safe-mode
