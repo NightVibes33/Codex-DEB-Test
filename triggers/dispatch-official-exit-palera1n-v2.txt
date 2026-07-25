@@ -1,2 +1,3 @@
 dispatch=official-exit-palera1n-v2
-requested_at=2026-07-25T18:25:00-05:00
+requested_at=2026-07-25T18:26:00-05:00
+reason=retry-after-dispatcher-registration
