@@ -1,0 +1,37 @@
+Gif2Ani Exit-Safe Workflow Status
+run_id=30167308257
+status=in_progress
+conclusion=None
+event=workflow_dispatch
+head_sha=a2e05895facac74fe02ea2aca7c49ebb8f5e29c6
+created_at=2026-07-25T17:16:48Z
+updated_at=2026-07-25T17:17:01Z
+html_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30167308257
+
+recent_runs:
+30167308257 status=in_progress conclusion=None created=2026-07-25T17:16:48Z
+
+jobs:
+job=resolve-environment status=completed conclusion=success id=89702415081
+  step=1 Set up job status=completed conclusion=success
+  step=2 Run set -euo pipefail status=completed conclusion=success
+  step=3 Complete job status=completed conclusion=success
+job=test status=in_progress conclusion=None id=89702426965
+  step=1 Set up job status=completed conclusion=success
+  step=2 Run actions/checkout@v4 status=completed conclusion=success
+  step=3 Build notification helper and tiny GIF status=completed conclusion=success
+  step=4 Create device scripts status=completed conclusion=success
+  step=5 Join Tailscale status=completed conclusion=success
+  step=6 Install SSH tools status=completed conclusion=success
+  step=7 Upload scripts and helper status=completed conclusion=success
+  step=8 Exit palera1n safe mode status=in_progress conclusion=None
+  step=9 Wait for iPad after userspace reboot status=pending conclusion=None
+  step=10 Verify normal tweak injection status=pending conclusion=None
+  step=11 Apply tiny test GIF status=pending conclusion=None
+  step=12 Verify custom animation status=pending conclusion=None
+  step=13 Cleanup and leave disabled status=pending conclusion=None
+  step=14 Final verification status=pending conclusion=None
+  step=15 Upload diagnostics status=pending conclusion=None
+  step=16 Publish sanitized status status=pending conclusion=None
+  step=31 Post Join Tailscale status=pending conclusion=None
+  step=32 Post Run actions/checkout@v4 status=pending conclusion=None
