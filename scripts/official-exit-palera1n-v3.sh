@@ -8,95 +8,119 @@ LOG="official-exit-v3.txt"
 : > "$LOG"
 exec > >(tee -a "$LOG") 2>&1
 
-echo "=== BUILD OFFICIAL PALERA1N EXIT HELPER ==="
+echo "=== BUILD RUNTIME-LINKED PALERA1N EXIT HELPER ==="
 sudo apt-get update
-sudo apt-get install -y --no-install-recommends bash curl git ca-certificates file openssh-client sshpass
+sudo apt-get install -y --no-install-recommends bash curl build-essential git ca-certificates file openssh-client sshpass
 sudo rm -rf /opt/theos
 sudo mkdir -p /opt
 sudo chown "$USER:$USER" /opt
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
 
-echo "=== INSTALLED SDKS ==="
-ls -la /opt/theos/sdks || true
-SDK="$(ls -d /opt/theos/sdks/iPhoneOS*.sdk 2>/dev/null | sort -V | tail -n1 || true)"
-if [[ -z "$SDK" ]]; then
-  echo "iphoneos_sdk=missing"
-  exit 80
-fi
-CLANG=/opt/theos/toolchain/linux/iphone/bin/clang
-LDID=/opt/theos/bin/ldid
-XPC_TBD="$SDK/usr/lib/system/libxpc.tbd"
-echo "selected_sdk=$SDK"
-echo "xpc_tbd=$XPC_TBD"
-test -x "$CLANG"
-test -x "$LDID"
-test -f "$XPC_TBD"
+mkdir -p exitpalev3
+cat > exitpalev3/Makefile <<'MK'
+ARCHS = arm64
+TARGET = iphone:clang:latest:15.0
+TOOL_NAME = exitpalev3
+exitpalev3_FILES = main.c
+exitpalev3_CFLAGS = -fblocks -Wall -Wextra
+exitpalev3_CODESIGN_FLAGS = -Sentitlements.plist
+include $(THEOS)/makefiles/common.mk
+include $(THEOS_MAKE_PATH)/tool.mk
+MK
 
-cat > exitpale-v3.c <<'CC'
+cat > exitpalev3/main.c <<'CC'
+#include <dlfcn.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 typedef void *xpc_object_t;
 typedef void *xpc_connection_t;
-typedef const void *xpc_type_t;
 typedef void (^xpc_handler_t)(xpc_object_t);
 
-extern const struct _xpc_type_s _xpc_type_error;
-#define XPC_TYPE_ERROR ((xpc_type_t)&_xpc_type_error)
+typedef xpc_connection_t (*fn_create_connection)(const char *, void *, uint64_t);
+typedef void (*fn_set_handler)(xpc_connection_t, xpc_handler_t);
+typedef void (*fn_activate)(xpc_connection_t);
+typedef xpc_object_t (*fn_dict_create)(const char *const *, const xpc_object_t *, size_t);
+typedef void (*fn_dict_set_u64)(xpc_object_t, const char *, uint64_t);
+typedef xpc_object_t (*fn_send_sync)(xpc_connection_t, xpc_object_t);
+typedef int64_t (*fn_dict_get_i64)(xpc_object_t, const char *);
+typedef const char *(*fn_dict_get_string)(xpc_object_t, const char *);
+typedef char *(*fn_copy_description)(xpc_object_t);
+typedef void (*fn_cancel)(xpc_connection_t);
+typedef void (*fn_release)(xpc_object_t);
 
-extern xpc_connection_t xpc_connection_create_mach_service(const char *, void *, uint64_t);
-extern void xpc_connection_set_event_handler(xpc_connection_t, xpc_handler_t);
-extern void xpc_connection_activate(xpc_connection_t);
-extern void xpc_connection_cancel(xpc_connection_t);
-extern xpc_object_t xpc_connection_send_message_with_reply_sync(xpc_connection_t, xpc_object_t);
-extern xpc_object_t xpc_dictionary_create(const char * const *, const xpc_object_t *, size_t);
-extern void xpc_dictionary_set_uint64(xpc_object_t, const char *, uint64_t);
-extern int64_t xpc_dictionary_get_int64(xpc_object_t, const char *);
-extern const char *xpc_dictionary_get_string(xpc_object_t, const char *);
-extern xpc_type_t xpc_get_type(xpc_object_t);
-extern void xpc_release(xpc_object_t);
+#define LOAD(symbol, type) \
+    type symbol = (type)dlsym(handle, #symbol); \
+    if (!(symbol)) { fprintf(stderr, "missing_symbol=%s\n", #symbol); return 78; }
 
 int main(void) {
-    const uint64_t JBD_CMD_EXIT_SAFE_MODE = 10;
+    void *handle = dlopen("/usr/lib/system/libxpc.dylib", RTLD_NOW | RTLD_LOCAL);
+    if (!handle) {
+        fprintf(stderr, "dlopen_xpc_failed=%s\n", dlerror());
+        return 77;
+    }
+
+    LOAD(xpc_connection_create_mach_service, fn_create_connection);
+    LOAD(xpc_connection_set_event_handler, fn_set_handler);
+    LOAD(xpc_connection_activate, fn_activate);
+    LOAD(xpc_dictionary_create, fn_dict_create);
+    LOAD(xpc_dictionary_set_uint64, fn_dict_set_u64);
+    LOAD(xpc_connection_send_message_with_reply_sync, fn_send_sync);
+    LOAD(xpc_dictionary_get_int64, fn_dict_get_i64);
+    LOAD(xpc_dictionary_get_string, fn_dict_get_string);
+    LOAD(xpc_copy_description, fn_copy_description);
+    LOAD(xpc_connection_cancel, fn_cancel);
+    LOAD(xpc_release, fn_release);
+
     xpc_connection_t connection = xpc_connection_create_mach_service(
         "in.palera.palera1nd.systemwide", NULL, 0
     );
-    if (connection == NULL || xpc_get_type(connection) == XPC_TYPE_ERROR) {
+    if (!connection) {
         fprintf(stderr, "connection_create_failed\n");
         return 70;
     }
-    xpc_connection_set_event_handler(connection, ^(xpc_object_t event) { (void)event; });
+
+    xpc_connection_set_event_handler(connection, ^(xpc_object_t event) {
+        (void)event;
+    });
     xpc_connection_activate(connection);
+
     xpc_object_t request = xpc_dictionary_create(NULL, NULL, 0);
-    if (request == NULL) {
-        xpc_connection_cancel(connection);
-        xpc_release(connection);
+    if (!request) {
         fprintf(stderr, "request_create_failed\n");
         return 72;
     }
-    xpc_dictionary_set_uint64(request, "cmd", JBD_CMD_EXIT_SAFE_MODE);
+    xpc_dictionary_set_uint64(request, "cmd", 10);
+
     xpc_object_t reply = xpc_connection_send_message_with_reply_sync(connection, request);
     xpc_release(request);
     xpc_connection_cancel(connection);
     xpc_release(connection);
-    if (reply == NULL || xpc_get_type(reply) == XPC_TYPE_ERROR) {
-        fprintf(stderr, "xpc_reply_error\n");
-        if (reply != NULL) xpc_release(reply);
+    if (!reply) {
+        fprintf(stderr, "reply_missing\n");
         return 71;
     }
+
+    char *description = xpc_copy_description(reply);
+    if (description) {
+        printf("reply=%s\n", description);
+        free(description);
+    }
+
     int64_t error = xpc_dictionary_get_int64(reply, "error");
     const char *message = xpc_dictionary_get_string(reply, "message");
-    const char *description = xpc_dictionary_get_string(reply, "errorDescription");
+    const char *error_description = xpc_dictionary_get_string(reply, "errorDescription");
     printf("jailbreakd_error=%lld\n", (long long)error);
     if (message) printf("jailbreakd_message=%s\n", message);
-    if (description) printf("jailbreakd_error_description=%s\n", description);
+    if (error_description) printf("jailbreakd_error_description=%s\n", error_description);
     xpc_release(reply);
+    dlclose(handle);
     return error == 0 ? 0 : (int)error;
 }
 CC
 
-cat > entitlements-v3.plist <<'PLIST'
+cat > exitpalev3/entitlements.plist <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
@@ -109,9 +133,10 @@ cat > entitlements-v3.plist <<'PLIST'
 </dict></plist>
 PLIST
 
-"$CLANG" -target arm64-apple-ios15.0 -isysroot "$SDK" -fblocks \
-  exitpale-v3.c "$XPC_TBD" -framework CoreFoundation -o exitpale-v3
-"$LDID" -Sentitlements-v3.plist exitpale-v3
+make -C exitpalev3 clean all FINALPACKAGE=1
+HELPER="$(find exitpalev3/.theos -type f -name exitpalev3 -perm -111 | head -n1)"
+test -n "$HELPER"
+cp "$HELPER" exitpale-v3
 chmod 0755 exitpale-v3
 file exitpale-v3 | grep -q arm64
 echo "helper_build=success"
