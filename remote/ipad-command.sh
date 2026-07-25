@@ -2,37 +2,36 @@
 set -eu
 export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
 export HOME=/var/mobile
+REPO=/var/mobile/Documents/DarkSword-Workspace/Dopamine
+TARGET="$REPO/Application/Dopamine/Exploits/DarkSword/DarkSword.m"
 
-echo '=== Hardware memory ==='
-sysctl hw.memsize 2>&1 || true
-sysctl hw.pagesize 2>&1 || true
+cd "$REPO"
+echo '=== Repository state ==='
+printf 'branch='; git branch --show-current
+printf 'head='; git rev-parse HEAD
+git status --short
+printf 'origin='; git remote get-url origin
 
-echo '=== Compression and swap sysctls ==='
-for key in vm.swapusage vm.compressor_mode vm.compressor_available vm.compressor_is_active vm.page_free_target vm.page_free_min vm.memory_pressure; do
-  printf '%s: ' "$key"
-  sysctl -n "$key" 2>&1 || true
-done
+echo '=== Device ==='
+uname -a
+sysctl -n hw.memsize 2>/dev/null || true
 
-echo '=== VM statistics ==='
-vm_stat 2>&1 | sed -n '1,30p' || true
+echo '=== DarkSword source anchors ==='
+python3 - "$TARGET" <<'PY'
+import sys
+from pathlib import Path
+p=Path(sys.argv[1])
+text=p.read_text()
+lines=text.splitlines()
+anchors=['fileport_t spray_socket', 'void pe_v1', 'totalSearchMappingPagesNum', 'surface_mlock(searchMappingAddress', 'sockets_release(socketPorts']
+for anchor in anchors:
+    hits=[i for i,l in enumerate(lines) if anchor in l]
+    print(f'anchor={anchor!r} hits={len(hits)} lines={[i+1 for i in hits]}')
+    for i in hits[:1]:
+        lo=max(0,i-8); hi=min(len(lines),i+35)
+        print(f'--- {anchor} context {lo+1}-{hi} ---')
+        for n in range(lo,hi):
+            print(f'{n+1:04d}: {lines[n]}')
+PY
 
-echo '=== Dynamic pager availability ==='
-printf 'dynamic_pager_binary='; command -v dynamic_pager 2>/dev/null || echo missing
-launchctl print system/com.apple.dynamic_pager 2>&1 | sed -n '1,80p' || true
-launchctl list 2>/dev/null | grep -i pager || true
-
-echo '=== VM storage directories ==='
-for dir in /private/var/vm /var/vm /private/var/mobile/Library/Caches; do
-  echo "path=$dir"
-  ls -la "$dir" 2>&1 | sed -n '1,40p' || true
-done
-
-echo '=== Filesystem capacity ==='
-df -h / /private/var 2>&1 || true
-mount 2>&1 | sed -n '1,40p' || true
-
-echo '=== Current pressure evidence ==='
-printf 'process_count='; ps -ax 2>/dev/null | wc -l | tr -d ' '
-printf 'node_count='; pgrep -x node 2>/dev/null | wc -l | tr -d ' '
-
-echo 'diagnostic=read-only-no-memory-settings-changed'
+echo 'inspection=complete'
