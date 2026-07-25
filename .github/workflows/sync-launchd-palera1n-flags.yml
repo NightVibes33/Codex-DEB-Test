@@ -1,0 +1,379 @@
+name: Sync launchd palera1n Flags
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/sync-launchd-palera1n-flags.txt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1)) == target:
+                  print('environment_name='+env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  sync:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build official-protocol launchd helper
+        id: build
+        env:
+          THEOS: /opt/theos
+          THEOS_MAKE_PATH: /opt/theos/makefiles
+          CI: "1"
+          SHELL: /bin/bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends bash curl build-essential git ca-certificates file openssh-client sshpass
+          sudo rm -rf /opt/theos
+          sudo mkdir -p /opt
+          sudo chown "$USER:$USER" /opt
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+
+          mkdir -p launchdflagsync
+          cat > launchdflagsync/Makefile <<'MK'
+          ARCHS = arm64
+          TARGET = iphone:clang:latest:15.0
+          TOOL_NAME = launchdflagsync
+          launchdflagsync_FILES = main.c
+          launchdflagsync_CFLAGS = -fblocks -Wall -Wextra
+          launchdflagsync_CODESIGN_FLAGS = -SEntitlements.plist
+          include $(THEOS)/makefiles/common.mk
+          include $(THEOS_MAKE_PATH)/tool.mk
+          MK
+
+          cat > launchdflagsync/main.c <<'CC'
+          #include <stdint.h>
+          #include <stdio.h>
+          #include <stdlib.h>
+          #include <xpc/xpc.h>
+          #include <xpc/connection.h>
+          #include <xpc/private.h>
+          #include <os/alloc_once_private.h>
+
+          enum {
+              JBD_CMD_GET_PINFO_FLAGS = 1,
+              LAUNCHD_CMD_SET_PINFO_FLAGS = 3
+          };
+
+          struct xpc_global_data {
+              uint64_t a;
+              uint64_t xpc_flags;
+              mach_port_t task_bootstrap_port;
+          #ifndef _64
+              uint32_t padding;
+          #endif
+              xpc_object_t xpc_bootstrap_pipe;
+          };
+
+          static xpc_object_t send_jailbreakd(uint64_t command) {
+              xpc_connection_t connection = xpc_connection_create_mach_service(
+                  "in.palera.palera1nd.systemwide", NULL, 0);
+              if (!connection) return NULL;
+              xpc_connection_set_event_handler(connection, ^(xpc_object_t event) {
+                  (void)event;
+              });
+              xpc_connection_activate(connection);
+              xpc_object_t request = xpc_dictionary_create(NULL, NULL, 0);
+              xpc_dictionary_set_uint64(request, "cmd", command);
+              xpc_object_t reply = xpc_connection_send_message_with_reply_sync(connection, request);
+              xpc_release(request);
+              xpc_connection_cancel(connection);
+              xpc_release(connection);
+              return reply;
+          }
+
+          static int send_launchd_flags(uint64_t flags, xpc_object_t *reply_out) {
+              xpc_object_t request = xpc_dictionary_create(NULL, NULL, 0);
+              xpc_dictionary_set_bool(request, "jailbreak", true);
+              xpc_dictionary_set_uint64(request, "cmd", LAUNCHD_CMD_SET_PINFO_FLAGS);
+              xpc_dictionary_set_uint64(request, "flags", flags);
+
+              struct xpc_global_data *global =
+                  (struct xpc_global_data *)_os_alloc_once_table[OS_ALLOC_ONCE_KEY_LIBXPC].ptr;
+              if (!global || !global->xpc_bootstrap_pipe) {
+                  fprintf(stderr, "bootstrap_pipe=missing\n");
+                  xpc_release(request);
+                  return 70;
+              }
+
+              xpc_object_t reply = NULL;
+              int ret;
+              if (__builtin_available(iOS 15.0, *)) {
+                  ret = _xpc_pipe_interface_routine(
+                      global->xpc_bootstrap_pipe, 0, request, &reply, 0);
+              } else {
+                  ret = xpc_pipe_routine(global->xpc_bootstrap_pipe, request, &reply);
+              }
+              xpc_release(request);
+              if (reply_out) *reply_out = reply;
+              else if (reply) xpc_release(reply);
+              return ret;
+          }
+
+          int main(void) {
+              xpc_object_t jbd_reply = send_jailbreakd(JBD_CMD_GET_PINFO_FLAGS);
+              if (!jbd_reply) {
+                  fprintf(stderr, "jailbreakd_reply=missing\n");
+                  return 71;
+              }
+              if (xpc_get_type(jbd_reply) == XPC_TYPE_ERROR) {
+                  char *description = xpc_copy_description(jbd_reply);
+                  fprintf(stderr, "jailbreakd_xpc_error=%s\n", description ?: "unknown");
+                  free(description);
+                  xpc_release(jbd_reply);
+                  return 72;
+              }
+              int64_t jbd_error = xpc_dictionary_get_int64(jbd_reply, "error");
+              uint64_t live_flags = xpc_dictionary_get_uint64(jbd_reply, "flags");
+              printf("jailbreakd_error=%lld\n", (long long)jbd_error);
+              printf("live_flags=0x%llx\n", (unsigned long long)live_flags);
+              printf("live_safe_bit=%d\n", (live_flags & (1ULL << 25)) ? 1 : 0);
+              printf("live_failure_bit=%d\n", (live_flags & (1ULL << 60)) ? 1 : 0);
+              xpc_release(jbd_reply);
+              if (jbd_error != 0 || live_flags == 0) return 73;
+
+              xpc_object_t launchd_reply = NULL;
+              int pipe_ret = send_launchd_flags(live_flags, &launchd_reply);
+              printf("launchd_pipe_ret=%d\n", pipe_ret);
+              if (!launchd_reply) {
+                  fprintf(stderr, "launchd_reply=missing\n");
+                  return pipe_ret ? pipe_ret : 74;
+              }
+              char *description = xpc_copy_description(launchd_reply);
+              printf("launchd_reply=%s\n", description ?: "unknown");
+              free(description);
+              int64_t launchd_error = xpc_dictionary_get_int64(launchd_reply, "error");
+              printf("launchd_error=%lld\n", (long long)launchd_error);
+              xpc_release(launchd_reply);
+              if (pipe_ret != 0) return pipe_ret;
+              if (launchd_error != 0) return 75;
+              printf("sync_result=success\n");
+              return 0;
+          }
+          CC
+
+          cat > launchdflagsync/Entitlements.plist <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>platform-application</key><true/>
+            <key>com.apple.private.security.no-container</key><true/>
+            <key>in.palera.private.launchd-commands.client</key><true/>
+          </dict></plist>
+          PLIST
+
+          make -C launchdflagsync clean all FINALPACKAGE=1
+          BIN="$(find launchdflagsync/.theos -type f -name launchdflagsync -perm -111 | head -n1)"
+          test -n "$BIN"
+          cp "$BIN" launchdflagsync-tool
+          cp launchdflagsync/Entitlements.plist launchdflagsync-entitlements.plist
+          file launchdflagsync-tool | grep -q arm64
+
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Sync launchd flags and safely restart UI processes
+        id: apply
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 60); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then
+              connected=1
+              break
+            fi
+            sleep 5
+          done
+          echo "connected=$connected" | tee launchd-flag-sync.txt
+          test "$connected" -eq 1
+
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            launchdflagsync-tool launchdflagsync-entitlements.plist \
+            mobile@"$IPAD_HOST":/var/mobile/Media/
+
+          cat > apply-launchd-flag-sync.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media='/var/mobile/Library/Application Support/Gif2Ani'
+          prefs='/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist'
+          helper='/var/mobile/Media/launchdflagsync-tool'
+          entitlements='/var/mobile/Media/launchdflagsync-entitlements.plist'
+          marker='/var/mobile/Media/launchd-flag-sync-start.marker'
+
+          mkdir -p "$media"
+          rm -f "$media/Pending.gif" "$media/Active.gif" "$media/Rejected.gif" \
+                "$media/load-in-progress" "$media/runtime-status.plist" \
+                "$media/pending-metadata.plist"
+          cat > "$prefs" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>isEnabled</key><false/>
+            <key>pendingReady</key><false/>
+            <key>imageTransformation</key><string>resizeAspect</string>
+            <key>customLoop</key><real>-1</real>
+            <key>customDuration</key><real>-1</real>
+            <key>backgroundColor</key><string>#000000</string>
+          </dict></plist>
+          PLIST
+          chown -R mobile:mobile "$media" "$prefs"
+          chmod 0755 "$media"
+          chmod 0644 "$prefs"
+
+          chown root:wheel "$helper" "$entitlements"
+          chmod 0755 "$helper"
+          chmod 0644 "$entitlements"
+          if [ -x /var/jb/usr/bin/ldid ]; then
+            /var/jb/usr/bin/ldid -S"$entitlements" "$helper"
+          fi
+
+          echo '=== BEFORE SYNC ==='
+          bb=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')
+          sb=$(ps ax | awk '/[S]pringBoard/{print $1; exit}')
+          echo "backboardd_before=$bb"
+          echo "springboard_before=$sb"
+          ps eww -p "$bb" 2>/dev/null || true
+          echo '=== HELPER ENTITLEMENTS ==='
+          /var/jb/usr/bin/ldid -e "$helper" 2>&1 || true
+
+          touch "$marker"
+          echo '=== OFFICIAL LAUNCHD COMMAND 3 SYNC ==='
+          "$helper"
+
+          echo '=== RESTART UI PROCESSES ==='
+          killall -9 backboardd SpringBoard 2>/dev/null || true
+          sleep 15
+
+          echo '=== AFTER RESTART ==='
+          bb=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')
+          sb=$(ps ax | awk '/[S]pringBoard/{print $1; exit}')
+          echo "backboardd_after=$bb"
+          echo "springboard_after=$sb"
+          bb_env=$(ps eww -p "$bb" 2>/dev/null || true)
+          sb_env=$(ps eww -p "$sb" 2>/dev/null || true)
+          echo "backboardd_env=$bb_env"
+          echo "springboard_env=$sb_env"
+          spawned_flags=$(printf '%s\n' "$bb_env" | sed -n 's/.*JB_PINFO_FLAGS=\([^ ]*\).*/\1/p' | tail -n1)
+          echo "spawned_flags=$spawned_flags"
+
+          echo '=== GIF2ANI CONSTRUCTOR STATUS ==='
+          if [ -f "$media/runtime-status.plist" ]; then
+            cat "$media/runtime-status.plist"
+          else
+            echo runtime_status=missing
+          fi
+
+          echo '=== SAFE MEDIA STATE ==='
+          for f in Pending.gif Active.gif Rejected.gif load-in-progress pending-metadata.plist; do
+            if [ -e "$media/$f" ]; then echo "$f=present"; else echo "$f=absent"; fi
+          done
+
+          echo '=== RECENT CRASHES ==='
+          crash_count=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \
+            \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) \
+            -newer "$marker" -print 2>/dev/null | wc -l | tr -d ' ')
+          echo "new_crash_reports=$crash_count"
+
+          test "$spawned_flags" = '0x4c00082'
+          test -f "$media/runtime-status.plist"
+          grep -a -q 'tweak-loaded-no-media-decode' "$media/runtime-status.plist"
+          test ! -e "$media/Pending.gif"
+          test ! -e "$media/Active.gif"
+          test ! -e "$media/Rejected.gif"
+          test "$crash_count" = 0
+          echo final_result=launchd_flags_synced_tweak_injection_restored
+          SH
+          chmod +x apply-launchd-flag-sync.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            apply-launchd-flag-sync.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=60 -o ServerAliveInterval=5 -o ServerAliveCountMax=6 \
+            -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/apply-launchd-flag-sync.sh' \
+            2>&1 | tee -a launchd-flag-sync.txt
+          code=${PIPESTATUS[1]}
+          set -e
+          echo "remote_exit=$code" | tee -a launchd-flag-sync.txt
+          exit "$code"
+
+      - name: Publish report
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          APPLY_OUTCOME: ${{ steps.apply.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('launchd-flag-sync.txt').read_text(errors='replace') if Path('launchd-flag-sync.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw:
+              text=text.replace(pw,'***REDACTED***')
+          out=[
+              'launchd palera1n Flag Synchronization',
+              f"run_id={os.environ.get('GITHUB_RUN_ID','')}",
+              f"build={os.environ.get('BUILD_OUTCOME','')}",
+              f"apply={os.environ.get('APPLY_OUTCOME','')}",
+              '', '--- sanitized output ---', *text.splitlines()[-1000:]
+          ]
+          Path('/tmp/launchd-palera1n-flag-sync.txt').write_text('\n'.join(out)+'\n')
+          PY
+          for attempt in 1 2 3 4 5; do
+            git reset --hard HEAD
+            git pull --rebase origin main
+            mkdir -p remote
+            cp /tmp/launchd-palera1n-flag-sync.txt remote/launchd-palera1n-flag-sync.txt
+            git add remote/launchd-palera1n-flag-sync.txt
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "Record launchd palera1n flag synchronization [skip ci]"
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 3
+          done
+          exit 1
