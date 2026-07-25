@@ -1,6 +1,8 @@
 #!/bin/sh
 set -eu
 
+# Triggered from ChatGPT on 2026-07-25
+
 echo "=== iPad SSH bridge diagnostic ==="
 date || true
 id
