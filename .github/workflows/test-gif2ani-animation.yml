@@ -1,0 +1,215 @@
+name: Test Gif2Ani Animation
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - triggers/test-gif2ani-animation.txt
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name']); raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  test-animation:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate safe DarkSword pulse GIF
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends python3-pil openssh-client sshpass
+          python3 - <<'PY'
+          from PIL import Image, ImageDraw, ImageFilter
+          import math
+          size=256
+          frames=[]
+          for index in range(6):
+              phase=2*math.pi*index/6
+              base=Image.new('RGB',(size,size),(2,3,8))
+              glow=Image.new('RGBA',(size,size),(0,0,0,0))
+              d=ImageDraw.Draw(glow)
+              pulse=(math.sin(phase)+1)/2
+              radius=int(48+22*pulse)
+              cx=cy=size//2
+              for spread,alpha in ((50,18),(34,28),(22,48),(10,90)):
+                  r=radius+spread
+                  d.ellipse((cx-r,cy-r,cx+r,cy+r),outline=(60,105,255,alpha),width=max(2,spread//8))
+              glow=glow.filter(ImageFilter.GaussianBlur(radius=8))
+              core=Image.new('RGBA',(size,size),(0,0,0,0))
+              c=ImageDraw.Draw(core)
+              c.ellipse((cx-radius,cy-radius,cx+radius,cy+radius),fill=(17,12,42,255),outline=(120,90,255,230),width=5)
+              inner=max(10,radius-18)
+              c.ellipse((cx-inner,cy-inner,cx+inner,cy+inner),outline=(35,165,255,190),width=3)
+              frame=Image.alpha_composite(base.convert('RGBA'),glow)
+              frame=Image.alpha_composite(frame,core).convert('P',palette=Image.ADAPTIVE,colors=128)
+              frames.append(frame)
+          frames[0].save('DarkSword-Test.gif',save_all=True,append_images=frames[1:],duration=180,loop=0,optimize=True,disposal=2)
+          PY
+          python3 - <<'PY'
+          from PIL import Image
+          im=Image.open('DarkSword-Test.gif')
+          count=0
+          try:
+              while True:
+                  count+=1
+                  im.seek(im.tell()+1)
+          except EOFError:
+              pass
+          print(f'gif_size={im.size[0]}x{im.size[1]}')
+          print(f'gif_frames={count}')
+          assert im.size==(256,256)
+          assert count==6
+          PY
+          test "$(stat -c %s DarkSword-Test.gif)" -lt 1048576
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - name: Upload, enable, and test one respring
+        id: test
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 48); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          echo "connected=$connected" | tee animation-test.txt
+          test "$connected" -eq 1
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null DarkSword-Test.gif mobile@"$IPAD_HOST":/var/mobile/Media/DarkSword-Test.gif
+          cat > run-animation-test.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media='/var/mobile/Library/Application Support/Gif2Ani'
+          prefs='/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist'
+          marker='/var/mobile/Media/gif2ani-animation-test.marker'
+          mkdir -p "$media"
+          chmod 0777 "$media"
+          rm -f "$media/Pending.gif" "$media/Rejected.gif" "$media/load-in-progress" "$media/runtime-status.plist"
+          cp /var/mobile/Media/DarkSword-Test.gif "$media/Active.gif"
+          chown mobile:mobile "$media/Active.gif"
+          chmod 0644 "$media/Active.gif"
+          cat > "$prefs" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>isEnabled</key><true/>
+            <key>pendingReady</key><false/>
+            <key>imageTransformation</key><string>resizeAspect</string>
+            <key>customLoop</key><real>-1</real>
+            <key>customDuration</key><real>1.08</real>
+            <key>backgroundColor</key><string>#020308</string>
+          </dict></plist>
+          PLIST
+          chown mobile:mobile "$prefs"
+          chmod 0644 "$prefs"
+          touch "$marker"
+          echo '=== PRE-TEST ==='
+          ls -l "$media/Active.gif" "$prefs"
+          ps ax | grep -E '[b]ackboardd|[S]pringBoard' || true
+          if [ -x /var/jb/usr/bin/sbreload ]; then
+            /var/jb/usr/bin/sbreload
+          else
+            /var/jb/usr/bin/killall -9 SpringBoard 2>/dev/null || true
+          fi
+          sleep 12
+          echo '=== RUNTIME STATUS ==='
+          cat "$media/runtime-status.plist" 2>/dev/null || echo runtime_status=missing
+          echo '=== MEDIA SLOTS ==='
+          for f in Active.gif Rejected.gif load-in-progress; do
+            if [ -e "$media/$f" ]; then echo "$f=present"; else echo "$f=absent"; fi
+          done
+          crashes=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -newer "$marker" -print 2>/dev/null | wc -l | tr -d ' ')
+          echo "new_crash_reports=$crashes"
+          success=0
+          if [ "$crashes" = "0" ] && [ -f "$media/runtime-status.plist" ] && grep -a -q 'custom-animation-stable' "$media/runtime-status.plist" && [ -f "$media/Active.gif" ] && [ ! -e "$media/Rejected.gif" ] && [ ! -e "$media/load-in-progress" ]; then
+            success=1
+          fi
+          if [ "$success" = "1" ]; then
+            echo gif2ani_animation_test=success
+            rm -f /var/mobile/Media/DarkSword-Test.gif
+            exit 0
+          fi
+          echo gif2ani_animation_test=failure
+          python3 - <<'PY' 2>/dev/null || true
+          import plistlib
+          p='/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist'
+          try:
+              d=plistlib.load(open(p,'rb'))
+          except Exception:
+              d={}
+          d['isEnabled']=False
+          plistlib.dump(d,open(p,'wb'))
+          PY
+          chown mobile:mobile "$prefs" 2>/dev/null || true
+          chmod 0644 "$prefs" 2>/dev/null || true
+          rm -f "$media/Active.gif" "$media/load-in-progress" /var/mobile/Media/DarkSword-Test.gif
+          if [ "$crashes" != "0" ]; then /var/jb/usr/bin/killall -9 backboardd 2>/dev/null || true; fi
+          exit 92
+          SH
+          chmod +x run-animation-test.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null run-animation-test.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=45 -o ServerAliveInterval=8 -o ServerAliveCountMax=4 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/run-animation-test.sh' 2>&1 | tee -a animation-test.txt
+          code=${PIPESTATUS[1]}
+          set -e
+          echo "test_ssh_exit=$code" | tee -a animation-test.txt
+          exit "$code"
+      - name: Publish result
+        if: always()
+        env:
+          TEST_OUTCOME: ${{ steps.test.outcome }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('animation-test.txt').read_text(errors='replace') if Path('animation-test.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=['Gif2Ani Animation Test',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"test={os.environ.get('TEST_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-500:]]
+          Path('remote/gif2ani-animation-test.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/gif2ani-animation-test.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record Gif2Ani animation test [skip ci]"
+            git push origin HEAD:main
+          fi
