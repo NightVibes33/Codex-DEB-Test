@@ -1,12 +1,12 @@
 iPad Tailscale SSH Bridge
-run_id=30150909087
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30150909087
-commit=b9d34e2ee991e9231f9b28a792b5a19c678b02b5
+run_id=30150987132
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30150987132
+commit=b486c17813f2e6c810cc44115ee2253d8985a1ef
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
 install_ssh=success
-ssh=failure
+ssh=success
 
 --- sanitized SSH output ---
 Checking SSH host key over Tailscale...
@@ -16,57 +16,24 @@ Checking SSH host key over Tailscale...
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-=== GitHub SSH verification ===
-+ /var/jb/usr/bin/ssh -i /var/mobile/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -T git@github.com
-Hi NightVibes33! You've successfully authenticated, but GitHub does not provide shell access.
-=== Reset isolated branch from main ===
-+ git fetch origin main
-From github.com:NightVibes33/Dopamine
- * branch            main       -> FETCH_HEAD
-+ git reset --hard origin/main
-HEAD is now at 0ae8537 Record iPad 5 on-device DarkSword workspace
-+ git clean -fd
-+ git switch -C ipad5/adaptive-lowmem-v1 origin/main
-M	BaseBin/_external/modules/litehook
-M	BaseBin/opainject
-branch 'ipad5/adaptive-lowmem-v1' set up to track 'origin/main'.
-+ git config user.name NightVibes33 iPad
-Switched to a new branch 'ipad5/adaptive-lowmem-v1'
-+ git config user.email NightVibes33@users.noreply.github.com
-=== Extract and apply preserved Python patch payload ===
-+ python3 /tmp/ipad5-darksword-patcher.py /var/mobile/Documents/DarkSword-Workspace/Dopamine/Application/Dopamine/Exploits/DarkSword/DarkSword.m
-patch_status=applied
-=== Static invariants ===
-check=adaptive-marker count=2
-check=device-gate count=1
-check=512-profile count=1
-check=384-profile count=1
-check=256-profile count=1
-check=socket-free count=2
-check=mapping-unlock count=1
-check=bounded-failure count=1
-+ git diff --check
-static_checks=success
-+ git status --short
- M Application/Dopamine/Exploits/DarkSword/DarkSword.m
- M BaseBin/_external/modules/litehook
- m BaseBin/opainject
-?? research/IPAD5_ADAPTIVE_LOWMEM_V1.md
-+ git diff --stat
- .../Dopamine/Exploits/DarkSword/DarkSword.m        | 286 +++++++++++++++++----
- BaseBin/_external/modules/litehook                 |   2 +-
- BaseBin/opainject                                  |   0
- 3 files changed, 237 insertions(+), 51 deletions(-)
-+ git add Application/Dopamine/Exploits/DarkSword/DarkSword.m research/IPAD5_ADAPTIVE_LOWMEM_V1.md
-+ git commit -m Add adaptive low-memory DarkSword profile for iPad 5
-[ipad5/adaptive-lowmem-v1 027e478] Add adaptive low-memory DarkSword profile for iPad 5
- 2 files changed, 250 insertions(+), 50 deletions(-)
- create mode 100644 research/IPAD5_ADAPTIVE_LOWMEM_V1.md
 + git rev-parse HEAD
 027e478f8e16fd9d8044fc29cade307c65cb3715
-+ git push --force-with-lease -u origin ipad5/adaptive-lowmem-v1
++ git branch --show-current
+ipad5/adaptive-lowmem-v1
+current_branch=ipad5/adaptive-lowmem-v1
+local_head=027e478f8e16fd9d8044fc29cade307c65cb3715
++ git fetch origin ipad5/adaptive-lowmem-v1
+From github.com:NightVibes33/Dopamine
+ * branch            ipad5/adaptive-lowmem-v1 -> FETCH_HEAD
+ * [new branch]      ipad5/adaptive-lowmem-v1 -> origin/ipad5/adaptive-lowmem-v1
++ git rev-parse FETCH_HEAD
+0ae85378a6294a424c8b63de0c72b8eb8161447f
+remote_head_before=0ae85378a6294a424c8b63de0c72b8eb8161447f
++ git push --force-with-lease=refs/heads/ipad5/adaptive-lowmem-v1:0ae85378a6294a424c8b63de0c72b8eb8161447f -u origin HEAD:refs/heads/ipad5/adaptive-lowmem-v1
 To github.com:NightVibes33/Dopamine.git
- ! [rejected]        ipad5/adaptive-lowmem-v1 -> ipad5/adaptive-lowmem-v1 (stale info)
-error: failed to push some refs to 'github.com:NightVibes33/Dopamine.git'
-driver_error=command-failed:git:1
-ssh_exit_code=1
+   0ae8537..027e478  HEAD -> ipad5/adaptive-lowmem-v1
+branch 'ipad5/adaptive-lowmem-v1' set up to track 'origin/ipad5/adaptive-lowmem-v1'.
+branch=ipad5/adaptive-lowmem-v1
+pushed_head=027e478f8e16fd9d8044fc29cade307c65cb3715
+ipad_push=success
+ssh_exit_code=0
