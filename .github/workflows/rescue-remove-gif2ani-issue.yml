@@ -15,7 +15,7 @@ jobs:
   resolve-environment:
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.actor == 'NightVibes33' && github.event.issue.title == '[Emergency Remove Gif2Ani]')
+      github.event.issue.title == '[Emergency Remove Gif2Ani]'
     runs-on: ubuntu-latest
     timeout-minutes: 3
     outputs:
@@ -41,7 +41,7 @@ jobs:
   rescue:
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.actor == 'NightVibes33' && github.event.issue.title == '[Emergency Remove Gif2Ani]')
+      github.event.issue.title == '[Emergency Remove Gif2Ani]'
     needs: resolve-environment
     environment:
       name: ${{ needs.resolve-environment.outputs.environment_name }}
