@@ -1,0 +1,45 @@
+name: Patch Gif2Ani 3.4 Package Validator
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - triggers/patch-gif2ani-340-package-validator.txt
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Correct generated-name binary checks
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('.github/workflows/build-install-gif2ani-340-downloadable.yml')
+          text=path.read_text()
+          old='''          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'Cyan Pulse Rings'\n'''
+          new='''          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'Cyan'\n          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'Pulse Rings'\n'''
+          count=text.count(old)
+          if count != 2:
+              raise SystemExit(f'expected two generated-name checks, found {count}')
+          text=text.replace(old,new)
+          path.write_text(text)
+          PY
+          grep -q "grep -q 'Cyan'" .github/workflows/build-install-gif2ani-340-downloadable.yml
+          grep -q "grep -q 'Pulse Rings'" .github/workflows/build-install-gif2ani-340-downloadable.yml
+      - name: Commit validator correction
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/build-install-gif2ani-340-downloadable.yml
+          git commit -m "Fix generated downloadable theme package checks" || exit 0
+          git pull --rebase origin main
+          git push origin HEAD:main
