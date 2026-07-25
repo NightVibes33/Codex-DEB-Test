@@ -1,4 +1,4 @@
-name: Trace Gif2Ani ElleKit Injection V2
+name: Trace Choicy and backboardd Injection
 
 on:
   workflow_dispatch:
@@ -52,7 +52,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends openssh-client sshpass
-      - name: Trace current loader state
+      - name: Inspect Choicy and backboardd rules
         id: collect
         env:
           SSHPASS: ${{ secrets.IPAD_PASSWORD }}
@@ -66,14 +66,8 @@ jobs:
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             mobile@"$IPAD_HOST" 'sh -c '\''
-              echo "=== DEVICE ==="
-              sw_vers 2>/dev/null || true
-              uname -a
-
-              echo "=== PACKAGES ==="
+              echo "=== PACKAGES / PROCESSES ==="
               dpkg-query -W ellekit com.nightvibes33.gif2ani 2>&1 || true
-
-              echo "=== PROCESSES ==="
               ps ax | grep -E "[b]ackboardd|[S]pringBoard" || true
 
               echo "=== SAFE MODE GATES ==="
@@ -81,47 +75,50 @@ jobs:
               echo "_SafeMode=$(/var/jb/usr/bin/launchctl getenv _SafeMode 2>/dev/null || true)"
               if [ -e /var/mobile/.eksafemode ]; then echo eksafemode_file=present; else echo eksafemode_file=absent; fi
 
-              echo "=== GIF2ANI PACKAGE FILES ==="
-              dpkg-query -L com.nightvibes33.gif2ani 2>&1 || true
-
-              echo "=== GIF2ANI PATH CHECK ==="
-              ls -la /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib 2>&1 || true
-              ls -la /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist 2>&1 || true
-              ls -la /var/jb/usr/lib/TweakInject/Gif2Ani.dylib 2>&1 || true
-              ls -la /var/jb/usr/lib/TweakInject/Gif2Ani.plist 2>&1 || true
-
-              echo "=== DIRECTORY COUNTS / SAMPLES ==="
-              printf "mobilesubstrate_dylibs="
-              find /var/jb/Library/MobileSubstrate/DynamicLibraries -maxdepth 1 -type f -name "*.dylib" 2>/dev/null | wc -l | tr -d " "
-              printf "tweakinject_entries="
-              find /var/jb/usr/lib/TweakInject -maxdepth 1 \( -type f -o -type l \) 2>/dev/null | wc -l | tr -d " "
-              echo "-- TweakInject first entries --"
-              find /var/jb/usr/lib/TweakInject -maxdepth 1 \( -type f -o -type l \) -print 2>/dev/null | sort | head -40
-
-              echo "=== ELLEKIT LOADER FILE TYPES ==="
-              ls -la /var/jb/etc/rc.d/ellekit-loader /var/jb/usr/libexec/ellekit/loader 2>&1 || true
-              file /var/jb/etc/rc.d/ellekit-loader /var/jb/usr/libexec/ellekit/loader 2>&1 || true
-
-              echo "=== GIF2ANI BINARY ==="
-              file /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib 2>&1 || true
-              if command -v otool >/dev/null 2>&1; then otool -L /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib 2>&1 || true; fi
-
-              echo "=== FILTER ==="
-              cat /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist 2>&1 || true
-
-              echo "=== MEDIA / RUNTIME ==="
-              media="/var/mobile/Library/Application Support/Gif2Ani"
-              for f in Pending.gif Active.gif Rejected.gif load-in-progress runtime-status.plist; do
-                if [ -e "$media/$f" ]; then echo "$f=present"; else echo "$f=absent"; fi
+              echo "=== CHOICY PACKAGE FILES ==="
+              dpkg-query -W 2>/dev/null | grep -i choicy || true
+              dpkg-query -L com.opa334.choicy 2>&1 || true
+              ls -la /var/jb/usr/lib/TweakInject/Choicy* 2>&1 || true
+              for f in /var/jb/usr/lib/TweakInject/Choicy*.plist; do
+                [ -e "$f" ] || continue
+                echo "--- $f"
+                cat "$f" 2>&1 || true
               done
+
+              echo "=== CHOICY PREFERENCES ==="
+              find /var/mobile/Library/Preferences -maxdepth 1 -iname "*choicy*" -print 2>/dev/null || true
+              for f in /var/mobile/Library/Preferences/*choicy* /var/mobile/Library/Preferences/*Choicy*; do
+                [ -e "$f" ] || continue
+                echo "--- $f"
+                if command -v plutil >/dev/null 2>&1; then plutil -p "$f" 2>&1 || true; else file "$f" 2>&1 || true; fi
+              done
+
+              echo "=== BACKBOARDD TARGETING TWEAKS ==="
+              for f in /var/jb/usr/lib/TweakInject/*.plist; do
+                [ -f "$f" ] || continue
+                if grep -a -q "backboardd" "$f" 2>/dev/null; then
+                  echo "--- $f"
+                  cat "$f" 2>&1 || true
+                fi
+              done
+
+              echo "=== BACKBOARDD LAUNCH STATE ==="
+              pid=$(ps ax | awk "/[b]ackboardd/{print \$1; exit}")
+              echo "backboardd_pid=$pid"
+              /var/jb/usr/bin/launchctl print system/com.apple.backboardd 2>&1 | grep -E "state =|path =|program =|environment|DYLD|SafeMode|inject|pid =" | head -100 || true
+
+              echo "=== GIF2ANI RUNTIME DIRECTORY ==="
+              media="/var/mobile/Library/Application Support/Gif2Ani"
+              ls -ld "$media" 2>&1 || true
+              ls -la "$media" 2>&1 || true
               cat "$media/runtime-status.plist" 2>/dev/null || echo runtime_status=missing
 
               echo "=== RECENT CRASHES ==="
               find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name "backboardd-*.ips" -o -name "SpringBoard-*.ips" \) -mmin -30 -print 2>/dev/null || true
-            '\''' 2>&1 | tee gif2ani-ellekit-trace-v2.txt
+            '\''' 2>&1 | tee choicy-backboardd-trace.txt
           code=${PIPESTATUS[0]}
           set -e
-          echo "ssh_exit=$code" | tee -a gif2ani-ellekit-trace-v2.txt
+          echo "ssh_exit=$code" | tee -a choicy-backboardd-trace.txt
           exit "$code"
       - name: Publish status
         if: always()
@@ -131,14 +128,14 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git pull --rebase origin main
           {
-            echo "Gif2Ani ElleKit Injection Trace V2"
+            echo "Choicy and backboardd Injection Trace"
             echo "run_id=${GITHUB_RUN_ID}"
             echo "collect=${{ steps.collect.outcome }}"
             echo
-            cat gif2ani-ellekit-trace-v2.txt 2>/dev/null || echo "No output."
-          } > remote/gif2ani-ellekit-injection-trace-v2.txt
-          git add remote/gif2ani-ellekit-injection-trace-v2.txt
+            cat choicy-backboardd-trace.txt 2>/dev/null || echo "No output."
+          } > remote/choicy-backboardd-injection-trace.txt
+          git add remote/choicy-backboardd-injection-trace.txt
           if ! git diff --cached --quiet; then
-            git commit -m "Record Gif2Ani ElleKit injection trace V2 [skip ci]"
+            git commit -m "Record Choicy and backboardd injection trace [skip ci]"
             git push origin HEAD:main
           fi
