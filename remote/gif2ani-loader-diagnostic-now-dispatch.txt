@@ -1,0 +1,7 @@
+Read-Only ElleKit Loader Diagnostic Dispatch
+run_id=30169242282
+outcome=success
+
+curl_exit=0
+http_code=204
+loader_diagnostic_dispatched=yes
