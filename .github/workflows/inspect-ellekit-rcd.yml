@@ -1,0 +1,82 @@
+name: Inspect ElleKit Startup Script
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/inspect-ellekit-rcd.txt
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name']); raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+  inspect:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends openssh-client sshpass
+      - name: Read startup files
+        id: inspect
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" \
+            'sudo -S -p "" sh -c '\''
+              echo "=== RC.D SCRIPT ==="
+              ls -l /var/jb/etc/rc.d/ellekit-loader
+              cat /var/jb/etc/rc.d/ellekit-loader
+              echo "=== LOADER BINARY ==="
+              ls -l /var/jb/usr/libexec/ellekit/loader
+              file /var/jb/usr/libexec/ellekit/loader
+              echo "=== STRINGS ==="
+              strings /var/jb/usr/libexec/ellekit/loader | grep -Ei "usage|inject|launch|start|safe|daemon|process" | head -n 80 || true
+            '\''' 2>&1 | tee ellekit-rcd.txt
+      - name: Publish status
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          {
+            echo "ElleKit Startup Script Inspection"
+            echo "run_id=${GITHUB_RUN_ID}"
+            echo "inspect=${{ steps.inspect.outcome }}"
+            echo
+            cat ellekit-rcd.txt 2>/dev/null || echo "No output."
+          } > remote/ellekit-rcd-inspection.txt
+          git add remote/ellekit-rcd-inspection.txt
+          if ! git diff --cached --quiet; then git commit -m "Record ElleKit startup script inspection [skip ci]" && git push origin HEAD:main; fi
