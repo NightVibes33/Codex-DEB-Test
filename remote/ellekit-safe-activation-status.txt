@@ -1,5 +1,5 @@
 ElleKit Safe Activation
-run_id=30169408229
+run_id=30169425890
 activate=success
 reconnect=success
 verify=failure
@@ -24,8 +24,4 @@ ellekit_loader_exit=0
 userspace_reboot_scheduled=yes
 activation_ssh_exit=0
 reconnected_after_userspace=yes
-Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
-dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
- missing 'Maintainer' field
-dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
- missing 'Maintainer' field
+ssh: connect to host 100.116.117.65 port 22: Connection timed out
