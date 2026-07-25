@@ -1,0 +1,49 @@
+Safari Polyfills Installation
+run_id=30163617492
+tailscale=success
+install=failure
+
+--- sanitized output ---
+=== BEFORE ===
+polyfills=not-installed
+=== APT UPDATE ===
+Ign:1 https://ellekit.space ./ InRelease
+Ign:2 https://repo.chariz.com ./ InRelease
+Ign:3 http://apt.thebigboss.org/repofiles/cydia stable InRelease
+Ign:4 https://randy-420.github.io ./ InRelease
+Hit:5 https://repo.chariz.com ./ Release
+Ign:6 https://poomsmart.github.io/repo ./ InRelease
+Ign:7 https://havoc.app ./ InRelease
+Hit:8 https://randy-420.github.io ./ Release
+Hit:9 https://apt.procurs.us 1900 InRelease
+Hit:10 http://apt.thebigboss.org/repofiles/cydia stable Release
+Hit:11 https://havoc.app ./ Release
+Get:12 https://repo.cypwn.xyz ./ InRelease [3384 B]
+Err:12 https://repo.cypwn.xyz ./ InRelease
+  Clearsigned file isn't valid, got 'NOSPLIT' (does the network require authentication?)
+Get:13 https://poomsmart.github.io/repo ./ Release [194 B]
+Ign:14 https://randy-420.github.io ./ Release.gpg
+Ign:15 https://poomsmart.github.io/repo ./ Release.gpg
+Get:16 http://apt.thebigboss.org/repofiles/cydia stable Release.gpg [181 B]
+Ign:1 https://ellekit.space ./ InRelease
+Get:17 https://repo.palera.in ./ InRelease [16.5 kB]
+Ign:18 https://apt.iarrays.com ./ InRelease
+Get:19 https://apt.iarrays.com ./ Release [189 B]
+Ign:20 https://apt.iarrays.com ./ Release.gpg
+Ign:1 https://ellekit.space ./ InRelease
+Err:1 https://ellekit.space ./ InRelease
+  Could not connect to ellekit.space:443 (10.0.4.1). - connect (61: Connection refused)
+Ign:16 http://apt.thebigboss.org/repofiles/cydia stable Release.gpg
+Err:17 https://repo.palera.in ./ InRelease
+  The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 9E7E89B50CCF8DAA
+Reading package lists...
+E: Failed to fetch https://repo.cypwn.xyz/./InRelease  Clearsigned file isn't valid, got 'NOSPLIT' (does the network require authentication?)
+E: The repository 'https://repo.cypwn.xyz ./ InRelease' is not signed.
+E: The repository 'https://randy-420.github.io ./ Release' is not signed.
+E: The repository 'https://poomsmart.github.io/repo ./ Release' is not signed.
+E: The repository 'https://apt.iarrays.com ./ Release' is not signed.
+W: GPG error: http://apt.thebigboss.org/repofiles/cydia stable Release: The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 694D17D38764B4F4
+E: The repository 'http://apt.thebigboss.org/repofiles/cydia stable Release' is not signed.
+W: GPG error: https://repo.palera.in ./ InRelease: The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 9E7E89B50CCF8DAA
+E: The repository 'https://repo.palera.in ./ InRelease' is not signed.
+install_ssh_exit=100
