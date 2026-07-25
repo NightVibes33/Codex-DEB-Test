@@ -1,8 +1,22 @@
 iPad GitHub SSH key selection and adaptive patch
-run_id=30151211453
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30151211453
-source_commit=5544119e4295b9a9c972c8312bb41d949d7e1266
+run_id=30151239516
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30151239516
+source_commit=4b0ff8773915d8fe3c24b76036dffac96997fd24
 
 --- sanitized output ---
 === Existing GitHub SSH identity ===
-existing_key=missing
+key_name=id_ed25519 fingerprint=SHA256:YRKLYeQN2Oca6KsPX8HE9yQ8qbLZ7PMRa3BOqvKn3KQ (ED25519)
+github_auth=success
+repo_remote=git@github.com:NightVibes33/Dopamine.git
+ssh_wrapper=/var/mobile/.ssh/github-ssh-wrapper
+git_remote_auth=success
+workflow_total_count=1
+---
+run_id=30151105627
+head_sha=020358a8549ab0a33482d3656b42ed3809fc515f
+status=in_progress
+conclusion=None
+event=push
+created_at=2026-07-25T08:26:29Z
+updated_at=2026-07-25T08:26:32Z
+url=https://github.com/NightVibes33/Dopamine/actions/runs/30151105627
