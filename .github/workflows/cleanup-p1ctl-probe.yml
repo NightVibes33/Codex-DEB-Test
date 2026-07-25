@@ -1,0 +1,110 @@
+name: Cleanup Cancelled p1ctl Probe
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/cleanup-p1ctl-probe.txt
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name']); raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  cleanup:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends openssh-client sshpass
+      - name: Cleanup and verify
+        id: cleanup_device
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 60); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          test "$connected" -eq 1
+          cat > cleanup-p1probe.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media="/var/mobile/Library/Application Support/Gif2Ani"
+          prefs="/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist"
+          rm -f /var/jb/usr/lib/TweakInject/P1InjectionProbe.dylib /var/jb/usr/lib/TweakInject/P1InjectionProbe.plist
+          rm -f /var/mobile/Media/P1InjectionProbe.dylib /var/mobile/Media/P1InjectionProbe.plist /var/mobile/Media/p1ctl /var/mobile/Media/p1ctl-exitsafe-probe.sh /var/mobile/Media/verify-p1probe.sh
+          rm -f "$media"/P1Probe-*.txt "$media/Pending.gif" "$media/Active.gif" "$media/Rejected.gif" "$media/load-in-progress"
+          test "$(dpkg-query -W com.nightvibes33.gif2ani | cut -f2)" = "3.1.1"
+          test -f "$prefs"
+          grep -a -q '<false/>' "$prefs"
+          test ! -e "$media/Pending.gif"
+          test ! -e "$media/Active.gif"
+          test ! -e "$media/Rejected.gif"
+          test ! -e /var/jb/usr/lib/TweakInject/P1InjectionProbe.dylib
+          test ! -e /var/jb/usr/lib/TweakInject/P1InjectionProbe.plist
+          echo cleanup=success
+          echo gif2ani_state=installed-disabled-no-gif
+          ps ax | grep -E '[b]ackboardd|[S]pringBoard' || true
+          SH
+          chmod +x cleanup-p1probe.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null cleanup-p1probe.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=30 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/cleanup-p1probe.sh' 2>&1 | tee cleanup-p1probe.txt
+      - name: Publish result
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          CLEANUP_OUTCOME: ${{ steps.cleanup_device.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('cleanup-p1probe.txt').read_text(errors='replace') if Path('cleanup-p1probe.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=['Cancelled p1ctl Probe Cleanup',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"cleanup={os.environ.get('CLEANUP_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-150:]]
+          Path('remote/cleanup-p1ctl-probe.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/cleanup-p1ctl-probe.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record cancelled p1ctl probe cleanup [skip ci]"
+            git push origin HEAD:main
+          fi
