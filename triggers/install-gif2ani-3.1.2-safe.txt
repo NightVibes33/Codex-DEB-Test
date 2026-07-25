@@ -1,0 +1,4 @@
+install=gif2ani-3.1.2
+requested_at=2026-07-25T15:38:00-05:00
+mode=disabled-install-plus-inert-selection-smoke-test
+artifact_sha256=a5224b6a3ae062332b7f114776c2a54f481153f0a09293eedf099d6242eb4640
