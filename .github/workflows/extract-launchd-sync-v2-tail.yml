@@ -1,0 +1,31 @@
+name: Extract Launchd Sync V2 Tail
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/extract-launchd-sync-v2-tail.txt
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract final report lines
+        run: |
+          set -euo pipefail
+          tail -n 140 remote/launchd-palera1n-flag-sync-v2.txt > remote/launchd-palera1n-flag-sync-v2-tail.txt
+      - name: Commit tail
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          git add remote/launchd-palera1n-flag-sync-v2-tail.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Extract launchd sync V2 report tail [skip ci]"
+            git push origin HEAD:main
+          fi
