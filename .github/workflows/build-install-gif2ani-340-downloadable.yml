@@ -1,0 +1,297 @@
+name: Build and Install Gif2Ani 3.4 Downloadable Catalog
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - triggers/build-install-gif2ani-340-downloadable.txt
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+  THEME_COMMIT: "b5d5eda04359409865772038895e660d709deb18"
+  TEST_THEME: "cyan-pulse-rings.gif"
+
+concurrency:
+  group: gif2ani-device-change
+  cancel-in-progress: false
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1)) == target:
+                  print('environment_name='+env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  build-install:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 42
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: bridge
+
+      - uses: actions/checkout@v4
+        with:
+          repository: NightVibes33/Dark-Boot
+          ref: main
+          path: darkboot
+
+      - name: Install dependencies and Theos
+        env:
+          THEOS: /opt/theos
+          CI: "1"
+          SHELL: /bin/bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            bash curl sudo build-essential fakeroot rsync perl git \
+            libxml2 dpkg-dev unzip xz-utils ca-certificates python3 file \
+            openssh-client sshpass
+          python3 -m pip install --disable-pip-version-check pillow
+          sudo rm -rf /opt/theos
+          sudo mkdir -p /opt
+          sudo chown "$USER:$USER" /opt
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          test -x /opt/theos/toolchain/linux/iphone/bin/clang
+
+      - name: Validate 3.4 source contract
+        working-directory: darkboot
+        run: |
+          set -euo pipefail
+          test "$(awk '/^Version:/{print $2}' control)" = "3.4.0"
+          python3 - <<'PY'
+          from pathlib import Path
+          p1=Path('gif2aniprefs/G2ThemeGalleryPart1.inc').read_text()
+          legacy=p1[p1.index('G2LegacyCatalog'):p1.index('static UIColor *G2RGB')]
+          offline=p1[p1.index('G2BuiltInPacks'):p1.index('G2LegacyCatalog')]
+          remote=Path('gif2aniprefs/G2RemoteThemeCatalog.inc').read_text()
+          wrapper=Path('gif2aniprefs/G2ThemeGalleryController.m').read_text()
+          preview=Path('gif2aniprefs/G2RemoteThemePreviewOverride.inc').read_text()
+          stage=Path('gif2aniprefs/G2ThemeStageOverride.inc').read_text()
+          root=Path('gif2aniprefs/Resources/Root.plist').read_text()
+          assert offline.count('@"identifier":') == 12
+          assert legacy.count('@"name":') == 54
+          assert remote.count('@{"name":') == 6 + 9
+          assert 'packs.count == 54' in remote
+          assert 'G2OfflineBuiltInPacks()' in remote
+          assert 'raw.githubusercontent.com/NightVibes33/Codex-DEB-Test' in remote
+          assert 'b5d5eda04359409865772038895e660d709deb18' in remote
+          assert 'G2RemoteThemeURLIsAllowed' in remote
+          assert 'Download & Preview' in preview
+          assert 'NSURLSessionConfiguration.ephemeralSessionConfiguration' in preview
+          assert 'G2ValidateGIFData(data, &error)' in preview
+          assert 'G2RemoteCachedThemeIsValid' in preview
+          assert 'userSettingsPreserved' in stage
+          assert '@{@"pendingReady":@YES}' in stage
+          assert 'recommendedBackground' in stage
+          assert '#define G2BuiltInPacks G2OfflineBuiltInPacks' in wrapper
+          assert '#define G2StageGIFAtPath G2LegacyStageGIFAtPath' in wrapper
+          assert 'GIF2ANI 3.4' in root
+          print('offline_builtins=12')
+          print('downloadable_builtins=54')
+          print('builtins_total=66')
+          print('legacy_source_catalog=54')
+          print('all_gallery_entries=120')
+          PY
+
+      - name: Prove pinned downloadable asset
+        run: |
+          set -euo pipefail
+          URL="https://raw.githubusercontent.com/NightVibes33/Codex-DEB-Test/${THEME_COMMIT}/gif2ani-themes/v1/${TEST_THEME}"
+          curl --fail --location --proto '=https' --tlsv1.2 --max-time 30 "$URL" -o test-theme.gif
+          python3 - <<'PY'
+          from PIL import Image
+          import hashlib, os
+          p='test-theme.gif'
+          im=Image.open(p)
+          assert im.format=='GIF'
+          assert im.size==(360,360), im.size
+          assert getattr(im,'n_frames',0)==24, getattr(im,'n_frames',0)
+          size=os.path.getsize(p)
+          assert 0 < size <= 25*1024*1024
+          print('download_status=success')
+          print('download_frames=24')
+          print('download_dimensions=360x360')
+          print('download_bytes='+str(size))
+          print('download_sha256='+hashlib.sha256(open(p,'rb').read()).hexdigest())
+          PY
+
+      - name: Build rootless 3.4.0 package
+        working-directory: darkboot
+        env:
+          THEOS: /opt/theos
+        run: |
+          set -o pipefail
+          make clean package FINALPACKAGE=1 2>&1 | tee ../gif2ani-340-build.log
+          DEB="$(find packages -maxdepth 1 -type f -name 'com.nightvibes33.gif2ani_3.4.0_iphoneos-arm64.deb' | head -n1)"
+          test -n "$DEB"
+          cp "$DEB" ../Gif2Ani-3.4.0-downloadable.deb
+          test "$(dpkg-deb --field "$DEB" Package)" = "com.nightvibes33.gif2ani"
+          test "$(dpkg-deb --field "$DEB" Version)" = "3.4.0"
+          rm -rf ../gif2ani-340-root
+          dpkg-deb -x "$DEB" ../gif2ani-340-root
+          BUNDLE=../gif2ani-340-root/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle
+          test -f "$BUNDLE/Gif2AniPrefs"
+          test -f "$BUNDLE/Root.plist"
+          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'Download & Preview'
+          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'Cyan Pulse Rings'
+          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'Legacy Source Catalog'
+          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'userSettingsPreserved'
+          grep -q 'GIF2ANI 3.4' "$BUNDLE/Root.plist"
+          sha256sum "$DEB" | tee ../gif2ani-340-deb-sha256.txt
+
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Install and prove device state preservation
+        id: install
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 45); do
+            sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1 && { connected=1; break; }
+            sleep 5
+          done
+          echo "connected=$connected" | tee gif2ani-340-device.txt
+          test "$connected" -eq 1
+
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            Gif2Ani-3.4.0-downloadable.deb mobile@"$IPAD_HOST":/var/mobile/Media/Gif2Ani-3.4.0-downloadable.deb
+
+          cat > /tmp/install-gif2ani-340.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media='/var/mobile/Library/Application Support/Gif2Ani'
+          prefs='/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist'
+          active="$media/Active.gif"
+          runtime="$media/runtime-status.plist"
+          cache="$media/Catalog"
+          deb='/var/mobile/Media/Gif2Ani-3.4.0-downloadable.deb'
+          marker='/var/mobile/Media/gif2ani-340-install.marker'
+          url='https://raw.githubusercontent.com/NightVibes33/Codex-DEB-Test/b5d5eda04359409865772038895e660d709deb18/gif2ani-themes/v1/cyan-pulse-rings.gif'
+          sha() { /var/jb/usr/bin/sha256sum "$1" 2>/dev/null | awk '{print $1}'; }
+
+          test -f "$active"
+          test -f "$prefs"
+          test -f "$runtime"
+          active_before=$(sha "$active")
+          prefs_before=$(sha "$prefs")
+          runtime_before=$(sha "$runtime")
+          touch "$marker"
+
+          /var/jb/usr/bin/dpkg -i "$deb"
+          version=$(/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.nightvibes33.gif2ani)
+          test "$version" = '3.4.0'
+
+          bundle='/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle'
+          test -f "$bundle/Gif2AniPrefs"
+          test -f "$bundle/Root.plist"
+          strings "$bundle/Gif2AniPrefs" | grep -q 'Download & Preview'
+          strings "$bundle/Gif2AniPrefs" | grep -q 'Cyan Pulse Rings'
+          strings "$bundle/Gif2AniPrefs" | grep -q 'Legacy Source Catalog'
+          grep -q 'GIF2ANI 3.4' "$bundle/Root.plist"
+
+          mkdir -p "$cache"
+          rm -f "$cache/device-download-test.gif"
+          /var/jb/usr/bin/curl --fail --location --proto '=https' --max-time 30 "$url" -o "$cache/device-download-test.gif"
+          size=$(wc -c < "$cache/device-download-test.gif" | tr -d ' ')
+          test "$size" -gt 0
+          test "$size" -le 26214400
+          magic=$(dd if="$cache/device-download-test.gif" bs=1 count=6 2>/dev/null)
+          case "$magic" in GIF87a|GIF89a) ;; *) exit 1 ;; esac
+          rm -f "$cache/device-download-test.gif"
+
+          test "$active_before" = "$(sha "$active")"
+          test "$prefs_before" = "$(sha "$prefs")"
+          test "$runtime_before" = "$(sha "$runtime")"
+
+          crashes=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \
+            \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' -o -name 'Preferences-*.ips' \) \
+            -newer "$marker" -print 2>/dev/null | wc -l | tr -d ' ')
+          test "$crashes" = 0
+
+          echo "installed_version=$version"
+          echo "downloadable_theme_device_fetch=true"
+          echo "active_gif_preserved=true"
+          echo "preferences_preserved=true"
+          echo "runtime_status_preserved=true"
+          echo "new_crash_reports=$crashes"
+          echo "gif2ani_340_install=success"
+          /var/jb/usr/bin/killall -9 Preferences 2>/dev/null || true
+          SH
+
+          chmod +x /tmp/install-gif2ani-340.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            /tmp/install-gif2ani-340.sh mobile@"$IPAD_HOST":/var/mobile/Media/install-gif2ani-340.sh
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=60 \
+            -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" \
+            'sudo -S -p "" sh /var/mobile/Media/install-gif2ani-340.sh' 2>&1 | tee -a gif2ani-340-device.txt
+
+      - name: Publish proof
+        if: always()
+        env:
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          cd bridge
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          build=Path('../gif2ani-340-build.log').read_text(errors='replace') if Path('../gif2ani-340-build.log').exists() else 'No build log.'
+          device=Path('../gif2ani-340-device.txt').read_text(errors='replace') if Path('../gif2ani-340-device.txt').exists() else 'No device output.'
+          digest=Path('../gif2ani-340-deb-sha256.txt').read_text(errors='replace') if Path('../gif2ani-340-deb-sha256.txt').exists() else ''
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw:
+              build=build.replace(pw,'***REDACTED***')
+              device=device.replace(pw,'***REDACTED***')
+          out=[
+              'Gif2Ani 3.4.0 Downloadable Catalog Build and Install',
+              f"run_id={os.environ.get('GITHUB_RUN_ID','')}",
+              f"install={os.environ.get('INSTALL_OUTCOME','')}",
+              '', 'offline_builtins=12', 'downloadable_builtins=54', 'builtins_total=66',
+              'legacy_source_catalog=54', 'all_gallery_entries=120',
+              '', '--- digest ---', digest.strip(),
+              '', '--- device proof ---', *device.splitlines()[-500:],
+              '', '--- build tail ---', *build.splitlines()[-400:]
+          ]
+          Path('remote/gif2ani-340-downloadable-build-install.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/gif2ani-340-downloadable-build-install.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record Gif2Ani 3.4 downloadable catalog proof [skip ci]"
+            git push origin HEAD:main
+          fi
