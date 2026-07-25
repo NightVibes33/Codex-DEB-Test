@@ -1,0 +1,199 @@
+name: Test ElleKit BackBoard Injection
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/test-ellekit-backboard-injection.txt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  test:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Join Tailscale
+        id: tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - name: Install SSH tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends openssh-client sshpass
+      - name: Create device scripts
+        run: |
+          cat > prepare-injection-test.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media="/var/mobile/Library/Application Support/Gif2Ani"
+          prefs="/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist"
+          marker="/var/mobile/Media/gif2ani-backboard-injection.marker"
+          loader="/var/jb/usr/libexec/ellekit/loader"
+
+          test "$(dpkg-query -W com.nightvibes33.gif2ani | cut -f2)" = "3.1.1"
+          test "$(dpkg-query -W ellekit | cut -f2)" = "1.1.3"
+          test -x "$loader"
+          mkdir -p "$media"
+          printf '%s\n' \
+            '<?xml version="1.0" encoding="UTF-8"?>' \
+            '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+            '<plist version="1.0"><dict>' \
+            '  <key>isEnabled</key><false/>' \
+            '  <key>pendingReady</key><false/>' \
+            '  <key>imageTransformation</key><string>resizeAspect</string>' \
+            '  <key>customLoop</key><real>-1</real>' \
+            '  <key>customDuration</key><real>-1</real>' \
+            '  <key>backgroundColor</key><string>#000000</string>' \
+            '</dict></plist>' > "$prefs"
+          chown mobile:mobile "$media" "$prefs"
+          chmod 0755 "$media"
+          chmod 0644 "$prefs"
+          rm -f "$media/Pending.gif" "$media/Active.gif" "$media/Rejected.gif" "$media/load-in-progress" "$media/runtime-status.plist"
+          touch "$marker"
+          echo "prepared_disabled_no_gif=yes"
+          echo "backboardd_before=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')"
+          echo '=== ELLEKIT LOADER OUTPUT ==='
+          timeout 20 "$loader"
+          loader_code=$?
+          echo "ellekit_loader_exit=$loader_code"
+          test "$loader_code" -eq 0
+          sleep 5
+          echo '=== RESTART BACKBOARD ==='
+          killall -9 backboardd
+          SH
+
+          cat > verify-injection-test.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media="/var/mobile/Library/Application Support/Gif2Ani"
+          marker="/var/mobile/Media/gif2ani-backboard-injection.marker"
+          echo "backboardd_after=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')"
+          echo "springboard_after=$(ps ax | awk '/[S]pringBoard/{print $1; exit}')"
+          test ! -e "$media/Pending.gif"
+          test ! -e "$media/Active.gif"
+          test ! -e "$media/Rejected.gif"
+          test ! -e "$media/load-in-progress"
+          echo '=== RUNTIME STATUS ==='
+          cat "$media/runtime-status.plist" 2>/dev/null || echo runtime_status=missing
+          test -f "$media/runtime-status.plist"
+          grep -a -q 'tweak-loaded-no-media-decode' "$media/runtime-status.plist"
+          crashes=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -newer "$marker" -print 2>/dev/null | wc -l | tr -d ' ')
+          echo "new_crash_reports=$crashes"
+          test "$crashes" = "0"
+          echo "ellekit_backboard_injection=success"
+          SH
+          chmod +x prepare-injection-test.sh verify-injection-test.sh
+
+      - name: Upload scripts
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 36); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          test "$connected" -eq 1
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            prepare-injection-test.sh verify-injection-test.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+
+      - name: Load ElleKit and restart BackBoard
+        id: restart
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -uo pipefail
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=20 -o ServerAliveInterval=4 -o ServerAliveCountMax=2 \
+            -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/prepare-injection-test.sh' \
+            2>&1 | tee backboard-injection-test.txt
+          code=${PIPESTATUS[1]}
+          set -e
+          echo "restart_ssh_exit=$code" | tee -a backboard-injection-test.txt
+          if [ "$code" -ne 0 ] && [ "$code" -ne 255 ]; then exit "$code"; fi
+
+      - name: Reconnect and verify injection
+        id: verify
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          sleep 8
+          connected=0
+          for attempt in $(seq 1 48); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          echo "reconnected=$connected" | tee -a backboard-injection-test.txt
+          test "$connected" -eq 1
+          sleep 5
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/verify-injection-test.sh' \
+            2>&1 | tee -a backboard-injection-test.txt
+
+      - name: Publish status
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          RESTART_OUTCOME: ${{ steps.restart.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('backboard-injection-test.txt').read_text(errors='replace') if Path('backboard-injection-test.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=['ElleKit BackBoard Injection Test',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"restart={os.environ.get('RESTART_OUTCOME','')}",f"verify={os.environ.get('VERIFY_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-250:]]
+          Path('remote/ellekit-backboard-injection-test.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/ellekit-backboard-injection-test.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record ElleKit BackBoard injection test [skip ci]"
+            git push origin HEAD:main
+          fi
