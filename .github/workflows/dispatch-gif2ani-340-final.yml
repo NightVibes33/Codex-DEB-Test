@@ -9,81 +9,17 @@ on:
 
 permissions:
   actions: write
-  contents: write
+  contents: read
 
 concurrency:
   group: gif2ani-340-final-dispatch
   cancel-in-progress: false
 
 jobs:
-  repair-and-dispatch:
+  dispatch:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Make all binary checks pipefail-safe
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path('.github/workflows/build-install-gif2ani-340-downloadable.yml')
-          text = path.read_text()
-          replacements = {
-              '''          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'Download & Preview'\n''':
-                  '''          grep -a -q 'Download & Preview' "$BUNDLE/Gif2AniPrefs"\n''',
-              '''          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'Cyan Pulse Rings'\n''':
-                  '''          grep -a -q 'Cyan Pulse Rings' "$BUNDLE/Gif2AniPrefs"\n''',
-              '''          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'Pulse Rings'\n''':
-                  '''          grep -a -q 'Pulse Rings' "$BUNDLE/Gif2AniPrefs"\n''',
-              '''          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'Cyan'\n''':
-                  '''          grep -a -q 'Cyan' "$BUNDLE/Gif2AniPrefs"\n''',
-              '''          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'Legacy Source Catalog'\n''':
-                  '''          grep -a -q 'Legacy Source Catalog' "$BUNDLE/Gif2AniPrefs"\n''',
-              '''          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'userSettingsPreserved'\n''':
-                  '''          grep -a -q 'userSettingsPreserved' "$BUNDLE/Gif2AniPrefs"\n''',
-              '''          strings "$bundle/Gif2AniPrefs" | grep -q 'Download & Preview'\n''':
-                  '''          grep -a -q 'Download & Preview' "$bundle/Gif2AniPrefs"\n''',
-              '''          strings "$bundle/Gif2AniPrefs" | grep -q 'Cyan Pulse Rings'\n''':
-                  '''          grep -a -q 'Cyan Pulse Rings' "$bundle/Gif2AniPrefs"\n''',
-              '''          strings "$bundle/Gif2AniPrefs" | grep -q 'Pulse Rings'\n''':
-                  '''          grep -a -q 'Pulse Rings' "$bundle/Gif2AniPrefs"\n''',
-              '''          strings "$bundle/Gif2AniPrefs" | grep -q 'Cyan'\n''':
-                  '''          grep -a -q 'Cyan' "$bundle/Gif2AniPrefs"\n''',
-              '''          strings "$bundle/Gif2AniPrefs" | grep -q 'Legacy Source Catalog'\n''':
-                  '''          grep -a -q 'Legacy Source Catalog' "$bundle/Gif2AniPrefs"\n''',
-          }
-          changed = 0
-          for old, new in replacements.items():
-              while old in text:
-                  text = text.replace(old, new, 1)
-                  changed += 1
-          if 'strings "$BUNDLE/Gif2AniPrefs" | grep -q' in text or 'strings "$bundle/Gif2AniPrefs" | grep -q' in text:
-              raise SystemExit('unsafe binary pipeline remains')
-          required = [
-              "grep -a -q 'Download & Preview'",
-              "grep -a -q 'Legacy Source Catalog'",
-              "grep -a -q 'userSettingsPreserved'",
-          ]
-          missing = [item for item in required if item not in text]
-          if missing:
-              raise SystemExit(f'missing safe checks: {missing}')
-          path.write_text(text)
-          print(f'replaced_binary_pipelines={changed}')
-          PY
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .github/workflows/build-install-gif2ani-340-downloadable.yml
-          if ! git diff --cached --quiet; then
-            git commit -m "Make Gif2Ani proof binary checks pipefail-safe"
-            git pull --rebase origin main
-            git push origin HEAD:main
-          fi
-
-      - name: Dispatch build and device proof
+      - name: Dispatch clean build and device proof
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run build-install-gif2ani-340-downloadable.yml --repo "$GITHUB_REPOSITORY" --ref main
+        run: gh workflow run build-install-gif2ani-340-final.yml --repo "$GITHUB_REPOSITORY" --ref main
