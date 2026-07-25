@@ -1,3 +1,3 @@
 diagnose=choicy-backboardd-injection-trace
-requested_at=2026-07-25T19:58:00-05:00
-reason=identify-process-level-injection-block
+requested_at=2026-07-25T19:59:00-05:00
+reason=retry-after-choicy-trace-registration
