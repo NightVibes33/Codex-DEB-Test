@@ -1,0 +1,120 @@
+name: Check Gif2Ani Dlopen
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/check-gif2ani-dlopen.txt
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  check:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends openssh-client sshpass
+      - name: Create device diagnostic
+        run: |
+          cat > check-gif2ani-dlopen.sh <<'SH'
+          #!/bin/sh
+          set +e
+          dylib="/var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib"
+          echo '=== FILES ==='
+          ls -l "$dylib" /var/jb/usr/lib/TweakInject/Gif2Ani.dylib /var/jb/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate /var/jb/usr/lib/libellekit.dylib 2>&1
+          echo '=== MACH-O ==='
+          file "$dylib" 2>&1
+          otool -L "$dylib" 2>&1
+          echo '=== ENTITLEMENTS ==='
+          /var/jb/usr/bin/ldid -e "$dylib" 2>&1 || true
+          echo '=== PYTHON DLOPEN ==='
+          /var/jb/usr/bin/python3 - <<'PY'
+          import ctypes, traceback
+          path='/var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib'
+          try:
+              lib=ctypes.CDLL(path, mode=ctypes.RTLD_LOCAL)
+              print('dlopen_success=yes')
+              print('handle=%r' % (lib._handle,))
+          except Exception as exc:
+              print('dlopen_success=no')
+              print('dlopen_error=%r' % (exc,))
+              traceback.print_exc()
+          PY
+          echo '=== CURRENT MARKER ==='
+          cat '/var/mobile/Library/Application Support/Gif2Ani/runtime-status.plist' 2>/dev/null || echo runtime_status=missing
+          SH
+          chmod +x check-gif2ani-dlopen.sh
+      - name: Run read-only diagnostic
+        id: probe
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 60); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          test "$connected" -eq 1
+          sshpass -e scp -P 22 -o ConnectTimeout=15 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null check-gif2ani-dlopen.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=30 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/check-gif2ani-dlopen.sh' 2>&1 | tee gif2ani-dlopen.txt
+      - name: Publish result
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          PROBE_OUTCOME: ${{ steps.probe.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('gif2ani-dlopen.txt').read_text(errors='replace') if Path('gif2ani-dlopen.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=['Gif2Ani Dlopen Diagnostic',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"probe={os.environ.get('PROBE_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-250:]]
+          Path('remote/gif2ani-dlopen-diagnostic.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/gif2ani-dlopen-diagnostic.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record Gif2Ani dlopen diagnostic [skip ci]"
+            git push origin HEAD:main
+          fi
