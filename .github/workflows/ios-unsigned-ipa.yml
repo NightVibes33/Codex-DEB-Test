@@ -40,10 +40,13 @@ jobs:
       CARGO_HTTP_TIMEOUT: "120"
       CARGO_HTTP_MULTIPLEXING: "false"
       IOS_RUST_PROFILE: mobile-release
+      IOS_MIN: "16.1"
       RUSTC_WRAPPER: ""
       SCCACHE_DISABLE: "1"
       SOURCE_ROOT: upstream/litter
       DERIVED_DATA_PATH: ${{ github.workspace }}/build/DerivedData
+      RUSTY_V8_VERSION: "149.2.0"
+      RUSTY_V8_ARCHIVE_NAME: librusty_v8_release_x86_64-apple-darwin.a.gz
       LITTER_IOS_BUILD_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.build_mode || 'full-sideload' }}
       LITTER_NYXIAN_PRIVATE_BUILD: ${{ (github.event_name != 'workflow_dispatch' || inputs.build_mode == 'full-sideload' || inputs.build_mode == 'nyxian-private') && '1' || '0' }}
       LITTER_EMBED_PRIVATE_BUILDKIT_ASSETS: ${{ github.event_name == 'workflow_dispatch' && inputs.build_mode == 'nyxian-private' && '1' || '0' }}
@@ -72,7 +75,15 @@ jobs:
         run: |
           set -euo pipefail
           if ! xcrun --sdk iphoneos --find metal >/dev/null 2>&1; then
-            sudo xcodebuild -downloadComponent MetalToolchain
+            for attempt in 1 2 3; do
+              if sudo xcodebuild -downloadComponent MetalToolchain; then
+                break
+              fi
+              if [[ "$attempt" == "3" ]]; then
+                exit 1
+              fi
+              sleep $((attempt * 20))
+            done
           fi
           xcrun --sdk iphoneos --find metal
 
@@ -120,6 +131,34 @@ jobs:
           restore-keys: |
             alleycat-zig-global-${{ runner.os }}-
 
+      - name: Restore rusty_v8 archive cache
+        id: rusty_v8_cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/.rusty_v8
+          key: rusty-v8-${{ env.RUSTY_V8_VERSION }}-${{ runner.os }}-x86_64-apple-darwin
+          restore-keys: |
+            rusty-v8-${{ env.RUSTY_V8_VERSION }}-${{ runner.os }}-
+
+      - name: Preload rusty_v8 archive
+        id: rusty_v8
+        shell: bash
+        run: |
+          set -euo pipefail
+          CACHE_DIR="$HOME/.cargo/.rusty_v8"
+          ARCHIVE="$CACHE_DIR/$RUSTY_V8_ARCHIVE_NAME"
+          URL="https://github.com/denoland/rusty_v8/releases/download/v${RUSTY_V8_VERSION}/${RUSTY_V8_ARCHIVE_NAME}"
+          mkdir -p "$CACHE_DIR"
+          if [[ ! -s "$ARCHIVE" ]]; then
+            rm -f "$ARCHIVE.tmp"
+            curl --fail --location --retry 12 --retry-all-errors --retry-delay 10 \
+              --connect-timeout 30 --max-time 1800 "$URL" -o "$ARCHIVE.tmp"
+            test -s "$ARCHIVE.tmp"
+            mv "$ARCHIVE.tmp" "$ARCHIVE"
+          fi
+          gzip -t "$ARCHIVE"
+          echo "archive=$ARCHIVE" >> "$GITHUB_OUTPUT"
+
       - name: Restore prebuilt Rust iOS device library
         id: rust_generated_cache
         uses: actions/cache/restore@v4
@@ -127,10 +166,32 @@ jobs:
           path: |
             upstream/litter/apps/ios/GeneratedRust
             upstream/litter/apps/ios/Sources/Litter/Bridge/UniFFICodexClient.generated.swift
-          key: ios-rust-generated-v3-${{ runner.os }}-${{ hashFiles('upstream/litter/apps/ios/scripts/build-rust.sh', 'upstream/litter/apps/ios/scripts/build-ghostty.sh', 'upstream/litter/apps/ios/scripts/sync-ghostty.sh', 'upstream/litter/apps/ios/scripts/sync-codex.sh', 'upstream/litter/shared/rust-bridge/Cargo.lock', 'upstream/litter/shared/rust-bridge/Cargo.toml', 'upstream/litter/shared/rust-bridge/codex-mobile-client/**', 'upstream/litter/shared/rust-bridge/codex-slingshot/**', 'upstream/litter/patches/codex/**', 'upstream/litter/patches/ghostty/**') }}
+          key: ios-testflight-rust-generated-mobile-release-v1-${{ runner.os }}-${{ hashFiles('upstream/litter/apps/ios/scripts/build-rust.sh', 'upstream/litter/apps/ios/scripts/build-ghostty.sh', 'upstream/litter/apps/ios/scripts/sync-ghostty.sh', 'upstream/litter/apps/ios/scripts/sync-codex.sh', 'upstream/litter/shared/rust-bridge/Cargo.lock', 'upstream/litter/shared/rust-bridge/Cargo.toml', 'upstream/litter/shared/rust-bridge/codex-mobile-client/Cargo.toml', 'upstream/litter/shared/rust-bridge/codex-mobile-client/src/**', 'upstream/litter/shared/rust-bridge/codex-slingshot/Cargo.toml', 'upstream/litter/shared/rust-bridge/codex-slingshot/src/**', 'upstream/litter/patches/codex/**', 'upstream/litter/patches/ghostty/**', 'upstream/litter/shared/third_party/codex/**', 'upstream/litter/shared/third_party/ghostty/**') }}
           restore-keys: |
-            ios-rust-generated-v3-${{ runner.os }}-
             ios-testflight-rust-generated-mobile-release-v1-${{ runner.os }}-
+
+      - name: Validate generated Rust cache
+        id: rust_generated_valid
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            "$SOURCE_ROOT/apps/ios/GeneratedRust/ios-device/libcodex_mobile_client.a"
+            "$SOURCE_ROOT/apps/ios/GeneratedRust/ios-device/libghostty.a"
+            "$SOURCE_ROOT/apps/ios/GeneratedRust/Headers/ghostty.h"
+            "$SOURCE_ROOT/apps/ios/GeneratedRust/Headers/codex_mobile_clientFFI.h"
+            "$SOURCE_ROOT/apps/ios/GeneratedRust/Headers/codex_mobile_clientFFI.modulemap"
+            "$SOURCE_ROOT/apps/ios/GeneratedRust/Headers/module.modulemap"
+            "$SOURCE_ROOT/apps/ios/GeneratedRust/.swift-bindings.hash"
+            "$SOURCE_ROOT/apps/ios/Sources/Litter/Bridge/UniFFICodexClient.generated.swift"
+          )
+          for path in "${required[@]}"; do
+            if [[ ! -s "$path" ]]; then
+              echo "hit=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          echo "hit=true" >> "$GITHUB_OUTPUT"
 
       - name: Restore Alpine filesystem cache
         uses: actions/cache@v4
@@ -145,16 +206,23 @@ jobs:
 
       - name: Build Alley Cat runtime
         working-directory: upstream/litter
-        env:
-          GHOSTTY_ZIG_GLOBAL_CACHE_DIR: ${{ runner.temp }}/alleycat-zig-global
         run: |
           set -euo pipefail
-          ./apps/ios/scripts/sync-codex.sh --preserve-current
-          ./apps/ios/scripts/build-rust.sh --preserve-current --device-only
-          make alpine-fs xcgen IOS_DEPLOYMENT_TARGET=16.1
+          mkdir -p "$GITHUB_WORKSPACE/build/logs"
+          export GHOSTTY_ZIG_GLOBAL_CACHE_DIR="$HOME/.cache/darksword-zig-global"
+          if [[ "${{ steps.rust_generated_valid.outputs.hit }}" == "true" ]]; then
+            echo "Using cached AlleyCat GeneratedRust assets" | tee "$GITHUB_WORKSPACE/build/logs/runtime-build.log"
+          else
+            ./apps/ios/scripts/sync-codex.sh --preserve-current
+            export RUSTY_V8_ARCHIVE="${{ steps.rusty_v8.outputs.archive }}"
+            test -s "$RUSTY_V8_ARCHIVE"
+            ./apps/ios/scripts/build-rust.sh --preserve-current --device-only 2>&1 | tee "$GITHUB_WORKSPACE/build/logs/runtime-build.log"
+          fi
+          make RUSTC_WRAPPER= SCCACHE_BUCKET= SCCACHE_ENDPOINT= AWS_ACCESS_KEY_ID= AWS_SECRET_ACCESS_KEY= \
+            alpine-fs xcgen IOS_DEPLOYMENT_TARGET="$IOS_MIN"
 
       - name: Save generated Rust cache
-        if: success() && steps.rust_generated_cache.outputs.cache-hit != 'true'
+        if: steps.rust_generated_valid.outputs.hit != 'true' && steps.rust_generated_cache.outputs.cache-hit != 'true' && success()
         uses: actions/cache/save@v4
         with:
           path: |
@@ -177,7 +245,7 @@ jobs:
             -skipMacroValidation \
             -skipPackagePluginValidation \
             ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
-            IPHONEOS_DEPLOYMENT_TARGET=16.1 \
+            IPHONEOS_DEPLOYMENT_TARGET="$IOS_MIN" \
             LITTER_IOS_BUILD_MODE="$LITTER_IOS_BUILD_MODE" \
             LITTER_NYXIAN_PRIVATE_BUILD="$LITTER_NYXIAN_PRIVATE_BUILD" \
             LITTER_EMBED_PRIVATE_BUILDKIT_ASSETS="$LITTER_EMBED_PRIVATE_BUILDKIT_ASSETS" \
@@ -201,11 +269,14 @@ jobs:
             echo "- Run: $GITHUB_RUN_ID"
             echo "- Commit: $GITHUB_SHA"
             echo '- Workflow: ios-unsigned-ipa.yml'
-            echo
-            echo '## xcodebuild tail'
-            echo '```text'
-            tail -n 500 build/logs/xcodebuild.log 2>/dev/null || true
-            echo '```'
+            echo "- Rust cache hit: ${{ steps.rust_generated_valid.outputs.hit }}"
+            for log in runtime-build xcodebuild; do
+              echo
+              echo "## $log tail"
+              echo '```text'
+              tail -n 500 "build/logs/$log.log" 2>/dev/null || true
+              echo '```'
+            done
           } > build-diagnostics/alleycat-ios-last-error.md
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
