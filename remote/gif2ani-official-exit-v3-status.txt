@@ -1,33 +1,9 @@
 Official palera1n Exit Safemode V3
-run_id=30168909047
+run_id=30169048809
 tailscale=success
 execute=failure
 
 --- sanitized output ---
-AppleTVOS12.4.sdk/usr/include/mach/mig_voucher_support.h
-AppleTVOS12.4.sdk/usr/include/mach/vm_purgable.h
-AppleTVOS12.4.sdk/usr/include/mach/machine.h
-AppleTVOS12.4.sdk/usr/include/mach/sync.h
-AppleTVOS12.4.sdk/usr/include/mach/mach_traps.h
-AppleTVOS12.4.sdk/usr/include/mach/mig_errors.h
-AppleTVOS12.4.sdk/usr/include/mach/mach_types.h
-AppleTVOS12.4.sdk/usr/include/mach/notify.h
-AppleTVOS12.4.sdk/usr/include/mach/vm_behavior.h
-AppleTVOS12.4.sdk/usr/include/mach/mach_right.h
-AppleTVOS12.4.sdk/usr/include/mach/time_value.h
-AppleTVOS12.4.sdk/usr/include/mach/thread_switch.h
-AppleTVOS12.4.sdk/usr/include/mach/task_info.h
-AppleTVOS12.4.sdk/usr/include/mach/vm_prot.h
-AppleTVOS12.4.sdk/usr/include/mach/std_types.h
-AppleTVOS12.4.sdk/usr/include/mach/ndr.h
-AppleTVOS12.4.sdk/usr/include/mach/mach_interface.h
-AppleTVOS12.4.sdk/usr/include/mach/thread_act.h
-AppleTVOS12.4.sdk/usr/include/mach/thread_status.h
-AppleTVOS12.4.sdk/usr/include/mach/clock_types.h
-AppleTVOS12.4.sdk/usr/include/mach/thread_special_ports.h
-AppleTVOS12.4.sdk/usr/include/mach/mig_strncpy_zerofill_support.h
-AppleTVOS12.4.sdk/usr/include/mach/rpc.h
-AppleTVOS12.4.sdk/usr/include/mach/vm_attributes.h
 AppleTVOS12.4.sdk/usr/include/mach/sync_policy.h
 AppleTVOS12.4.sdk/usr/include/mach/vm_sync.h
 AppleTVOS12.4.sdk/usr/include/mach/exception.h
@@ -547,8 +523,7 @@ AppleTVOS12.4.sdk/usr/lib/libIOAccessoryManager.tbd
 AppleTVOS12.4.sdk/usr/lib/libbsm.0.tbd
 AppleTVOS12.4.sdk/usr/lib/libicucore.A.tbd
 
-100 5693k  100 5693k    0     0  10.6M      0 --:--:-- --:--:-- --:--:-- 10.6M
-100 5693k  100 5693k    0     0  10.6M      0 --:--:-- --:--:-- --:--:--     0
+100 5693k  100 5693k    0     0  9213k      0 --:--:-- --:--:-- --:--:-- 9213k
 AppleTVOS12.4.sdk/usr/lib/libbz2.tbd
 AppleTVOS12.4.sdk/usr/lib/libSystem_asan.tbd
 AppleTVOS12.4.sdk/usr/lib/libnetwork.tbd
@@ -601,6 +576,31 @@ AppleTVOS12.4.sdk/Entitlements.plist
 [0;36m==> [1;36mSDKs successfully installed![m
 [0;34m==> [1;34mTheos Installer:[m Theos has been successfully installed! Restart your shell and then run $THEOS/bin/nic.pl to get started.
 make: Entering directory '/home/runner/work/Codex-DEB-Test/Codex-DEB-Test/exitpalev3'
-Makefile:8: /tool.mk: No such file or directory
-make: *** No rule to make target '/tool.mk'.  Stop.
+make: Entering directory '/home/runner/work/Codex-DEB-Test/Codex-DEB-Test/exitpalev3'
+[0;36m==> [1;39mCleaning…[m
 make: Leaving directory '/home/runner/work/Codex-DEB-Test/Codex-DEB-Test/exitpalev3'
+[1;31m> [1;3;39mMaking all for tool exitpalev3…[m
+[0;32m==> [1;39mCompiling main.c (arm64)…[m
+[0;33m==> [1;39mLinking tool exitpalev3 (arm64)…[m
+[0;34m==> [1;39mGenerating debug symbols for exitpalev3…[m
+[0;34m==> [1;39mStripping exitpalev3 (arm64)…[m
+[0;34m==> [1;39mSigning exitpalev3…[m
+make: Leaving directory '/home/runner/work/Codex-DEB-Test/Codex-DEB-Test/exitpalev3'
+helper_build=success
+=== WAIT FOR IPAD SSH ===
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+prepared_disabled_clean_state=yes
+=== SEND OFFICIAL PALERA1N EXIT SAFE MODE COMMAND ===
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+Timeout, server 100.116.117.65 not responding.
+exit_command_ssh_exit=255
+=== WAIT FOR IPAD AFTER OFFICIAL EXIT ===
+reconnected_after_official_exit=1
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
