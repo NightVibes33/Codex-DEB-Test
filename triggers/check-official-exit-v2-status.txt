@@ -1,3 +1,3 @@
-check=quick-gif2ani-runtime-status
-requested_at=2026-07-25T21:36:00-05:00
-reason=retry-after-runtime-status-registration
+check=jailbreak-process-image-enumeration-status
+requested_at=2026-07-25T21:50:00-05:00
+reason=inspect-loaded-image-chain
