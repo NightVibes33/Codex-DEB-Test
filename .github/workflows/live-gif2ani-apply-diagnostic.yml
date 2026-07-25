@@ -1,0 +1,150 @@
+name: Live Gif2Ani Apply Diagnostic
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/live-gif2ani-apply-diagnostic.txt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+concurrency:
+  group: live-gif2ani-apply-diagnostic
+  cancel-in-progress: true
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1)) == target:
+                  print('environment_name='+env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  inspect:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - name: Install SSH tools
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends openssh-client sshpass
+      - name: Inspect live apply state
+        id: inspect
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 45); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          echo "connected=$connected" | tee live-gif2ani-apply-diagnostic.txt
+          test "$connected" -eq 1
+          cat > /tmp/live-gif2ani-diagnostic.sh <<'SH'
+          #!/bin/sh
+          set +e
+          media='/var/mobile/Library/Application Support/Gif2Ani'
+          prefs='/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist'
+          status="$media/runtime-status.plist"
+
+          echo '=== TIME ==='
+          date
+          echo '=== PACKAGE ==='
+          dpkg-query -W -f='package=${Package}\nversion=${Version}\nstatus=${Status}\n' com.nightvibes33.gif2ani 2>&1
+          echo '=== PREFERENCES ==='
+          if [ -f "$prefs" ]; then stat -f 'prefs_mtime=%Sm prefs_size=%z' -t '%Y-%m-%dT%H:%M:%S%z' "$prefs"; cat "$prefs"; else echo 'prefs=absent'; fi
+          echo '=== MEDIA DIRECTORY ==='
+          if [ -d "$media" ]; then ls -laT "$media"; else echo 'media_directory=absent'; fi
+          for f in Pending.gif Active.gif Rejected.gif load-in-progress pending-metadata.plist runtime-status.plist; do
+            p="$media/$f"
+            if [ -e "$p" ]; then
+              echo "$f=present"
+              stat -f "$f size=%z mtime=%Sm mode=%Sp uid=%u gid=%g" -t '%Y-%m-%dT%H:%M:%S%z' "$p"
+              case "$f" in
+                *.gif) /usr/bin/file "$p" 2>&1; shasum "$p" 2>&1 ;;
+                *.plist) cat "$p" ;;
+                load-in-progress) cat "$p" ;;
+              esac
+            else
+              echo "$f=absent"
+            fi
+          done
+          echo '=== RUNTIME STATUS ==='
+          if [ -f "$status" ]; then cat "$status"; else echo 'runtime_status=absent'; fi
+          echo '=== BACKBOARDD ==='
+          bb=$(ps ax | awk '$5=="/usr/libexec/backboardd" {print $1; exit}')
+          echo "backboardd_pid=${bb:-absent}"
+          if [ -n "$bb" ]; then
+            ps eww -p "$bb" 2>&1
+          fi
+          echo '=== SPRINGBOARD ==='
+          sb=$(ps ax | awk '$5=="/System/Library/CoreServices/SpringBoard.app/SpringBoard" {print $1; exit}')
+          echo "springboard_pid=${sb:-absent}"
+          if [ -n "$sb" ]; then ps eww -p "$sb" 2>&1; fi
+          echo '=== RECENT CRASH REPORTS ==='
+          find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -mtime -1 -print 2>/dev/null | tail -20
+          echo '=== RECENT TWEAK LOG STRINGS ==='
+          if command -v log >/dev/null 2>&1; then
+            log show --last 15m --style compact --predicate 'process == "backboardd" OR process == "SpringBoard"' 2>&1 | grep -Ei 'gif2ani|ellekit|tweakloader|spinny|animation|crash|exception' | tail -200
+          else
+            echo 'log_command=absent'
+          fi
+          echo diagnostic_complete=yes
+          SH
+          chmod +x /tmp/live-gif2ani-diagnostic.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null /tmp/live-gif2ani-diagnostic.sh mobile@"$IPAD_HOST":/var/mobile/Media/live-gif2ani-diagnostic.sh
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=60 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/live-gif2ani-diagnostic.sh' 2>&1 | tee -a live-gif2ani-apply-diagnostic.txt
+      - name: Publish diagnostic
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          INSPECT_OUTCOME: ${{ steps.inspect.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          p=Path('live-gif2ani-apply-diagnostic.txt')
+          text=p.read_text(errors='replace') if p.exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=['Live Gif2Ani Apply Diagnostic',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"inspect={os.environ.get('INSPECT_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-1000:]]
+          Path('remote/live-gif2ani-apply-diagnostic.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/live-gif2ani-apply-diagnostic.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record live Gif2Ani apply diagnostic [skip ci]"
+            git push origin HEAD:main
+          fi
