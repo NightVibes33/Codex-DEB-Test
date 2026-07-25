@@ -1,4 +1,4 @@
 run=official-exit-palera1n-safemode-v2
-requested_at=2026-07-25T18:23:00-05:00
+requested_at=2026-07-25T18:24:00-05:00
 state=gif2ani-3.1.1-disabled-no-gif
-reason=retry-after-workflow-registration
+reason=continue-after-user-restarted-out-of-safe-mode
