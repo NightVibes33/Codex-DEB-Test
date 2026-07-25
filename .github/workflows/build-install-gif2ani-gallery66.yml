@@ -1,0 +1,244 @@
+name: Build and Install Gif2Ani Gallery 66
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - triggers/build-install-gif2ani-gallery66.txt
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+concurrency:
+  group: gif2ani-device-change
+  cancel-in-progress: false
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1)) == target:
+                  print('environment_name='+env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  build-install:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 38
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: bridge
+
+      - uses: actions/checkout@v4
+        with:
+          repository: NightVibes33/Dark-Boot
+          ref: main
+          path: darkboot
+
+      - name: Install build dependencies and Theos
+        env:
+          THEOS: /opt/theos
+          CI: "1"
+          SHELL: /bin/bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            bash curl sudo build-essential fakeroot rsync perl git \
+            libxml2 dpkg-dev unzip xz-utils ca-certificates python3 file \
+            openssh-client sshpass
+          sudo rm -rf /opt/theos
+          sudo mkdir -p /opt
+          sudo chown "$USER:$USER" /opt
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          test -x /opt/theos/toolchain/linux/iphone/bin/clang
+
+      - name: Validate 66-entry gallery source
+        working-directory: darkboot
+        run: |
+          set -euo pipefail
+          test "$(awk '/^Version:/{print $2}' control)" = "3.3.0"
+          python3 - <<'PY'
+          from pathlib import Path
+          text=''.join(Path(f'gif2aniprefs/G2ThemeGalleryPart{i}.inc').read_text() for i in range(1,7))
+          built=text[text.index('G2BuiltInPacks'):text.index('G2LegacyCatalog')]
+          legacy=text[text.index('G2LegacyCatalog'):text.index('static UIColor *G2RGB')]
+          built_count=built.count('@"identifier":')
+          legacy_count=legacy.count('@"name":')
+          assert built_count == 12, built_count
+          assert legacy_count == 54, legacy_count
+          assert built_count + legacy_count == 66
+          required=['Brooklyn Apple Logos','GameCube Logo','Stranger Things','Windows XP Pro Loading','Percentage Animation','Aku Aku','RedSn0w']
+          missing=[name for name in required if name not in legacy]
+          assert not missing, missing
+          assert 'G2PreflightArchive' in text
+          assert 'G2ValidateExtractedTree' in text
+          assert 'QOS_CLASS_UTILITY' in text
+          print('built_in_count=12')
+          print('legacy_catalog_count=54')
+          print('gallery_total=66')
+          PY
+
+      - name: Build rootless package
+        working-directory: darkboot
+        env:
+          THEOS: /opt/theos
+        run: |
+          set -o pipefail
+          make clean package FINALPACKAGE=1 2>&1 | tee ../gallery66-build.log
+          DEB="$(find packages -maxdepth 1 -type f -name 'com.nightvibes33.gif2ani_3.3.0_iphoneos-arm64.deb' | head -n1)"
+          test -n "$DEB"
+          cp "$DEB" ../Gif2Ani-3.3.0-gallery66.deb
+          dpkg-deb --field "$DEB" Package | grep -qx com.nightvibes33.gif2ani
+          dpkg-deb --field "$DEB" Version | grep -qx 3.3.0
+          rm -rf ../gallery66-root
+          dpkg-deb -x "$DEB" ../gallery66-root
+          BUNDLE=../gallery66-root/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle
+          test -f "$BUNDLE/Gif2AniPrefs"
+          test -f "$BUNDLE/Root.plist"
+          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'Brooklyn Apple Logos'
+          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'Rotating Cube'
+          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'Stage This Animation'
+          grep -q 'G2ThemeGalleryController' "$BUNDLE/Root.plist"
+          sha256sum "$DEB" | tee ../gallery66-deb-sha256.txt
+
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Install without changing active animation
+        id: install
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          cd bridge
+          connected=0
+          for attempt in $(seq 1 45); do
+            sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1 && { connected=1; break; }
+            sleep 5
+          done
+          echo "connected=$connected" | tee ../gallery66-device.txt
+          test "$connected" -eq 1
+
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            ../Gif2Ani-3.3.0-gallery66.deb mobile@"$IPAD_HOST":/var/mobile/Media/Gif2Ani-3.3.0-gallery66.deb
+
+          cat > /tmp/install-gallery66.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media='/var/mobile/Library/Application Support/Gif2Ani'
+          prefs='/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist'
+          active="$media/Active.gif"
+          deb='/var/mobile/Media/Gif2Ani-3.3.0-gallery66.deb'
+          marker='/var/mobile/Media/gif2ani-gallery66-install.marker'
+          sha() { /var/jb/usr/bin/sha256sum "$1" 2>/dev/null | awk '{print $1}'; }
+
+          test -f "$active"
+          test -f "$prefs"
+          active_before=$(sha "$active")
+          prefs_before=$(sha "$prefs")
+          runtime_before=$(sha "$media/runtime-status.plist")
+          touch "$marker"
+
+          /var/jb/usr/bin/dpkg -i "$deb"
+          version=$(/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.nightvibes33.gif2ani)
+          test "$version" = '3.3.0'
+
+          bundle='/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle'
+          test -f "$bundle/Gif2AniPrefs"
+          test -f "$bundle/Root.plist"
+          strings "$bundle/Gif2AniPrefs" | grep -q 'Brooklyn Apple Logos'
+          strings "$bundle/Gif2AniPrefs" | grep -q 'GameCube Logo'
+          strings "$bundle/Gif2AniPrefs" | grep -q 'Stage This Animation'
+          grep -q 'G2ThemeGalleryController' "$bundle/Root.plist"
+
+          active_after=$(sha "$active")
+          prefs_after=$(sha "$prefs")
+          runtime_after=$(sha "$media/runtime-status.plist")
+          test "$active_before" = "$active_after"
+          test "$prefs_before" = "$prefs_after"
+          test "$runtime_before" = "$runtime_after"
+
+          crashes=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \
+            \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' -o -name 'Preferences-*.ips' \) \
+            -newer "$marker" -print 2>/dev/null | wc -l | tr -d ' ')
+          test "$crashes" = 0
+
+          echo "installed_version=$version"
+          echo "active_gif_preserved=true"
+          echo "preferences_preserved=true"
+          echo "runtime_status_preserved=true"
+          echo "new_crash_reports=$crashes"
+          echo "gallery66_install=success"
+          /var/jb/usr/bin/killall -9 Preferences 2>/dev/null || true
+          SH
+          chmod +x /tmp/install-gallery66.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            /tmp/install-gallery66.sh mobile@"$IPAD_HOST":/var/mobile/Media/install-gallery66.sh
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=60 \
+            -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" \
+            'sudo -S -p "" sh /var/mobile/Media/install-gallery66.sh' 2>&1 | tee -a ../gallery66-device.txt
+
+      - name: Publish result
+        if: always()
+        env:
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          cd bridge
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          build=Path('../gallery66-build.log').read_text(errors='replace') if Path('../gallery66-build.log').exists() else 'No build log.'
+          device=Path('../gallery66-device.txt').read_text(errors='replace') if Path('../gallery66-device.txt').exists() else 'No device output.'
+          digest=Path('../gallery66-deb-sha256.txt').read_text(errors='replace') if Path('../gallery66-deb-sha256.txt').exists() else ''
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw:
+              build=build.replace(pw,'***REDACTED***')
+              device=device.replace(pw,'***REDACTED***')
+          out=[
+              'Gif2Ani 3.3.0 Gallery 66 Build and Install',
+              f"run_id={os.environ.get('GITHUB_RUN_ID','')}",
+              f"install={os.environ.get('INSTALL_OUTCOME','')}",
+              '', 'gallery_total=66', 'built_in=12', 'legacy_import_catalog=54',
+              '', '--- digest ---', digest.strip(),
+              '', '--- device proof ---', *device.splitlines()[-400:],
+              '', '--- build tail ---', *build.splitlines()[-300:]
+          ]
+          Path('remote/gif2ani-gallery66-build-install.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/gif2ani-gallery66-build-install.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record Gif2Ani gallery 66 build and install [skip ci]"
+            git push origin HEAD:main
+          fi
