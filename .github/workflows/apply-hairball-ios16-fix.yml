@@ -1,0 +1,64 @@
+name: Apply Hairball iOS 16 Fix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/apply-hairball-ios16-fix.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply Hairball iOS 16 compatibility patch
+        run: |
+          set -euo pipefail
+          python3 upstream/litter/tools/scripts/patch-hairball-ios16-compat.py
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('upstream/litter/apps/ios/scripts/regenerate-project.sh')
+          text = path.read_text()
+          call = '''# Hairball main now requires iOS 18 TextRenderer APIs. Full sideload builds
+          # retain iOS 16.1 support by pinning the final compatible renderer and
+          # installing API-compatible TokenAnimator shims before XcodeGen.
+          if [[ "${LITTER_NYXIAN_PRIVATE_BUILD:-0}" == "1" ]]; then
+            python3 "$ROOT_DIR/tools/scripts/patch-hairball-ios16-compat.py"
+          fi
+
+          '''
+          marker = '# Full sideload builds include KittyStore/SideStore.'
+          if call not in text:
+              if marker not in text:
+                  raise SystemExit('could not find Hairball patch insertion point')
+              text = text.replace(marker, call + marker, 1)
+              path.write_text(text)
+          PY
+
+          python3 -m py_compile upstream/litter/tools/scripts/patch-hairball-ios16-compat.py
+          bash -n upstream/litter/apps/ios/scripts/regenerate-project.sh
+          grep -q 'revision: c4514abf19ea75b5a28cf9461afacf44715b92df' upstream/litter/apps/ios/project.yml
+          grep -q 'typealias StreamingTextEffect = TokenAnimator' upstream/litter/apps/ios/Sources/Litter/Models/CustomStreamingEffects.swift
+
+      - name: Commit compatibility fix
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add \
+            upstream/litter/apps/ios/project.yml \
+            upstream/litter/apps/ios/Sources/Litter/Models/CustomStreamingEffects.swift \
+            upstream/litter/apps/ios/scripts/regenerate-project.sh \
+            upstream/litter/tools/scripts/patch-hairball-ios16-compat.py
+          git commit -m 'Pin Hairball renderer for iOS 16 sideload builds' || exit 0
+          git pull --rebase origin main
+          git push origin HEAD:main
