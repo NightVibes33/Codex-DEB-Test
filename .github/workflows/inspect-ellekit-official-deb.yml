@@ -1,0 +1,130 @@
+name: Inspect Official ElleKit DEB
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/inspect-ellekit-official-deb.txt
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name']); raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  inspect:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends openssh-client sshpass
+      - name: Create device inspection script
+        run: |
+          cat > inspect-ellekit-deb.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          work=/var/mobile/Media/ellekit-official-inspect
+          rm -rf "$work"
+          mkdir -p "$work"
+          cd "$work"
+          echo '=== DOWNLOAD ==='
+          /var/jb/usr/bin/apt-get download ellekit=1.1.3
+          deb=$(find "$work" -maxdepth 1 -type f -name 'ellekit_1.1.3_*.deb' | head -n1)
+          test -n "$deb"
+          echo "deb=$deb"
+          ls -l "$deb"
+          sha256sum "$deb"
+          echo '=== CONTROL ==='
+          dpkg-deb -f "$deb"
+          mkdir control root
+          dpkg-deb -e "$deb" control
+          dpkg-deb -x "$deb" root
+          echo '=== MAINTAINER SCRIPTS ==='
+          for f in control/preinst control/postinst control/prerm control/postrm; do
+            if [ -f "$f" ]; then echo "--- $f"; cat "$f"; else echo "$f=absent"; fi
+          done
+          echo '=== OFFICIAL FILE CHECKSUMS ==='
+          sha256sum \
+            root/var/jb/usr/libexec/ellekit/loader \
+            root/var/jb/usr/lib/ellekit/pspawn.dylib \
+            root/var/jb/usr/lib/ellekit/libinjector.dylib
+          echo '=== INSTALLED FILE CHECKSUMS ==='
+          sha256sum \
+            /var/jb/usr/libexec/ellekit/loader \
+            /var/jb/usr/lib/ellekit/pspawn.dylib \
+            /var/jb/usr/lib/ellekit/libinjector.dylib
+          echo '=== BYTE COMPARISON ==='
+          cmp -s root/var/jb/usr/libexec/ellekit/loader /var/jb/usr/libexec/ellekit/loader && echo loader_match=yes || echo loader_match=no
+          cmp -s root/var/jb/usr/lib/ellekit/pspawn.dylib /var/jb/usr/lib/ellekit/pspawn.dylib && echo pspawn_match=yes || echo pspawn_match=no
+          cmp -s root/var/jb/usr/lib/ellekit/libinjector.dylib /var/jb/usr/lib/ellekit/libinjector.dylib && echo libinjector_match=yes || echo libinjector_match=no
+          SH
+          chmod +x inspect-ellekit-deb.sh
+      - name: Run inspection
+        id: inspect_deb
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 60); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          test "$connected" -eq 1
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null inspect-ellekit-deb.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=90 -o ServerAliveInterval=10 -o ServerAliveCountMax=6 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/inspect-ellekit-deb.sh' 2>&1 | tee ellekit-deb-inspection.txt
+      - name: Publish result
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          INSPECT_OUTCOME: ${{ steps.inspect_deb.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('ellekit-deb-inspection.txt').read_text(errors='replace') if Path('ellekit-deb-inspection.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=['Official ElleKit DEB Inspection',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"inspection={os.environ.get('INSPECT_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-500:]]
+          Path('remote/ellekit-official-deb-inspection.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/ellekit-official-deb-inspection.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record official ElleKit DEB inspection [skip ci]"
+            git push origin HEAD:main
+          fi
