@@ -3,90 +3,36 @@ set -eu
 export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
 export HOME=/var/mobile
 
-echo '=== Memory before helper cleanup ==='
-vm_stat 2>/dev/null | sed -n '1,20p' || true
+echo '=== Hardware memory ==='
+sysctl hw.memsize 2>&1 || true
+sysctl hw.pagesize 2>&1 || true
 
-python3 <<'PY'
-import os
-import re
-import signal
-import subprocess
-import time
+echo '=== Compression and swap sysctls ==='
+for key in vm.swapusage vm.compressor_mode vm.compressor_available vm.compressor_is_active vm.page_free_target vm.page_free_min vm.memory_pressure; do
+  printf '%s: ' "$key"
+  sysctl -n "$key" 2>&1 || true
+done
 
-ALLOWLIST = {'dirtyZero', 'PureKFD', 'SparseBox', 'DebToIPA', 'NathanLR'}
+echo '=== VM statistics ==='
+vm_stat 2>&1 | sed -n '1,30p' || true
 
-text = subprocess.check_output(
-    ['ps', '-axo', 'pid=,ppid=,etime=,command='],
-    text=True,
-    stderr=subprocess.STDOUT,
-)
+echo '=== Dynamic pager availability ==='
+printf 'dynamic_pager_binary='; command -v dynamic_pager 2>/dev/null || echo missing
+launchctl print system/com.apple.dynamic_pager 2>&1 | sed -n '1,80p' || true
+launchctl list 2>/dev/null | grep -i pager || true
 
-def elapsed_seconds(value: str) -> int:
-    days = 0
-    if '-' in value:
-        d, value = value.split('-', 1)
-        days = int(d)
-    parts = [int(x) for x in value.split(':')]
-    if len(parts) == 3:
-        hours, minutes, seconds = parts
-    elif len(parts) == 2:
-        hours, minutes, seconds = 0, parts[0], parts[1]
-    else:
-        hours, minutes, seconds = 0, 0, parts[0]
-    return days * 86400 + hours * 3600 + minutes * 60 + seconds
+echo '=== VM storage directories ==='
+for dir in /private/var/vm /var/vm /private/var/mobile/Library/Caches; do
+  echo "path=$dir"
+  ls -la "$dir" 2>&1 | sed -n '1,40p' || true
+done
 
-targets = []
-for line in text.splitlines():
-    m = re.match(r'^\s*(\d+)\s+(\d+)\s+(\S+)\s+(.*)$', line)
-    if not m:
-        continue
-    pid_s, ppid_s, elapsed, command = m.groups()
-    executable = command.strip().split(' ', 1)[0]
-    name = os.path.basename(executable)
-    if name not in ALLOWLIST:
-        continue
-    if int(ppid_s) != 1:
-        continue
-    if elapsed_seconds(elapsed) < 1800:
-        continue
-    targets.append((int(pid_s), name, elapsed, command.strip()))
+echo '=== Filesystem capacity ==='
+df -h / /private/var 2>&1 || true
+mount 2>&1 | sed -n '1,40p' || true
 
-print(f'target_count={len(targets)}')
-for pid, name, elapsed, command in targets:
-    print(f'terminating pid={pid} name={name} elapsed={elapsed} command={command[:300]}')
-    try:
-        os.kill(pid, signal.SIGTERM)
-    except ProcessLookupError:
-        pass
+echo '=== Current pressure evidence ==='
+printf 'process_count='; ps -ax 2>/dev/null | wc -l | tr -d ' '
+printf 'node_count='; pgrep -x node 2>/dev/null | wc -l | tr -d ' '
 
-time.sleep(3)
-for pid, name, elapsed, command in targets:
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        print(f'exited pid={pid} name={name} signal=TERM')
-        continue
-    print(f'forcing pid={pid} name={name} signal=KILL')
-    try:
-        os.kill(pid, signal.SIGKILL)
-    except ProcessLookupError:
-        pass
-
-time.sleep(1)
-remaining = []
-for pid, name, elapsed, command in targets:
-    try:
-        os.kill(pid, 0)
-        remaining.append((pid, name))
-    except ProcessLookupError:
-        pass
-print(f'remaining_target_count={len(remaining)}')
-for pid, name in remaining:
-    print(f'remaining pid={pid} name={name}')
-PY
-
-echo '=== Memory after helper cleanup ==='
-vm_stat 2>/dev/null | sed -n '1,20p' || true
-printf 'node_processes='; pgrep -x node 2>/dev/null | wc -l | tr -d ' '
-printf 'all_processes='; ps -ax 2>/dev/null | wc -l | tr -d ' '
-echo 'protected=Paleramine,sshd,system-daemons,active-apps'
+echo 'diagnostic=read-only-no-memory-settings-changed'
