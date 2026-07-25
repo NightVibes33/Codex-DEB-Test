@@ -1,0 +1,17 @@
+Explicit TweakLoader Path Test
+run_id=30170410814
+restart=success
+verify=failure
+
+--- sanitized output ---
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+before_path=
+after_path=/var/jb/usr/lib/TweakLoader.dylib
+backboardd_before=7629
+springboard_before=7636
+ui_restart_requested=yes
+restart_ssh_exit=0
+reconnected=1
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+zsh:1: no matches found: \n  media="/var/mobile/Library/Application Support/Gif2Ani"\n  marker="/var/mobile/Media/explicit-tweakloader-test.marker"\n  echo "effective_path=$(/var/jb/usr/bin/launchctl getenv JB_TWEAKLOADER_PATH 2>/dev/null || true)"\n  echo "backboardd_after=$(ps ax | awk /[b]ackboardd/{print
+zsh:5: no matches found: exit}\)"\n  echo "springboard_after=$(ps ax | awk /[S]pringBoard/{print
