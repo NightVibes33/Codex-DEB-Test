@@ -53,7 +53,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends openssh-client sshpass
-      - name: Collect injection policy and loader state
+      - name: Verify explicit TweakLoader path safely
         id: collect
         env:
           SSHPASS: ${{ secrets.IPAD_PASSWORD }}
@@ -61,102 +61,78 @@ jobs:
         run: |
           set -euo pipefail
           connected=0
-          for attempt in $(seq 1 36); do
+          for attempt in $(seq 1 48); do
             if sshpass -e ssh -p 22 -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
             sleep 5
           done
           test "$connected" -eq 1
-          cat > inspect-injection-policy.sh <<'SH'
+          cat > verify-loader.sh <<'SH'
           #!/bin/sh
-          set +e
-          echo '=== DEVICE / BOOT ==='
-          sw_vers 2>/dev/null || true
-          uname -a
-          uptime
-          echo '=== PROCESS OWNERS / ENV ==='
-          ps -axo user,pid,ppid,command 2>/dev/null | grep -E '[l]aunchd|[b]ackboardd|[S]pringBoard' || ps ax | grep -E '[l]aunchd|[b]ackboardd|[S]pringBoard'
-          ps eww -p 1 2>/dev/null || true
+          set -eu
+          media='/var/mobile/Library/Application Support/Gif2Ani'
+          prefs='/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist'
+          runtime="$media/runtime-status.plist"
+          marker='/var/mobile/Media/explicit-loader-test-start.marker'
+
+          mkdir -p "$media"
+          rm -f "$media/Pending.gif" "$media/Active.gif" "$media/Rejected.gif" "$media/load-in-progress" "$media/pending-metadata.plist"
+          cat > "$prefs" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+          <key>isEnabled</key><false/>
+          <key>pendingReady</key><false/>
+          <key>imageTransformation</key><string>resizeAspect</string>
+          <key>customLoop</key><real>-1</real>
+          <key>customDuration</key><real>-1</real>
+          <key>backgroundColor</key><string>#000000</string>
+          </dict></plist>
+          PLIST
+          chown -R mobile:mobile "$media" "$prefs"
+          chmod 0755 "$media"
+          chmod 0644 "$prefs"
+
+          echo '=== PRECHECK ==='
+          echo "launchctl_path=$(/var/jb/usr/bin/launchctl getenv JB_TWEAKLOADER_PATH 2>/dev/null || true)"
+          echo "backboardd_before=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')"
+          echo "springboard_before=$(ps ax | awk '/[S]pringBoard/{print $1; exit}')"
+          if [ -f "$runtime" ]; then cat "$runtime"; else echo runtime_before=missing; fi
+
+          touch "$marker"
+          /var/jb/usr/bin/launchctl setenv JB_TWEAKLOADER_PATH /var/jb/usr/lib/TweakLoader.dylib
+          rm -f "$runtime"
+          echo "explicit_path=$(/var/jb/usr/bin/launchctl getenv JB_TWEAKLOADER_PATH 2>/dev/null || true)"
+          killall -9 backboardd SpringBoard 2>/dev/null || true
+          sleep 15
+
+          echo '=== POSTCHECK ==='
+          echo "backboardd_after=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')"
+          echo "springboard_after=$(ps ax | awk '/[S]pringBoard/{print $1; exit}')"
           bb=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')
-          sb=$(ps ax | awk '/[S]pringBoard/{print $1; exit}')
           [ -n "$bb" ] && ps eww -p "$bb" 2>/dev/null || true
-          [ -n "$sb" ] && ps eww -p "$sb" 2>/dev/null || true
-
-          echo '=== LAUNCHD ENV GATES ==='
-          for key in _MSSafeMode _SafeMode LIBHOOKER_SAFE_MODE DISABLE_TWEAKS DYLD_INSERT_LIBRARIES PALERA1N_SAFE_MODE; do
-            value=$(/var/jb/usr/bin/launchctl getenv "$key" 2>/dev/null)
-            echo "$key=$value"
-          done
-          for f in /var/mobile/.eksafemode /var/mobile/.safemode /var/jb/.safemode /var/jb/var/mobile/.eksafemode; do [ -e "$f" ] && echo "$f=present" || echo "$f=absent"; done
-
-          echo '=== PACKAGE POLICY ==='
-          dpkg-query -W 2>/dev/null | grep -Ei 'choicy|ellekit|substrate|libhooker|substitute|palera1n' || true
-          apt-cache policy ellekit 2>&1 || true
-
-          echo '=== CHOICY FILTERS AS XML ==='
-          for f in /var/jb/usr/lib/TweakInject/*Choicy*.plist /var/jb/Library/MobileSubstrate/DynamicLibraries/*Choicy*.plist; do
-            [ -f "$f" ] || continue
-            echo "--- $f"
-            plutil -convert xml1 -o - "$f" 2>/dev/null || cat "$f"
-          done
-
-          echo '=== CHOICY PREFERENCES AS XML ==='
-          seen=''
-          find /var/mobile/Library/Preferences /var/jb/var/mobile/Library/Preferences -maxdepth 1 -type f \
-            -iname '*choicy*' -print 2>/dev/null | sort -u | while read f; do
-              echo "--- $f"
-              plutil -convert xml1 -o - "$f" 2>/dev/null || { echo 'base64:'; base64 "$f"; }
-            done
-          echo '--- defaults read com.opa334.choicy'
-          HOME=/var/mobile defaults read com.opa334.choicy 2>&1 || true
-
-          echo '=== BACKBOARDD TARGETING FILTERS ==='
-          for f in /var/jb/usr/lib/TweakInject/*.plist; do
-            [ -f "$f" ] || continue
-            if grep -a -q 'backboardd' "$f" 2>/dev/null; then
-              echo "--- $f"
-              plutil -convert xml1 -o - "$f" 2>/dev/null || cat "$f"
-            fi
-          done
-
-          echo '=== LOADED LIBRARIES BEFORE LOADER ==='
-          for pid in 1 "$bb" "$sb"; do
-            [ -n "$pid" ] || continue
-            echo "--- pid=$pid"
-            if command -v lsof >/dev/null 2>&1; then lsof -p "$pid" 2>/dev/null | grep -Ei 'systemhook|ellekit|TweakInject|TweakLoader|libinjector|Choicy|Gif2Ani' || true; fi
-            if command -v vmmap >/dev/null 2>&1; then vmmap "$pid" 2>/dev/null | grep -Ei 'systemhook|ellekit|TweakInject|TweakLoader|libinjector|Choicy|Gif2Ani' || true; fi
-            if command -v dyld_info >/dev/null 2>&1; then dyld_info -process "$pid" 2>/dev/null | grep -Ei 'systemhook|ellekit|TweakInject|TweakLoader|libinjector|Choicy|Gif2Ani' || true; fi
-          done
-
-          echo '=== ELLEKIT FILES / SIGNATURES ==='
-          ls -l /var/jb/etc/rc.d/ellekit-loader /var/jb/usr/libexec/ellekit/loader /var/jb/usr/lib/ellekit/pspawn.dylib /var/jb/usr/lib/ellekit/libinjector.dylib /var/jb/usr/lib/TweakLoader.dylib /var/jb/usr/lib/TweakInject.dylib
-          file /var/jb/usr/libexec/ellekit/loader /var/jb/usr/lib/ellekit/pspawn.dylib /var/jb/usr/lib/ellekit/libinjector.dylib 2>&1 || true
-          if [ -x /var/jb/usr/bin/ldid ]; then
-            echo '--- pspawn entitlements'; /var/jb/usr/bin/ldid -e /var/jb/usr/lib/ellekit/pspawn.dylib 2>&1 || true
-            echo '--- loader entitlements'; /var/jb/usr/bin/ldid -e /var/jb/usr/libexec/ellekit/loader 2>&1 || true
+          if [ -f "$runtime" ]; then cat "$runtime"; else echo runtime_after=missing; fi
+          test ! -e "$media/Pending.gif"
+          test ! -e "$media/Active.gif"
+          test ! -e "$media/Rejected.gif"
+          crashes=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -newer "$marker" -print 2>/dev/null | wc -l | tr -d ' ')
+          echo "new_crash_reports=$crashes"
+          if [ -f "$runtime" ] && grep -a -q 'tweak-loaded-no-media-decode' "$runtime"; then
+            echo result=explicit_path_injection_success
+            test "$crashes" = 0
+          else
+            echo result=explicit_path_injection_failed
+            exit 1
           fi
-
-          echo '=== LIVE ELLEKIT LOADER OUTPUT ==='
-          timeout 20 /var/jb/usr/libexec/ellekit/loader 2>&1
-          loader_code=$?
-          echo "loader_exit=$loader_code"
-          sleep 5
-
-          echo '=== LOADED LIBRARIES AFTER LOADER ==='
-          for pid in 1 "$bb" "$sb"; do
-            [ -n "$pid" ] || continue
-            echo "--- pid=$pid"
-            if command -v lsof >/dev/null 2>&1; then lsof -p "$pid" 2>/dev/null | grep -Ei 'systemhook|ellekit|TweakInject|TweakLoader|libinjector|pspawn|Choicy|Gif2Ani' || true; fi
-            if command -v vmmap >/dev/null 2>&1; then vmmap "$pid" 2>/dev/null | grep -Ei 'systemhook|ellekit|TweakInject|TweakLoader|libinjector|pspawn|Choicy|Gif2Ani' || true; fi
-            if command -v dyld_info >/dev/null 2>&1; then dyld_info -process "$pid" 2>/dev/null | grep -Ei 'systemhook|ellekit|TweakInject|TweakLoader|libinjector|pspawn|Choicy|Gif2Ani' || true; fi
-          done
-
-          echo '=== RECENT CRASHES ==='
-          find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' -o -name 'launchd-*.ips' \) -mmin -30 -print 2>/dev/null
           SH
-          chmod +x inspect-injection-policy.sh
-          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null inspect-injection-policy.sh mobile@"$IPAD_HOST":/var/mobile/Media/
-          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=30 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/inspect-injection-policy.sh' 2>&1 | tee injection-policy-diagnostic.txt
-      - name: Publish sanitized diagnostic
+          chmod +x verify-loader.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null verify-loader.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=60 -o ServerAliveInterval=5 -o ServerAliveCountMax=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/verify-loader.sh' 2>&1 | tee explicit-loader-registered-test.txt
+          code=${PIPESTATUS[1]}
+          set -e
+          echo "remote_exit=$code" | tee -a explicit-loader-registered-test.txt
+          exit "$code"
+      - name: Publish diagnostic
         if: always()
         env:
           IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
@@ -169,14 +145,14 @@ jobs:
           python3 - <<'PY'
           import os
           from pathlib import Path
-          text=Path('injection-policy-diagnostic.txt').read_text(errors='replace') if Path('injection-policy-diagnostic.txt').exists() else 'No output.'
+          text=Path('explicit-loader-registered-test.txt').read_text(errors='replace') if Path('explicit-loader-registered-test.txt').exists() else 'No output.'
           pw=os.environ.get('IPAD_PASSWORD','')
           if pw: text=text.replace(pw,'***REDACTED***')
-          out=['iPad Tweak Injection Policy Diagnostic V2',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"collect={os.environ.get('COLLECT_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-1200:]]
-          Path('remote/ipad-tweak-injection-policy-v2.txt').write_text('\n'.join(out)+'\n')
+          out=['Registered Explicit TweakLoader Test',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"collect={os.environ.get('COLLECT_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-400:]]
+          Path('remote/registered-explicit-tweakloader-test.txt').write_text('\n'.join(out)+'\n')
           PY
-          git add remote/ipad-tweak-injection-policy-v2.txt
+          git add remote/registered-explicit-tweakloader-test.txt
           if ! git diff --cached --quiet; then
-            git commit -m "Record iPad tweak injection policy V2 [skip ci]"
+            git commit -m "Record registered explicit TweakLoader test [skip ci]"
             git push origin HEAD:main
           fi
