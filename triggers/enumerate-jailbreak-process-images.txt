@@ -1,0 +1,3 @@
+enumerate=jailbreak-process-images
+requested_at=2026-07-25T21:45:00-05:00
+reason=locate-systemhook-tweakloader-ellekit-gif2ani-chain
