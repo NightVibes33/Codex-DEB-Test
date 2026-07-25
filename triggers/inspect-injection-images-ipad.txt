@@ -1,0 +1,3 @@
+inspect=injection-images
+requested_at=2026-07-25T19:25:00-05:00
+reason=determine-launchd-and-backboardd-image-state
