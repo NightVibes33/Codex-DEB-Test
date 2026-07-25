@@ -5,6 +5,7 @@ set -euo pipefail
 : "${IPAD_PASSWORD:?missing IPAD_PASSWORD}"
 export SSHPASS="$IPAD_PASSWORD"
 export THEOS=/opt/theos
+export THEOS_MAKE_PATH="$THEOS/makefiles"
 LOG="official-exit-v3.txt"
 : > "$LOG"
 exec > >(tee -a "$LOG") 2>&1
