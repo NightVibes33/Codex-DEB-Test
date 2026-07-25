@@ -1,0 +1,96 @@
+Gif2Ani 3.2 Recovery
+outcome=success
+
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== RECOVERY PRECHECK ===
+backup_gif_size=360114
+current_gif_size=360114
+backboardd=13371->13430
+springboard=13384->13443
+=== RECOVERY RESULT ===
+installed_version=3.2.0
+restored_gif_size=360114
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>backgroundColor</key>
+	<string>#000000</string>
+	<key>customDuration</key>
+	<real>-1</real>
+	<key>customLoop</key>
+	<real>-1</real>
+	<key>imageTransformation</key>
+	<string>resizeAspect</string>
+	<key>isEnabled</key>
+	<true/>
+	<key>lastAppliedAt</key>
+	<real>1785014469.2763891</real>
+	<key>pendingReady</key>
+	<false/>
+</dict>
+</plist>
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>BKDisplayRenderOverlaySpinny</key>
+	<true/>
+	<key>animationPending</key>
+	<false/>
+	<key>appleLoaderHidden</key>
+	<true/>
+	<key>attachmentPoint</key>
+	<string>dedicated-overlay-layer</string>
+	<key>event</key>
+	<string>custom-animation-stable</string>
+	<key>frameCount</key>
+	<integer>21</integer>
+	<key>gifExists</key>
+	<true/>
+	<key>media</key>
+	<dict>
+		<key>decodedFrames</key>
+		<integer>21</integer>
+		<key>decodedHeight</key>
+		<integer>480</integer>
+		<key>decodedWidth</key>
+		<integer>320</integer>
+		<key>estimatedDecodedBytes</key>
+		<integer>12902400</integer>
+		<key>inputBytes</key>
+		<integer>360114</integer>
+		<key>sourceFrames</key>
+		<integer>21</integer>
+		<key>sourceHeight</key>
+		<integer>480</integer>
+		<key>sourceWidth</key>
+		<integer>320</integer>
+	</dict>
+	<key>overlayHeight</key>
+	<real>2048</real>
+	<key>overlayWidth</key>
+	<real>1536</real>
+	<key>process</key>
+	<string>backboardd</string>
+	<key>safetyLimits</key>
+	<dict>
+		<key>maximumDecodedFrames</key>
+		<integer>24</integer>
+		<key>maximumEstimatedDecodedBytes</key>
+		<integer>50331648</integer>
+		<key>maximumInputBytes</key>
+		<integer>26214400</integer>
+		<key>maximumPixelDimension</key>
+		<integer>640</integer>
+		<key>maximumSourceFrames</key>
+		<integer>240</integer>
+	</dict>
+	<key>timestamp</key>
+	<real>1785014684.184809</real>
+</dict>
+</plist>
+new_crash_reports=0
+restore_320_result=success
