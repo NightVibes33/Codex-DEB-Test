@@ -1,0 +1,214 @@
+name: Official p1ctl Exit Safemode Probe
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/official-p1ctl-exitsafe-probe.txt
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name']); raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  probe:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build constructor-only probe
+        id: build
+        env:
+          THEOS: /opt/theos
+          THEOS_MAKE_PATH: /opt/theos/makefiles
+          CI: "1"
+          SHELL: /bin/bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends bash curl build-essential git ca-certificates file openssh-client sshpass
+          sudo rm -rf /opt/theos
+          sudo mkdir -p /opt
+          sudo chown "$USER:$USER" /opt
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          mkdir -p p1probe
+          cat > p1probe/Makefile <<'MK'
+          ARCHS = arm64
+          TARGET = iphone:clang:latest:15.0
+          THEOS_PACKAGE_SCHEME = rootless
+          TWEAK_NAME = P1InjectionProbe
+          P1InjectionProbe_FILES = Probe.m
+          P1InjectionProbe_FRAMEWORKS = Foundation
+          P1InjectionProbe_CFLAGS = -fobjc-arc
+          include $(THEOS)/makefiles/common.mk
+          include $(THEOS_MAKE_PATH)/tweak.mk
+          MK
+          cat > p1probe/Probe.m <<'MM'
+          #import <Foundation/Foundation.h>
+          #include <unistd.h>
+          __attribute__((constructor)) static void P1ProbeInit(void) {
+              @autoreleasepool {
+                  NSString *process=NSProcessInfo.processInfo.processName ?: @"unknown";
+                  NSString *dir=@"/var/mobile/Library/Application Support/Gif2Ani";
+                  [[NSFileManager defaultManager] createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:nil];
+                  NSString *path=[dir stringByAppendingPathComponent:[NSString stringWithFormat:@"P1Probe-%@.txt",process]];
+                  NSString *body=[NSString stringWithFormat:@"process=%@\npid=%d\ntimestamp=%.0f\n",process,getpid(),NSDate.date.timeIntervalSince1970];
+                  [body writeToFile:path atomically:YES encoding:NSUTF8StringEncoding error:nil];
+              }
+          }
+          MM
+          cat > p1probe/P1InjectionProbe.plist <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict><key>Filter</key><dict><key>Executables</key><array><string>SpringBoard</string><string>backboardd</string></array></dict></dict></plist>
+          PLIST
+          make -C p1probe clean all FINALPACKAGE=1
+          PROBE="$(find p1probe/.theos -type f -name P1InjectionProbe.dylib | head -n1)"
+          test -n "$PROBE"
+          cp "$PROBE" P1InjectionProbe.dylib
+          cp p1probe/P1InjectionProbe.plist P1InjectionProbe.plist
+          file P1InjectionProbe.dylib | grep -q arm64
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - name: Upload and run official p1ctl exitsafe
+        id: exit_safe
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 60); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          test "$connected" -eq 1
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null P1InjectionProbe.dylib P1InjectionProbe.plist mobile@"$IPAD_HOST":/var/mobile/Media/
+          cat > p1ctl-exitsafe-probe.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media="/var/mobile/Library/Application Support/Gif2Ani"
+          prefs="/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist"
+          test -x /cores/payload
+          ln -sf /cores/payload /var/mobile/Media/p1ctl
+          chmod 0755 /var/mobile/Media/p1ctl
+          mkdir -p "$media"
+          chmod 0777 "$media"
+          rm -f "$media"/P1Probe-*.txt "$media/Pending.gif" "$media/Active.gif" "$media/Rejected.gif" "$media/load-in-progress" "$media/runtime-status.plist"
+          printf '%s\n' \
+            '<?xml version="1.0" encoding="UTF-8"?>' \
+            '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+            '<plist version="1.0"><dict><key>isEnabled</key><false/><key>pendingReady</key><false/><key>imageTransformation</key><string>resizeAspect</string><key>customLoop</key><real>-1</real><key>customDuration</key><real>-1</real><key>backgroundColor</key><string>#000000</string></dict></plist>' > "$prefs"
+          chown mobile:mobile "$prefs"
+          chmod 0644 "$prefs"
+          cp /var/mobile/Media/P1InjectionProbe.dylib /var/jb/usr/lib/TweakInject/P1InjectionProbe.dylib
+          cp /var/mobile/Media/P1InjectionProbe.plist /var/jb/usr/lib/TweakInject/P1InjectionProbe.plist
+          chown root:wheel /var/jb/usr/lib/TweakInject/P1InjectionProbe.dylib /var/jb/usr/lib/TweakInject/P1InjectionProbe.plist
+          chmod 0755 /var/jb/usr/lib/TweakInject/P1InjectionProbe.dylib
+          chmod 0644 /var/jb/usr/lib/TweakInject/P1InjectionProbe.plist
+          echo '=== P1CTL FLAGS BEFORE ==='
+          /var/mobile/Media/p1ctl palera1n_flags
+          /var/mobile/Media/p1ctl palera1n_flags -s || true
+          echo '=== P1CTL EXITSAFE ==='
+          /var/mobile/Media/p1ctl exitsafe
+          SH
+          chmod +x p1ctl-exitsafe-probe.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null p1ctl-exitsafe-probe.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=30 -o ServerAliveInterval=3 -o ServerAliveCountMax=2 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/p1ctl-exitsafe-probe.sh' 2>&1 | tee p1ctl-exitsafe-probe.txt
+          code=${PIPESTATUS[1]}
+          set -e
+          echo "p1ctl_ssh_exit=$code" | tee -a p1ctl-exitsafe-probe.txt
+          if [ "$code" -ne 0 ] && [ "$code" -ne 255 ]; then exit "$code"; fi
+      - name: Reconnect, inspect markers, and remove probe
+        id: verify
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          sleep 10
+          connected=0
+          for attempt in $(seq 1 100); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          echo "reconnected=$connected" | tee -a p1ctl-exitsafe-probe.txt
+          test "$connected" -eq 1
+          sleep 25
+          cat > verify-p1probe.sh <<'SH'
+          #!/bin/sh
+          set +e
+          media="/var/mobile/Library/Application Support/Gif2Ani"
+          echo '=== P1CTL FLAGS AFTER ==='
+          ln -sf /cores/payload /var/mobile/Media/p1ctl
+          /var/mobile/Media/p1ctl palera1n_flags 2>&1 || true
+          /var/mobile/Media/p1ctl palera1n_flags -s 2>&1 || true
+          echo '=== PROBE MARKERS ==='
+          ls -l "$media"/P1Probe-*.txt 2>&1
+          for f in "$media"/P1Probe-*.txt; do [ -f "$f" ] && { echo "--- $f"; cat "$f"; }; done
+          echo '=== GIF2ANI MARKER ==='
+          cat "$media/runtime-status.plist" 2>/dev/null || echo runtime_status=missing
+          echo '=== RECENT CRASHES ==='
+          find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -mmin -20 -print 2>/dev/null
+          rm -f /var/jb/usr/lib/TweakInject/P1InjectionProbe.dylib /var/jb/usr/lib/TweakInject/P1InjectionProbe.plist
+          echo probe_files_removed=yes
+          SH
+          chmod +x verify-p1probe.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null verify-p1probe.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=45 -o ServerAliveInterval=10 -o ServerAliveCountMax=4 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/verify-p1probe.sh' 2>&1 | tee -a p1ctl-exitsafe-probe.txt
+      - name: Publish result
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          EXIT_OUTCOME: ${{ steps.exit_safe.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('p1ctl-exitsafe-probe.txt').read_text(errors='replace') if Path('p1ctl-exitsafe-probe.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=['Official p1ctl Exit Safemode Probe',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"build={os.environ.get('BUILD_OUTCOME','')}",f"exit_safe={os.environ.get('EXIT_OUTCOME','')}",f"verify={os.environ.get('VERIFY_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-400:]]
+          Path('remote/official-p1ctl-exitsafe-probe.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/official-p1ctl-exitsafe-probe.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record official p1ctl Exit Safemode probe [skip ci]"
+            git push origin HEAD:main
+          fi
