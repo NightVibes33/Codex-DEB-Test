@@ -1,11 +1,11 @@
-name: Diagnose ElleKit Loader on iPad
+name: Quick Gif2Ani Post-Exit Check
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
       - triggers/diagnose-ellekit-loader-ipad.txt
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -32,97 +32,78 @@ jobs:
           target=int(sys.argv[1])
           for env in json.load(open('environments.json')).get('environments',[]):
               if int(env.get('id',-1))==target:
-                  print('environment_name='+env['name'])
-                  raise SystemExit(0)
+                  print('environment_name='+env['name']); raise SystemExit(0)
           raise SystemExit('environment-not-found')
           PY
 
-  diagnose:
+  check:
     needs: resolve-environment
     environment:
       name: ${{ needs.resolve-environment.outputs.environment_name }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: Join Tailscale
-        id: tailscale
-        uses: tailscale/github-action@v4
+      - uses: tailscale/github-action@v4
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
           version: latest
-      - name: Install SSH tools
+      - name: Install SSH client
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends openssh-client sshpass
-      - name: Create read-only device script
-        run: |
-          cat > diagnose-ellekit.sh <<'SH'
-          #!/bin/sh
-          set +e
-          echo '=== PACKAGE STATUS ==='
-          dpkg-query -W -f='${Package}\t${Version}\t${Status}\n' ellekit com.nightvibes33.gif2ani 2>&1
-          echo '=== ELLEKIT PACKAGE FILES ==='
-          dpkg -L ellekit 2>&1
-          echo '=== ELLEKIT FILE SEARCH ==='
-          find /var/jb -maxdepth 6 \( -iname '*ellekit*' -o -iname '*substrate*' -o -iname '*tweakinject*' \) -print 2>/dev/null | sort
-          echo '=== LAUNCH DAEMONS ==='
-          find /var/jb/Library/LaunchDaemons /var/jb/System/Library/LaunchDaemons -maxdepth 2 -type f -print 2>/dev/null | sort
-          echo '=== MATCHING PLISTS ==='
-          for f in $(find /var/jb/Library/LaunchDaemons /var/jb/System/Library/LaunchDaemons -maxdepth 2 -type f 2>/dev/null); do
-            if grep -ailE 'ellekit|tweakinject|substrate|hook' "$f" >/dev/null 2>&1; then
-              echo "--- $f"
-              cat "$f" 2>/dev/null
-            fi
-          done
-          echo '=== PROCESSES ==='
-          ps axww | grep -Ei '[e]llekit|[t]weakinject|[s]ubstrate|[b]ackboardd|[S]pringBoard'
-          echo '=== LAUNCHCTL LIST MATCHES ==='
-          /var/jb/usr/bin/launchctl list 2>/dev/null | grep -Ei 'ellekit|tweak|substrate|hook' || true
-          /bin/launchctl list 2>/dev/null | grep -Ei 'ellekit|tweak|substrate|hook' || true
-          echo '=== BOOTSTRAP DIRECTORIES ==='
-          ls -la /var/jb/basebin /var/jb/usr/lib /var/jb/usr/libexec /var/jb/Library 2>/dev/null
-          echo '=== RUNTIME MARKER ==='
-          cat '/var/mobile/Library/Application Support/Gif2Ani/runtime-status.plist' 2>/dev/null || echo runtime_status=missing
-          echo '=== RECENT CRASH COUNT ==='
-          find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -mmin -20 -print 2>/dev/null | wc -l | tr -d ' '
-          SH
-          chmod +x diagnose-ellekit.sh
-      - name: Upload and run read-only diagnostic
+      - name: Read current device state
         id: collect
         env:
           SSHPASS: ${{ secrets.IPAD_PASSWORD }}
-          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
         run: |
-          set -euo pipefail
-          for attempt in $(seq 1 18); do
-            if sshpass -e ssh -p 22 -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then break; fi
-            sleep 5
-          done
-          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null diagnose-ellekit.sh mobile@"$IPAD_HOST":/var/mobile/Media/
-          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" \
-            'sudo -S -p "" sh /var/mobile/Media/diagnose-ellekit.sh' 2>&1 | tee ellekit-diagnostic.txt
-      - name: Publish sanitized status
+          set -uo pipefail
+          set +e
+          timeout 45 sshpass -e ssh -p 22 \
+            -o ConnectTimeout=12 \
+            -o ServerAliveInterval=5 \
+            -o ServerAliveCountMax=2 \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            mobile@"$IPAD_HOST" 'sh -c '\''
+              echo "=== PACKAGES ==="
+              dpkg-query -W -f="${Package} ${Version} ${Status}\n" ellekit com.nightvibes33.gif2ani 2>&1 || true
+              echo "=== PROCESSES ==="
+              ps ax | grep -E "[b]ackboardd|[S]pringBoard" || true
+              echo "=== GIF SLOTS ==="
+              media="/var/mobile/Library/Application Support/Gif2Ani"
+              for f in Pending.gif Active.gif Rejected.gif load-in-progress runtime-status.plist; do
+                if [ -e "$media/$f" ]; then echo "$f=present"; else echo "$f=absent"; fi
+              done
+              echo "=== RUNTIME STATUS ==="
+              cat "$media/runtime-status.plist" 2>/dev/null || echo runtime_status=missing
+              echo "=== SAFE MODE GATES ==="
+              echo "_MSSafeMode=$(/var/jb/usr/bin/launchctl getenv _MSSafeMode 2>/dev/null || true)"
+              echo "_SafeMode=$(/var/jb/usr/bin/launchctl getenv _SafeMode 2>/dev/null || true)"
+              if [ -e /var/mobile/.eksafemode ]; then echo eksafemode_file=present; else echo eksafemode_file=absent; fi
+              echo "=== RECENT CRASHES ==="
+              find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name "backboardd-*.ips" -o -name "SpringBoard-*.ips" \) -mmin -20 -print 2>/dev/null | wc -l | tr -d " "
+            '\''' 2>&1 | tee quick-post-exit-check.txt
+          code=${PIPESTATUS[0]}
+          set -e
+          echo "ssh_exit=$code" | tee -a quick-post-exit-check.txt
+          exit "$code"
+      - name: Publish status
         if: always()
-        env:
-          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
-          COLLECT_OUTCOME: ${{ steps.collect.outcome }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git pull --rebase origin main
-          python3 - <<'PY'
-          import os
-          from pathlib import Path
-          text=Path('ellekit-diagnostic.txt').read_text(errors='replace') if Path('ellekit-diagnostic.txt').exists() else 'No output.'
-          pw=os.environ.get('IPAD_PASSWORD','')
-          if pw: text=text.replace(pw,'***REDACTED***')
-          out=['ElleKit Loader Diagnostic',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"collect={os.environ.get('COLLECT_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-600:]]
-          Path('remote/ellekit-loader-diagnostic.txt').write_text('\n'.join(out)+'\n')
-          PY
-          git add remote/ellekit-loader-diagnostic.txt
+          {
+            echo "Quick Gif2Ani Post-Exit Check"
+            echo "run_id=${GITHUB_RUN_ID}"
+            echo "collect=${{ steps.collect.outcome }}"
+            echo
+            cat quick-post-exit-check.txt 2>/dev/null || echo "No output."
+          } > remote/quick-gif2ani-post-exit-check.txt
+          git add remote/quick-gif2ani-post-exit-check.txt
           if ! git diff --cached --quiet; then
-            git commit -m "Record ElleKit loader diagnostic [skip ci]"
+            git commit -m "Record quick Gif2Ani post-exit check [skip ci]"
             git push origin HEAD:main
           fi
