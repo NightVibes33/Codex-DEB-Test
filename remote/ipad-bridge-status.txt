@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30150772302
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30150772302
-commit=492bf619e7abf1e3bcaa8ad01c624c27fbacc5d9
+run_id=30150828727
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30150828727
+commit=136b96ea2928ea3b7c98873906b6c11f25d092f6
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -16,9 +16,8 @@ Checking SSH host key over Tailscale...
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-git@github.com: Permission denied (publickey).
-fatal: Could not read from remote repository.
-
-Please make sure you have the correct access rights
-and the repository exists.
-ssh_exit_code=128
+=== GitHub SSH verification ===
+Hi NightVibes33! You've successfully authenticated, but GitHub does not provide shell access.
+=== Load preserved patch job ===
+/var/jb/usr/bin/sh: 23: Syntax error: Unterminated quoted string
+ssh_exit_code=2
