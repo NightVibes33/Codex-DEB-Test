@@ -1,11 +1,9 @@
 Official palera1n Exit Safemode V3
-run_id=30168879266
+run_id=30168909047
 tailscale=success
 execute=failure
 
 --- sanitized output ---
-AppleTVOS12.4.sdk/usr/include/mach/mach_voucher_types.h
-AppleTVOS12.4.sdk/usr/include/mach/vm_types.h
 AppleTVOS12.4.sdk/usr/include/mach/mig_voucher_support.h
 AppleTVOS12.4.sdk/usr/include/mach/vm_purgable.h
 AppleTVOS12.4.sdk/usr/include/mach/machine.h
@@ -549,7 +547,8 @@ AppleTVOS12.4.sdk/usr/lib/libIOAccessoryManager.tbd
 AppleTVOS12.4.sdk/usr/lib/libbsm.0.tbd
 AppleTVOS12.4.sdk/usr/lib/libicucore.A.tbd
 
-100 5693k  100 5693k    0     0  8024k      0 --:--:-- --:--:-- --:--:-- 8024k
+100 5693k  100 5693k    0     0  10.6M      0 --:--:-- --:--:-- --:--:-- 10.6M
+100 5693k  100 5693k    0     0  10.6M      0 --:--:-- --:--:-- --:--:--     0
 AppleTVOS12.4.sdk/usr/lib/libbz2.tbd
 AppleTVOS12.4.sdk/usr/lib/libSystem_asan.tbd
 AppleTVOS12.4.sdk/usr/lib/libnetwork.tbd
@@ -601,6 +600,7 @@ AppleTVOS12.4.sdk/Entitlements.plist
 
 [0;36m==> [1;36mSDKs successfully installed![m
 [0;34m==> [1;34mTheos Installer:[m Theos has been successfully installed! Restart your shell and then run $THEOS/bin/nic.pl to get started.
-=== INSTALLED SDKS ===
-ls: cannot access '/opt/theos/sdks': No such file or directory
-iphoneos_sdk=missing
+make: Entering directory '/home/runner/work/Codex-DEB-Test/Codex-DEB-Test/exitpalev3'
+Makefile:8: /tool.mk: No such file or directory
+make: *** No rule to make target '/tool.mk'.  Stop.
+make: Leaving directory '/home/runner/work/Codex-DEB-Test/Codex-DEB-Test/exitpalev3'
