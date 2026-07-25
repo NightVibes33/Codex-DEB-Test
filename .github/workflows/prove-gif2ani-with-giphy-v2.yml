@@ -1,0 +1,256 @@
+name: Prove Gif2Ani With GIPHY V2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - triggers/prove-gif2ani-with-giphy-v2.txt
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+  GIPHY_PAGE: "https://giphy.com/gifs/animation-animated-loop-l378s6FUfG6ji6vqE"
+  GIPHY_GIF: "https://media.giphy.com/media/l378s6FUfG6ji6vqE/giphy.gif"
+
+concurrency:
+  group: gif2ani-device-change
+  cancel-in-progress: false
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1)) == target:
+                  print('environment_name='+env['name']); raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  download-and-validate:
+    runs-on: ubuntu-24.04
+    outputs:
+      gif_bytes: ${{ steps.inspect.outputs.gif_bytes }}
+      gif_frames: ${{ steps.inspect.outputs.gif_frames }}
+      gif_width: ${{ steps.inspect.outputs.gif_width }}
+      gif_height: ${{ steps.inspect.outputs.gif_height }}
+      decoded_frames: ${{ steps.inspect.outputs.decoded_frames }}
+    steps:
+      - name: Download real GIPHY GIF
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 4 --retry-delay 2 -A 'Mozilla/5.0 Gif2Ani proof' "$GIPHY_GIF" -o giphy-proof.gif
+          test -s giphy-proof.gif
+          head -c 6 giphy-proof.gif | grep -Eq '^GIF8(7|9)a$'
+      - name: Inspect exact GIF
+        id: inspect
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends python3-pil file
+          file giphy-proof.gif | tee giphy-proof-file.txt
+          sha256sum giphy-proof.gif | tee giphy-proof.sha256
+          python3 - <<'PY' | tee giphy-proof-meta.txt
+          from PIL import Image
+          from pathlib import Path
+          import os
+          p=Path('giphy-proof.gif')
+          im=Image.open(p)
+          frames=getattr(im,'n_frames',1)
+          width,height=im.size
+          size=p.stat().st_size
+          decoded=min(frames,24)
+          assert im.format == 'GIF'
+          assert 2 <= frames <= 240
+          assert 0 < size <= 25*1024*1024
+          assert width > 0 and height > 0
+          print(f'gif_bytes={size}')
+          print(f'gif_frames={frames}')
+          print(f'gif_width={width}')
+          print(f'gif_height={height}')
+          print(f'decoded_frames={decoded}')
+          with open(os.environ['GITHUB_OUTPUT'],'a') as out:
+              out.write(f'gif_bytes={size}\n')
+              out.write(f'gif_frames={frames}\n')
+              out.write(f'gif_width={width}\n')
+              out.write(f'gif_height={height}\n')
+              out.write(f'decoded_frames={decoded}\n')
+          PY
+          test "$(awk -F= '/gif_bytes=/{print $2}' giphy-proof-meta.txt)" = '1873994'
+          test "$(awk -F= '/gif_frames=/{print $2}' giphy-proof-meta.txt)" = '41'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: real-giphy-proof-gif-v2
+          path: |
+            giphy-proof.gif
+            giphy-proof-file.txt
+            giphy-proof.sha256
+            giphy-proof-meta.txt
+          if-no-files-found: error
+          retention-days: 30
+
+  install-and-prove:
+    needs: [resolve-environment, download-and-validate]
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: real-giphy-proof-gif-v2
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends openssh-client sshpass
+      - name: Install real GIPHY GIF and prove it
+        id: prove
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          EXPECTED_BYTES: ${{ needs.download-and-validate.outputs.gif_bytes }}
+          EXPECTED_FRAMES: ${{ needs.download-and-validate.outputs.gif_frames }}
+          EXPECTED_WIDTH: ${{ needs.download-and-validate.outputs.gif_width }}
+          EXPECTED_HEIGHT: ${{ needs.download-and-validate.outputs.gif_height }}
+          EXPECTED_DECODED: ${{ needs.download-and-validate.outputs.decoded_frames }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 45); do
+            sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1 && { connected=1; break; }
+            sleep 5
+          done
+          echo "connected=$connected" | tee giphy-proof-v2-result.txt
+          test "$connected" -eq 1
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null giphy-proof.gif mobile@"$IPAD_HOST":/var/mobile/Media/Gif2Ani-GIPHY-proof-v2.gif
+          cat > /tmp/prove-giphy-v2.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          : "${EXPECTED_BYTES:?}"
+          : "${EXPECTED_FRAMES:?}"
+          : "${EXPECTED_WIDTH:?}"
+          : "${EXPECTED_HEIGHT:?}"
+          : "${EXPECTED_DECODED:?}"
+          media='/var/mobile/Library/Application Support/Gif2Ani'
+          prefs='/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist'
+          active="$media/Active.gif"
+          incoming='/var/mobile/Media/Gif2Ani-GIPHY-proof-v2.gif'
+          backup='/var/mobile/Media/Gif2Ani-before-GIPHY-proof-v2.gif'
+          status="$media/runtime-status.plist"
+          marker='/var/mobile/Media/gif2ani-giphy-proof-v2.marker'
+          backboard_pid() { ps ax | awk '$5=="/usr/libexec/backboardd" {print $1; exit}'; }
+          springboard_pid() { ps ax | awk '$5=="/System/Library/CoreServices/SpringBoard.app/SpringBoard" {print $1; exit}'; }
+          wait_new_pid() { kind="$1"; old="$2"; for n in $(seq 1 75); do if [ "$kind" = backboardd ]; then now=$(backboard_pid); else now=$(springboard_pid); fi; [ -n "$now" ] && [ "$now" != "$old" ] && { echo "$now"; return 0; }; sleep 1; done; return 1; }
+
+          echo '=== REAL GIPHY SOURCE ==='
+          echo 'page=https://giphy.com/gifs/animation-animated-loop-l378s6FUfG6ji6vqE'
+          echo 'gif=https://media.giphy.com/media/l378s6FUfG6ji6vqE/giphy.gif'
+          echo "expected_bytes=$EXPECTED_BYTES"
+          echo "expected_frames=$EXPECTED_FRAMES"
+          echo "expected_width=$EXPECTED_WIDTH"
+          echo "expected_height=$EXPECTED_HEIGHT"
+          echo "expected_decoded=$EXPECTED_DECODED"
+
+          echo '=== PRECHECK ==='
+          version=$(dpkg-query -W -f='${Version}' com.nightvibes33.gif2ani)
+          echo "installed_version=$version"
+          test "$version" = '3.1.6'
+          test -f "$incoming"
+          actual_bytes=$(wc -c < "$incoming" | tr -d ' ')
+          echo "incoming_bytes=$actual_bytes"
+          test "$actual_bytes" = "$EXPECTED_BYTES"
+          mkdir -p "$media"
+          if [ -f "$active" ]; then cp "$active" "$backup"; chmod 0644 "$backup"; fi
+
+          echo '=== ACTIVATE GIPHY FILE ==='
+          cp "$incoming" "$active"
+          chown mobile:mobile "$active"
+          chmod 0644 "$active"
+          test "$(wc -c < "$active" | tr -d ' ')" = "$EXPECTED_BYTES"
+          rm -f "$media/Rejected.gif" "$media/load-in-progress" "$media/Pending.gif" "$media/pending-metadata.plist"
+          python3 - "$prefs" <<'PY'
+          import plistlib,sys,time
+          p=sys.argv[1]
+          try:
+              with open(p,'rb') as f: d=plistlib.load(f)
+          except Exception: d={}
+          d.update(isEnabled=True,pendingReady=False,lastAppliedAt=time.time(),imageTransformation='resizeAspect',customLoop=-1.0,customDuration=-1.0,backgroundColor='#000000')
+          with open(p,'wb') as f: plistlib.dump(d,f)
+          PY
+          chown mobile:mobile "$prefs"; chmod 0644 "$prefs"
+
+          old_bb=$(backboard_pid); old_sb=$(springboard_pid)
+          touch "$marker"
+          echo '=== LIVE BACKBOARD RESTART ==='
+          /var/jb/usr/bin/killall -9 backboardd 2>/dev/null || killall -9 backboardd 2>/dev/null || true
+          new_bb=$(wait_new_pid backboardd "$old_bb")
+          new_sb=$(wait_new_pid SpringBoard "$old_sb")
+          echo "old_backboardd=$old_bb new_backboardd=$new_bb"
+          echo "old_springboard=$old_sb new_springboard=$new_sb"
+          sleep 12
+
+          echo '=== VERIFIED GIPHY RESULT ==='
+          test -f "$status"
+          cat "$status"
+          grep -a -q 'custom-animation-stable' "$status"
+          grep -a -q 'dedicated-overlay-layer' "$status"
+          grep -A 2 '<key>appleLoaderHidden</key>' "$status" | grep -q '<true/>'
+          grep -A 2 '<key>sourceFrames</key>' "$status" | grep -q "<integer>$EXPECTED_FRAMES</integer>"
+          grep -A 2 '<key>decodedFrames</key>' "$status" | grep -q "<integer>$EXPECTED_DECODED</integer>"
+          grep -A 2 '<key>inputBytes</key>' "$status" | grep -q "<integer>$EXPECTED_BYTES</integer>"
+          grep -A 2 '<key>sourceWidth</key>' "$status" | grep -q "<integer>$EXPECTED_WIDTH</integer>"
+          grep -A 2 '<key>sourceHeight</key>' "$status" | grep -q "<integer>$EXPECTED_HEIGHT</integer>"
+          test -f "$active"
+          test ! -e "$media/Rejected.gif"
+          test ! -e "$media/load-in-progress"
+          bb_env=$(ps eww -p "$new_bb" 2>/dev/null || true)
+          printf '%s\n' "$bb_env" | grep -q 'JB_PINFO_FLAGS=0x4c00082'
+          crashes=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -newer "$marker" -print 2>/dev/null | wc -l | tr -d ' ')
+          echo "new_crash_reports=$crashes"
+          test "$crashes" = 0
+          echo real_giphy_proof_v2=success
+          rm -f "$incoming"
+          SH
+          chmod +x /tmp/prove-giphy-v2.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null /tmp/prove-giphy-v2.sh mobile@"$IPAD_HOST":/var/mobile/Media/prove-giphy-v2.sh
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=60 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" \
+            "sudo -S -p '' env EXPECTED_BYTES='$EXPECTED_BYTES' EXPECTED_FRAMES='$EXPECTED_FRAMES' EXPECTED_WIDTH='$EXPECTED_WIDTH' EXPECTED_HEIGHT='$EXPECTED_HEIGHT' EXPECTED_DECODED='$EXPECTED_DECODED' sh /var/mobile/Media/prove-giphy-v2.sh" 2>&1 | tee -a giphy-proof-v2-result.txt
+
+      - name: Publish proof
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          PROOF_OUTCOME: ${{ steps.prove.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('giphy-proof-v2-result.txt').read_text(errors='replace') if Path('giphy-proof-v2-result.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=['Gif2Ani Real GIPHY Proof V2',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"proof={os.environ.get('PROOF_OUTCOME','')}",'giphy_page=https://giphy.com/gifs/animation-animated-loop-l378s6FUfG6ji6vqE','giphy_gif=https://media.giphy.com/media/l378s6FUfG6ji6vqE/giphy.gif','',*text.splitlines()[-1200:]]
+          Path('remote/gif2ani-real-giphy-proof-v2.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/gif2ani-real-giphy-proof-v2.txt
+          if ! git diff --cached --quiet; then git commit -m "Record corrected real GIPHY proof [skip ci]"; git push origin HEAD:main; fi
