@@ -1,0 +1,58 @@
+name: Report AlleyCat IPA Result
+
+on:
+  workflow_run:
+    workflows:
+      - Build Unsigned iOS IPA
+    types:
+      - completed
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout result branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify and record IPA result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+          SOURCE_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          SOURCE_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          set -euo pipefail
+          artifact_json="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}/artifacts")"
+          artifact_id="$(jq -r '.artifacts[] | select(.name == "AlleyCat-Unsigned-IPA" and .expired == false) | .id' <<<"$artifact_json" | head -n1)"
+          artifact_size="$(jq -r '.artifacts[] | select(.name == "AlleyCat-Unsigned-IPA" and .expired == false) | .size_in_bytes' <<<"$artifact_json" | head -n1)"
+          artifact_ok=no
+          if [[ "$SOURCE_CONCLUSION" == success && "$artifact_id" =~ ^[0-9]+$ && "${artifact_size:-0}" -gt 0 ]]; then
+            artifact_ok=yes
+          fi
+
+          mkdir -p build-diagnostics
+          {
+            echo '# AlleyCat unsigned IPA result'
+            echo
+            echo "- Run: $SOURCE_RUN_ID"
+            echo "- Commit: $SOURCE_SHA"
+            echo "- Conclusion: $SOURCE_CONCLUSION"
+            echo "- Workflow URL: $SOURCE_URL"
+            echo "- AlleyCat-Unsigned-IPA artifact: $artifact_ok"
+            echo "- Artifact ID: ${artifact_id:-none}"
+            echo "- Artifact size: ${artifact_size:-0} bytes"
+          } > build-diagnostics/alleycat-ipa-last-result.md
+
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add build-diagnostics/alleycat-ipa-last-result.md
+          git commit -m "Record AlleyCat IPA $SOURCE_CONCLUSION [skip ci]" || exit 0
+          git pull --rebase origin main
+          git push origin HEAD:main
