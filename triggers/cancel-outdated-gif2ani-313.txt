@@ -1,0 +1,3 @@
+action=cancel-outdated-gif2ani-3.1.3-tests
+requested_at=2026-07-25T17:15:00-05:00
+replacement_source=6fc336a6d02827f95d3bbeb29cedba935de67a34
