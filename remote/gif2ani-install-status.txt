@@ -1,11 +1,11 @@
 Gif2Ani 3.0.0 iPad Installation
-run_id=30162743480
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30162743480
+run_id=30162849442
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30162849442
 tailscale=success
-remove_old=failure
-install_new=skipped
-respring=skipped
-verify=skipped
+remove_old=success
+install_new=success
+respring=success
+verify=failure
 
 --- sanitized output ---
 [0;36m==> [1;39mCleaning…[m
@@ -13,8 +13,8 @@ verify=skipped
 [0;36m==> [1;39mCleaning…[m
 [1;31m> [1;3;39mMaking all for tweak Gif2Ani…[m
 [0;31m==> [1;39mPreprocessing Tweak.xm…[m
-[0;32m==> [1;39mCompiling UIImage+animatedGIF.m (arm64)…[m
 [0;32m==> [1;39mCompiling G2PreferencesManager.m (arm64)…[m
+[0;32m==> [1;39mCompiling UIImage+animatedGIF.m (arm64)…[m
 [0;32m==> [1;39mCompiling Tweak.xm (arm64)…[m
 [0;33m==> [1;39mLinking tweak Gif2Ani (arm64)…[m
 [0;34m==> [1;39mGenerating debug symbols for Gif2Ani…[m
@@ -33,7 +33,37 @@ verify=skipped
 [1;31m> [1;3;39mMaking stage for bundle Gif2AniPrefs…[m
 [0;36m==> [1;36mNotice:[m Neither plutil, ply, or libplist-utils are installed, so XML plist files were not optimized.
 dm.pl: building package `com.nightvibes33.gif2ani:iphoneos-arm64' in `./packages/com.nightvibes33.gif2ani_3.0.0_iphoneos-arm64.deb'
-bb43e0b6238cd1329f2972735399c6479d9197a56c5ce483dfac0cc9a0952d58  Gif2Ani-3.0.0-rootless.deb
+74340db477587217a96d1fdbcb1c83cb0d6ac515dfe56942852dfaaab2cf5e89  Gif2Ani-3.0.0-rootless.deb
 === BEFORE REMOVAL ===
-sh: 4: Version: parameter not set
-remove_old_ssh_exit=2
+old_darkboot=2.0.1
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+(Reading database ... 19748 files and directories currently installed.)
+Removing com.nightvibes33.darkboot (2.0.1) ...
+Processing triggers for org.coolstar.sileo (2.5.1) ...
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+dpkg: warning: ignoring request to remove com.wizage.gif2ani2 which isn't installed
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+dpkg: warning: ignoring request to remove com.wizages.gif2ani which isn't installed
+old_files_removed=yes
+remove_old_ssh_exit=0
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+Selecting previously unselected package com.nightvibes33.gif2ani.
+(Reading database ... 19741 files and directories currently installed.)
+Preparing to unpack .../Gif2Ani-3.0.0-rootless.deb ...
+Unpacking com.nightvibes33.gif2ani (3.0.0) ...
+Setting up com.nightvibes33.gif2ani (3.0.0) ...
+Processing triggers for org.coolstar.sileo (2.5.1) ...
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+installed_version=3.0.0
+new_package_files=present
+Timeout, server 100.116.117.65 not responding.
+respring_ssh_exit=255
+=== FINAL VERIFICATION ===
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+installed_version=3.0.0
