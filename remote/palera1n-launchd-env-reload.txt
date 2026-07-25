@@ -1,8 +1,61 @@
 palera1n Launchd Environment Reload
-run_id=30171298436
+run_id=30171365407
 repair=failure
 
 --- sanitized output ---
 Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
 === BEFORE ===
-this is a plinit internal utility, do not run
+0x4c00082
+backboardd_before=10348
+springboard_before=10350
+  PID   TT  STAT      TIME COMMAND
+10348   ??  ?s     0:00.00 /usr/libexec/backboardd XPC_SERVICE_NAME=com.apple.backboardd PATH=/usr/bin:/bin:/usr/sbin:/sbin XPC_FLAGS=9 LOGNAME=mobile USER=mobile HOME=/var/mobile SHELL=/bin/sh DYLD_INSERT_LIBRARIES=/cores/binpack/usr/lib/systemhook.dylib DYLD_LIBRARY_PATH=/cores/binpack/usr/lib/libroot JB_SANDBOX_EXTENSIONS=8e6c9f13d0cb72057dd695cbf86e7d80c160693ae5cfd6a52a90be6e753b0ed5;01;00000000;00000000;00000000;0000000000000034;com.apple.security.exception.mach-lookup.global-name;in.palera.palera1nd.systemwide|df1ecf8ceaa25ef97dd100b8e27feb0710b25a56ab3333a41d50050b91292bca;01;00000000;00000000;00000000;000000000000001a;com.apple.app-sandbox.mach;in.palera.palera1nd.systemwide JB_ROOT_PATH=/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus JB_PINFO_FLAGS=0x6c00082 JB_TWEAKLOADER_PATH=@default
+=== RELOAD LAUNCHD JAILBREAK STATE ===
+reload_exit=0
+	default environment = {
+		PATH => /usr/bin:/bin:/usr/sbin:/sbin
+	}
+
+	environment = {
+		XPC_SERVICE_NAME => com.apple.backboardd
+	}
+
+	domain = user/501
+	username = mobile
+
+	minimum runtime = 10
+	base minimum runtime = 10
+	exit timeout = 3
+	runs = 2
+	pid = 10348
+	immediate reason = inefficient
+=== RESTART UI PROCESSES ===
+=== AFTER ===
+0x4c00082
+backboardd_after=11005
+springboard_after=11010
+backboardd_env=  PID   TT  STAT      TIME COMMAND
+11005   ??  ?s     0:00.00 /usr/libexec/backboardd XPC_SERVICE_NAME=com.apple.backboardd PATH=/usr/bin:/bin:/usr/sbin:/sbin XPC_FLAGS=9 LOGNAME=mobile USER=mobile HOME=/var/mobile SHELL=/bin/sh DYLD_INSERT_LIBRARIES=/cores/binpack/usr/lib/systemhook.dylib DYLD_LIBRARY_PATH=/cores/binpack/usr/lib/libroot JB_SANDBOX_EXTENSIONS=8e6c9f13d0cb72057dd695cbf86e7d80c160693ae5cfd6a52a90be6e753b0ed5;01;00000000;00000000;00000000;0000000000000034;com.apple.security.exception.mach-lookup.global-name;in.palera.palera1nd.systemwide|df1ecf8ceaa25ef97dd100b8e27feb0710b25a56ab3333a41d50050b91292bca;01;00000000;00000000;00000000;000000000000001a;com.apple.app-sandbox.mach;in.palera.palera1nd.systemwide JB_ROOT_PATH=/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus JB_PINFO_FLAGS=0x6c00082 JB_TWEAKLOADER_PATH=@default
+springboard_env=  PID   TT  STAT      TIME COMMAND
+11010   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard CA_ASSERT_MAIN_THREAD_TRANSACTIONS=1 XPC_SERVICE_NAME=com.apple.SpringBoard PATH=/usr/bin:/bin:/usr/sbin:/sbin XPC_FLAGS=1 LOGNAME=mobile USER=mobile HOME=/var/mobile SHELL=/bin/sh DYLD_INSERT_LIBRARIES=/cores/binpack/usr/lib/systemhook.dylib DYLD_LIBRARY_PATH=/cores/binpack/usr/lib/libroot JB_SANDBOX_EXTENSIONS=8e6c9f13d0cb72057dd695cbf86e7d80c160693ae5cfd6a52a90be6e753b0ed5;01;00000000;00000000;00000000;0000000000000034;com.apple.security.exception.mach-lookup.global-name;in.palera.palera1nd.systemwide|df1ecf8ceaa25ef97dd100b8e27feb0710b25a56ab3333a41d50050b91292bca;01;00000000;00000000;00000000;000000000000001a;com.apple.app-sandbox.mach;in.palera.palera1nd.systemwide JB_ROOT_PATH=/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus JB_PINFO_FLAGS=0x6c00082 JB_TWEAKLOADER_PATH=@default
+live_flags=0x4c00082
+spawned_flags=0x6c00082
+loader_path=@default
+=== GIF2ANI SAFE STATE ===
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>isEnabled</key><false/>
+  <key>pendingReady</key><false/>
+  <key>imageTransformation</key><string>resizeAspect</string>
+  <key>customLoop</key><real>-1</real>
+  <key>customDuration</key><real>-1</real>
+  <key>backgroundColor</key><string>#000000</string>
+</dict></plist>
+total 0
+drwxr-xr-x  2 mobile mobile  64 Jul 25 11:49 .
+drwxr-xr-x 28 mobile mobile 896 Jul 25 11:49 ..
+=== CONSTRUCTOR STATUS ===
+runtime_status=missing
+=== RECENT CRASHES ===
+new_crash_reports=0
