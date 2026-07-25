@@ -1,4 +1,4 @@
-name: Query palera1n Pinfo Flags
+name: Re-enable palera1n Tweak Injection
 
 on:
   push:
@@ -35,15 +35,15 @@ jobs:
           raise SystemExit('environment-not-found')
           PY
 
-  query:
+  enable:
     needs: resolve-environment
     environment:
       name: ${{ needs.resolve-environment.outputs.environment_name }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-      - name: Build XPC query helper
+      - name: Build official palera1n command helper
         id: build
         env:
           THEOS: /opt/theos
@@ -58,22 +58,23 @@ jobs:
           sudo mkdir -p /opt
           sudo chown "$USER:$USER" /opt
           bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
-          mkdir -p pinfoquery
-          cat > pinfoquery/Makefile <<'MK'
+          mkdir -p palera1nctl
+          cat > palera1nctl/Makefile <<'MK'
           ARCHS = arm64
           TARGET = iphone:clang:latest:15.0
-          TOOL_NAME = pinfoquery
-          pinfoquery_FILES = main.c
-          pinfoquery_CFLAGS = -fblocks -Wall -Wextra
-          pinfoquery_CODESIGN_FLAGS = -Sentitlements.plist
+          TOOL_NAME = palera1nctl
+          palera1nctl_FILES = main.c
+          palera1nctl_CFLAGS = -fblocks -Wall -Wextra
+          palera1nctl_CODESIGN_FLAGS = -Sentitlements.plist
           include $(THEOS)/makefiles/common.mk
           include $(THEOS_MAKE_PATH)/tool.mk
           MK
-          cat > pinfoquery/main.c <<'CC'
+          cat > palera1nctl/main.c <<'CC'
           #include <dlfcn.h>
           #include <stdint.h>
           #include <stdio.h>
           #include <stdlib.h>
+          #include <string.h>
           typedef void *xpc_object_t;
           typedef void *xpc_connection_t;
           typedef void (^xpc_handler_t)(xpc_object_t);
@@ -89,7 +90,7 @@ jobs:
           typedef void (*fn_cancel)(xpc_connection_t);
           typedef void (*fn_release)(xpc_object_t);
           #define LOAD(var, sym, type) type var=(type)dlsym(h,sym); if(!var){fprintf(stderr,"missing=%s\n",sym);return 78;}
-          int main(void) {
+          static int run_command(uint64_t command, int print_flags) {
               void *h=dlopen("/usr/lib/system/libxpc.dylib",RTLD_NOW|RTLD_LOCAL);
               if(!h){fprintf(stderr,"dlopen=%s\n",dlerror());return 77;}
               LOAD(create,"xpc_connection_create_mach_service",fn_create);
@@ -108,20 +109,31 @@ jobs:
               set_handler(c,^(xpc_object_t e){(void)e;});
               activate(c);
               xpc_object_t q=dict_create(NULL,NULL,0);
-              set_u64(q,"cmd",1);
+              set_u64(q,"cmd",command);
               xpc_object_t r=send_sync(c,q);
               release(q); cancel(c); release(c);
               if(!r)return 71;
               char *d=copy_desc(r); if(d){printf("reply=%s\n",d);free(d);}
-              printf("jailbreakd_error=%lld\n",(long long)get_i64(r,"error"));
-              uint64_t flags=get_u64(r,"flags");
-              printf("jailbreakd_flags=0x%llx\n",(unsigned long long)flags);
-              printf("safemode_bit=%d\n",(flags&(1ULL<<25))?1:0);
-              printf("failure_bit=%d\n",(flags&(1ULL<<60))?1:0);
-              release(r); dlclose(h); return 0;
+              long long error=(long long)get_i64(r,"error");
+              printf("command=%llu\n",(unsigned long long)command);
+              printf("jailbreakd_error=%lld\n",error);
+              if(print_flags){
+                  uint64_t flags=get_u64(r,"flags");
+                  printf("jailbreakd_flags=0x%llx\n",(unsigned long long)flags);
+                  printf("tweak_disable_bit=%d\n",(flags&(1ULL<<25))?1:0);
+                  printf("failure_bit=%d\n",(flags&(1ULL<<60))?1:0);
+              }
+              release(r); dlclose(h);
+              return error ? 72 : 0;
+          }
+          int main(int argc, char **argv) {
+              if(argc != 2){fprintf(stderr,"usage: palera1nctl flags|enable-tweaks\n");return 64;}
+              if(strcmp(argv[1],"flags")==0)return run_command(1,1);
+              if(strcmp(argv[1],"enable-tweaks")==0)return run_command(10,0);
+              fprintf(stderr,"unknown-command\n");return 64;
           }
           CC
-          cat > pinfoquery/entitlements.plist <<'PLIST'
+          cat > palera1nctl/entitlements.plist <<'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0"><dict>
@@ -131,36 +143,129 @@ jobs:
             <key>in.palera.private.launchd-commands.client</key><true/>
           </dict></plist>
           PLIST
-          make -C pinfoquery clean all FINALPACKAGE=1
-          BIN="$(find pinfoquery/.theos -type f -name pinfoquery -perm -111 | head -n1)"
+          make -C palera1nctl clean all FINALPACKAGE=1
+          BIN="$(find palera1nctl/.theos -type f -name palera1nctl -perm -111 | head -n1)"
           test -n "$BIN"
-          cp "$BIN" pinfoquery-tool
-          file pinfoquery-tool | grep -q arm64
+          cp "$BIN" palera1nctl-tool
+          file palera1nctl-tool | grep -q arm64
+
       - uses: tailscale/github-action@v4
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
           version: latest
-      - name: Query device
-        id: probe
+
+      - name: Prepare Gif2Ani safe state and re-enable tweaks
+        id: enable_tweaks
         env:
           SSHPASS: ${{ secrets.IPAD_PASSWORD }}
           IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
           connected=0
           for attempt in $(seq 1 60); do
             if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
             sleep 5
           done
           test "$connected" -eq 1
-          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null pinfoquery-tool mobile@"$IPAD_HOST":/var/mobile/Media/pinfoquery
-          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=30 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh -c '\''chmod 0755 /var/mobile/Media/pinfoquery; /var/mobile/Media/pinfoquery; echo launchd_flags=$(/var/jb/usr/bin/launchctl getenv JB_PINFO_FLAGS 2>/dev/null || true)'\''' 2>&1 | tee palera1n-pinfo.txt
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null palera1nctl-tool mobile@"$IPAD_HOST":/var/mobile/Media/palera1nctl
+          cat > safe-disable-gif2ani.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media='/var/mobile/Library/Application Support/Gif2Ani'
+          prefs='/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist'
+          mkdir -p "$media"
+          rm -f "$media/Pending.gif" "$media/Active.gif" "$media/Rejected.gif" "$media/load-in-progress" "$media/runtime-status.plist" "$media/pending-metadata.plist"
+          cat > "$prefs" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>isEnabled</key><false/>
+            <key>pendingReady</key><false/>
+            <key>imageTransformation</key><string>resizeAspect</string>
+            <key>customLoop</key><real>-1</real>
+            <key>customDuration</key><real>-1</real>
+            <key>backgroundColor</key><string>#000000</string>
+          </dict></plist>
+          PLIST
+          chown -R mobile:mobile "$media" "$prefs"
+          chmod 0755 "$media"
+          chmod 0644 "$prefs"
+          chmod 0755 /var/mobile/Media/palera1nctl
+          echo '=== BEFORE ==='
+          /var/mobile/Media/palera1nctl flags
+          echo 'gif2ani_enabled=false'
+          echo 'gif_media=cleared'
+          echo '=== OFFICIAL COMMAND 10 ==='
+          /var/mobile/Media/palera1nctl enable-tweaks
+          SH
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null safe-disable-gif2ani.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=45 -o ServerAliveInterval=4 -o ServerAliveCountMax=3 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/safe-disable-gif2ani.sh' 2>&1 | tee palera1n-enable-tweaks.txt
+          code=${PIPESTATUS[1]}
+          set -e
+          echo "enable_ssh_exit=$code" | tee -a palera1n-enable-tweaks.txt
+          if [ "$code" -ne 0 ] && [ "$code" -ne 255 ]; then exit "$code"; fi
+
+      - name: Reconnect and verify injection
+        id: verify
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          sleep 12
+          connected=0
+          for attempt in $(seq 1 72); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          echo "reconnected=$connected" | tee -a palera1n-enable-tweaks.txt
+          test "$connected" -eq 1
+          cat > verify-tweaks.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media='/var/mobile/Library/Application Support/Gif2Ani'
+          prefs='/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist'
+          runtime="$media/runtime-status.plist"
+          chmod 0755 /var/mobile/Media/palera1nctl
+          echo '=== AFTER ==='
+          /var/mobile/Media/palera1nctl flags
+          echo "backboardd_pid=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')"
+          echo "springboard_pid=$(ps ax | awk '/[S]pringBoard/{print $1; exit}')"
+          bb=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')
+          [ -n "$bb" ] && ps eww -p "$bb" 2>/dev/null || true
+          echo '=== GIF2ANI SAFE STATE ==='
+          cat "$prefs"
+          ls -la "$media"
+          test ! -e "$media/Pending.gif"
+          test ! -e "$media/Active.gif"
+          test ! -e "$media/Rejected.gif"
+          grep -a -q '<false/>' "$prefs"
+          echo '=== GIF2ANI CONSTRUCTOR ==='
+          if [ -f "$runtime" ]; then cat "$runtime"; else echo runtime_status=missing; fi
+          flags=$(/var/mobile/Media/palera1nctl flags 2>/dev/null | sed -n 's/^jailbreakd_flags=//p' | tail -n1)
+          disabled=$(/var/mobile/Media/palera1nctl flags 2>/dev/null | sed -n 's/^tweak_disable_bit=//p' | tail -n1)
+          echo "verified_flags=$flags"
+          echo "verified_tweak_disable_bit=$disabled"
+          test "$disabled" = 0
+          if [ -f "$runtime" ] && grep -a -q 'tweak-loaded-no-media-decode' "$runtime"; then
+            echo result=tweak_injection_restored_gif2ani_disabled
+          else
+            echo result=tweaks_enabled_but_gif2ani_constructor_missing
+            exit 1
+          fi
+          SH
+          chmod +x verify-tweaks.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null verify-tweaks.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=45 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/verify-tweaks.sh' 2>&1 | tee -a palera1n-enable-tweaks.txt
+
       - name: Publish result
         if: always()
         env:
           IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
           BUILD_OUTCOME: ${{ steps.build.outcome }}
-          PROBE_OUTCOME: ${{ steps.probe.outcome }}
+          ENABLE_OUTCOME: ${{ steps.enable_tweaks.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
@@ -169,14 +274,14 @@ jobs:
           python3 - <<'PY'
           import os
           from pathlib import Path
-          text=Path('palera1n-pinfo.txt').read_text(errors='replace') if Path('palera1n-pinfo.txt').exists() else 'No output.'
+          text=Path('palera1n-enable-tweaks.txt').read_text(errors='replace') if Path('palera1n-enable-tweaks.txt').exists() else 'No output.'
           pw=os.environ.get('IPAD_PASSWORD','')
           if pw: text=text.replace(pw,'***REDACTED***')
-          out=['palera1n Pinfo Query',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"build={os.environ.get('BUILD_OUTCOME','')}",f"probe={os.environ.get('PROBE_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-250:]]
-          Path('remote/palera1n-pinfo-query.txt').write_text('\n'.join(out)+'\n')
+          out=['palera1n Tweak Injection Restore',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"build={os.environ.get('BUILD_OUTCOME','')}",f"enable={os.environ.get('ENABLE_OUTCOME','')}",f"verify={os.environ.get('VERIFY_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-500:]]
+          Path('remote/palera1n-tweak-injection-restore.txt').write_text('\n'.join(out)+'\n')
           PY
-          git add remote/palera1n-pinfo-query.txt
+          git add remote/palera1n-tweak-injection-restore.txt
           if ! git diff --cached --quiet; then
-            git commit -m "Record palera1n pinfo query [skip ci]"
+            git commit -m "Record palera1n tweak injection restore [skip ci]"
             git push origin HEAD:main
           fi
