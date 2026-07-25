@@ -1,9 +1,10 @@
 Official palera1n Exit Safemode V3
-run_id=30169016144
+run_id=30168982035
 tailscale=success
 execute=failure
 
 --- sanitized output ---
+AppleTVOS12.4.sdk/usr/include/mach/rpc.h
 AppleTVOS12.4.sdk/usr/include/mach/vm_attributes.h
 AppleTVOS12.4.sdk/usr/include/mach/sync_policy.h
 AppleTVOS12.4.sdk/usr/include/mach/vm_sync.h
@@ -523,11 +524,11 @@ AppleTVOS12.4.sdk/usr/lib/libcharset.tbd
 AppleTVOS12.4.sdk/usr/lib/libIOAccessoryManager.tbd
 AppleTVOS12.4.sdk/usr/lib/libbsm.0.tbd
 AppleTVOS12.4.sdk/usr/lib/libicucore.A.tbd
-
-100 5693k  100 5693k    0     0  8033k      0 --:--:-- --:--:-- --:--:-- 8033k
 AppleTVOS12.4.sdk/usr/lib/libbz2.tbd
 AppleTVOS12.4.sdk/usr/lib/libSystem_asan.tbd
 AppleTVOS12.4.sdk/usr/lib/libnetwork.tbd
+
+100 5693k  100 5693k    0     0  8347k      0 --:--:-- --:--:-- --:--:-- 8347k
 AppleTVOS12.4.sdk/usr/lib/libAXSpeechManager.tbd
 AppleTVOS12.4.sdk/usr/lib/libmenu.tbd
 AppleTVOS12.4.sdk/usr/lib/libMobileGestaltExtensions.tbd
@@ -601,6 +602,5 @@ Timeout, server 100.116.117.65 not responding.
 exit_command_ssh_exit=255
 === WAIT FOR IPAD AFTER OFFICIAL EXIT ===
 reconnected_after_official_exit=1
-Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
-client_loop: send disconnect: Broken pipe
+ssh: connect to host 100.116.117.65 port 22: Connection timed out
 scp: Connection closed
