@@ -1,4 +1,4 @@
 run=official-exit-palera1n-safemode-v3
-requested_at=2026-07-25T18:37:00-05:00
+requested_at=2026-07-25T18:39:00-05:00
 state=gif2ani-3.1.1-disabled-no-gif
-reason=runtime-linked-helper-ready
+reason=theos-path-pinned-runtime-linked-helper
