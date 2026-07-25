@@ -39,13 +39,138 @@ if [[ "${LITTER_NYXIAN_PRIVATE_BUILD:-0}" == "1" ]]; then
   if [[ ! -s "$minimuxer_archive" || ! -s "$minimuxer_device_lib" || ! -s "$minimuxer_swift" ]]; then
     echo "==> Building KittyStore minimuxer Rust bridge for full AlleyCat sideload build"
     if command -v brew >/dev/null 2>&1; then
-      # plist_plus vendors libplist and must generate configure from
-      # configure.ac on a clean checkout. These are build-time requirements,
-      # not optional linker packages.
-      for formula in autoconf automake libtool cmake pkgconf llvm; do
+      # The vendored libimobiledevice stack is bootstrapped from configure.ac
+      # during Cargo builds. gettext provides autopoint; Homebrew keeps its bin
+      # directory keg-only, so add it explicitly for the bootstrap scripts.
+      for formula in autoconf automake libtool gettext cmake pkgconf llvm; do
         brew list "$formula" >/dev/null 2>&1 || brew install "$formula"
       done
+      export PATH="$(brew --prefix gettext)/bin:$PATH"
     fi
+
+    # SideStore's rusty_libimobiledevice build script assumes openssl-src always
+    # installs headers into one canonical directory and silently ignores failed
+    # autogen.sh runs. Both assumptions are false on clean macOS/Xcode runners.
+    # Patch the checked-out source deterministically before Cargo evaluates it.
+    rusty_build="$ROOT_DIR/ThirdParty/SideStore/rusty_libimobiledevice/build.rs"
+    python3 - "$rusty_build" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text()
+
+old_openssl = '''                        include_path = format!(
+                            "{} -I{}",
+                            include_path,
+                            install_path
+                                .join("include")
+                                .canonicalize()
+                                .unwrap()
+                                .display()
+                        );
+'''
+new_openssl = '''                        let openssl_build_root = path.join("out").join("openssl-build");
+                        let include_candidates = [
+                            install_path.join("include"),
+                            openssl_build_root.join("build").join("src").join("include"),
+                            openssl_build_root
+                                .join("build")
+                                .join("src")
+                                .join("build")
+                                .join("include"),
+                            openssl_build_root.join("build").join("include"),
+                        ];
+                        let mut openssl_include_found = false;
+                        for candidate in include_candidates {
+                            if candidate.is_dir() {
+                                include_path =
+                                    format!("{} -I{}", include_path, candidate.display());
+                                openssl_include_found = true;
+                            }
+                        }
+                        assert!(
+                            openssl_include_found,
+                            "openssl-src headers were not found under {}",
+                            openssl_build_root.display()
+                        );
+'''
+
+old_repo_setup = '''fn repo_setup(url: &str) {
+    let mut cmd = std::process::Command::new("git");
+    cmd.arg("clone");
+    cmd.arg("--depth=1");
+    cmd.arg(url);
+    cmd.output().unwrap();
+    env::set_current_dir(url.split('/').last().unwrap().replace(".git", "")).unwrap();
+    env::set_var("NOCONFIGURE", "1");
+    let mut cmd = std::process::Command::new("./autogen.sh");
+    let _ = cmd.output();
+    env::remove_var("NOCONFIGURE");
+    env::set_current_dir("..").unwrap();
+}
+'''
+new_repo_setup = '''fn repo_setup(url: &str) {
+    let repo_name = url.split('/').last().unwrap().replace(".git", "");
+
+    let status = std::process::Command::new("git")
+        .args(["clone", "--depth=1", url])
+        .status()
+        .expect("failed to launch git clone for vendored libimobiledevice dependency");
+    assert!(status.success(), "failed to clone {url}");
+
+    env::set_current_dir(&repo_name).unwrap();
+
+    let mut bootstrap = std::process::Command::new("./autogen.sh");
+    bootstrap.env("NOCONFIGURE", "1");
+    if env::consts::OS == "macos" {
+        bootstrap.env("LIBTOOLIZE", "glibtoolize");
+    }
+    let mut needs_fallback = match bootstrap.status() {
+        Ok(status) => !status.success(),
+        Err(_) => true,
+    };
+    if !needs_fallback {
+        let configure_text = std::fs::read_to_string("configure").unwrap_or_default();
+        needs_fallback = configure_text.is_empty()
+            || configure_text.contains("AM_INIT_AUTOMAKE(");
+    }
+    if needs_fallback {
+        let mut fallback = std::process::Command::new("autoreconf");
+        fallback.args(["-fiv"]);
+        if env::consts::OS == "macos" {
+            fallback.env("LIBTOOLIZE", "glibtoolize");
+        }
+        let status = fallback
+            .status()
+            .expect("failed to launch autoreconf for vendored dependency");
+        assert!(status.success(), "failed to bootstrap {repo_name}");
+    }
+
+    let configure_text = std::fs::read_to_string("configure")
+        .expect("bootstrap did not produce a readable configure script");
+    assert!(
+        !configure_text.contains("AM_INIT_AUTOMAKE("),
+        "configure script for {repo_name} still contains unexpanded Automake macros"
+    );
+
+    env::set_current_dir("..").unwrap();
+}
+'''
+
+if old_openssl in text:
+    text = text.replace(old_openssl, new_openssl, 1)
+elif new_openssl not in text:
+    raise SystemExit("could not patch rusty_libimobiledevice OpenSSL include discovery")
+
+if old_repo_setup in text:
+    text = text.replace(old_repo_setup, new_repo_setup, 1)
+elif new_repo_setup not in text:
+    raise SystemExit("could not patch rusty_libimobiledevice repo bootstrap")
+
+path.write_text(text)
+PY
+
     (
       cd "$ROOT_DIR"
       env \
