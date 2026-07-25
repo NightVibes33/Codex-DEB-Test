@@ -1,12 +1,12 @@
 iPad Tailscale SSH Bridge
-run_id=30147138486
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30147138486
-commit=46a24294cd3882960d5d80cfd6941e8353c17cfe
+run_id=30147251570
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30147251570
+commit=11437206c66724e596750aab688b4a9b9d30e4be
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
 install_ssh=success
-ssh=failure
+ssh=success
 
 --- sanitized SSH output ---
 Checking SSH host key over Tailscale...
@@ -16,5 +16,15 @@ Checking SSH host key over Tailscale...
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-sudo: /bin/sh: command not found
-ssh_exit_code=1
+=== iPad SSH bridge diagnostic ===
+Sat Jul 25 01:18:26 CDT 2026
+uid=0(root) gid=0(wheel) groups=0(wheel)
+Darwin Bobbys-iPad 22.6.0 Darwin Kernel Version 22.6.0: Tue Jul  2 20:45:41 PDT 2024; root:xnu-8796.142.1.703.8~1/RELEASE_ARM64_S8000 iPad6,11 arm Darwin
+user=root
+cwd=/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus/var/mobile
+sshd=sudo=/var/jb/usr/bin/sudo
+tailscale-ip=Tailscale CLI not installed in the jailbreak shell
+=== rootless jailbreak paths ===
+lrwxr-xr-x 1 root wheel 79 Jan 10  2026 /var/jb -> /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus
+-rwxr-xr-x 1 root wheel 806512 Jul  1  2024 /var/jb/usr/sbin/sshd
+ssh_exit_code=0
