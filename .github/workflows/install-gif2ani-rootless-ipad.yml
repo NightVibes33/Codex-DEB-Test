@@ -135,7 +135,8 @@ jobs:
             'sudo -S -p "" sh -c '\''
               set -u
               echo "=== BEFORE REMOVAL ==="
-              dpkg-query -W -f="old_darkboot=${Version}\n" com.nightvibes33.darkboot 2>/dev/null || echo "old_darkboot=not-installed"
+              old_version=$(dpkg-query -W com.nightvibes33.darkboot 2>/dev/null | cut -f2 || true)
+              if [ -n "$old_version" ]; then echo "old_darkboot=$old_version"; else echo "old_darkboot=not-installed"; fi
               dpkg --purge com.nightvibes33.darkboot 2>&1 || true
               dpkg --purge com.wizage.gif2ani2 2>&1 || true
               dpkg --purge com.wizages.gif2ani 2>&1 || true
@@ -180,7 +181,7 @@ jobs:
             'sudo -S -p "" sh -c '\''
               set -eu
               dpkg -i /var/mobile/Media/Gif2Ani-3.0.0-rootless.deb
-              version=$(dpkg-query -W -f="${Version}" com.nightvibes33.gif2ani)
+              version=$(dpkg-query -W com.nightvibes33.gif2ani | cut -f2)
               echo "installed_version=$version"
               test "$version" = "3.0.0"
               test ! -e /var/jb/Library/MobileSubstrate/DynamicLibraries/DarkBoot.dylib
@@ -241,7 +242,7 @@ jobs:
             'sudo -S -p "" sh -c '\''
               set -eu
               echo "=== FINAL VERIFICATION ==="
-              version=$(dpkg-query -W -f="${Version}" com.nightvibes33.gif2ani)
+              version=$(dpkg-query -W com.nightvibes33.gif2ani | cut -f2)
               echo "installed_version=$version"
               test "$version" = "3.0.0"
               if dpkg-query -W com.nightvibes33.darkboot >/dev/null 2>&1; then exit 41; fi
