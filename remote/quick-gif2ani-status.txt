@@ -1,0 +1,58 @@
+Quick Gif2Ani Status
+run_id=30169750939
+collect=success
+
+--- sanitized output ---
+ssh_connected=1
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== DEVICE ===
+Darwin Bobbys-iPad 22.6.0 Darwin Kernel Version 22.6.0: Tue Jul  2 20:45:41 PDT 2024; root:xnu-8796.142.1.703.8~1/RELEASE_ARM64_S8000 iPad6,11 arm Darwin
+ProductName:    iPhone OS
+ProductVersion: 16.7.11
+BuildVersion:   20H360
+=== PACKAGE STATUS ===
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+com.nightvibes33.gif2ani	3.1.1	install ok installed
+ellekit	1.1.3	install ok installed
+=== SAFE MODE GATES ===
+_MSSafeMode=_SafeMode=safemode_file=absent
+=== PROCESSES ===
+ 6314   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+ 6346   ??  ?s     0:00.00 /usr/libexec/backboardd
+=== GIF2ANI FILES ===
+total 0
+drwxr-xr-x  2 mobile mobile  64 Jul 25 11:49 .
+drwxr-xr-x 28 mobile mobile 896 Jul 25 11:49 ..
+=== PREFERENCES ===
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>isEnabled</key><false/>
+  <key>pendingReady</key><false/>
+  <key>imageTransformation</key><string>resizeAspect</string>
+  <key>customLoop</key><real>-1</real>
+  <key>customDuration</key><real>-1</real>
+  <key>backgroundColor</key><string>#000000</string>
+</dict></plist>
+=== RUNTIME MARKER ===
+cat: '/var/mobile/Library/Application Support/Gif2Ani/runtime-status.plist': No such file or directory
+runtime_status=missing
+=== DYLIB / FILTER ===
+-rwxr-xr-x 1 root wheel 89104 Jul 25 12:02 /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib
+-rw-r--r-- 1 root wheel   313 Jul 25 12:02 /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Filter</key>
+  <dict>
+    <key>Executables</key>
+    <array>
+      <string>backboardd</string>
+    </array>
+  </dict>
+</dict>
+</plist>
+=== RECENT CRASHES ===
+=== QUICK STATUS COMPLETE ===
