@@ -1,0 +1,11 @@
+ElleKit Startup Inspection Dispatch
+run_id=30167850385
+outcome=failure
+
+curl_exit=0
+http_code=422
+{
+  "message": "Workflow does not have 'workflow_dispatch' trigger",
+  "documentation_url": "https://docs.github.com/rest/actions/workflows#create-a-workflow-dispatch-event",
+  "status": "422"
+}
