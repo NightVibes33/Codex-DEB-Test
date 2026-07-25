@@ -1,3 +1,2 @@
-patch=official-exit-xpc-link
-requested_at=2026-07-25T18:16:00-05:00
-reason=retry-after-workflow-registration
+patch=official-exit-v2-sdk-discovery
+requested_at=2026-07-25T18:29:00-05:00
