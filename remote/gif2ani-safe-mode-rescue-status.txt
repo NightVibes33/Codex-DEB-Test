@@ -1,0 +1,42 @@
+Gif2Ani Safe Mode Rescue
+run_id=30165490961
+tailscale=success
+rescue=success
+verify=success
+
+--- sanitized output ---
+ssh_attempt=1
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== PRESERVE FAILURE EVIDENCE ===
+Sat Jul 25 11:23:02 CDT 2026
+ProductName:    iPhone OS
+ProductVersion: 16.7.11
+BuildVersion:   20H360
+--- recent backboardd crash files ---
+/var/mobile/Library/Logs/CrashReporter/backboardd-2026-07-25-102719.ips
+/var/mobile/Library/Logs/CrashReporter/backboardd-2026-07-25-104751.ips
+/var/mobile/Library/Logs/CrashReporter/SpringBoard-2026-07-25-102729.ips
+/var/mobile/Library/Logs/CrashReporter/backboardd-2026-07-25-104651.ips
+/var/mobile/Library/Logs/CrashReporter/backboardd-2026-07-25-102627.ips
+/var/mobile/Library/Logs/CrashReporter/backboardd-2026-07-25-102819.ips
+/var/mobile/Library/Logs/CrashReporter/backboardd-2026-07-25-105756.ips
+/var/mobile/Library/Logs/CrashReporter/backboardd-2026-07-25-105346.ips
+/var/mobile/Library/Logs/CrashReporter/backboardd-2026-07-25-110005.ips
+/var/mobile/Library/Logs/CrashReporter/backboardd-2026-07-25-105656.ips
+/var/mobile/Library/Logs/CrashReporter/backboardd-2026-07-25-105446.ips
+=== DISABLE INJECTION FIRST ===
+injection_disabled=yes
+=== REMOVE PACKAGE AND LIVE DATA ===
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+dpkg: warning: ignoring request to remove com.nightvibes33.gif2ani which isn't installed
+gif2ani_removed=yes
+Timeout, server 100.116.117.65 not responding.
+rescue_ssh_exit=255
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+gif2ani_package=absent
+gif2ani_files=absent
+selected_gif=absent
+  578   ??  ?s     0:00.00 /usr/libexec/backboardd
+  580   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+recovery_verified=yes
