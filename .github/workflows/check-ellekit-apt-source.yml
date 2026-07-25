@@ -1,0 +1,108 @@
+name: Check ElleKit APT Source
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/check-ellekit-apt-source.txt
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name']); raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  check:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends openssh-client sshpass
+      - name: Create read-only device script
+        run: |
+          cat > check-ellekit-apt.sh <<'SH'
+          #!/bin/sh
+          set +e
+          echo '=== INSTALLED PACKAGE ==='
+          dpkg-query -s ellekit 2>&1
+          echo '=== APT POLICY ==='
+          /var/jb/usr/bin/apt-cache policy ellekit 2>&1
+          echo '=== APT MADISON ==='
+          /var/jb/usr/bin/apt-cache madison ellekit 2>&1
+          echo '=== SOURCES ==='
+          grep -RhsEv '^[[:space:]]*(#|$)' /var/jb/etc/apt/sources.list /var/jb/etc/apt/sources.list.d 2>&1
+          echo '=== ELLEKIT FILES ==='
+          ls -l /var/jb/etc/rc.d/ellekit-loader /var/jb/usr/libexec/ellekit/loader /var/jb/usr/lib/ellekit/pspawn.dylib /var/jb/usr/lib/ellekit/libinjector.dylib 2>&1
+          echo '=== CHECKSUMS ==='
+          sha256sum /var/jb/usr/libexec/ellekit/loader /var/jb/usr/lib/ellekit/pspawn.dylib /var/jb/usr/lib/ellekit/libinjector.dylib 2>&1
+          SH
+          chmod +x check-ellekit-apt.sh
+      - name: Run read-only check
+        id: probe
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 60); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          test "$connected" -eq 1
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null check-ellekit-apt.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=30 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/check-ellekit-apt.sh' 2>&1 | tee ellekit-apt-source.txt
+      - name: Publish result
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          PROBE_OUTCOME: ${{ steps.probe.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('ellekit-apt-source.txt').read_text(errors='replace') if Path('ellekit-apt-source.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=['ElleKit APT Source Check',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"probe={os.environ.get('PROBE_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-350:]]
+          Path('remote/ellekit-apt-source-check.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/ellekit-apt-source-check.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record ElleKit APT source check [skip ci]"
+            git push origin HEAD:main
+          fi
