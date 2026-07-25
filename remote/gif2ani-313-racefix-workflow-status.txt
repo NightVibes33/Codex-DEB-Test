@@ -1,0 +1,24 @@
+Gif2Ani 3.1.3 Race-Fix Workflow Status
+run_id=30172370256
+status=completed
+conclusion=failure
+event=push
+head_sha=d1558fffb304a9a543582ea82f8872d0e25860f5
+created_at=2026-07-25T19:49:38Z
+updated_at=2026-07-25T19:51:52Z
+job=resolve-environment status=completed conclusion=success id=89715520251
+  step=1 Set up job status=completed conclusion=success
+  step=2 Run set -euo pipefail status=completed conclusion=success
+  step=3 Complete job status=completed conclusion=success
+job=validate status=completed conclusion=failure id=89715531810
+  step=1 Set up job status=completed conclusion=success
+  step=2 Run actions/checkout@v4 status=completed conclusion=success
+  step=3 Build exact race-fixed source status=completed conclusion=success
+  step=4 Generate 84-frame test GIF status=completed conclusion=success
+  step=5 Run tailscale/github-action@v4 status=completed conclusion=success
+  step=6 Run physical test with mandatory cleanup status=completed conclusion=failure
+  step=7 Verify final disabled state status=completed conclusion=success
+  step=8 Publish result status=completed conclusion=success
+  step=15 Post Run tailscale/github-action@v4 status=completed conclusion=success
+  step=16 Post Run actions/checkout@v4 status=completed conclusion=success
+  step=17 Complete job status=completed conclusion=success
