@@ -1,0 +1,7 @@
+Gif2Ani 3.1.1 Injection Dispatch
+run_id=30166931301
+outcome=success
+
+curl_exit=0
+http_code=204
+injection_diagnostic_dispatched=yes
