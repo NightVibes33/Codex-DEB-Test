@@ -1,5 +1,5 @@
 Gif2Ani 3.1.1 Injection Diagnostic
-run_id=30166866989
+run_id=30166939846
 post_respring_injection=failure
 
 --- sanitized output ---
@@ -12,8 +12,8 @@ com.nightvibes33.gif2ani	3.1.1
 -rw-r--r-- 1 root wheel   313 Jul 25 12:02 /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist
 === DISABLED CLEAN STATE ===
 === PROCESSES ===
- 1010   ??  ?s     0:00.00 /usr/libexec/backboardd
- 1012   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+ 1084   ??  ?s     0:00.00 /usr/libexec/backboardd
+ 1086   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
 === SAFE MODE MARKERS ===
 === CURRENT RUNTIME STATUS ===
 runtime_status=missing
@@ -32,8 +32,8 @@ com.nightvibes33.gif2ani	3.1.1
 -rw-r--r-- 1 root wheel   313 Jul 25 12:02 /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist
 === DISABLED CLEAN STATE ===
 === PROCESSES ===
- 1084   ??  ?s     0:00.00 /usr/libexec/backboardd
- 1086   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+ 1163   ??  ?s     0:00.00 /usr/libexec/backboardd
+ 1165   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
 === SAFE MODE MARKERS ===
 === CURRENT RUNTIME STATUS ===
 runtime_status=missing
