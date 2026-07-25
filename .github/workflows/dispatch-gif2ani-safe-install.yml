@@ -1,10 +1,10 @@
-name: Dispatch Post-Userspace Gif2Ani Loader Check
+name: Dispatch ElleKit Loader Diagnostic
 
 on:
   push:
     branches: [main]
     paths:
-      - triggers/dispatch-post-userspace-gif2ani-check.txt
+      - triggers/dispatch-ellekit-loader-diagnostic.txt
 
 permissions:
   actions: write
@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Dispatch loader check
+      - name: Dispatch diagnostic
         id: dispatch
         env:
           GH_TOKEN: ${{ github.token }}
@@ -29,7 +29,7 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/check-gif2ani-3.1.1-injection.yml/dispatches" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/diagnose-ellekit-loader-ipad.yml/dispatches" \
             -d '{"ref":"main"}')
           code=$?
           set -e
@@ -38,7 +38,7 @@ jobs:
           if [ -s dispatch-response.txt ]; then cat dispatch-response.txt | tee -a dispatch-status.txt; fi
           test "$code" -eq 0
           test "$http_code" = "204"
-          echo "post_userspace_loader_check_dispatched=yes" | tee -a dispatch-status.txt
+          echo "ellekit_diagnostic_dispatched=yes" | tee -a dispatch-status.txt
       - name: Publish dispatcher status
         if: always()
         run: |
@@ -48,14 +48,14 @@ jobs:
           git pull --rebase origin main
           mkdir -p remote
           {
-            echo "Post-Userspace Gif2Ani Loader Check Dispatch"
+            echo "ElleKit Loader Diagnostic Dispatch"
             echo "run_id=${GITHUB_RUN_ID}"
             echo "outcome=${{ steps.dispatch.outcome }}"
             echo
             if [ -f dispatch-status.txt ]; then cat dispatch-status.txt; else echo "No dispatch output."; fi
-          } > remote/gif2ani-311-post-userspace-dispatch-status.txt
-          git add remote/gif2ani-311-post-userspace-dispatch-status.txt
+          } > remote/ellekit-loader-dispatch-status.txt
+          git add remote/ellekit-loader-dispatch-status.txt
           if ! git diff --cached --quiet; then
-            git commit -m "Record post-userspace Gif2Ani loader dispatch [skip ci]"
+            git commit -m "Record ElleKit diagnostic dispatch [skip ci]"
             git push origin HEAD:main
           fi
