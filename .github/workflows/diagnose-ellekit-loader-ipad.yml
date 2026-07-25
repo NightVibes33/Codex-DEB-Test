@@ -1,4 +1,4 @@
-name: Quick Gif2Ani Post-Exit Check
+name: Trace Gif2Ani ElleKit Injection
 
 on:
   workflow_dispatch:
@@ -52,41 +52,72 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends openssh-client sshpass
-      - name: Read current device state
+      - name: Trace current loader state
         id: collect
         env:
           SSHPASS: ${{ secrets.IPAD_PASSWORD }}
         run: |
           set -uo pipefail
           set +e
-          timeout 45 sshpass -e ssh -p 22 \
+          timeout 55 sshpass -e ssh -p 22 \
             -o ConnectTimeout=12 \
             -o ServerAliveInterval=5 \
             -o ServerAliveCountMax=2 \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             mobile@"$IPAD_HOST" 'sh -c '\''
+              echo "=== DEVICE ==="
+              sw_vers 2>/dev/null || true
+              uname -a
+
               echo "=== PACKAGES ==="
-              dpkg-query -W -f="${Package} ${Version} ${Status}\n" ellekit com.nightvibes33.gif2ani 2>&1 || true
+              dpkg-query -W ellekit com.nightvibes33.gif2ani 2>&1 || true
+
               echo "=== PROCESSES ==="
               ps ax | grep -E "[b]ackboardd|[S]pringBoard" || true
-              echo "=== GIF SLOTS ==="
-              media="/var/mobile/Library/Application Support/Gif2Ani"
-              for f in Pending.gif Active.gif Rejected.gif load-in-progress runtime-status.plist; do
-                if [ -e "$media/$f" ]; then echo "$f=present"; else echo "$f=absent"; fi
-              done
-              echo "=== RUNTIME STATUS ==="
-              cat "$media/runtime-status.plist" 2>/dev/null || echo runtime_status=missing
+
               echo "=== SAFE MODE GATES ==="
               echo "_MSSafeMode=$(/var/jb/usr/bin/launchctl getenv _MSSafeMode 2>/dev/null || true)"
               echo "_SafeMode=$(/var/jb/usr/bin/launchctl getenv _SafeMode 2>/dev/null || true)"
               if [ -e /var/mobile/.eksafemode ]; then echo eksafemode_file=present; else echo eksafemode_file=absent; fi
+
+              echo "=== GIF2ANI INSTALLED FILES ==="
+              dpkg-query -L com.nightvibes33.gif2ani 2>&1 || true
+              ls -la /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.* 2>&1 || true
+              ls -la /var/jb/usr/lib/TweakInject/Gif2Ani.* 2>&1 || true
+              find /var/jb/usr/lib/TweakInject -maxdepth 1 -iname "*gif2ani*" -ls 2>/dev/null || true
+
+              echo "=== TWEAK DIRECTORY SAMPLES ==="
+              echo "-- MobileSubstrate --"
+              find /var/jb/Library/MobileSubstrate/DynamicLibraries -maxdepth 1 -type f -name "*.dylib" -print 2>/dev/null | head -20
+              echo "-- TweakInject --"
+              find /var/jb/usr/lib/TweakInject -maxdepth 1 \( -type f -o -type l \) -print 2>/dev/null | head -30
+
+              echo "=== ELLEKIT LOADER SCRIPT ==="
+              ls -la /var/jb/etc/rc.d/ellekit-loader /var/jb/usr/libexec/ellekit/loader 2>&1 || true
+              sed -n "1,160p" /var/jb/etc/rc.d/ellekit-loader 2>/dev/null || true
+
+              echo "=== GIF2ANI LOAD COMMANDS ==="
+              if command -v otool >/dev/null 2>&1; then otool -L /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib 2>&1 || true; fi
+              if [ -x /var/jb/usr/bin/ldid ]; then /var/jb/usr/bin/ldid -e /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib 2>&1 || true; fi
+              file /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib 2>&1 || true
+
+              echo "=== FILTER ==="
+              cat /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist 2>&1 || true
+
+              echo "=== MEDIA / RUNTIME ==="
+              media="/var/mobile/Library/Application Support/Gif2Ani"
+              for f in Pending.gif Active.gif Rejected.gif load-in-progress runtime-status.plist; do
+                if [ -e "$media/$f" ]; then echo "$f=present"; else echo "$f=absent"; fi
+              done
+              cat "$media/runtime-status.plist" 2>/dev/null || echo runtime_status=missing
+
               echo "=== RECENT CRASHES ==="
-              find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name "backboardd-*.ips" -o -name "SpringBoard-*.ips" \) -mmin -20 -print 2>/dev/null | wc -l | tr -d " "
-            '\''' 2>&1 | tee quick-post-exit-check.txt
+              find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name "backboardd-*.ips" -o -name "SpringBoard-*.ips" \) -mmin -30 -print 2>/dev/null || true
+            '\''' 2>&1 | tee gif2ani-ellekit-trace.txt
           code=${PIPESTATUS[0]}
           set -e
-          echo "ssh_exit=$code" | tee -a quick-post-exit-check.txt
+          echo "ssh_exit=$code" | tee -a gif2ani-ellekit-trace.txt
           exit "$code"
       - name: Publish status
         if: always()
@@ -96,14 +127,14 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git pull --rebase origin main
           {
-            echo "Quick Gif2Ani Post-Exit Check"
+            echo "Gif2Ani ElleKit Injection Trace"
             echo "run_id=${GITHUB_RUN_ID}"
             echo "collect=${{ steps.collect.outcome }}"
             echo
-            cat quick-post-exit-check.txt 2>/dev/null || echo "No output."
-          } > remote/quick-gif2ani-post-exit-check.txt
-          git add remote/quick-gif2ani-post-exit-check.txt
+            cat gif2ani-ellekit-trace.txt 2>/dev/null || echo "No output."
+          } > remote/gif2ani-ellekit-injection-trace.txt
+          git add remote/gif2ani-ellekit-injection-trace.txt
           if ! git diff --cached --quiet; then
-            git commit -m "Record quick Gif2Ani post-exit check [skip ci]"
+            git commit -m "Record Gif2Ani ElleKit injection trace [skip ci]"
             git push origin HEAD:main
           fi
