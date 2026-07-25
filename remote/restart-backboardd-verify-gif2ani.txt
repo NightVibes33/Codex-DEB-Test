@@ -1,5 +1,5 @@
 Restart backboardd and Verify Gif2Ani
-run_id=30171603180
+run_id=30171613534
 verify=success
 
 --- sanitized output ---
@@ -14,15 +14,15 @@ ellekit	1.1.3
 === CONFIRM CLEAN LAUNCHD FLAGS ===
 requested_flags=0x4c00082
 pipe_routine=0
-reply=<dictionary: 0xdc2809100> { count = 0, transaction: 0, voucher = 0x0, contents =
+reply=<dictionary: 0xb32809100> { count = 0, transaction: 0, voucher = 0x0, contents =
 }
 launchd_error=0
 === RESTART BACKBOARDD ===
-old_backboardd_pid=11205
-new_backboardd_pid=11247
+old_backboardd_pid=11266
+new_backboardd_pid=11298
 === NEW BACKBOARDD ENV ===
   PID   TT  STAT      TIME COMMAND
-11247   ??  ?s     0:00.00 sudo -S -p  sh /var/mobile/Media/verify-backboardd.sh USER=mobile LOGNAME=mobile HOME=/var/jb/var/mobile PATH=/usr/bin:/bin:/usr/sbin:/sbin:/var/jb/usr/bin SHELL=/var/jb/usr/bin/zsh SSH_CLIENT=100.65.94.84 41214 22 SSH_CONNECTION=100.65.94.84 41214 100.116.117.65 22 JB_ROOT_PATH=/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus JB_PINFO_FLAGS=0x4c00082 JB_TWEAKLOADER_PATH=@default __CF_USER_TEXT_ENCODING=0x1F5:0:0 SHLVL=0 PWD=/var/jb/var/mobile OLDPWD=/var/jb/var/mobile _=/var/jb/usr/bin/sudo DYLD_INSERT_LIBRARIES=/cores/binpack/usr/lib/systemhook.dylib DYLD_LIBRARY_PATH=/cores/binpack/usr/lib/libroot JB_SANDBOX_EXTENSIONS=8e6c9f13d0cb72057dd695cbf86e7d80c160693ae5cfd6a52a90be6e753b0ed5;01;00000000;00000000;00000000;0000000000000034;com.apple.security.exception.mach-lookup.global-name;in.palera.palera1nd.systemwide|df1ecf8ceaa25ef97dd100b8e27feb0710b25a56ab3333a41d50050b91292bca;01;00000000;00000000;00000000;000000000000001a;com.apple.app-sandbox.mach;in.palera.palera1nd.systemwide
+11298   ??  ?s     0:00.00 sudo -S -p  sh /var/mobile/Media/verify-backboardd.sh USER=mobile LOGNAME=mobile HOME=/var/jb/var/mobile PATH=/usr/bin:/bin:/usr/sbin:/sbin:/var/jb/usr/bin SHELL=/var/jb/usr/bin/zsh SSH_CLIENT=100.82.24.82 50074 22 SSH_CONNECTION=100.82.24.82 50074 100.116.117.65 22 JB_ROOT_PATH=/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus JB_PINFO_FLAGS=0x4c00082 JB_TWEAKLOADER_PATH=@default __CF_USER_TEXT_ENCODING=0x1F5:0:0 SHLVL=0 PWD=/var/jb/var/mobile OLDPWD=/var/jb/var/mobile _=/var/jb/usr/bin/sudo DYLD_INSERT_LIBRARIES=/cores/binpack/usr/lib/systemhook.dylib DYLD_LIBRARY_PATH=/cores/binpack/usr/lib/libroot JB_SANDBOX_EXTENSIONS=8e6c9f13d0cb72057dd695cbf86e7d80c160693ae5cfd6a52a90be6e753b0ed5;01;00000000;00000000;00000000;0000000000000034;com.apple.security.exception.mach-lookup.global-name;in.palera.palera1nd.systemwide|df1ecf8ceaa25ef97dd100b8e27feb0710b25a56ab3333a41d50050b91292bca;01;00000000;00000000;00000000;000000000000001a;com.apple.app-sandbox.mach;in.palera.palera1nd.systemwide
 === GIF2ANI RUNTIME ===
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -50,7 +50,7 @@ new_backboardd_pid=11247
 		<integer>640</integer>
 	</dict>
 	<key>timestamp</key>
-	<real>1785007624.8228879</real>
+	<real>1785007649.7239308</real>
 </dict>
 </plist>
 new_crash_reports=0
