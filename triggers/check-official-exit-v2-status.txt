@@ -1,3 +1,3 @@
-check=current-official-exit-v4-status
-requested_at=2026-07-25T19:33:00-05:00
-reason=retry-read-only-status-probe
+check=gif2ani-dlopen-status
+requested_at=2026-07-25T19:50:00-05:00
+reason=inspect-binary-load-diagnostic
