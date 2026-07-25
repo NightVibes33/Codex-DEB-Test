@@ -1,0 +1,242 @@
+name: Build Codex CLI for jailbroken iOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      upstream_ref:
+        description: OpenAI Codex branch, tag, or commit
+        required: false
+        default: main
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/build-codex-ios-cli.yml'
+      - 'codex-ios/**'
+      - 'vercel-codex-ios/**'
+
+permissions:
+  contents: write
+
+env:
+  IOS_TARGET: aarch64-apple-ios
+  IPHONEOS_DEPLOYMENT_TARGET: '16.0'
+  PACKAGE_VERSION: '0.1.0'
+  RELEASE_TAG: codex-ios-latest
+
+jobs:
+  build-ios-cli:
+    name: Build iphoneos-arm64 DEB
+    runs-on: macos-15
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout packaging repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode and show SDK
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-path
+          xcrun --sdk iphoneos --find clang
+
+      - name: Install build tools
+        shell: bash
+        run: |
+          set -euxo pipefail
+          brew update
+          brew install ldid dpkg protobuf cmake ninja pkg-config
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add "$IOS_TARGET"
+          rustc -Vv
+          cargo -V
+
+      - name: Clone official OpenAI Codex
+        shell: bash
+        env:
+          UPSTREAM_REF: ${{ github.event.inputs.upstream_ref || 'main' }}
+        run: |
+          set -euxo pipefail
+          rm -rf upstream/openai-codex
+          git clone --filter=blob:none --no-checkout https://github.com/openai/codex.git upstream/openai-codex
+          cd upstream/openai-codex
+          git checkout "$UPSTREAM_REF"
+          git rev-parse HEAD | tee ../../codex-ios-upstream-sha.txt
+
+      - name: Configure iOS cross compilation
+        shell: bash
+        run: |
+          set -euxo pipefail
+          SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
+          CLANG="$(xcrun --sdk iphoneos --find clang)"
+          AR="$(xcrun --sdk iphoneos --find ar)"
+
+          mkdir -p upstream/openai-codex/.cargo
+          cat > upstream/openai-codex/.cargo/config.toml <<EOF
+          [target.aarch64-apple-ios]
+          linker = "$CLANG"
+          ar = "$AR"
+          rustflags = [
+            "-C", "link-arg=-isysroot",
+            "-C", "link-arg=$SDKROOT",
+            "-C", "link-arg=-miphoneos-version-min=16.0",
+            "-C", "strip=symbols"
+          ]
+
+          [net]
+          retry = 4
+          git-fetch-with-cli = true
+          EOF
+
+          cat upstream/openai-codex/.cargo/config.toml
+
+      - name: Apply iOS compatibility preparation
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd upstream/openai-codex
+          bash "$GITHUB_WORKSPACE/codex-ios/prepare-upstream.sh"
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            upstream/openai-codex/codex-rs/target
+          key: codex-ios-${{ runner.os }}-${{ hashFiles('codex-ios/**', '.github/workflows/build-codex-ios-cli.yml') }}
+          restore-keys: |
+            codex-ios-${{ runner.os }}-
+
+      - name: Cross-compile official Codex CLI
+        shell: bash
+        env:
+          SDKROOT: ${{ env.SDKROOT }}
+          SQLX_OFFLINE: 'true'
+          CARGO_INCREMENTAL: '0'
+          RUST_BACKTRACE: '1'
+          MACOSX_DEPLOYMENT_TARGET: ''
+        run: |
+          set -euxo pipefail
+          cd upstream/openai-codex/codex-rs
+          export SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
+          export CC_aarch64_apple_ios="$(xcrun --sdk iphoneos --find clang)"
+          export CXX_aarch64_apple_ios="$(xcrun --sdk iphoneos --find clang++)"
+          export AR_aarch64_apple_ios="$(xcrun --sdk iphoneos --find ar)"
+          export CFLAGS_aarch64_apple_ios="-isysroot $SDKROOT -miphoneos-version-min=16.0"
+          export CXXFLAGS_aarch64_apple_ios="$CFLAGS_aarch64_apple_ios"
+          export BINDGEN_EXTRA_CLANG_ARGS_aarch64_apple_ios="$CFLAGS_aarch64_apple_ios"
+
+          cargo build \
+            --locked \
+            --release \
+            --target "$IOS_TARGET" \
+            -p codex-cli
+
+      - name: Verify iOS Mach-O
+        shell: bash
+        run: |
+          set -euxo pipefail
+          BIN="upstream/openai-codex/codex-rs/target/$IOS_TARGET/release/codex"
+          test -s "$BIN"
+          file "$BIN"
+          xcrun vtool -show-build "$BIN" | tee codex-ios-vtool.txt
+          grep -Eiq 'platform[[:space:]]+IOS|platform[[:space:]]+2' codex-ios-vtool.txt
+          otool -L "$BIN" | tee codex-ios-linked-libraries.txt
+          ldid -S "$BIN"
+
+      - name: Build rootless DEB
+        shell: bash
+        run: |
+          set -euxo pipefail
+          VERSION="${PACKAGE_VERSION}.${GITHUB_RUN_NUMBER}"
+          PKGROOT="$RUNNER_TEMP/codex-ios-pkg"
+          BIN="upstream/openai-codex/codex-rs/target/$IOS_TARGET/release/codex"
+          rm -rf "$PKGROOT" dist
+          mkdir -p \
+            "$PKGROOT/DEBIAN" \
+            "$PKGROOT/var/jb/usr/libexec/codex-ios" \
+            "$PKGROOT/var/jb/usr/bin" \
+            "$PKGROOT/var/jb/usr/share/doc/codex-ios" \
+            dist
+
+          install -m 0755 "$BIN" "$PKGROOT/var/jb/usr/libexec/codex-ios/codex-real"
+          install -m 0644 README.md "$PKGROOT/var/jb/usr/share/doc/codex-ios/repository-readme.md"
+          install -m 0644 codex-ios-upstream-sha.txt "$PKGROOT/var/jb/usr/share/doc/codex-ios/upstream-sha.txt"
+
+          cat > "$PKGROOT/var/jb/usr/bin/codex" <<'WRAPPER'
+          #!/var/jb/usr/bin/bash
+          set -e
+          : "${HOME:=/var/mobile}"
+          : "${CODEX_HOME:=$HOME/.codex}"
+          : "${TERM:=xterm-256color}"
+          export HOME CODEX_HOME TERM
+          mkdir -p "$CODEX_HOME"
+          chmod 700 "$CODEX_HOME" 2>/dev/null || true
+          exec /var/jb/usr/libexec/codex-ios/codex-real "$@"
+          WRAPPER
+          chmod 0755 "$PKGROOT/var/jb/usr/bin/codex"
+
+          cat > "$PKGROOT/var/jb/usr/bin/codex-ios-update" <<'UPDATER'
+          #!/var/jb/usr/bin/bash
+          set -euo pipefail
+          curl -fsSL https://codex-ios.vercel.app/install.sh | /var/jb/usr/bin/bash
+          UPDATER
+          chmod 0755 "$PKGROOT/var/jb/usr/bin/codex-ios-update"
+
+          cat > "$PKGROOT/DEBIAN/control" <<EOF
+          Package: com.nightvibes.codex-ios
+          Name: Codex CLI for iOS
+          Version: $VERSION
+          Architecture: iphoneos-arm64
+          Description: Official OpenAI Codex CLI cross-compiled for rootless jailbroken iOS.
+          Maintainer: NightVibes33
+          Author: OpenAI / NightVibes33 iOS packaging
+          Section: Development
+          Priority: optional
+          Depends: bash, ca-certificates, curl, git
+          Homepage: https://github.com/NightVibes33/Codex-DEB-Test
+          EOF
+
+          cat > "$PKGROOT/DEBIAN/postinst" <<'POSTINST'
+          #!/bin/sh
+          set -e
+          mkdir -p /var/mobile/.codex
+          chown -R mobile:mobile /var/mobile/.codex 2>/dev/null || true
+          chmod 700 /var/mobile/.codex 2>/dev/null || true
+          echo 'Codex iOS installed.'
+          echo 'Run: codex login --device-auth'
+          POSTINST
+          chmod 0755 "$PKGROOT/DEBIAN/postinst"
+
+          DEB="dist/codex-ios_latest_iphoneos-arm64.deb"
+          dpkg-deb --root-owner-group --build "$PKGROOT" "$DEB"
+          shasum -a 256 "$DEB" | awk '{print $1}' > "${DEB}.sha256"
+          cp codex-ios-vtool.txt codex-ios-linked-libraries.txt dist/
+          ls -lh dist
+          dpkg-deb --info "$DEB"
+          dpkg-deb --contents "$DEB" | tee dist/deb-contents.txt
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-ios-iphoneos-arm64
+          path: dist/
+          if-no-files-found: error
+
+      - name: Publish stable GitHub release assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" \
+              --title 'Codex CLI for jailbroken iOS — latest' \
+              --notes 'Automated rootless iphoneos-arm64 build. Install from the Vercel-hosted install.sh.' \
+              --prerelease
+          fi
+          gh release upload "$RELEASE_TAG" dist/* --clobber
