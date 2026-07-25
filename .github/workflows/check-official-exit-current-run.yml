@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Query latest official exit run
+      - name: Query official and repository runs
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -24,16 +24,23 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/official-exit-palera1n-safemode.yml/runs?per_page=5" > runs.json
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/official-exit-palera1n-safemode.yml/runs?per_page=5" > official-runs.json
+          curl -fsS \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs?per_page=100" > repository-runs.json
           python3 - <<'PY'
           import json, os, urllib.request
           from pathlib import Path
-          runs=json.load(open('runs.json')).get('workflow_runs',[])
+
+          official=json.load(open('official-runs.json')).get('workflow_runs',[])
+          all_runs=json.load(open('repository-runs.json')).get('workflow_runs',[])
           out=['Current Official palera1n Exit Run']
-          if not runs:
+          if not official:
               out.append('latest_run=missing')
           else:
-              run=runs[0]
+              run=official[0]
               out += [
                   f"run_id={run.get('id')}",
                   f"status={run.get('status')}",
@@ -58,6 +65,16 @@ jobs:
                   out.append(f"job={job.get('name')} status={job.get('status')} conclusion={job.get('conclusion')} id={job.get('id')}")
                   for step in job.get('steps',[]):
                       out.append(f"  step={step.get('number')} {step.get('name')} status={step.get('status')} conclusion={step.get('conclusion')}")
+
+          out += ['', 'queued_or_active_repository_runs:']
+          active=[r for r in all_runs if r.get('status') in ('queued','in_progress','waiting','pending','requested')]
+          for item in active:
+              out.append(
+                  f"run_id={item.get('id')} status={item.get('status')} workflow={item.get('name')} "
+                  f"event={item.get('event')} head_sha={item.get('head_sha')} created={item.get('created_at')}"
+              )
+          out.append(f"active_count={len(active)}")
+
           Path('remote/gif2ani-official-exit-current-run.txt').write_text('\n'.join(out)+'\n')
           print('\n'.join(out))
           PY
