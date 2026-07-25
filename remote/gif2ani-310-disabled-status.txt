@@ -1,0 +1,60 @@
+Gif2Ani 3.1.0 Disabled Installation
+run_id=30165864791
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30165864791
+tailscale=success
+device_test=success
+
+--- sanitized output ---
+[0;36m==> [1;39mCleaning…[m
+[1;31m> [1;3;39mMaking clean in gif2aniprefs…[m
+[0;36m==> [1;39mCleaning…[m
+[1;31m> [1;3;39mMaking all for tweak Gif2Ani…[m
+[0;31m==> [1;39mPreprocessing Tweak.xm…[m
+[0;32m==> [1;39mCompiling UIImage+animatedGIF.m (arm64)…[m
+[0;32m==> [1;39mCompiling G2PreferencesManager.m (arm64)…[m
+[0;32m==> [1;39mCompiling Tweak.xm (arm64)…[m
+[0;33m==> [1;39mLinking tweak Gif2Ani (arm64)…[m
+[0;34m==> [1;39mGenerating debug symbols for Gif2Ani…[m
+[0;34m==> [1;39mStripping Gif2Ani (arm64)…[m
+[0;34m==> [1;39mSigning Gif2Ani…[m
+[1;31m> [1;3;39mMaking all in gif2aniprefs…[m
+[1;31m> [1;3;39mMaking all for bundle Gif2AniPrefs…[m
+[0;35m==> [1;39mCopying resource directories into the bundle wrapper…[m
+[0;32m==> [1;39mCompiling gif2ani2RootListController.m (arm64)…[m
+[0;33m==> [1;39mLinking bundle Gif2AniPrefs (arm64)…[m
+[0;34m==> [1;39mGenerating debug symbols for Gif2AniPrefs…[m
+[0;34m==> [1;39mStripping Gif2AniPrefs (arm64)…[m
+[0;34m==> [1;39mSigning Gif2AniPrefs…[m
+[1;31m> [1;3;39mMaking stage for tweak Gif2Ani…[m
+[1;31m> [1;3;39mMaking stage in gif2aniprefs…[m
+[1;31m> [1;3;39mMaking stage for bundle Gif2AniPrefs…[m
+[0;36m==> [1;36mNotice:[m Neither plutil, ply, or libplist-utils are installed, so XML plist files were not optimized.
+dm.pl: building package `com.nightvibes33.gif2ani:iphoneos-arm64' in `./packages/com.nightvibes33.gif2ani_3.1.0_iphoneos-arm64.deb'
+9a37b727c41f343b49cac960d5e35d4d4891898ceaa8291ff32a665393c7e5a1  Gif2Ani-3.1.0-rootless.deb
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== CLEAN PREVIOUS STATE ===
+=== INSTALL 3.1.0 ===
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+Selecting previously unselected package com.nightvibes33.gif2ani.
+(Reading database ... 19741 files and directories currently installed.)
+Preparing to unpack .../Gif2Ani-3.1.0-rootless.deb ...
+Unpacking com.nightvibes33.gif2ani (3.1.0) ...
+Setting up com.nightvibes33.gif2ani (3.1.0) ...
+Processing triggers for org.coolstar.sileo (2.5.1) ...
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+installed_version=3.1.0
+package_files=present
+installed_enabled=false
+=== STAGED-ONLY TEST ===
+backboardd_pid_before=578
+backboardd_pid_after=578
+staged_file_remained_inert=yes
+=== CLEAN TEST MEDIA ===
+final_state=installed-disabled-no-gif
+  578   ??  ?s     0:00.00 /usr/libexec/backboardd
+  580   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+  654   ??  ?s     0:00.00 sudo -S -p  sh -c \012    set -eu\012    media="/var/mobile/Library/Application Support/Gif2Ani"\012    prefs="/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist"\012\012    echo "=== CLEAN PREVIOUS STATE ==="\012    rm -rf "$media"\012    rm -f "$prefs" "$prefs".*\012    rm -f /var/mobile/Library/Preferences/Respring.gif\012    dpkg --purge com.nightvibes33.gif2ani >/dev/null 2>&1 || true\012\012    echo "=== INSTALL 3.1.0 ==="\012    dpkg -i /var/mobile/Media/Gif2Ani-3.1.0-rootless.deb\012    version=$(dpkg-query -W com.nightvibes33.gif2ani | cut -f2)\012    echo "installed_version=$version"\012    test "$version" = "3.1.0"\012\012    mkdir -p "$media"\012    cat > "$prefs" <<"PLIST"\012<?xml version="1.0" encoding="UTF-8"?>\012<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\012<plist version="1.0"><dict>\012  <key>isEnabled</key><false/>\012  <key>pendingReady</key><false/>\012  <key>imageTransformation</key><string>resizeAspect</string>\012  <key>customLoop</key><real>-1</real>\012  <key>customDuration</key><real>-1</real>\012  <key>backgroundColor</key><string>#000000</string>\012</dict></plist>\012PLIST\012    chown mobile:mobile "$media" "$prefs"\012    chmod 0755 "$media"\012    chmod 0644 "$prefs"\012    rm -f "$media/Pending.gif" "$media/Active.gif" "$media/Rejected.gif" "$media/load-in-progress" "$media/Respring.gif"\012\012    test -f /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib\012    test -f /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist\012    test -x /var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/Gif2AniPrefs\012    test -f /var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/Root.plist\012    test -f /var/jb/Library/PreferenceLoader/Preferences/Gif2Ani.plist\012    echo "package_files=present"\012    echo "installed_enabled=false"\012\012    echo "=== STAGED-ONLY TEST ==="\012    before=$(ps ax | awk "/[b]ackboardd/{print \$1; exit}")\012    test -n "$before"\012    cp /var/mobile/Media/Gif2Ani-stage-test.gif "$media/Pending.gif"\012    chown mobile:mobile "$media/Pending.gif"\012    chmod 0644 "$media/Pending.gif"\012    test -f "$media/Pending.gif"\012    test ! -e "$media/Active.gif"\012    test ! -e "$media/load-in-progress"\012    sleep 15\012    after=$(ps ax | awk "/[b]ackboardd/{print \$1; exit}")\012    echo "backboardd_pid_before=$before"\012    echo "backboardd_pid_after=$after"\012    test -n "$after"\012    test "$before" = "$after"\012    test -f "$media/Pending.gif"\012    test ! -e "$media/Active.gif"\012    test ! -e "$media/Rejected.gif"\012    test ! -e "$media/load-in-progress"\012    echo "staged_file_remained_inert=yes"\012\012    echo "=== CLEAN TEST MEDIA ==="\012    rm -f "$media/Pending.gif" /var/mobile/Media/Gif2Ani-stage-test.gif\012    test ! -e "$media/Pending.gif"\012    test ! -e "$media/Active.gif"\012    test ! -e "$media/Rejected.gif"\012    test ! -e "$media/load-in-progress"\012    echo "final_state=installed-disabled-no-gif"\012    ps ax | grep -E "[b]ackboardd|[S]pringBoard" || true\012  
+  655   ??  ?      0:00.00 sh -c \012    set -eu\012    media="/var/mobile/Library/Application Support/Gif2Ani"\012    prefs="/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist"\012\012    echo "=== CLEAN PREVIOUS STATE ==="\012    rm -rf "$media"\012    rm -f "$prefs" "$prefs".*\012    rm -f /var/mobile/Library/Preferences/Respring.gif\012    dpkg --purge com.nightvibes33.gif2ani >/dev/null 2>&1 || true\012\012    echo "=== INSTALL 3.1.0 ==="\012    dpkg -i /var/mobile/Media/Gif2Ani-3.1.0-rootless.deb\012    version=$(dpkg-query -W com.nightvibes33.gif2ani | cut -f2)\012    echo "installed_version=$version"\012    test "$version" = "3.1.0"\012\012    mkdir -p "$media"\012    cat > "$prefs" <<"PLIST"\012<?xml version="1.0" encoding="UTF-8"?>\012<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\012<plist version="1.0"><dict>\012  <key>isEnabled</key><false/>\012  <key>pendingReady</key><false/>\012  <key>imageTransformation</key><string>resizeAspect</string>\012  <key>customLoop</key><real>-1</real>\012  <key>customDuration</key><real>-1</real>\012  <key>backgroundColor</key><string>#000000</string>\012</dict></plist>\012PLIST\012    chown mobile:mobile "$media" "$prefs"\012    chmod 0755 "$media"\012    chmod 0644 "$prefs"\012    rm -f "$media/Pending.gif" "$media/Active.gif" "$media/Rejected.gif" "$media/load-in-progress" "$media/Respring.gif"\012\012    test -f /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib\012    test -f /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist\012    test -x /var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/Gif2AniPrefs\012    test -f /var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/Root.plist\012    test -f /var/jb/Library/PreferenceLoader/Preferences/Gif2Ani.plist\012    echo "package_files=present"\012    echo "installed_enabled=false"\012\012    echo "=== STAGED-ONLY TEST ==="\012    before=$(ps ax | awk "/[b]ackboardd/{print \$1; exit}")\012    test -n "$before"\012    cp /var/mobile/Media/Gif2Ani-stage-test.gif "$media/Pending.gif"\012    chown mobile:mobile "$media/Pending.gif"\012    chmod 0644 "$media/Pending.gif"\012    test -f "$media/Pending.gif"\012    test ! -e "$media/Active.gif"\012    test ! -e "$media/load-in-progress"\012    sleep 15\012    after=$(ps ax | awk "/[b]ackboardd/{print \$1; exit}")\012    echo "backboardd_pid_before=$before"\012    echo "backboardd_pid_after=$after"\012    test -n "$after"\012    test "$before" = "$after"\012    test -f "$media/Pending.gif"\012    test ! -e "$media/Active.gif"\012    test ! -e "$media/Rejected.gif"\012    test ! -e "$media/load-in-progress"\012    echo "staged_file_remained_inert=yes"\012\012    echo "=== CLEAN TEST MEDIA ==="\012    rm -f "$media/Pending.gif" /var/mobile/Media/Gif2Ani-stage-test.gif\012    test ! -e "$media/Pending.gif"\012    test ! -e "$media/Active.gif"\012    test ! -e "$media/Rejected.gif"\012    test ! -e "$media/load-in-progress"\012    echo "final_state=installed-disabled-no-gif"\012    ps ax | grep -E "[b]ackboardd|[S]pringBoard" || true\012  
+device_test_ssh_exit=0
