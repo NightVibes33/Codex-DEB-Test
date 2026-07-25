@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30150059210
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30150059210
-commit=fb24a5ffed1ea00340623845b59de0faa59d1902
+run_id=30150135306
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30150135306
+commit=59ba7a8bfe3aeda7ac8e2a6bdb504d254fb7a594
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -16,30 +16,61 @@ Checking SSH host key over Tailscale...
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-=== Memory before cleanup ===
+=== Current memory ===
 Mach Virtual Memory Statistics: (page size of 16384 bytes)
-Pages free:                                1515.
-Pages active:                             41514.
-Pages inactive:                           41183.
-Pages speculative:                          118.
+Pages free:                                1377.
+Pages active:                             41565.
+Pages inactive:                           41170.
+Pages speculative:                          247.
 Pages throttled:                              0.
-Pages wired down:                         24215.
-Pages purgeable:                            912.
-"Translation faults":                  29161690.
-Pages copy-on-write:                     716429.
-Pages zero filled:                     11701142.
-Pages reactivated:                      5560745.
-Pages purged:                            300432.
-File-backed pages:                        43026.
-Anonymous pages:                          39789.
-Pages stored in compressor:               53542.
+Pages wired down:                         24245.
+Pages purgeable:                            916.
+"Translation faults":                  29182410.
+Pages copy-on-write:                     717824.
+Pages zero filled:                     11709103.
+Pages reactivated:                      5560769.
+Pages purged:                            300447.
+File-backed pages:                        43203.
+Anonymous pages:                          39779.
+Pages stored in compressor:               53530.
 Pages occupied by compressor:             18092.
-Decompressions:                         3620639.
+Decompressions:                         3620651.
 Compressions:                           4466351.
-Pageins:                                4762203.
-node_count=0
-=== Live Node process inventory ===
-live_node_count=0
-=== Parent process snapshot ===
-cleanup_phase=inventory-only
+Pageins:                                4762446.
+=== Current top processes by RSS ===
+ 9999     1  15904    02:41:49 Ss   /var/containers/Bundle/Application/AA25AFA4-6BF2-4E95-8F81-FE39BDF4DD04/dirtyZero.app/dirtyZero
+10757     1  10976       12:07 Ss   /var/containers/Bundle/Application/D381462D-806B-4D58-BA26-9EDEBBED56CC/PancakeStore.app/PancakeStore
+ 9998     1   7488    02:41:49 Ss   /var/containers/Bundle/Application/A97BB718-6AEB-4835-8827-E6A360138E3B/PureKFD.app/PureKFD
+ 9961     1   6800    02:42:04 Ss   /var/containers/Bundle/Application/EBC0B1B9-0064-43EA-B0B1-A6F742F41FD2/Paleramine.app/Paleramine
+10114     1   6592    02:11:36 Ss   /var/containers/Bundle/Application/27181E9F-3C3A-44E8-AEFF-E7DFA53351F8/ChatGPTWebV15.app/ChatGPTWebV15
+10359     1   6496    01:11:50 Ss   /var/containers/Bundle/Application/93E3B39D-8317-4416-986F-BE5BAF25D257/DebToIPA.app/DebToIPA
+ 9997     1   6496    02:41:49 Ss   /var/containers/Bundle/Application/5094319B-7459-4428-BE53-11390AA1072A/SparseBox.app/SparseBox
+10361     1   5520    01:11:50 Ss   /var/containers/Bundle/Application/69539B48-A140-4D54-A233-52B3697B9222/NathanLR.app/NathanLR
+10821 10816      0       00:00 ?    sed -n 1,30p
+10820 10816      0       00:00 ?    sort -nr -k3
+10819 10816      0       00:00 ?    ps -axo pid=,ppid=,rss=,etime=,state=,command=
+10816 10813      0       00:00 ?    /var/jb/usr/bin/sh -s
+10813 10811      0       00:01 ?s   sudo -S -p  /var/jb/usr/bin/sh -s
+10811     1      0       00:02 ?s   sshd: mobile@notty 
+10759     1      0       12:07 ?s   /var/containers/Bundle/Application/855F7E78-3236-4AC8-941A-31293329A0F8/Wallpics.app/Wallpics
+10758     1      0       12:07 ?s   /var/containers/Bundle/Application/4541A08E-1D66-47EB-AC1E-4050977B1D77/TrollStore.app/TrollStore
+10686     1      0       25:41 ?s   /usr/libexec/promotedcontentd
+10640     1      0       42:05 ?s   /var/containers/Bundle/Application/76AA5788-7232-4F82-832E-F171B6AFE8F2/Discord.app/Discord
+10639     1      0       42:05 ?s   /var/containers/Bundle/Application/CB7737AF-FEBB-4B57-8918-0D68A3DA1626/YouTubeKids.app/YouTubeKids
+10638     1      0       42:05 ?s   /var/containers/Bundle/Application/4753558D-969D-49F3-9F19-7E2E1AB42B08/YouTube.app/YouTube
+10636     1      0       42:55 ?s   /usr/libexec/asd
+10635     1      0       42:56 ?s   /usr/libexec/coreidvd
+10634     1      0       42:56 ?s   /usr/libexec/idcredd
+10453     1      0       52:27 ?s   /usr/sbin/mDNSResponder
+10398     1      0    01:03:18 ?s   /usr/libexec/wifivelocityd
+10360     1      0    01:11:50 ?s   /Applications/AppStore.app/AppStore
+10123     1      0    01:41:11 ?s   /Applications/MobileSMS.app/MobileSMS
+10122     1      0    01:41:11 ?s   /Applications/MobileSlideShow.app/MobileSlideShow
+10121     1      0    01:41:12 ?s   /var/containers/Bundle/Application/663433B5-62D5-4D09-974C-2D846B34DB92/FridaCodeManager.app/swifty
+10119     1      0    01:42:15 ?s   /Applications/Screen Time.app/PlugIns/ScreenTimeWidgetExtension.appex/ScreenTimeWidgetExtension
+=== Process counts ===
+all_processes=293
+node_processes=0
+python_processes=0
+cleanup_result=no_live_node_processes_to_kill
 ssh_exit_code=0
