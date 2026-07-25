@@ -1,7 +1,7 @@
 iPad Owner-Only Read-Only Verification
-run_id=30158387775
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30158387775
-commit=2d0d301411febd171333c45094577259202386d5
+run_id=30158441722
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30158441722
+commit=bbce2f6c148a52b36c6d47627188dfb2b2e03481
 tailscale=success
 ssh=success
 
@@ -12,12 +12,15 @@ ssh=success
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 === iPad rootless jailbreak verification ===
-verified_at_utc=2026-07-25T12:42:33Z
+verified_at_utc=2026-07-25T12:44:10Z
 effective_identity=uid=0(root) gid=0(wheel) groups=0(wheel)
 kernel_machine=iPad6,11
 kernel_release=22.6.0
 hardware_model=J71tAP
-product_name=product_version=build_version=rootless_prefix=/var/jb
+product_name=iPhone OS
+product_version=16.7.11
+build_version=20H360
+rootless_prefix=/var/jb
 rootless_prefix_present=yes
 lrwxr-xr-x 1 root wheel 79 Jan 10  2026 /var/jb -> /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus
 dpkg_architecture=iphoneos-arm64
