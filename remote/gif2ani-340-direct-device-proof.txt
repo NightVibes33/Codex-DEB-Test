@@ -1,5 +1,5 @@
 Gif2Ani 3.4.0 Isolated Direct Device Proof
-run_id=30180243613
+run_id=30180281947
 install=success
 
 offline_builtins=12
@@ -7,7 +7,7 @@ downloadable_builtins=54
 legacy_source_catalog=54
 
 --- package digest ---
-3af7e6f8748e8e26f6eef2abe0f2c94b910a55f12f20d6c3b78c0bf55ae1f22a  packages/com.nightvibes33.gif2ani_3.4.0_iphoneos-arm64.deb
+95c62aa9f260d37f08ef1d58268bb8734000d8de844a03e183d94ddd17fa30fb  packages/com.nightvibes33.gif2ani_3.4.0_iphoneos-arm64.deb
 
 --- device proof ---
 connected=1
@@ -16,7 +16,7 @@ dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 
  missing 'Maintainer' field
 (Reading database ... 19748 files and directories currently installed.)
 Preparing to unpack .../Gif2Ani-3.4.0-direct-proof.deb ...
-Unpacking com.nightvibes33.gif2ani (3.4.0) over (3.3.0) ...
+Unpacking com.nightvibes33.gif2ani (3.4.0) over (3.4.0) ...
 Setting up com.nightvibes33.gif2ani (3.4.0) ...
 Processing triggers for org.coolstar.sileo (2.5.1) ...
 dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
@@ -25,7 +25,7 @@ dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 pa
                                  Dload  Upload   Total   Spent    Left  Speed
 
   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-100  127k  100  127k    0     0   384k      0 --:--:-- --:--:-- --:--:--  385k
+100  127k  100  127k    0     0   812k      0 --:--:-- --:--:-- --:--:--  815k
 installed_version=3.4.0
 device_theme_download=true
 device_theme_sha256_verified=true
