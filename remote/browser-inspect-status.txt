@@ -1,5 +1,5 @@
 iPad Browser Environment Inspection
-run_id=30163524872
+run_id=30163572037
 tailscale=success
 inspect=success
 
@@ -12,8 +12,8 @@ product_version=
 build_version=
 machine=iPad6,11
 Filesystem                                                                          Size   Used  Avail Capacity iused      ifree %iused  Mounted on
-/dev/disk1s2                                                                        30Gi   16Gi  4.8Gi    78%  158027   50842080    0%   /private/var
-/dev/disk1s5                                                                        30Gi  4.2Gi  4.8Gi    47%   27045   50842080    0%   /private/preboot
+/dev/disk1s2                                                                        30Gi   17Gi  4.8Gi    78%  158248   50443160    0%   /private/var
+/dev/disk1s5                                                                        30Gi  4.2Gi  4.8Gi    47%   27045   50443160    0%   /private/preboot
 === SAFARI / WEBKIT ===
 === INSTALL SUPPORT ===
 appsync=absent
