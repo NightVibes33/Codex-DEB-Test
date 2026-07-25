@@ -1,4 +1,4 @@
 test=gif2ani-darksword-pulse
-requested_at=2026-07-25T16:15:00-05:00
+requested_at=2026-07-25T16:20:00-05:00
 state=enable-safe-generated-gif
-reason=rerun-after-six-unique-frame-fix
+reason=rerun-after-optimized-frame-count-fix
