@@ -1,5 +1,5 @@
 Official palera1n Exit Safemode Result
-run_id=30167917603
+run_id=30168011949
 build=failure
 tailscale=skipped
 prepare=skipped
@@ -9,7 +9,6 @@ verify=skipped
 
 --- sanitized output ---
 --- helper-build.log ---
-AppleTVOS12.4.sdk/usr/include/pthread_spis.h
 AppleTVOS12.4.sdk/usr/include/fnmatch.h
 AppleTVOS12.4.sdk/usr/include/_locale.h
 AppleTVOS12.4.sdk/usr/include/xlocale/
@@ -291,8 +290,8 @@ AppleTVOS12.4.sdk/usr/lib/libIOAccessoryManager.tbd
 AppleTVOS12.4.sdk/usr/lib/libbsm.0.tbd
 AppleTVOS12.4.sdk/usr/lib/libicucore.A.tbd
 
-100 5693k  100 5693k    0     0  9330k      0 --:--:-- --:--:-- --:--:-- 9330k
-100 5693k  100 5693k    0     0  9328k      0 --:--:-- --:--:-- --:--:--     0
+100 5693k  100 5693k    0     0  7692k      0 --:--:-- --:--:-- --:--:-- 7692k
+100 5693k  100 5693k    0     0  7691k      0 --:--:-- --:--:-- --:--:--     0
 AppleTVOS12.4.sdk/usr/lib/libbz2.tbd
 AppleTVOS12.4.sdk/usr/lib/libSystem_asan.tbd
 AppleTVOS12.4.sdk/usr/lib/libnetwork.tbd
@@ -350,9 +349,10 @@ make: Entering directory '/home/runner/work/Codex-DEB-Test/Codex-DEB-Test/exitpa
 make: Leaving directory '/home/runner/work/Codex-DEB-Test/Codex-DEB-Test/exitpale'
 [1;31m> [1;3;39mMaking all for tool exitpale…[m
 [0;32m==> [1;39mCompiling main.c (arm64)…[m
-[1mmain.c:1:10: [0m[0;1;31mfatal error: [0m[1m'xpc/xpc.h' file not found[0m
+[1mmain.c:1:10: [0m[0;1;31merror: [0m[1m'xpc/xpc.h' file not found with <angled> include; use "quotes" instead[0m
 #include <xpc/xpc.h>
 [0;1;32m         ^~~~~~~~~~~
+[0m[0;32m         "xpc/xpc.h"
 [0m1 error generated.
 make[3]: *** [/opt/theos/makefiles/instance/rules.mk:321: /home/runner/work/Codex-DEB-Test/Codex-DEB-Test/exitpale/.theos/obj/arm64/main.c.9cbdad37.o] Error 1
 make[2]: *** [/opt/theos/makefiles/instance/tool.mk:20: /home/runner/work/Codex-DEB-Test/Codex-DEB-Test/exitpale/.theos/obj/arm64/exitpale] Error 2
