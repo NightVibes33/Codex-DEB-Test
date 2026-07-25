@@ -1,504 +1,504 @@
-Run: 30136351407
-Commit: ba95f1d230155d3e67adbc0b44fe1ac03d30530d
+Run: 30136497740
+Commit: 804ccc25ccc0960250282fc78d23bb9a8495fb70
 Upstream: 63fe5a6b71d45dfff24a6a1e5da0699e054f145d
 
-  Downloaded gix-ignore v0.19.1
-  Downloaded gix-chunk v0.7.0
-  Downloaded wayland-sys v0.31.8
-  Downloaded wayland-protocols-wlr v0.3.10
-  Downloaded vcpkg v0.2.15
-  Downloaded uuid v1.20.0
-  Downloaded utf8parse v0.2.2
-  Downloaded utf8_iter v1.0.4
-  Downloaded utf-8 v0.7.6
-  Downloaded urlencoding v2.1.3
-  Downloaded url v2.5.8
-  Downloaded ureq-proto v0.5.3
-  Downloaded untrusted v0.9.0
-  Downloaded untrusted v0.7.1
-  Downloaded unsafe-libyaml v0.2.11
-  Downloaded universal-hash v0.5.1
-  Downloaded unicode-xid v0.2.6
-  Downloaded supports-color v3.0.2
-  Downloaded strum v0.27.2
-  Downloaded strong_hash v0.1.0
-  Downloaded static_interner v0.1.2
-  Downloaded starlark_syntax v0.14.2
-  Downloaded radix_trie v0.3.0
-  Downloaded quote v1.0.45
-  Downloaded quinn-proto v0.11.14
-  Downloaded quick-xml v0.41.0
-  Downloaded pulldown-cmark v0.10.3
-  Downloaded process-wrap v9.0.1
-  Downloaded windows v0.58.0
-  Downloaded jsonwebtoken v9.3.1
-  Downloaded image v0.25.9
-  Downloaded chardetng v0.1.17
-  Downloaded zmij v1.0.19
-  Downloaded rustix v1.1.4
-  Downloaded logos-derive v0.15.1
-  Downloaded logos-codegen v0.15.1
-  Downloaded gix-object v0.58.0
-  Downloaded gix-hash v0.23.0
-  Downloaded webpki-roots v1.0.5
-  Downloaded webbrowser v1.0.6
-  Downloaded wayland-backend v0.3.12
-  Downloaded symphonia-bundle-mp3 v0.6.0
-  Downloaded strum_macros v0.26.4
-  Downloaded strsim v0.11.1
-  Downloaded starlark_derive v0.14.2
-  Downloaded sqlx-sqlite v0.9.0
-  Downloaded sqlx-postgres v0.9.0
-  Downloaded sqlx-mysql v0.9.0
-  Downloaded quinn v0.11.9
-  Downloaded prost-derive v0.14.3
-  Downloaded kstring v2.0.2
-  Downloaded jobserver v0.1.34
-  Downloaded itertools v0.14.0
-  Downloaded imara-diff v0.2.0
-  Downloaded imara-diff v0.1.8
-  Downloaded idna v1.1.0
-  Downloaded cipher v0.4.4
-  Downloaded cexpr v0.6.0
-  Downloaded bzip2-sys v0.1.13+1.0.8
-  Downloaded zune-core v0.4.12
-  Downloaded zerocopy v0.8.37
-  Downloaded winnow v0.7.14
-  Downloaded serde_derive v1.0.228
-  Downloaded sentry-types v0.46.1
-  Downloaded sentry-backtrace v0.46.1
-  Downloaded self_cell v1.2.2
-  Downloaded rustls v0.23.36
-  Downloaded rustix v0.38.44
-  Downloaded regex-syntax v0.8.8
-  Downloaded gix-odb v0.78.0
-  Downloaded gix-negotiate v0.29.0
-  Downloaded gix-index v0.49.0
-  Downloaded gix-hashtable v0.13.0
-  Downloaded web-time v1.1.0
-  Downloaded wayland-scanner v0.31.10
-  Downloaded wayland-protocols v0.32.10
-  Downloaded walkdir v2.5.0
-  Downloaded version_check v0.9.5
-  Downloaded subtle v2.6.1
-  Downloaded strum_macros v0.28.0
-  Downloaded strum_macros v0.27.2
-  Downloaded streaming-iterator v0.1.9
-  Downloaded strck v1.0.0
-  Downloaded starlark_map v0.14.2
-  Downloaded stable_deref_trait v1.2.1
-  Downloaded sse-stream v0.2.1
-  Downloaded sqlx-macros-core v0.9.0
-  Downloaded sqlx-macros v0.9.0
-  Downloaded quick-xml v0.39.4
-  Downloaded quick-error v2.0.1
-  Downloaded psl-types v2.0.11
-  Downloaded psl v2.1.184
-  Downloaded prodash v31.0.0
-  Downloaded proc-macro2 v1.0.106
-  Downloaded keccak v0.1.6
-  Downloaded jiff-static v0.2.23
-  Downloaded indexmap v2.14.0
-  Downloaded image-webp v0.2.4
-  Downloaded chrono v0.4.43
-  Downloaded cfg_aliases v0.2.1
-  Downloaded zune-core v0.5.1
-  Downloaded zip v2.4.2
-  Downloaded zerotrie v0.2.4
-  Downloaded yoke v0.8.2
-  Downloaded x11rb v0.13.2
-  Downloaded secrecy v0.10.3
-  Downloaded scrypt v0.11.0
-  Downloaded schemars_derive v0.8.22
-  Downloaded schemafy_lib v0.5.2
-  Downloaded rmcp v1.8.0
-  Downloaded native-tls v0.2.14
-  Downloaded webpki-root-certs v1.0.5
-  Downloaded wayland-client v0.31.12
-  Downloaded want v0.3.1
-  Downloaded vsimd v0.8.0
-  Downloaded symphonia v0.6.0
-  Downloaded supports-color v2.1.0
-  Downloaded strum v0.26.3
-  Downloaded strsim v0.10.0
-  Downloaded strong_hash_derive v0.1.0
-  Downloaded stop-words v0.9.0
-  Downloaded quinn-udp v0.5.14
-  Downloaded pxfm v0.1.27
-  Downloaded publicsuffix v2.3.0
-  Downloaded proc-macro-error2 v2.0.1
-  Downloaded lazy_static v1.5.0
-  Downloaded kqueue-sys v1.0.4
-  Downloaded kqueue v1.1.1
-  Downloaded kem v0.3.0-pre.0
-  Downloaded ixdtf v0.6.4
-  Downloaded inout v0.1.4
-  Downloaded indoc v2.0.7
-  Downloaded indexmap v1.9.3
-  Downloaded include_dir_macros v0.7.4
-  Downloaded idna_adapter v1.2.1
-  Downloaded chacha20poly1305 v0.10.1
-  Downloaded cc v1.2.55
-  Downloaded calendrical_calculations v0.2.4
-  Downloaded cached_proc_macro_types v0.1.1
-  Downloaded zune-jpeg v0.5.12
-  Downloaded zune-jpeg v0.4.21
-  Downloaded zopfli v0.8.3
-  Downloaded zoneinfo64 v0.3.0
-  Downloaded zerocopy-derive v0.8.37
-  Downloaded yasna v0.5.2
-  Downloaded xmlparser v0.13.6
-  Downloaded wiremock v0.6.5
-  Downloaded security-framework v2.11.1
-  Downloaded sec1 v0.7.3
-  Downloaded radix_trie v0.2.1
-  Downloaded quickcheck v1.1.0
-  Downloaded proptest v1.9.0
-  Downloaded itoa v1.0.17
-  Downloaded instability v0.3.11
-  Downloaded indenter v0.3.4
-  Downloaded chunked_transfer v1.5.0
-  Downloaded zerovec v0.11.6
-  Downloaded yoke-derive v0.8.2
-  Downloaded yaml-rust v0.4.5
-  Downloaded x509-parser v0.18.1
-  Downloaded x25519-dalek v2.0.1
-  Downloaded writeable v0.6.2
-  Downloaded windows-targets v0.52.6
-  Downloaded windows-implement v0.58.0
-  Downloaded security-framework v3.5.1
-  Downloaded same-file v1.0.6
-  Downloaded rustyline v14.0.0
-  Downloaded rustls-webpki v0.103.13
-  Downloaded rusticata-macros v4.1.0
-  Downloaded rustc-demangle v0.1.27
-  Downloaded resb v0.1.2
-  Downloaded reqwest v0.13.4
-  Downloaded rayon v1.11.0
-  Downloaded static_assertions v1.1.0
-  Downloaded prost v0.14.3
-  Downloaded clang-sys v1.8.1
-  Downloaded zlib-rs v0.5.5
-  Downloaded zeroize_derive v1.4.3
-  Downloaded zeroize v1.8.2
-  Downloaded zerofrom-derive v0.1.6
-  Downloaded xz2 v0.1.7
-  Downloaded wl-clipboard-rs v0.9.3
-  Downloaded windows-strings v0.1.0
-  Downloaded windows-result v0.2.0
-  Downloaded windows-interface v0.58.0
-  Downloaded sequence_trie v0.3.6
-  Downloaded sentry v0.46.1
-  Downloaded security-framework-sys v2.15.0
-  Downloaded schemars v0.8.22
-  Downloaded rustversion v1.0.22
-  Downloaded rustls-native-certs v0.8.3
-  Downloaded rustc-hash v2.1.1
-  Downloaded rust-embed-impl v8.11.0
-  Downloaded rmcp-macros v1.8.0
-  Downloaded resolv-conf v0.7.6
-  Downloaded reqwest v0.12.28
-  Downloaded regex v1.12.3
-  Downloaded lzma-sys v0.1.20
-  Downloaded keyring v3.6.3
-  Downloaded jsonptr v0.7.1
-  Downloaded castaway v0.2.4
-  Downloaded zerovec-derive v0.11.3
-  Downloaded zerofrom v0.1.6
-  Downloaded serde v1.0.228
-  Downloaded sentry-panic v0.46.1
-  Downloaded sentry-core v0.46.1
-  Downloaded scopeguard v1.2.0
-  Downloaded schemars v1.2.1
-  Downloaded schemars v0.9.0
-  Downloaded schemafy_core v0.5.2
-  Downloaded salsa20 v0.10.2
-  Downloaded ryu v1.0.22
-  Downloaded rustls-platform-verifier v0.7.0
-  Downloaded rustls-pki-types v1.14.0
-  Downloaded rustc_version v0.4.1
-  Downloaded rustc-hash v1.1.0
-  Downloaded rust-embed-utils v8.11.0
-  Downloaded rfc6979 v0.4.0
-  Downloaded regex-lite v0.1.8
-  Downloaded ref-cast-impl v1.0.25
-  Downloaded ref-cast v1.0.25
-  Downloaded rcgen v0.14.7
-  Downloaded rayon-core v1.13.0
-  Downloaded num-complex v0.4.6
-  Downloaded miniz_oxide v0.8.9
-  Downloaded minimal-lexical v0.2.1
-  Downloaded chacha20 v0.9.1
-  Downloaded cfg_aliases v0.1.1
-  Downloaded cfg-if v1.0.4
-  Downloaded cassowary v0.3.0
-  Downloaded cached_proc_macro v0.25.0
-  Downloaded bzip2 v0.5.2
-  Downloaded bytestring v1.5.0
-  Downloaded zstd-safe v7.2.4
-  Downloaded zlib-rs v0.6.3
-  Downloaded sentry-tracing v0.46.1
-  Downloaded sentry-debug-images v0.46.1
-  Downloaded num-traits v0.2.19
-  Downloaded num-bigint v0.4.6
-  Downloaded notify-types v2.1.0
-  Downloaded nom v8.0.0
-  Downloaded nix v0.30.1
-  Downloaded nix v0.28.0
-  Downloaded multimap v0.10.1
-  Downloaded moka v0.12.13
-  Downloaded memmap2 v0.9.10
-  Downloaded md5 v0.8.0
-  Downloaded md-5 v0.11.0
-  Downloaded maybe-async v0.2.10
-  Downloaded matchit v0.9.1
-  Downloaded matchit v0.8.4
-  Downloaded matchers v0.2.0
-  Downloaded maplit v1.0.2
-  Downloaded lzma-rs v0.3.0
-  Downloaded lsp-types v0.97.0
-  Downloaded lru-slab v0.1.2
-  Downloaded age v0.11.2
-  Downloaded serde_core v1.0.228
-  Downloaded semver v1.0.27
-  Downloaded self_cell v0.10.3
-  Downloaded schemars_derive v1.2.1
-  Downloaded schemafy v0.5.2
-  Downloaded num_cpus v1.17.0
-  Downloaded num-conv v0.2.0
-  Downloaded nu-ansi-term v0.50.3
-  Downloaded nom v7.1.3
-  Downloaded moxcms v0.7.11
-  Downloaded ml-kem v0.2.3
-  Downloaded mio v1.2.0
-  Downloaded mime_guess v2.0.5
-  Downloaded mime v0.3.17
-  Downloaded memoffset v0.9.1
-  Downloaded memchr v2.8.1
-  Downloaded encoding_rs v0.8.35
-  Downloaded bstr v1.12.1
-  Downloaded axum v0.8.8
-  Downloaded aws-lc-rs v1.16.2
-  Downloaded actix-web v4.12.1
-  Downloaded sentry-contexts v0.46.1
-  Downloaded sentry-actix v0.46.1
-  Downloaded num-integer v0.1.46
-  Downloaded notify v8.2.0
-  Downloaded nonempty v0.12.0
-  Downloaded nibble_vec v0.1.0
-  Downloaded iri-string v0.7.10
-  Downloaded gix v0.81.0
-  Downloaded gimli v0.32.3
-  Downloaded deunicode v1.6.2
-  Downloaded bytes v1.11.1
-  Downloaded borsh v1.6.0
-  Downloaded blake3 v1.8.2
-  Downloaded bindgen v0.72.1
-  Downloaded base64 v0.22.1
-  Downloaded backtrace v0.3.76
-  Downloaded aws-smithy-types v1.4.7
-  Downloaded aws-smithy-runtime-api v1.12.0
-  Downloaded aws-smithy-runtime v1.9.5
-  Downloaded aws-sigv4 v1.3.7
-  Downloaded aws-sdk-sts v1.95.0
-  Downloaded aws-sdk-ssooidc v1.93.0
-  Downloaded aws-sdk-sso v1.91.0
-  Downloaded aws-sdk-signin v1.2.0
-  Downloaded aws-config v1.8.12
-  Downloaded asn1-rs v0.7.1
-  Downloaded aho-corasick v1.1.4
-  Downloaded aes v0.8.4
-  Downloaded ipnet v2.11.0
-  Downloaded ignore v0.4.25
-  Downloaded icu_plurals v2.2.0
-  Downloaded icu_normalizer_data v2.2.0
-  Downloaded icu_locale v2.2.0
-  Downloaded gix-attributes v0.31.0
-  Downloaded gif v0.14.1
-  Downloaded getrandom v0.4.2
-  Downloaded getrandom v0.3.4
-  Downloaded futures-io v0.3.32
-  Downloaded futures-executor v0.3.32
-  Downloaded futures-core v0.3.32
-  Downloaded futures v0.3.31
-  Downloaded fs_extra v1.3.0
-  Downloaded foldhash v0.1.5
-  Downloaded flume v0.12.0
-  Downloaded fluent-uri v0.1.4
-  Downloaded fluent-syntax v0.11.1
-  Downloaded fluent-bundle v0.15.3
-  Downloaded flate2 v1.1.8
-  Downloaded fixedbitset v0.5.7
-  Downloaded find-msvc-tools v0.1.9
-  Downloaded fax_derive v0.2.0
-  Downloaded fancy-regex v0.16.2
-  Downloaded event-listener-strategy v0.5.4
-  Downloaded event-listener v5.4.1
-  Downloaded equivalent v1.0.2
-  Downloaded env_logger v0.11.9
-  Downloaded env_home v0.1.0
-  Downloaded embedded-io v0.4.0
-  Downloaded ed25519-dalek v2.2.0
-  Downloaded ed25519 v2.2.3
-  Downloaded displaydoc v0.2.5
-  Downloaded display_container v0.9.0
-  Downloaded dispatch2 v0.3.0
-  Downloaded dirs-next v2.0.0
-  Downloaded diplomat_core v0.15.0
-  Downloaded diplomat-runtime v0.15.1
-  Downloaded diplomat v0.15.0
-  Downloaded diffy v0.4.2
-  Downloaded bytemuck_derive v1.10.2
-  Downloaded bytemuck v1.25.0
-  Downloaded bumpalo v3.19.1
-  Downloaded block2 v0.6.2
-  Downloaded blake2 v0.10.6
-  Downloaded bitflags v1.3.2
-  Downloaded bit-vec v0.8.0
-  Downloaded base64ct v1.8.3
-  Downloaded axum-core v0.5.6
-  Downloaded aws-types v1.3.11
-  Downloaded aws-smithy-json v0.61.9
-  Downloaded aws-smithy-http v0.62.6
-  Downloaded aws-credential-types v1.2.11
-  Downloaded atomic v0.5.3
-  Downloaded async-trait v0.1.89
-  Downloaded async-channel v2.5.0
-  Downloaded anstream v0.6.21
-  Downloaded ansi-to-tui v7.0.0
-  Downloaded annotate-snippets v0.9.2
-  Downloaded allocator-api2 v0.2.21
-  Downloaded allocative v0.3.6
-  Downloaded ahash v0.8.12
-  Downloaded is_ci v1.2.0
-  Downloaded io_tee v0.1.1
-  Downloaded io-close v0.3.7
-  Downloaded inventory v0.3.24
-  Downloaded intl_pluralrules v7.0.2
-  Downloaded intl-memoizer v0.5.3
-  Downloaded include_dir v0.7.4
-  Downloaded impl-more v0.1.9
-  Downloaded gix-archive v0.30.0
-  Downloaded ghash v0.5.1
-  Downloaded getrandom v0.2.17
-  Downloaded fxhash v0.2.1
-  Downloaded futures-task v0.3.32
-  Downloaded futures-macro v0.3.32
-  Downloaded futures-channel v0.3.32
-  Downloaded fsevent-sys v4.1.0
-  Downloaded foldhash v0.2.0
-  Downloaded fixed_decimal v0.7.2
-  Downloaded find-crate v0.6.3
-  Downloaded ff v0.13.1
-  Downloaded fd-lock v4.0.4
-  Downloaded fax v0.2.6
-  Downloaded faster-hex v0.10.0
-  Downloaded extended v0.1.0
-  Downloaded errno v0.3.14
-  Downloaded erased-serde v0.4.10
-  Downloaded erased-serde v0.3.31
-  Downloaded env_filter v1.0.0
-  Downloaded enum-as-inner v0.6.1
-  Downloaded endian-type v0.2.0
-  Downloaded endian-type v0.1.2
-  Downloaded elliptic-curve v0.13.8
-  Downloaded dns-lookup v3.0.1
-  Downloaded dirs-sys v0.5.0
-  Downloaded digest v0.11.3
-  Downloaded digest v0.10.7
-  Downloaded bytes-utils v0.1.4
-  Downloaded byteorder-lite v0.1.0
-  Downloaded byteorder v1.5.0
-  Downloaded bm25 v2.3.2
-  Downloaded block-padding v0.3.3
-  Downloaded block-buffer v0.12.0
-  Downloaded bit-set v0.8.0
-  Downloaded beef v0.5.2
-  Downloaded bech32 v0.9.1
-  Downloaded basic-toml v0.1.10
-  Downloaded base64-simd v0.8.0
-  Downloaded base64 v0.21.7
-  Downloaded aws-smithy-xml v0.60.13
-  Downloaded aws-smithy-query v0.60.9
-  Downloaded aws-smithy-observability v0.1.5
-  Downloaded aws-smithy-async v1.2.14
-  Downloaded atoi v2.0.0
-  Downloaded asynk-strim v0.1.5
-  Downloaded async-stream-impl v0.3.6
-  Downloaded async-stream v0.3.6
-  Downloaded asn1-rs-derive v0.6.0
-  Downloaded ascii v1.1.0
-  Downloaded arrayvec v0.7.6
-  Downloaded anyhow v1.0.103
-  Downloaded allocative_derive v0.3.6
-  Downloaded age-core v0.11.0
-  Downloaded aes-gcm v0.10.3
-  Downloaded aead v0.5.2
-  Downloaded addr2line v0.25.1
-  Downloaded actix-utils v3.0.1
-  Downloaded actix-service v2.0.3
-  Downloaded actix-router v0.5.3
-  Downloaded gix-actor v0.40.0
-  Downloaded gethostname v1.1.0
-  Downloaded generic-array v0.14.7
-  Downloaded futures-util v0.3.32
-  Downloaded futures-sink v0.3.32
-  Downloaded futures-intrusive v0.5.0
-  Downloaded fslock v0.2.1
-  Downloaded form_urlencoded v1.2.2
-  Downloaded fnv v1.0.7
-  Downloaded fluent-langneg v0.13.1
-  Downloaded fluent v0.16.1
-  Downloaded findshlibs v0.10.2
-  Downloaded filetime v0.2.27
-  Downloaded filedescriptor v0.8.3
-  Downloaded fdeflate v0.3.7
-  Downloaded fastrand v2.3.0
-  Downloaded eyre v0.6.12
-  Downloaded eventsource-stream v0.2.3
-  Downloaded embedded-io v0.6.1
-  Downloaded either v1.15.0
-  Downloaded ecdsa v0.16.9
-  Downloaded dupe_derive v0.9.1
-  Downloaded dupe v0.9.1
-  Downloaded dunce v1.0.5
-  Downloaded dtor-proc-macro v0.0.6
-  Downloaded downcast-rs v1.2.1
-  Downloaded dotenvy v0.15.7
-  Downloaded block-buffer v0.10.4
-  Downloaded bitflags v2.10.0
-  Downloaded bincode v1.3.3
-  Downloaded base16ct v0.2.0
-  Downloaded aws-smithy-runtime-api-macros v1.0.0
-  Downloaded aws-smithy-http-client v1.1.12
-  Downloaded aws-runtime v1.5.17
-  Downloaded assert-json-diff v2.0.2
-  Downloaded asn1-rs-impl v0.2.0
-  Downloaded arboard v3.6.1
-  Downloaded anstyle v1.0.13
-  Downloaded dtor v0.1.1
-  Downloaded document-features v0.2.12
-  Downloaded dirs-sys-next v0.1.2
-  Downloaded dirs v6.0.0
-  Downloaded atomic-waker v1.1.2
-  Downloaded arc-swap v1.9.0
-  Downloaded anstyle-query v1.1.5
-  Downloaded actix-server v2.6.0
-  Downloaded actix-http v3.11.2
-  Downloaded actix-codec v0.5.2
-  Downloaded anstyle-parse v0.2.7
-  Downloaded actix-rt v2.11.0
-  Downloaded v8 v149.2.0
-   Compiling proc-macro2 v1.0.106
-   Compiling unicode-ident v1.0.22
-   Compiling quote v1.0.45
-   Compiling libc v0.2.186
-   Compiling serde v1.0.228
-error[E0463]: can't find crate for `core`
-  |
-  = note: the `aarch64-apple-ios` target may not be installed
-  = help: consider downloading the target with `rustup target add aarch64-apple-ios`
+   Compiling derivative v2.2.0
+   Compiling annotate-snippets v0.9.2
+   Compiling tokio-test v0.4.5
+   Compiling fd-lock v4.0.4
+   Compiling globset v0.4.18
+   Compiling yasna v0.5.2
+   Compiling starlark v0.14.2
+   Compiling icu_decimal_data v2.2.0
+   Compiling home v0.5.12
+   Compiling rustyline v14.0.0
+   Compiling rcgen v0.14.7
+   Compiling starlark_syntax v0.14.2
+   Compiling rama-http-core v0.3.0-alpha.4
+   Compiling starlark_derive v0.14.2
+   Compiling serde_with_macros v3.17.0
+   Compiling debugserver-types v0.5.0
+   Compiling image v0.25.9
+   Compiling display_container v0.9.0
+   Compiling codex-utils-home-dir v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/home-dir)
+   Compiling textwrap v0.11.0
+   Compiling rama-unix v0.3.0-alpha.4
+   Compiling rama-udp v0.3.0-alpha.4
+   Compiling lru v0.16.3
+   Compiling erased-serde v0.3.31
+   Compiling strsim v0.10.0
+   Compiling cmp_any v0.8.1
+   Compiling maplit v1.0.2
+   Compiling rama-http-backend v0.3.0-alpha.4
+   Compiling codex-utils-cache v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/cache)
+   Compiling rama-socks5 v0.3.0-alpha.4
+   Compiling serde_with v3.17.0
+   Compiling rama-tls-rustls v0.3.0-alpha.4
+   Compiling strum_macros v0.27.2
+   Compiling fixed_decimal v0.7.2
+   Compiling multimap v0.10.1
+   Compiling strum v0.27.2
+   Compiling icu_decimal v2.2.0
+   Compiling codex-network-proxy v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/network-proxy)
+   Compiling codex-utils-image v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/image)
+   Compiling codex-utils-path-uri v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/path-uri)
+   Compiling codex-extension-items v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/ext/items)
+   Compiling chardetng v0.1.17
+   Compiling codex-utils-string v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/string)
+   Compiling strum_macros v0.28.0
+   Compiling codex-execpolicy v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/execpolicy)
+   Compiling codex-async-utils v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/async-utils)
+   Compiling quick-xml v0.41.0
+   Compiling sys-locale v0.3.2
+   Compiling wildmatch v2.6.1
+   Compiling codex-protocol v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/protocol)
+   Compiling gix-trace v0.1.18
+   Compiling gix-validate v0.11.0
+   Compiling gix-path v0.11.2
+   Compiling unicode-normalization v0.1.25
+   Compiling gix-utils v0.3.1
+   Compiling thiserror v1.0.69
+   Compiling nu-ansi-term v0.50.3
+   Compiling sharded-slab v0.1.7
+   Compiling matchers v0.2.0
+   Compiling tracing-serde v0.2.0
+   Compiling tracing-log v0.2.0
+   Compiling thread_local v1.1.9
+   Compiling tracing-subscriber v0.3.22
+   Compiling prodash v31.0.0
+   Compiling thiserror-impl v1.0.69
+   Compiling zlib-rs v0.6.3
+   Compiling heapless v0.8.0
+   Compiling rustversion v1.0.22
+   Compiling hash32 v0.3.1
+   Compiling objc2 v0.6.3
+   Compiling gix-features v0.46.2
+   Compiling zstd-sys v2.0.16+zstd.1.5.7
+   Compiling gix-error v0.2.1
+   Compiling opentelemetry v0.31.0
+   Compiling objc2-encode v4.1.0
+   Compiling faster-hex v0.10.0
+   Compiling zstd-safe v7.2.4
+   Compiling objc2-core-foundation v0.3.2
+   Compiling sha1-checked v0.10.0
+   Compiling gix-hash v0.23.0
+   Compiling concurrent-queue v2.5.0
+   Compiling parking v2.2.1
+   Compiling block2 v0.6.2
+   Compiling event-listener v5.4.1
+   Compiling headers-core v0.3.0
+   Compiling jiff v0.2.23
+   Compiling headers v0.4.1
+   Compiling objc2-foundation v0.3.2
+   Compiling gix-date v0.15.1
+   Compiling tracing-opentelemetry v0.32.1
+   Compiling utf-8 v0.7.6
+   Compiling tungstenite v0.27.0 (https://github.com/openai-oss-forks/tungstenite-rs?rev=4fffad30fe373adbdcffab9545e9e9bf4f2fc19f#4fffad30)
+   Compiling gix-actor v0.40.0
+   Compiling gix-hashtable v0.13.0
+   Compiling inout v0.1.4
+   Compiling cipher v0.4.4
+   Compiling gix-object v0.58.0
+   Compiling tokio-tungstenite v0.28.0 (https://github.com/openai-oss-forks/tokio-tungstenite?rev=0e5b2d73aa18dd9f0a50ee9ff199d5aef7594186#0e5b2d73)
+   Compiling pin-project-internal v1.1.10
+   Compiling memmap2 v0.9.10
+   Compiling shell-words v1.1.1
+   Compiling pin-project v1.1.10
+   Compiling event-listener-strategy v0.5.4
+   Compiling gix-fs v0.19.2
+   Compiling eventsource-stream v0.2.3
+   Compiling hyper-timeout v0.5.2
+   Compiling prost-derive v0.14.3
+   Compiling rand_chacha v0.3.1
+   Compiling hmac v0.12.1
+   Compiling universal-hash v0.5.1
+   Compiling opaque-debug v0.3.1
+   Compiling rand v0.8.6
+   Compiling prost v0.14.3
+   Compiling tonic v0.14.3
+   Compiling async-channel v2.5.0
+   Compiling gix-chunk v0.7.0
+   Compiling arc-swap v1.9.0
+   Compiling nonempty v0.12.0
+   Compiling gix-tempfile v21.0.2
+   Compiling objc2-core-image v0.3.2
+   Compiling tonic-prost v0.14.3
+   Compiling objc2-user-notifications v0.3.2
+   Compiling objc2-quartz-core v0.3.2
+   Compiling zstd v0.13.3
+   Compiling codex-http-client v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/http-client)
+   Compiling objc2-cloud-kit v0.3.2
+   Compiling objc2-core-location v0.3.2
+   Compiling objc2-core-data v0.3.2
+   Compiling objc2-core-text v0.3.2
+   Compiling codex-websocket-client v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/websocket-client)
+   Compiling codex-client v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/codex-client)
+   Compiling codex-api v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/codex-api)
+   Compiling objc2-core-graphics v0.3.2
+   Compiling opentelemetry_sdk v0.31.0
+   Compiling gethostname v1.1.0
+   Compiling const-hex v1.17.0
+   Compiling objc2-ui-kit v0.3.2
+   Compiling opentelemetry-proto v0.31.0
+   Compiling gix-lock v21.0.2
+   Compiling opentelemetry-http v0.31.0
+   Compiling curve25519-dalek v4.1.3
+   Compiling aead v0.5.2
+   Compiling opentelemetry-otlp v0.31.0
+   Compiling gix-commitgraph v0.35.0
+   Compiling opentelemetry-appender-tracing v0.31.1
+   Compiling gix-quote v0.7.0
+   Compiling codex-file-system v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/file-system)
+   Compiling gix-sec v0.13.2
+   Compiling rustc-hash v2.1.1
+   Compiling opentelemetry-semantic-conventions v0.31.0
+   Compiling gix-revwalk v0.29.0
+   Compiling gix-ref v0.61.0
+   Compiling unic-langid-impl v0.9.6
+   Compiling http v0.2.12
+   Compiling os_info v3.14.0
+   Compiling codex-otel v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/otel)
+   Compiling serde_path_to_error v0.1.20
+   Compiling base64ct v1.8.3
+   Compiling vsimd v0.8.0
+   Compiling outref v0.5.2
+   Compiling toml_writer v1.0.6+spec-1.1.0
+   Compiling base64-simd v0.8.0
+   Compiling pem-rfc7468 v0.7.0
+   Compiling http-body v0.4.6
+   Compiling unic-langid v0.9.6
+   Compiling gix-command v0.8.0
+   Compiling gix-packetline v0.21.2
+   Compiling gix-glob v0.24.0
+   Compiling gix-url v0.35.2
+   Compiling clru v0.6.3
+   Compiling bytes-utils v0.1.4
+   Compiling serde_spanned v1.0.4
+   Compiling toml v0.9.11+spec-1.1.0
+   Compiling aws-smithy-types v1.4.7
+   Compiling gix-pack v0.68.0
+   Compiling gix-transport v0.55.1
+   Compiling der v0.7.10
+   Compiling gix-revision v0.43.0
+   Compiling gix-shallow v0.10.0
+   Compiling gix-config-value v0.17.1
+   Compiling maybe-async v0.2.10
+   Compiling similar v2.7.0
+   Compiling unicode-bom v2.0.3
+   Compiling tree-sitter-language v0.1.7
+   Compiling gix-config v0.54.0
+   Compiling gix-protocol v0.59.0
+   Compiling spki v0.7.3
+   Compiling gix-refspec v0.39.0
+   Compiling gix-odb v0.78.0
+   Compiling gix-discover v0.49.0
+   Compiling gix-traverse v0.55.0
+   Compiling gix-diff v0.61.0
+   Compiling gix v0.81.0
+   Compiling pkcs8 v0.10.2
+   Compiling x25519-dalek v2.0.1
+   Compiling aws-smithy-async v1.2.14
+   Compiling aws-smithy-runtime-api-macros v1.0.0
+   Compiling downcast-rs v1.2.1
+   Compiling aws-smithy-runtime-api v1.12.0
+   Compiling rust-embed-utils v8.11.0
+   Compiling rust-embed-impl v8.11.0
+   Compiling type-map v0.5.1
+   Compiling poly1305 v0.8.0
+   Compiling codex-git-utils v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/git-utils)
+   Compiling tree-sitter v0.25.10
+   Compiling toml v0.5.11
+   Compiling basic-toml v0.1.10
+   Compiling tree-sitter-bash v0.25.1
+   Compiling self_cell v1.2.2
+   Compiling env_home v0.1.0
+   Compiling which v8.0.0
+   Compiling self_cell v0.10.3
+   Compiling i18n-config v0.4.8
+   Compiling find-crate v0.6.3
+   Compiling intl-memoizer v0.5.3
+   Compiling fluent-syntax v0.11.1
+   Compiling intl_pluralrules v7.0.2
+   Compiling fluent-langneg v0.13.1
+   Compiling salsa20 v0.10.2
+   Compiling codex-utils-path v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/path-utils)
+   Compiling signature v2.2.0
+   Compiling streaming-iterator v0.1.9
+   Compiling rustc-hash v1.1.0
+   Compiling fluent-bundle v0.15.3
+   Compiling i18n-embed-impl v0.8.4
+   Compiling windows-targets v0.52.6
+   Compiling windows-result v0.2.0
+   Compiling fluent v0.16.1
+   Compiling rust-embed v8.11.0
+   Compiling codex-features v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/features)
+   Compiling toml_edit v0.24.0+spec-1.1.0
+   Compiling codex-shell-command v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/shell-command)
+   Compiling codex-model-provider-info v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/model-provider-info)
+   Compiling pbkdf2 v0.12.2
+   Compiling chacha20 v0.9.1
+   Compiling dns-lookup v3.0.1
+   Compiling serde_ignored v0.1.14
+   Compiling proc-macro-error-attr2 v2.0.0
+   Compiling proc-macro-error2 v2.0.1
+   Compiling codex-config v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/config)
+   Compiling i18n-embed v0.15.4
+   Compiling chacha20poly1305 v0.10.1
+   Compiling windows-strings v0.1.0
+   Compiling aws-smithy-http v0.62.6
+   Compiling aws-credential-types v1.2.11
+   Compiling hkdf v0.12.4
+   Compiling filedescriptor v0.8.3
+   Compiling darling_core v0.23.0
+   Compiling cookie-factory v0.3.3
+   Compiling aws-types v1.3.11
+   Compiling secrecy v0.10.3
+   Compiling windows-interface v0.58.0
+   Compiling windows-implement v0.58.0
+   Compiling serial2 v0.2.33
+   Compiling base64 v0.21.7
+   Compiling io_tee v0.1.1
+   Compiling darling_macro v0.23.0
+   Compiling age-core v0.11.0
+   Compiling portable-pty v0.9.0
+   Compiling windows-core v0.58.0
+   Compiling i18n-embed-fl v0.9.4
+   Compiling scrypt v0.11.0
+   Compiling aws-smithy-http-client v1.1.12
+   Compiling aws-smithy-observability v0.1.5
+   Compiling polyval v0.6.2
+   Compiling aes v0.8.4
+   Compiling debugid v0.8.0
+   Compiling keccak v0.1.6
+   Compiling keyring v3.6.3
+   Compiling dirs-sys-next v0.1.2
+   Compiling codex-windows-sandbox v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/windows-sandbox-rs)
+   Compiling chunked_transfer v1.5.0
+   Compiling ascii v1.1.0
+   Compiling object v0.37.3
+   Compiling bech32 v0.9.1
+   Compiling age v0.11.2
+   Compiling tiny_http v0.12.0
+   Compiling dirs-next v2.0.0
+   Compiling codex-keyring-store v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/keyring-store)
+   Compiling sha3 v0.10.9
+   Compiling sentry-types v0.46.1
+   Compiling ghash v0.5.1
+   Compiling aws-smithy-runtime v1.9.5
+   Compiling windows v0.58.0
+   Compiling codex-utils-pty v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/pty)
+   Compiling darling v0.23.0
+   Compiling aws-sigv4 v1.3.7
+   Compiling ed25519 v2.2.3
+   Compiling crypto_secretbox v0.1.1
+   Compiling ctr v0.9.2
+   Compiling tracing-appender v0.2.4
+   Compiling thiserror-impl-no-std v2.0.2
+   Compiling simple_asn1 v0.6.4
+   Compiling blake2 v0.10.6
+   Compiling kem v0.3.0-pre.0
+   Compiling hybrid-array v0.2.3
+   Compiling ff v0.13.1
+   Compiling glob v0.3.3
+   Compiling base16ct v0.2.0
+   Compiling gimli v0.32.3
+   Compiling sec1 v0.7.3
+   Compiling ml-kem v0.2.3
+   Compiling addr2line v0.25.1
+   Compiling group v0.13.0
+   Compiling crypto_box v0.9.1
+   Compiling jsonwebtoken v9.3.1
+   Compiling thiserror-no-std v2.0.2
+   Compiling aes-gcm v0.10.3
+   Compiling ed25519-dalek v2.2.0
+   Compiling aws-runtime v1.5.17
+   Compiling sentry-core v0.46.1
+   Compiling codex-secrets v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/secrets)
+   Compiling aws-smithy-json v0.61.9
+   Compiling webbrowser v1.0.6
+   Compiling axum-core v0.5.6
+   Compiling crypto-bigint v0.5.5
+   Compiling rustc-demangle v0.1.27
+   Compiling libm v0.2.16
+   Compiling matchit v0.8.4
+   Compiling vcpkg v0.2.15
+   Compiling codex-utils-template v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/template)
+   Compiling libsqlite3-sys v0.37.0
+   Compiling axum v0.8.8
+   Compiling backtrace v0.3.76
+   Compiling elliptic-curve v0.13.8
+   Compiling codex-agent-identity v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/agent-identity)
+   Compiling clatter v2.2.0
+   Compiling codex-sandboxing v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/sandboxing)
+   Compiling codex-exec-server-protocol v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/exec-server-protocol)
+   Compiling codex-terminal-detection v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/terminal-detection)
+   Compiling findshlibs v0.10.2
+   Compiling cfg_aliases v0.2.1
+   Compiling nix v0.30.1
+   Compiling codex-exec-server v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/exec-server)
+   Compiling codex-login v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/login)
+   Compiling rfc6979 v0.4.0
+   Compiling core-foundation v0.10.1
+   Compiling sentry-contexts v0.46.1
+   Compiling xmlparser v0.13.6
+   Compiling clang-sys v1.8.1
+   Compiling aws-smithy-xml v0.60.13
+   Compiling security-framework v3.5.1
+   Compiling ecdsa v0.16.9
+   Compiling core_maths v0.1.1
+   Compiling primeorder v0.13.6
+   Compiling sentry-backtrace v0.46.1
+   Compiling aws-smithy-query v0.60.9
+   Compiling codex-utils-output-truncation v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/output-truncation)
+   Compiling hostname v0.4.2
+   Compiling uname v0.1.1
+   Compiling prettyplease v0.2.37
+   Compiling aws-sdk-sts v1.95.0
+   Compiling sentry-panic v0.46.1
+   Compiling p256 v0.13.2
+   Compiling sentry-debug-images v0.46.1
+   Compiling calendrical_calculations v0.2.4
+   Compiling rustls-platform-verifier v0.7.0
+   Compiling aws-sdk-sso v1.91.0
+   Compiling aws-sdk-ssooidc v1.93.0
+   Compiling aws-sdk-signin v1.2.0
+   Compiling schemars_derive v1.2.1
+   Compiling rmcp v1.8.0
+   Compiling icu_calendar_data v2.2.0
+   Compiling rustix v0.38.44
+   Compiling schemars v1.2.1
+   Compiling aws-config v1.8.12
+   Compiling reqwest v0.13.4
+   Compiling sentry v0.46.1
+   Compiling process-wrap v9.0.1
+   Compiling hashlink v0.11.0
+   Compiling crossbeam-queue v0.3.12
+   Compiling futures-intrusive v0.5.0
+   Compiling rmcp-macros v1.8.0
+   Compiling oauth2 v5.0.0
+   Compiling libloading v0.8.9
+   Compiling resb v0.1.2
+   Compiling sse-stream v0.2.1
+   Compiling bindgen v0.72.1
+   Compiling codex-collaboration-mode-templates v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/collaboration-mode-templates)
+   Compiling is_ci v1.2.0
+   Compiling pastey v0.2.1
+   Compiling sqlx-core v0.9.0
+   Compiling codex-models-manager v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/models-manager)
+   Compiling zoneinfo64 v0.3.0
+   Compiling codex-feedback v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/feedback)
+   Compiling codex-aws-auth v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/aws-auth)
+   Compiling cexpr v0.6.0
+   Compiling atoi v2.0.0
+   Compiling codex-utils-plugins v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/utils/plugins)
+   Compiling codex-response-debug-context v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/response-debug-context)
+   Compiling itertools v0.13.0
+   Compiling is-terminal v0.4.17
+   Compiling strck v1.0.0
+   Compiling owo-colors v4.3.0
+   Compiling which v6.0.3
+   Compiling diplomat_core v0.15.0
+   Compiling supports-color v2.1.0
+   Compiling codex-model-provider v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/model-provider)
+   Compiling codex-plugin v0.0.0 (/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/plugin)
+   Compiling sqlx-sqlite v0.9.0
+   Compiling icu_calendar v2.2.1
+   Compiling gzip-header v1.0.0
+   Compiling timezone_provider v0.2.3
+   Compiling supports-color v3.0.2
+   Compiling fslock v0.2.1
+   Compiling ixdtf v0.6.4
+   Compiling dotenvy v0.15.7
+   Compiling foldhash v0.1.5
+   Compiling sqlx-macros-core v0.9.0
+   Compiling hashbrown v0.15.5
+   Compiling temporal_rs v0.2.3
+   Compiling v8 v149.2.0
+   Compiling diplomat v0.15.0
+   Compiling diplomat-runtime v0.15.1
+   Compiling temporal_capi v0.2.3
+error: failed to run custom build command for `v8 v149.2.0`
 
-For more information about this error, try `rustc --explain E0463`.
-error: could not compile `libc` (lib) due to 1 previous error
+Caused by:
+  process didn't exit successfully: `/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/target/release/build/v8-3da1729ae2e7a447/build-script-build` (exit status: 101)
+  --- stdout
+  cargo:rerun-if-changed=.gn
+  cargo:rerun-if-changed=BUILD.gn
+  cargo:rerun-if-changed=src/binding.cc
+  cargo:rerun-if-env-changed=CCACHE
+  cargo:rerun-if-env-changed=CLANG_BASE_PATH
+  cargo:rerun-if-env-changed=CXXSTDLIB
+  cargo:rerun-if-env-changed=DENO_TRYBUILD
+  cargo:rerun-if-env-changed=DOCS_RS
+  cargo:rerun-if-env-changed=GN
+  cargo:rerun-if-env-changed=GN_ARGS
+  cargo:rerun-if-env-changed=HOST
+  cargo:rerun-if-env-changed=NINJA
+  cargo:rerun-if-env-changed=OUT_DIR
+  cargo:rerun-if-env-changed=RUSTY_V8_ARCHIVE
+  cargo:rerun-if-env-changed=RUSTY_V8_MIRROR
+  cargo:rerun-if-env-changed=RUSTY_V8_SRC_BINDING_PATH
+  cargo:rerun-if-env-changed=SCCACHE
+  cargo:rerun-if-env-changed=V8_FORCE_DEBUG
+  cargo:rerun-if-env-changed=V8_FROM_SOURCE
+  cargo:rerun-if-env-changed=PYTHON
+  cargo:rerun-if-env-changed=DISABLE_CLANG
+  cargo:rerun-if-env-changed=EXTRA_GN_ARGS
+  cargo:rerun-if-env-changed=PRINT_GN_ARGS
+  cargo:rerun-if-env-changed=CARGO_ENCODED_RUSTFLAGS
+  cargo:rustc-link-lib=static=rusty_v8
+  lockfile: "/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/target/aarch64-apple-ios/release/build/v8.fslock"
+  cargo:rustc-env=RUSTY_V8_SRC_BINDING_PATH=/Users/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/v8-149.2.0/gen/src_binding_release_aarch64-apple-ios.rs
+  static lib URL: https://github.com/denoland/rusty_v8/releases/download/v149.2.0/librusty_v8_release_aarch64-apple-ios.a.gz
+  cargo:rustc-link-search=/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/upstream/openai-codex/codex-rs/target/aarch64-apple-ios/release/gn_out/obj
+  Looking for download in '"/Users/runner/.cargo/.rusty_v8/https___github_com_denoland_rusty_v8_releases_download_v149_2_0_librusty_v8_release_aarch64_apple_ios_a_gz"'
+  Downloading https://github.com/denoland/rusty_v8/releases/download/v149.2.0/librusty_v8_release_aarch64-apple-ios.a.gz
+  Trying with Python...
+  Downloading https://github.com/denoland/rusty_v8/releases/download/v149.2.0/librusty_v8_release_aarch64-apple-ios.a.gz...
+  HTTP Error 404: Not Found
+  Python downloader failed, trying with curl.
+
+  --- stderr
+  Traceback (most recent call last):
+    File "/Users/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/v8-149.2.0/./tools/download_file.py", line 63, in <module>
+      sys.exit(main())
+               ~~~~^^
+    File "/Users/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/v8-149.2.0/./tools/download_file.py", line 58, in main
+      DownloadUrl(args.url, f)
+      ~~~~~~~~~~~^^^^^^^^^^^^^
+    File "/Users/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/v8-149.2.0/./tools/download_file.py", line 44, in DownloadUrl
+      raise e
+    File "/Users/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/v8-149.2.0/./tools/download_file.py", line 28, in DownloadUrl
+      response = urlopen(url)
+    File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 187, in urlopen
+      return opener.open(url, data, timeout)
+             ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+    File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 493, in open
+      response = meth(req, response)
+    File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 602, in http_response
+      response = self.parent.error(
+          'http', request, response, code, msg, hdrs)
+    File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 531, in error
+      return self._call_chain(*args)
+             ~~~~~~~~~~~~~~~~^^^^^^^
+    File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 464, in _call_chain
+      result = func(*args)
+    File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py", line 611, in http_error_default
+      raise HTTPError(req.full_url, code, msg, hdrs, fp)
+  urllib.error.HTTPError: HTTP Error 404: Not Found
+
+  thread 'main' (85005) panicked at /Users/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/v8-149.2.0/build.rs:732:3:
+  assertion failed: status.success()
+  stack backtrace:
+     0: __rustc::rust_begin_unwind
+               at /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/std/src/panicking.rs:689:5
+     1: core::panicking::panic_fmt
+               at /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/core/src/panicking.rs:80:14
+     2: core::panicking::panic
+               at /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/core/src/panicking.rs:150:5
+     3: build_script_build::download_file
+     4: build_script_build::download_static_lib_binaries
+     5: build_script_build::main
+     6: core::ops::function::FnOnce::call_once
+  note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
 warning: build failed, waiting for other jobs to finish...
