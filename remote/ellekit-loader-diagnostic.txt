@@ -1,6 +1,6 @@
 ElleKit Loader Diagnostic
-run_id=30169249303
-collect=success
+run_id=30169557741
+collect=cancelled
 
 --- sanitized output ---
 Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
@@ -54,10 +54,10 @@ dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 pa
 /var/jb/Library/LaunchDaemons/us.diatr.shshd.plist
 === MATCHING PLISTS ===
 === PROCESSES ===
- 4606   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
- 4638   ??  ?s     0:00.00 /usr/libexec/backboardd
- 4921   ??  ?s     0:00.00 sudo -S -p  sh /var/mobile/Media/diagnose-ellekit.sh
- 4922   ??  ?      0:00.00 sh /var/mobile/Media/diagnose-ellekit.sh
+ 5979   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+ 6012   ??  ?s     0:00.00 /usr/libexec/backboardd
+ 6275   ??  ?s     0:00.00 sudo -S -p  sh /var/mobile/Media/diagnose-ellekit.sh
+ 6277   ??  ?      0:00.00 sh /var/mobile/Media/diagnose-ellekit.sh
 === LAUNCHCTL LIST MATCHES ===
 === BOOTSTRAP DIRECTORIES ===
 /var/jb/Library:
@@ -225,6 +225,3 @@ drwxr-xr-x 176 root wheel   5632 Jul 24 01:37 git-core
 -rwxr-xr-x   1 root wheel    714 Jul  1  2024 sshd-keygen-wrapper
 drwxr-xr-x  10 root wheel    320 Jan  7  2026 sudo
 === RUNTIME MARKER ===
-runtime_status=missing
-=== RECENT CRASH COUNT ===
-0
