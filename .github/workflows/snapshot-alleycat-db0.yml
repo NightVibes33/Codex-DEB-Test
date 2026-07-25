@@ -1,0 +1,49 @@
+name: Snapshot AlleyCat db0 Run
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/snapshot-alleycat-db0.yml
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    env:
+      TARGET_SHA: db0b3442ad77936fe22332963bec7b50c0cc1350
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Record target workflow run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          runs="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/ios-unsigned-ipa.yml/runs?branch=main&per_page=30")"
+          run="$(jq -c --arg sha "$TARGET_SHA" '.workflow_runs[] | select(.head_sha == $sha)' <<<"$runs" | head -n1)"
+          test -n "$run"
+          run_id="$(jq -r '.id' <<<"$run")"
+          jobs="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/jobs")"
+          mkdir -p build-diagnostics
+          {
+            echo '# AlleyCat live run snapshot'
+            echo
+            jq -r '"- Run: \(.id)\n- Status: \(.status)\n- Conclusion: \(.conclusion // "")\n- Commit: \(.head_sha)\n- URL: \(.html_url)\n- Created: \(.created_at)\n- Updated: \(.updated_at)"' <<<"$run"
+            echo
+            echo '## Jobs and steps'
+            echo '```text'
+            jq -r '.jobs[] | "JOB \(.id) \(.name): \(.status) / \(.conclusion // "")", (.steps[]? | "  \(.number). \(.name): \(.status) / \(.conclusion // "")")' <<<"$jobs"
+            echo '```'
+          } > build-diagnostics/alleycat-live-snapshot.md
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add build-diagnostics/alleycat-live-snapshot.md
+          git commit -m 'Record AlleyCat live snapshot [skip ci]' || exit 0
+          git pull --rebase origin main
+          git push origin HEAD:main
