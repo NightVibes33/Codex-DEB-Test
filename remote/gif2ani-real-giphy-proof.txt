@@ -1,0 +1,14 @@
+Gif2Ani Real GIPHY Proof
+run_id=30174192971
+proof=failure
+giphy_page=https://giphy.com/gifs/animation-animated-loop-l378s6FUfG6ji6vqE
+giphy_gif=https://media.giphy.com/media/l378s6FUfG6ji6vqE/giphy.gif
+
+connected=1
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== GIPHY SOURCE ===
+page=https://giphy.com/gifs/animation-animated-loop-l378s6FUfG6ji6vqE
+gif=https://media.giphy.com/media/l378s6FUfG6ji6vqE/giphy.gif
+expected_bytes=1873994
+expected_frames=41
+/var/mobile/Media/prove-giphy.sh: 19: EXPECTED_WIDTH: parameter not set
