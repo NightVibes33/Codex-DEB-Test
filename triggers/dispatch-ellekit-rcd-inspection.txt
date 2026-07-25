@@ -1,2 +1,3 @@
 dispatch=ellekit-rcd-inspection
-requested_at=2026-07-25T17:51:00-05:00
+requested_at=2026-07-25T17:52:00-05:00
+reason=retry-after-dispatcher-registration
