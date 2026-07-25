@@ -1,0 +1,23 @@
+Gif2Ani 3.1.1 Exit Safemode and Runtime Test
+run_id=30167308257
+exit_safemode=cancelled
+reconnect=skipped
+normal_injection=skipped
+custom_animation=skipped
+cleanup=success
+final_verify=success
+
+--- sanitized output ---
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+userspace_reboot_requested=yes
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+Killed: 9
+cleanup_respring_exit=137
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+final_state=normal-jailbreak-installed-disabled-no-gif
+ 1327   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+ 1359   ??  ?s     0:00.00 /usr/libexec/backboardd
