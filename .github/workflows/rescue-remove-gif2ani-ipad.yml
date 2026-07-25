@@ -1,0 +1,168 @@
+name: Rescue Remove Gif2Ani from iPad
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/rescue-remove-gif2ani.txt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name']); raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  rescue:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Join Tailscale
+        id: tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          ping: ${{ env.IPAD_HOST }}
+          version: latest
+      - name: Prepare SSH
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends openssh-client sshpass
+          mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+          ssh-keyscan -T 20 -H -p 22 "$IPAD_HOST" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+      - name: Disable and purge Gif2Ani
+        id: rescue
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -uo pipefail
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=20 -o ServerAliveInterval=5 -o ServerAliveCountMax=3 \
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            mobile@"$IPAD_HOST" 'sudo -S -p "" sh -c '\''
+              set -u
+              echo "=== EMERGENCY DISABLE ==="
+              dylib=/var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib
+              plist=/var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist
+              [ -e "$plist" ] && mv -f "$plist" "$plist.disabled" || true
+              [ -e "$dylib" ] && mv -f "$dylib" "$dylib.disabled" || true
+              rm -f /var/mobile/Library/Preferences/Respring.gif
+              rm -f /var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist
+              rm -rf "/var/mobile/Library/Application Support/Gif2Ani"
+              echo "injection_disabled=yes"
+
+              echo "=== PURGE PACKAGE ==="
+              dpkg --purge com.nightvibes33.gif2ani 2>&1 || true
+              rm -f "$plist" "$plist.disabled" "$dylib" "$dylib.disabled"
+              rm -rf /var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle
+              rm -f /var/jb/Library/PreferenceLoader/Preferences/Gif2Ani.plist
+              rm -f /var/mobile/Media/Gif2Ani-3.0.0-rootless.deb
+              echo "package_purged=yes"
+
+              killall -9 Preferences 2>/dev/null || true
+              killall -9 backboardd 2>/dev/null || true
+              if [ -x /var/jb/usr/bin/sbreload ]; then /var/jb/usr/bin/sbreload; elif [ -x /usr/bin/sbreload ]; then /usr/bin/sbreload; else killall -9 SpringBoard 2>/dev/null || true; fi
+            '\''' 2>&1 | tee gif2ani-rescue.txt
+          code=${PIPESTATUS[1]}
+          set -e
+          echo "rescue_ssh_exit=$code" | tee -a gif2ani-rescue.txt
+          if [ "$code" -ne 0 ] && [ "$code" -ne 255 ]; then exit "$code"; fi
+          sleep 20
+      - name: Reconnect and verify stable removal
+        id: verify
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=15 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" mobile@"$IPAD_HOST" 'true'; then connected=1; break; fi
+            sleep 8
+          done
+          test "$connected" -eq 1
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=20 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            mobile@"$IPAD_HOST" 'sudo -S -p "" sh -c '\''
+              set -eu
+              echo "=== VERIFY REMOVAL ==="
+              if dpkg-query -s com.nightvibes33.gif2ani 2>/dev/null | grep -q "^Status: install ok installed$"; then echo "package_still_installed=yes"; exit 41; fi
+              test ! -e /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib
+              test ! -e /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist
+              test ! -e /var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle
+              test ! -e /var/jb/Library/PreferenceLoader/Preferences/Gif2Ani.plist
+              test ! -e /var/mobile/Library/Preferences/Respring.gif
+              echo "gif2ani_package=removed"
+              echo "gif2ani_files=removed"
+              echo "selected_gif=removed"
+              ps ax | grep -E "[b]ackboardd|[S]pringBoard" || true
+              echo "rescue_result=removed-and-reconnected"
+            '\''' 2>&1 | tee -a gif2ani-rescue.txt
+      - name: Publish sanitized rescue status
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          TAILSCALE_OUTCOME: ${{ steps.tailscale.outcome }}
+          RESCUE_OUTCOME: ${{ steps.rescue.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('gif2ani-rescue.txt').read_text(errors='replace') if Path('gif2ani-rescue.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=[
+            'Gif2Ani Emergency Rescue',
+            f"run_id={os.environ.get('GITHUB_RUN_ID','')}",
+            f"run_url=https://github.com/{os.environ.get('GITHUB_REPOSITORY','')}/actions/runs/{os.environ.get('GITHUB_RUN_ID','')}",
+            f"tailscale={os.environ.get('TAILSCALE_OUTCOME','')}",
+            f"rescue={os.environ.get('RESCUE_OUTCOME','')}",
+            f"verify={os.environ.get('VERIFY_OUTCOME','')}",
+            '', '--- sanitized output ---', *text.splitlines()[-260:]
+          ]
+          Path('remote/gif2ani-rescue-status.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/gif2ani-rescue-status.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record Gif2Ani emergency rescue [skip ci]"
+            git push origin HEAD:main
+          fi
