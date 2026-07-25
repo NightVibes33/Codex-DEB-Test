@@ -1,27 +1,7 @@
-Dark-Boot 2.0 iPad Installation
-run_id=30160335786
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30160335786
-commit=7e6efa0a5e1e203a642076c6db756ca6b209395e
-source_commit=7f0cde680d75c39541ce267eb8a5eb7f7a3dec5b
-built_package=78ca1e6d8a7e9b36a492d67818362051cdb6fd687672aab515d6ff9a79a27a25  ./Dark-Boot-2.0.0-rootless.deb
-tailscale=success
-install_step=success
+Dark-Boot 2.0.1 iPad Repair
+run_id=30160857046
+source_commit=6800cd10809ae3b442b218784a3180722f8a9560
+tailscale=skipped
+install_step=skipped
 
---- sanitized output ---
-=== PRE-INSTALL ===
-device=iPad6,11
-springboard_pid=
-installed_before=none
-dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
- missing 'Maintainer' field
-Selecting previously unselected package com.nightvibes33.darkboot.
-(Reading database ... 19741 files and directories currently installed.)
-Preparing to unpack .../Dark-Boot-2.0.0-rootless.deb ...
-Unpacking com.nightvibes33.darkboot (2.0.0) ...
-Setting up com.nightvibes33.darkboot (2.0.0) ...
-Processing triggers for org.coolstar.sileo (2.5.1) ...
-install_ssh_exit=0
-=== POST-INSTALL ===
-sh: 4: 2: parameter not set
-dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
- missing 'Maintainer' field
+No install output.
