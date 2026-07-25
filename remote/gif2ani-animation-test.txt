@@ -1,5 +1,5 @@
 Gif2Ani Animation Test
-run_id=30171990775
+run_id=30172008597
 test=failure
 
 --- sanitized output ---
@@ -7,10 +7,10 @@ connected=1
 Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
 === APPLY PREFERENCES ===
 notification_reload_not_confirmed=yes
-backboardd_before=11815
-springboard_before=11822
+backboardd_before=11895
+springboard_before=11902
 === TRIGGER SPRINGBOARD-ONLY RESPRING ===
-backboardd_after_first=11815
+backboardd_after_first=11895
 === RUNTIME STATUS ===
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -42,7 +42,7 @@ backboardd_after_first=11815
 		<integer>240</integer>
 	</dict>
 	<key>timestamp</key>
-	<real>1785008345.518158</real>
+	<real>1785008383.0491691</real>
 </dict>
 </plist>
 === MEDIA SLOTS ===
