@@ -1,4 +1,4 @@
-name: Trace ElleKit Launch Injection
+name: Verify Current ElleKit Loader Path
 
 on:
   workflow_dispatch:
@@ -32,7 +32,8 @@ jobs:
           target=int(sys.argv[1])
           for env in json.load(open('environments.json')).get('environments',[]):
               if int(env.get('id',-1))==target:
-                  print('environment_name='+env['name']); raise SystemExit(0)
+                  print('environment_name='+env['name'])
+                  raise SystemExit(0)
           raise SystemExit('environment-not-found')
           PY
 
@@ -48,65 +49,54 @@ jobs:
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
           version: latest
-      - name: Install SSH client
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends openssh-client sshpass
+      - name: Create read-only device script
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends openssh-client sshpass
-      - name: Inspect launch injection state
+          cat > verify-current-loader-path.sh <<'SH'
+          #!/bin/sh
+          set +e
+          media="/var/mobile/Library/Application Support/Gif2Ani"
+          bb=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')
+          sb=$(ps ax | awk '/[S]pringBoard/{print $1; exit}')
+          echo '=== PACKAGES ==='
+          dpkg-query -W -f='${Package}\t${Version}\t${Status}\n' ellekit com.nightvibes33.gif2ani 2>&1
+          echo '=== GLOBAL LOADER PATH ==='
+          echo "JB_TWEAKLOADER_PATH=$(/var/jb/usr/bin/launchctl getenv JB_TWEAKLOADER_PATH 2>/dev/null || true)"
+          echo '=== PROCESSES ==='
+          echo "backboardd_pid=$bb"
+          echo "springboard_pid=$sb"
+          ps eww -p "$bb" 2>&1 || true
+          ps eww -p "$sb" 2>&1 || true
+          echo '=== RUNTIME DIRECTORY ==='
+          ls -la "$media" 2>&1 || true
+          echo '=== RUNTIME STATUS ==='
+          cat "$media/runtime-status.plist" 2>/dev/null || echo runtime_status=missing
+          echo '=== SAFE MODE GATES ==='
+          echo "_MSSafeMode=$(/var/jb/usr/bin/launchctl getenv _MSSafeMode 2>/dev/null || true)"
+          echo "_SafeMode=$(/var/jb/usr/bin/launchctl getenv _SafeMode 2>/dev/null || true)"
+          if [ -e /var/mobile/.eksafemode ]; then echo eksafemode_file=present; else echo eksafemode_file=absent; fi
+          echo '=== RECENT CRASHES ==='
+          find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -mmin -30 -print 2>/dev/null || true
+          SH
+          chmod +x verify-current-loader-path.sh
+      - name: Run read-only verification
         id: collect
         env:
           SSHPASS: ${{ secrets.IPAD_PASSWORD }}
         run: |
           set -uo pipefail
           set +e
-          timeout 55 sshpass -e ssh -p 22 \
-            -o ConnectTimeout=12 \
-            -o ServerAliveInterval=5 \
-            -o ServerAliveCountMax=2 \
-            -o StrictHostKeyChecking=no \
-            -o UserKnownHostsFile=/dev/null \
-            mobile@"$IPAD_HOST" 'sh -c '\''
-              echo "=== CURRENT STATE ==="
-              dpkg-query -W ellekit com.nightvibes33.gif2ani 2>&1 || true
-              ps ax | grep -E "[l]aunchd|[b]ackboardd|[S]pringBoard" || true
-              echo "_MSSafeMode=$(/var/jb/usr/bin/launchctl getenv _MSSafeMode 2>/dev/null || true)"
-              echo "_SafeMode=$(/var/jb/usr/bin/launchctl getenv _SafeMode 2>/dev/null || true)"
-
-              echo "=== GLOBAL LAUNCHD ENV ==="
-              for key in DYLD_INSERT_LIBRARIES SANDBOX_EXTENSION _MSSafeMode _SafeMode; do
-                printf "%s=" "$key"
-                /var/jb/usr/bin/launchctl getenv "$key" 2>/dev/null || true
-              done
-
-              echo "=== BACKBOARDD SERVICE ENVIRONMENT ==="
-              /var/jb/usr/bin/launchctl print system/com.apple.backboardd 2>&1 | grep -A 35 -E "default environment =|environment =" | head -90 || true
-
-              echo "=== BACKBOARDD PROCESS ENVIRONMENT ==="
-              pid=$(ps ax | awk "/[b]ackboardd/{print \$1; exit}")
-              echo "backboardd_pid=$pid"
-              ps eww -p "$pid" 2>&1 || true
-
-              echo "=== LAUNCHD PROCESS ENVIRONMENT ==="
-              ps eww -p 1 2>&1 || true
-
-              echo "=== ELLEKIT PATHS ==="
-              ls -la /var/jb/usr/lib/ellekit/pspawn.dylib /var/jb/usr/lib/ellekit/libinjector.dylib /var/jb/usr/libexec/ellekit/loader /var/jb/etc/rc.d/ellekit-loader 2>&1 || true
-              file /var/jb/usr/lib/ellekit/pspawn.dylib /var/jb/usr/lib/ellekit/libinjector.dylib /var/jb/usr/libexec/ellekit/loader 2>&1 || true
-
-              echo "=== SYSTEM JOB MATCHES ==="
-              /var/jb/usr/bin/launchctl print system 2>&1 | grep -i -E "ellekit|pspawn|libinjector|DYLD_INSERT_LIBRARIES|SANDBOX_EXTENSION" | head -120 || true
-
-              echo "=== GIF2ANI RUNTIME ==="
-              media="/var/mobile/Library/Application Support/Gif2Ani"
-              ls -la "$media" 2>&1 || true
-              if [ -e "$media/runtime-status.plist" ]; then /var/jb/usr/libexec/PlistBuddy -c Print "$media/runtime-status.plist" 2>&1 || true; else echo runtime_status=missing; fi
-
-              echo "=== RECENT CRASHES ==="
-              find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name "backboardd-*.ips" -o -name "SpringBoard-*.ips" \) -mmin -30 -print 2>/dev/null || true
-            '\''' 2>&1 | tee ellekit-launch-injection.txt
-          code=${PIPESTATUS[0]}
+          timeout 60 sshpass -e scp -P 22 -o ConnectTimeout=12 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null verify-current-loader-path.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          copy_code=$?
+          if [ "$copy_code" -eq 0 ]; then
+            timeout 60 sshpass -e ssh -p 22 -o ConnectTimeout=12 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sh /var/mobile/Media/verify-current-loader-path.sh' 2>&1 | tee current-loader-path.txt
+            code=${PIPESTATUS[0]}
+          else
+            code=$copy_code
+            echo "scp_exit=$copy_code" | tee current-loader-path.txt
+          fi
           set -e
-          echo "ssh_exit=$code" | tee -a ellekit-launch-injection.txt
+          echo "probe_exit=$code" | tee -a current-loader-path.txt
           exit "$code"
       - name: Publish status
         if: always()
@@ -116,14 +106,14 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git pull --rebase origin main
           {
-            echo "ElleKit Launch Injection Trace"
+            echo 'Current ElleKit Loader Path Verification'
             echo "run_id=${GITHUB_RUN_ID}"
             echo "collect=${{ steps.collect.outcome }}"
             echo
-            cat ellekit-launch-injection.txt 2>/dev/null || echo "No output."
-          } > remote/ellekit-launch-injection-trace.txt
-          git add remote/ellekit-launch-injection-trace.txt
+            cat current-loader-path.txt 2>/dev/null || echo 'No output.'
+          } > remote/current-ellekit-loader-path.txt
+          git add remote/current-ellekit-loader-path.txt
           if ! git diff --cached --quiet; then
-            git commit -m "Record ElleKit launch injection trace [skip ci]"
+            git commit -m 'Record current ElleKit loader path [skip ci]'
             git push origin HEAD:main
           fi
