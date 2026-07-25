@@ -1,0 +1,40 @@
+iPad Injection Image Probe
+run_id=30169663776
+probe=success
+
+--- sanitized output ---
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+/var/mobile/Media/inspect-injection-images.sh: 4: pgrep: not found
+/var/mobile/Media/inspect-injection-images.sh: 5: pgrep: not found
+=== PROCESS IDS ===
+launchd_pid=1
+backboardd_pid=
+springboard_pid=
+=== SAFE MODE GATES ===
+_MSSafeMode=
+_SafeMode=
+eksafemode_file=absent
+=== AVAILABLE INSPECTION TOOLS ===
+/var/jb/usr/bin/launchctl
+=== PROCESS ENVIRONMENT ===
+  PID   TT  STAT      TIME COMMAND
+    1   ??  ?s     0:00.00 /sbin/launchd DYLD_INSERT_LIBRARIES=/cores/payload.dylib JB_PINFO_FLAGS=0x6c00082 JB_ROOT_PATH=/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus JB_TWEAKLOADER_PATH=@default JB_HAS_VERBOSE_BOOT=1 XPC_USERSPACE_REBOOTED=1
+=== VMMAP LAUNCHD ===
+vmmap=unavailable
+=== VMMAP BACKBOARDD ===
+vmmap_backboardd=unavailable
+=== LSOF BACKBOARDD ===
+lsof_backboardd=unavailable
+=== RUNTIME MARKER ===
+runtime_status=missing
+=== MEDIA STATE ===
+total 0
+drwxr-xr-x  2 mobile mobile  64 Jul 25 11:49 .
+drwxr-xr-x 28 mobile mobile 896 Jul 25 11:49 ..
+=== PACKAGE FILES ===
+-rwxr-xr-x 1 root wheel 89104 Jul 25 12:02 /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib
+-rw-r--r-- 1 root wheel   313 Jul 25 12:02 /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist
+=== RECENT UNIFIED LOG ===
+log_tool=unavailable
+=== RECENT CRASH COUNT ===
+0
