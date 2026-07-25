@@ -1,0 +1,253 @@
+name: Install Gif2Ani 3.1.5 Overlay Fix
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - triggers/install-gif2ani-315-overlay-fix.txt
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+  DARK_BOOT_COMMIT: "4b1fe18be79fc3357f300bf2fad2c2b70097dca1"
+
+concurrency:
+  group: gif2ani-device-change
+  cancel-in-progress: false
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1)) == target:
+                  print('environment_name='+env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact overlay source
+        run: |
+          set -euo pipefail
+          git clone https://github.com/NightVibes33/Dark-Boot.git source
+          cd source
+          git checkout "$DARK_BOOT_COMMIT"
+          test "$(awk '/^Version:/{print $2}' control)" = "3.1.5"
+          grep -q 'dedicated-overlay-layer' Tweak.xm
+          grep -q 'g2DedicatedAnimationLayer.contents = values.firstObject' Tweak.xm
+          grep -q 'appleLayer.opacity = 0.0' Tweak.xm
+          ! grep -q 'layer.bounds = \[self.display safeBounds\]' Tweak.xm
+
+      - name: Install Theos
+        env:
+          THEOS: /opt/theos
+          CI: "1"
+          SHELL: /bin/bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends bash curl sudo build-essential fakeroot rsync perl git libxml2 dpkg-dev unzip xz-utils ca-certificates python3 file
+          sudo rm -rf /opt/theos
+          sudo mkdir -p /opt
+          sudo chown "$USER:$USER" /opt
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          test -x /opt/theos/toolchain/linux/iphone/bin/clang
+
+      - name: Build 3.1.5 DEB
+        env:
+          THEOS: /opt/theos
+        run: |
+          set -euo pipefail
+          cd source
+          make clean package FINALPACKAGE=1 2>&1 | tee ../build-315.log
+          DEB="$(find packages -maxdepth 1 -type f -name 'com.nightvibes33.gif2ani_3.1.5_iphoneos-arm64.deb' | head -n1)"
+          test -n "$DEB"
+          cp "$DEB" ../Gif2Ani-3.1.5-overlay-fix.deb
+          test "$(dpkg-deb --field ../Gif2Ani-3.1.5-overlay-fix.deb Version)" = "3.1.5"
+          sha256sum ../Gif2Ani-3.1.5-overlay-fix.deb | tee ../deb-315-sha256.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Gif2Ani-3.1.5-overlay-fix-deb
+          path: |
+            Gif2Ani-3.1.5-overlay-fix.deb
+            build-315.log
+            deb-315-sha256.txt
+          if-no-files-found: error
+          retention-days: 30
+
+  install-and-verify:
+    needs: [resolve-environment, build]
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Gif2Ani-3.1.5-overlay-fix-deb
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - name: Install SSH tools
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends openssh-client sshpass
+
+      - name: Install overlay fix and run active GIF
+        id: install
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 45); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          echo "connected=$connected" | tee gif2ani-315-overlay-fix.txt
+          test "$connected" -eq 1
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null Gif2Ani-3.1.5-overlay-fix.deb mobile@"$IPAD_HOST":/var/mobile/Media/Gif2Ani-3.1.5-overlay-fix.deb
+
+          cat > /tmp/install-gif2ani-315-overlay-fix.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media='/var/mobile/Library/Application Support/Gif2Ani'
+          prefs='/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist'
+          active="$media/Active.gif"
+          status="$media/runtime-status.plist"
+          deb='/var/mobile/Media/Gif2Ani-3.1.5-overlay-fix.deb'
+          marker='/var/mobile/Media/gif2ani-315-overlay-fix.marker'
+          backup='/var/mobile/Media/Gif2Ani-user-active-315-backup.gif'
+
+          backboard_pid() { ps ax | awk '$5=="/usr/libexec/backboardd" {print $1; exit}'; }
+          springboard_pid() { ps ax | awk '$5=="/System/Library/CoreServices/SpringBoard.app/SpringBoard" {print $1; exit}'; }
+          wait_new_pid() {
+            kind="$1"; old="$2"
+            for n in $(seq 1 75); do
+              if [ "$kind" = backboardd ]; then now=$(backboard_pid); else now=$(springboard_pid); fi
+              if [ -n "$now" ] && [ "$now" != "$old" ]; then echo "$now"; return 0; fi
+              sleep 1
+            done
+            return 1
+          }
+
+          echo '=== PRECHECK ==='
+          test -f "$active"
+          cp "$active" "$backup"
+          chmod 0644 "$backup"
+          old_size=$(wc -c < "$active" | tr -d ' ')
+          old_bb=$(backboard_pid)
+          old_sb=$(springboard_pid)
+          echo "active_size_before=$old_size"
+          echo "old_backboardd=$old_bb"
+          echo "old_springboard=$old_sb"
+
+          echo '=== INSTALL 3.1.5 ==='
+          dpkg -i "$deb"
+          version=$(dpkg-query -W -f='${Version}' com.nightvibes33.gif2ani)
+          echo "installed_version=$version"
+          test "$version" = '3.1.5'
+          if [ ! -f "$active" ]; then cp "$backup" "$active"; fi
+          new_size=$(wc -c < "$active" | tr -d ' ')
+          echo "active_size_after_install=$new_size"
+          test "$new_size" = "$old_size"
+          chown mobile:mobile "$active"
+          chmod 0644 "$active"
+
+          echo '=== ENABLE AND RESTART BACKBOARD ==='
+          python3 - "$prefs" <<'PY'
+          import plistlib,sys,time
+          p=sys.argv[1]
+          try:
+              with open(p,'rb') as f: d=plistlib.load(f)
+          except Exception:
+              d={}
+          d['isEnabled']=True
+          d['pendingReady']=False
+          d['lastAppliedAt']=time.time()
+          d.setdefault('imageTransformation','resizeAspect')
+          d.setdefault('customLoop',-1.0)
+          d.setdefault('customDuration',-1.0)
+          d.setdefault('backgroundColor','#000000')
+          with open(p,'wb') as f: plistlib.dump(d,f)
+          PY
+          chown mobile:mobile "$prefs"
+          chmod 0644 "$prefs"
+          rm -f "$media/Rejected.gif" "$media/load-in-progress" "$media/Pending.gif" "$media/pending-metadata.plist"
+          touch "$marker"
+          /var/jb/usr/bin/killall -9 backboardd 2>/dev/null || killall -9 backboardd 2>/dev/null || true
+          new_bb=$(wait_new_pid backboardd "$old_bb")
+          new_sb=$(wait_new_pid SpringBoard "$old_sb")
+          echo "new_backboardd=$new_bb"
+          echo "new_springboard=$new_sb"
+          sleep 12
+
+          echo '=== OVERLAY RESULT ==='
+          cat "$status"
+          grep -a -q 'custom-animation-stable' "$status"
+          grep -a -q 'dedicated-overlay-layer' "$status"
+          grep -A 2 '<key>appleLoaderHidden</key>' "$status" | grep -q '<true/>'
+          grep -A 2 '<key>frameCount</key>' "$status" | grep -Eq '<integer>[1-9][0-9]*</integer>'
+          test -f "$active"
+          test ! -e "$media/Rejected.gif"
+          test ! -e "$media/load-in-progress"
+          bb_env=$(ps eww -p "$new_bb" 2>/dev/null || true)
+          printf '%s\n' "$bb_env" | grep -q 'JB_PINFO_FLAGS=0x4c00082'
+          crashes=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -newer "$marker" -print 2>/dev/null | wc -l | tr -d ' ')
+          echo "new_crash_reports=$crashes"
+          test "$crashes" = 0
+          echo overlay_fix_result=success
+          rm -f "$deb"
+          SH
+
+          chmod +x /tmp/install-gif2ani-315-overlay-fix.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null /tmp/install-gif2ani-315-overlay-fix.sh mobile@"$IPAD_HOST":/var/mobile/Media/install-gif2ani-315-overlay-fix.sh
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=60 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/install-gif2ani-315-overlay-fix.sh' 2>&1 | tee -a gif2ani-315-overlay-fix.txt
+
+      - name: Publish overlay result
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          p=Path('gif2ani-315-overlay-fix.txt')
+          text=p.read_text(errors='replace') if p.exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=['Gif2Ani 3.1.5 Overlay Fix',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"install={os.environ.get('INSTALL_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-1000:]]
+          Path('remote/gif2ani-315-overlay-fix.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/gif2ani-315-overlay-fix.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record Gif2Ani 3.1.5 overlay fix [skip ci]"
+            git push origin HEAD:main
+          fi
