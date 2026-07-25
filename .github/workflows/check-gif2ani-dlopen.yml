@@ -1,4 +1,4 @@
-name: Check Gif2Ani Dlopen
+name: Check Gif2Ani Injection Metadata
 
 on:
   push:
@@ -41,7 +41,7 @@ jobs:
     environment:
       name: ${{ needs.resolve-environment.outputs.environment_name }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: tailscale/github-action@v4
@@ -51,49 +51,57 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends openssh-client sshpass
       - name: Create device diagnostic
         run: |
-          cat > check-gif2ani-dlopen.sh <<'SH'
+          cat > check-gif2ani-metadata.sh <<'SH'
           #!/bin/sh
           set +e
-          dylib="/var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib"
-          echo '=== FILES ==='
-          ls -l "$dylib" /var/jb/usr/lib/TweakInject/Gif2Ani.dylib /var/jb/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate /var/jb/usr/lib/libellekit.dylib 2>&1
-          echo '=== MACH-O ==='
-          file "$dylib" 2>&1
-          otool -L "$dylib" 2>&1
-          echo '=== ENTITLEMENTS ==='
-          /var/jb/usr/bin/ldid -e "$dylib" 2>&1 || true
-          echo '=== PYTHON DLOPEN ==='
+          ms="/var/jb/Library/MobileSubstrate/DynamicLibraries"
+          ti="/var/jb/usr/lib/TweakInject"
+          echo '=== DIRECTORY MAPPING ==='
+          ls -lid "$ms" "$ti" 2>&1
+          readlink "$ms" 2>/dev/null || true
+          readlink "$ti" 2>/dev/null || true
+          echo '=== GIF2ANI METADATA ==='
+          ls -li "$ms"/Gif2Ani.* "$ti"/Gif2Ani.* 2>&1
+          echo '=== FILTER CONTENTS ==='
+          echo '-- MobileSubstrate filter --'
+          cat "$ms/Gif2Ani.plist" 2>&1
+          echo '-- TweakInject filter --'
+          cat "$ti/Gif2Ani.plist" 2>&1
+          echo '=== DLOPEN ==='
           /var/jb/usr/bin/python3 - <<'PY'
-          import ctypes, traceback
+          import ctypes
           path='/var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib'
           try:
-              lib=ctypes.CDLL(path, mode=ctypes.RTLD_LOCAL)
+              ctypes.CDLL(path, mode=ctypes.RTLD_LOCAL)
               print('dlopen_success=yes')
-              print('handle=%r' % (lib._handle,))
           except Exception as exc:
               print('dlopen_success=no')
               print('dlopen_error=%r' % (exc,))
-              traceback.print_exc()
           PY
           echo '=== CURRENT MARKER ==='
           cat '/var/mobile/Library/Application Support/Gif2Ani/runtime-status.plist' 2>/dev/null || echo runtime_status=missing
           SH
-          chmod +x check-gif2ani-dlopen.sh
+          chmod +x check-gif2ani-metadata.sh
       - name: Run read-only diagnostic
         id: probe
         env:
           SSHPASS: ${{ secrets.IPAD_PASSWORD }}
           IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
         run: |
-          set -euo pipefail
-          connected=0
-          for attempt in $(seq 1 60); do
-            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
-            sleep 5
-          done
-          test "$connected" -eq 1
-          sshpass -e scp -P 22 -o ConnectTimeout=15 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null check-gif2ani-dlopen.sh mobile@"$IPAD_HOST":/var/mobile/Media/
-          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=30 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/check-gif2ani-dlopen.sh' 2>&1 | tee gif2ani-dlopen.txt
+          set -uo pipefail
+          set +e
+          timeout 60 sshpass -e scp -P 22 -o ConnectTimeout=12 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null check-gif2ani-metadata.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          copy_code=$?
+          if [ "$copy_code" -eq 0 ]; then
+            printf '%s\n' "$IPAD_PASSWORD" | timeout 60 sshpass -e ssh -p 22 -o ConnectTimeout=12 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/check-gif2ani-metadata.sh' 2>&1 | tee gif2ani-metadata.txt
+            code=${PIPESTATUS[1]}
+          else
+            code=$copy_code
+            echo "scp_exit=$copy_code" | tee gif2ani-metadata.txt
+          fi
+          set -e
+          echo "probe_exit=$code" | tee -a gif2ani-metadata.txt
+          exit "$code"
       - name: Publish result
         if: always()
         env:
@@ -107,14 +115,14 @@ jobs:
           python3 - <<'PY'
           import os
           from pathlib import Path
-          text=Path('gif2ani-dlopen.txt').read_text(errors='replace') if Path('gif2ani-dlopen.txt').exists() else 'No output.'
+          text=Path('gif2ani-metadata.txt').read_text(errors='replace') if Path('gif2ani-metadata.txt').exists() else 'No output.'
           pw=os.environ.get('IPAD_PASSWORD','')
           if pw: text=text.replace(pw,'***REDACTED***')
-          out=['Gif2Ani Dlopen Diagnostic',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"probe={os.environ.get('PROBE_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-250:]]
-          Path('remote/gif2ani-dlopen-diagnostic.txt').write_text('\n'.join(out)+'\n')
+          out=['Gif2Ani Injection Metadata Diagnostic',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"probe={os.environ.get('PROBE_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-180:]]
+          Path('remote/gif2ani-injection-metadata.txt').write_text('\n'.join(out)+'\n')
           PY
-          git add remote/gif2ani-dlopen-diagnostic.txt
+          git add remote/gif2ani-injection-metadata.txt
           if ! git diff --cached --quiet; then
-            git commit -m "Record Gif2Ani dlopen diagnostic [skip ci]"
+            git commit -m "Record Gif2Ani injection metadata [skip ci]"
             git push origin HEAD:main
           fi
