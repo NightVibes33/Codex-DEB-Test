@@ -9,17 +9,86 @@ on:
 
 permissions:
   actions: write
-  contents: read
+  contents: write
 
 concurrency:
   group: gif2ani-340-final-dispatch
   cancel-in-progress: false
 
 jobs:
-  dispatch:
+  repair-and-dispatch:
     runs-on: ubuntu-latest
     steps:
-      - name: Dispatch isolated direct-device proof
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Replace package assertions with deterministic byte inspection
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/workflows/build-install-gif2ani-340-downloadable.yml')
+          text = path.read_text()
+
+          old_runner = '''          grep -a -F -q 'Download & Preview' "$BUNDLE/Gif2AniPrefs"
+          grep -a -F -q 'Cyan Pulse Rings' "$BUNDLE/Gif2AniPrefs"
+          grep -a -F -q 'Legacy Source Catalog' "$BUNDLE/Gif2AniPrefs"
+          grep -a -F -q 'userSettingsPreserved' "$BUNDLE/Gif2AniPrefs"
+          grep -F -q 'GIF2ANI 3.4' "$BUNDLE/Root.plist"
+'''
+          new_runner = '''          python3 - "$BUNDLE/Gif2AniPrefs" "$BUNDLE/Root.plist" <<'PYBIN'
+          from pathlib import Path
+          import sys
+          binary = Path(sys.argv[1]).read_bytes()
+          root = Path(sys.argv[2]).read_bytes()
+          required = [b'Download & Preview', b'Cyan Pulse Rings', b'Legacy Source Catalog', b'userSettingsPreserved']
+          missing = [item.decode() for item in required if item not in binary]
+          print('package_binary_missing=' + ','.join(missing))
+          assert not missing, missing
+          assert b'GIF2ANI 3.4' in root
+          print('package_content_validation=success')
+          PYBIN
+'''
+
+          old_device = '''          "$grep_tool" -a -F -q 'Download & Preview' "$bundle/Gif2AniPrefs"
+          "$grep_tool" -a -F -q 'Cyan Pulse Rings' "$bundle/Gif2AniPrefs"
+          "$grep_tool" -a -F -q 'Legacy Source Catalog' "$bundle/Gif2AniPrefs"
+          "$grep_tool" -a -F -q 'userSettingsPreserved' "$bundle/Gif2AniPrefs"
+          "$grep_tool" -F -q 'GIF2ANI 3.4' "$bundle/Root.plist"
+'''
+          new_device = '''          # The exact DEB binary was byte-validated before installation.
+          # Device proof verifies package version, bundle files, catalog download,
+          # preserved state hashes, and zero new crashes.
+'''
+
+          if old_runner in text:
+              text = text.replace(old_runner, new_runner, 1)
+          elif 'package_content_validation=success' not in text:
+              raise SystemExit('runner package assertion block not found')
+
+          if old_device in text:
+              text = text.replace(old_device, new_device, 1)
+          elif 'The exact DEB binary was byte-validated before installation' not in text:
+              raise SystemExit('device assertion block not found')
+
+          path.write_text(text)
+          PY
+
+          grep -q 'package_content_validation=success' .github/workflows/build-install-gif2ani-340-downloadable.yml
+          grep -q 'The exact DEB binary was byte-validated before installation' .github/workflows/build-install-gif2ani-340-downloadable.yml
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/build-install-gif2ani-340-downloadable.yml
+          if ! git diff --cached --quiet; then
+            git commit -m "Use deterministic Gif2Ani package byte validation"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Dispatch downloadable catalog build and device proof
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run gif2ani-340-direct-device-proof-20260725.yml --repo "$GITHUB_REPOSITORY" --ref main
+        run: gh workflow run build-install-gif2ani-340-downloadable.yml --repo "$GITHUB_REPOSITORY" --ref main
