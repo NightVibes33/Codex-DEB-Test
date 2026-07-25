@@ -1,0 +1,39 @@
+Gif2Ani 3.0.0 Runtime Verification
+run_id=30163039291
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30163039291
+tailscale=success
+runtime=success
+
+--- sanitized output ---
+=== PACKAGE STATUS ===
+Package: com.nightvibes33.gif2ani
+Status: install ok installed
+Architecture: iphoneos-arm64
+Version: 3.0.0
+old_package_status=absent
+new_version=3.0.0
+=== FILE STATUS ===
+present=/var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib
+present=/var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist
+present=/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/Gif2AniPrefs
+present=/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/Root.plist
+present=/var/jb/Library/PreferenceLoader/Preferences/Gif2Ani.plist
+removed=/var/jb/Library/MobileSubstrate/DynamicLibraries/DarkBoot.dylib
+removed=/var/jb/Library/MobileSubstrate/DynamicLibraries/DarkBoot.plist
+removed=/var/jb/Library/PreferenceBundles/DarkBootPrefs.bundle
+removed=/var/jb/Library/PreferenceLoader/Preferences/DarkBoot.plist
+=== FILTER ===
+=== PROCESSES ===
+sh: 30: pgrep: not found
+backboardd_pid=
+sh: 31: pgrep: not found
+springboard_pid=
+=== RUNTIME MARKER ===
+total 4
+drwxr-xr-x  3 mobile mobile  96 Jul 25 10:08 .
+drwxr-xr-x 29 mobile mobile 928 Jul 25 10:04 ..
+-rw-r--r--  1 mobile wheel  507 Jul 25 10:08 runtime-status.plist
+runtime_marker=present
+=== RECENT CRASHES / LOG CLUES ===
+verification_result=old-removed-new-installed-runtime-marker-present
+verify_ssh_exit=0
