@@ -1,7 +1,7 @@
 TweakLoader dlopen Diagnostic
-run_id=30171197652
-build=failure
-collect=skipped
+run_id=30171212552
+build=success
+collect=success
 
 === BUILD LOG ===
 make: Entering directory '/home/runner/work/Codex-DEB-Test/Codex-DEB-Test/dlopenprobe'
@@ -14,13 +14,55 @@ make: Leaving directory '/home/runner/work/Codex-DEB-Test/Codex-DEB-Test/dlopenp
 [0;34m==> [1;39mGenerating debug symbols for dlopenprobe…[m
 [0;34m==> [1;39mStripping dlopenprobe (arm64)…[m
 [0;34m==> [1;39mSigning dlopenprobe…[m
-ldid: entitlements.plist: No such file or directory
-make[2]: *** [/opt/theos/makefiles/instance/tool.mk:19: /home/runner/work/Codex-DEB-Test/Codex-DEB-Test/dlopenprobe/.theos/obj/dlopenprobe] Error 1
-rm /home/runner/work/Codex-DEB-Test/Codex-DEB-Test/dlopenprobe/.theos/obj/dlopenprobe.6ad9fd05.unsigned
-make[1]: *** [/opt/theos/makefiles/instance/tool.mk:11: internal-tool-all_] Error 2
-make: *** [/opt/theos/makefiles/master/rules.mk:146: dlopenprobe.all.tool.variables] Error 2
 make: Leaving directory '/home/runner/work/Codex-DEB-Test/Codex-DEB-Test/dlopenprobe'
-make_exit=2
+make_exit=0
+dlopenprobe-tool: Mach-O 64-bit arm64 executable, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|PIE>
 
 === DEVICE LOG ===
-No device output.
+connected=1
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== PATHS ===
+-rwxr-xr-x 1 root wheel  89104 Jul 25 12:02 /var/jb/usr/lib/TweakInject/Gif2Ani.dylib
+lrwxr-xr-x 1 root wheel     41 Jun 11  2024 /var/jb/usr/lib/TweakLoader.dylib -> /var/jb/usr/lib/ellekit/libinjector.dylib
+-rw-r--r-- 1 root wheel 136464 Jun 11  2024 /var/jb/usr/lib/ellekit/libinjector.dylib
+/var/jb/usr/lib/ellekit/libinjector.dylib
+=== FILE TYPES ===
+/var/jb/usr/lib/TweakLoader.dylib:         symbolic link to /var/jb/usr/lib/ellekit/libinjector.dylib
+/var/jb/usr/lib/ellekit/libinjector.dylib: Mach-O universal binary with 2 architectures: [arm64:\012- Mach-O 64-bit arm64 dynamically linked shared library, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|NO_REEXPORTED_DYLIBS>] [\012- arm64e (caps: 0x2):\012- Mach-O 64-bit arm64e (caps: PAC00) dynamically linked shared library, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|NO_REEXPORTED_DYLIBS>]
+/var/jb/usr/lib/TweakInject/Gif2Ani.dylib: Mach-O 64-bit arm64 dynamically linked shared library, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|NO_REEXPORTED_DYLIBS>
+=== DLOPEN PROBE ===
+pid=10951
+env_DYLD_INSERT_LIBRARIES=<unset>
+env_DYLD_LIBRARY_PATH=<unset>
+env_JB_TWEAKLOADER_PATH=@default
+env_JB_PINFO_FLAGS=0x6c00082
+env__MSSafeMode=<unset>
+env__SafeMode=<unset>
+=== IMAGES BEFORE ===
+image_count=42
+image=/cores/binpack/usr/lib/systemhook.dylib
+probe_tweakloader_path=/var/jb/usr/lib/TweakLoader.dylib
+probe_tweakloader_handle=0x325a30
+probe_tweakloader_error=<none>
+=== IMAGES AFTER_TWEAKLOADER ===
+image_count=86
+image=/cores/binpack/usr/lib/systemhook.dylib
+image=/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus/usr/lib/ellekit/libinjector.dylib
+probe_libinjector_path=/var/jb/usr/lib/ellekit/libinjector.dylib
+probe_libinjector_handle=0x325a30
+probe_libinjector_error=<none>
+=== IMAGES AFTER_LIBINJECTOR ===
+image_count=86
+image=/cores/binpack/usr/lib/systemhook.dylib
+image=/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus/usr/lib/ellekit/libinjector.dylib
+probe_gif2ani_path=/var/jb/usr/lib/TweakInject/Gif2Ani.dylib
+probe_gif2ani_handle=0x325d70
+probe_gif2ani_error=<none>
+=== IMAGES AFTER_GIF2ANI ===
+image_count=375
+image=/cores/binpack/usr/lib/systemhook.dylib
+image=/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus/usr/lib/ellekit/libinjector.dylib
+image=/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus/usr/lib/TweakInject/Gif2Ani.dylib
+image=/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus/usr/lib/libellekit.dylib
+=== RUNTIME STATUS AFTER ===
+runtime_status=missing
