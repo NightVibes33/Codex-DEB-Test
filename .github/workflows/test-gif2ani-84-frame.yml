@@ -1,0 +1,292 @@
+name: Test Gif2Ani 84-Frame Animation
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - triggers/test-gif2ani-84-frame.txt
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+  SOURCE_REPO: "https://github.com/NightVibes33/Dark-Boot.git"
+  SOURCE_COMMIT: "4e276b1eb0554b67475a47d69735255871e8cc8e"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  stress-test:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build exact package and 84-frame test GIF
+        id: build
+        env:
+          THEOS: /opt/theos
+          CI: "1"
+          SHELL: /bin/bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            bash curl build-essential fakeroot rsync perl git libxml2 dpkg-dev unzip xz-utils \
+            ca-certificates python3 python3-pil file openssh-client sshpass
+          sudo rm -rf /opt/theos
+          sudo mkdir -p /opt
+          sudo chown "$USER:$USER" /opt
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          git clone "$SOURCE_REPO" gif2ani-source
+          cd gif2ani-source
+          git checkout "$SOURCE_COMMIT"
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          make clean package FINALPACKAGE=1 2>&1 | tee ../gif2ani-84-frame.txt
+          DEB="$(find packages -maxdepth 1 -type f -name '*.deb' | head -n1)"
+          test -n "$DEB"
+          test "$(dpkg-deb --field "$DEB" Version)" = "3.1.1"
+          cp "$DEB" ../Gif2Ani-3.1.1-rootless.deb
+          cd ..
+          python3 - <<'PY'
+          from PIL import Image, ImageDraw
+          frames=[]
+          width,height=320,240
+          for i in range(84):
+              image=Image.new('RGB',(width,height),(0,0,0))
+              draw=ImageDraw.Draw(image)
+              x=(i*7)%(width-48)
+              y=88+int(28*((i%21)/20.0))
+              draw.rectangle((x,y,x+48,y+48),fill=(245,245,255))
+              draw.rectangle((0,0,width-1,height-1),outline=((i*3)%256,80,255),width=3)
+              draw.line((0,height//2,width-1,height//2),fill=(30,70,180),width=2)
+              frames.append(image)
+          frames[0].save('Gif2Ani-84-frame-test.gif',save_all=True,append_images=frames[1:],duration=400,loop=0,optimize=False,disposal=2)
+          test=Image.open('Gif2Ani-84-frame-test.gif')
+          assert test.n_frames==84, test.n_frames
+          assert test.size==(320,240), test.size
+          print('source_frames=84')
+          print('duration_seconds=33.6')
+          print('dimensions=320x240')
+          PY
+          test "$(stat -c %s Gif2Ani-84-frame-test.gif)" -lt 26214400
+          sha256sum Gif2Ani-3.1.1-rootless.deb Gif2Ani-84-frame-test.gif | tee -a gif2ani-84-frame.txt
+
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Upload and run bounded physical test
+        id: test
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 60); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          echo "connected=$connected" | tee gif2ani-84-device.txt
+          test "$connected" -eq 1
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            Gif2Ani-3.1.1-rootless.deb Gif2Ani-84-frame-test.gif \
+            mobile@"$IPAD_HOST":/var/mobile/Media/
+
+          cat > run-gif2ani-84-test.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media='/var/mobile/Library/Application Support/Gif2Ani'
+          prefs='/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist'
+          marker='/var/mobile/Media/gif2ani-84-test.marker'
+          evidence='/var/mobile/Media/gif2ani-84-runtime-evidence.plist'
+
+          notify_reload() {
+            if [ -x /usr/bin/notifyutil ]; then /usr/bin/notifyutil -p 'com.nightvibes33.gif2ani/ReloadPrefs' || true; fi
+            if [ -x /var/jb/usr/bin/notifyutil ]; then /var/jb/usr/bin/notifyutil -p 'com.nightvibes33.gif2ani/ReloadPrefs' || true; fi
+          }
+          do_respring() {
+            if [ -x /var/jb/usr/bin/sbreload ]; then /var/jb/usr/bin/sbreload || true
+            elif [ -x /usr/bin/sbreload ]; then /usr/bin/sbreload || true
+            else /var/jb/usr/bin/killall -9 SpringBoard 2>/dev/null || true
+            fi
+          }
+          cleanup() {
+            set +e
+            cat > "$prefs" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>isEnabled</key><false/>
+            <key>pendingReady</key><false/>
+            <key>imageTransformation</key><string>resizeAspect</string>
+            <key>customLoop</key><real>-1</real>
+            <key>customDuration</key><real>-1</real>
+            <key>backgroundColor</key><string>#000000</string>
+          </dict></plist>
+          PLIST
+            chown mobile:mobile "$prefs" 2>/dev/null || true
+            chmod 0644 "$prefs" 2>/dev/null || true
+            rm -f "$media/Pending.gif" "$media/Active.gif" "$media/Rejected.gif" "$media/load-in-progress" "$media/pending-metadata.plist"
+            notify_reload
+            do_respring
+            sleep 8
+            rm -f /var/mobile/Media/Gif2Ani-84-frame-test.gif /var/mobile/Media/Gif2Ani-3.1.1-rootless.deb
+          }
+          trap cleanup EXIT
+
+          dpkg -i /var/mobile/Media/Gif2Ani-3.1.1-rootless.deb
+          mkdir -p "$media"
+          chown mobile:mobile "$media"
+          chmod 0755 "$media"
+          rm -f "$media/Pending.gif" "$media/Active.gif" "$media/Rejected.gif" "$media/load-in-progress" "$media/runtime-status.plist" "$media/pending-metadata.plist" "$evidence"
+
+          cat > "$prefs" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>isEnabled</key><true/>
+            <key>pendingReady</key><false/>
+            <key>imageTransformation</key><string>resizeAspect</string>
+            <key>customLoop</key><real>-1</real>
+            <key>customDuration</key><real>-1</real>
+            <key>backgroundColor</key><string>#000000</string>
+          </dict></plist>
+          PLIST
+          chown mobile:mobile "$prefs"
+          chmod 0644 "$prefs"
+          cp /var/mobile/Media/Gif2Ani-84-frame-test.gif "$media/Active.gif"
+          chown mobile:mobile "$media/Active.gif"
+          chmod 0644 "$media/Active.gif"
+          notify_reload
+          sleep 1
+
+          touch "$marker"
+          echo '=== START 84-FRAME RESPRING ==='
+          do_respring
+          sleep 20
+
+          echo '=== RUNTIME STATUS ==='
+          cat "$media/runtime-status.plist" 2>/dev/null || echo runtime_status=missing
+          test -f "$media/runtime-status.plist"
+          cp "$media/runtime-status.plist" "$evidence"
+          grep -a -q 'custom-animation-stable' "$media/runtime-status.plist"
+          grep -A 2 '<key>sourceFrames</key>' "$media/runtime-status.plist" | grep -q '<integer>84</integer>'
+          grep -A 2 '<key>decodedFrames</key>' "$media/runtime-status.plist" | grep -Eq '<integer>(2[0-4]|1[0-9]|[1-9])</integer>'
+          grep -A 2 '<key>frameCount</key>' "$media/runtime-status.plist" | grep -Eq '<integer>(2[0-4]|1[0-9]|[1-9])</integer>'
+          test -f "$media/Active.gif"
+          test ! -e "$media/Rejected.gif"
+          test ! -e "$media/load-in-progress"
+          crashes=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -newer "$marker" -print 2>/dev/null | wc -l | tr -d ' ')
+          echo "new_crash_reports=$crashes"
+          test "$crashes" = 0
+          echo gif2ani_84_frame_test=success
+          SH
+          chmod +x run-gif2ani-84-test.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null run-gif2ani-84-test.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=60 -o ServerAliveInterval=8 -o ServerAliveCountMax=8 \
+            -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/run-gif2ani-84-test.sh' \
+            2>&1 | tee -a gif2ani-84-device.txt
+          code=${PIPESTATUS[1]}
+          set -e
+          echo "remote_exit=$code" | tee -a gif2ani-84-device.txt
+          exit "$code"
+
+      - name: Verify final disabled cleanup
+        if: always()
+        id: cleanup_verify
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 30); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          test "$connected" -eq 1
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=25 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh -c '\''
+            media="/var/mobile/Library/Application Support/Gif2Ani"
+            prefs="/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist"
+            grep -a -q "<key>isEnabled</key><false/>" "$prefs"
+            test ! -e "$media/Pending.gif"
+            test ! -e "$media/Active.gif"
+            test ! -e "$media/Rejected.gif"
+            test ! -e "$media/load-in-progress"
+            echo final_state=installed_disabled_no_test_media
+          '\''' 2>&1 | tee -a gif2ani-84-device.txt
+
+      - name: Publish report
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          TEST_OUTCOME: ${{ steps.test.outcome }}
+          CLEANUP_OUTCOME: ${{ steps.cleanup_verify.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          build=Path('gif2ani-84-frame.txt').read_text(errors='replace') if Path('gif2ani-84-frame.txt').exists() else 'No build output.'
+          device=Path('gif2ani-84-device.txt').read_text(errors='replace') if Path('gif2ani-84-device.txt').exists() else 'No device output.'
+          text='\n'.join([
+              'Gif2Ani 84-Frame Physical Test',
+              f"run_id={os.environ.get('GITHUB_RUN_ID','')}",
+              f"source_commit={os.environ.get('SOURCE_COMMIT','')}",
+              f"build={os.environ.get('BUILD_OUTCOME','')}",
+              f"test={os.environ.get('TEST_OUTCOME','')}",
+              f"cleanup={os.environ.get('CLEANUP_OUTCOME','')}",
+              '', '--- build output ---', build,
+              '', '--- device output ---', device,
+          ])
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          Path('/tmp/gif2ani-84-frame-status.txt').write_text(text+'\n')
+          PY
+          for attempt in 1 2 3 4 5; do
+            git reset --hard HEAD
+            git pull --rebase origin main
+            mkdir -p remote
+            cp /tmp/gif2ani-84-frame-status.txt remote/gif2ani-84-frame-status.txt
+            git add remote/gif2ani-84-frame-status.txt
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "Record Gif2Ani 84-frame physical test [skip ci]"
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 3
+          done
+          exit 1
