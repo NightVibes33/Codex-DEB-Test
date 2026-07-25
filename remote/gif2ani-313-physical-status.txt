@@ -1,0 +1,178 @@
+Gif2Ani 3.1.3 Physical Validation
+run_id=30172228360
+source_commit=08fa314c83382edd0a6fbe1648b525be697921fd
+build=success
+generate=success
+physical=cancelled
+final=success
+
+--- build output ---
+[0;36m==> [1;39mCleaning…[m
+[1;31m> [1;3;39mMaking clean in gif2aniprefs…[m
+[0;36m==> [1;39mCleaning…[m
+[1;31m> [1;3;39mMaking all for tweak Gif2Ani…[m
+[0;31m==> [1;39mPreprocessing Tweak.xm…[m
+[0;32m==> [1;39mCompiling UIImage+animatedGIF.m (arm64)…[m
+[0;32m==> [1;39mCompiling G2PreferencesManager.m (arm64)…[m
+[0;32m==> [1;39mCompiling Tweak.xm (arm64)…[m
+[0;33m==> [1;39mLinking tweak Gif2Ani (arm64)…[m
+[0;34m==> [1;39mGenerating debug symbols for Gif2Ani…[m
+[0;34m==> [1;39mStripping Gif2Ani (arm64)…[m
+[0;34m==> [1;39mSigning Gif2Ani…[m
+[1;31m> [1;3;39mMaking all in gif2aniprefs…[m
+[1;31m> [1;3;39mMaking all for bundle Gif2AniPrefs…[m
+[0;35m==> [1;39mCopying resource directories into the bundle wrapper…[m
+[0;32m==> [1;39mCompiling gif2ani2RootListController.m (arm64)…[m
+[0;33m==> [1;39mLinking bundle Gif2AniPrefs (arm64)…[m
+[0;34m==> [1;39mGenerating debug symbols for Gif2AniPrefs…[m
+[0;34m==> [1;39mStripping Gif2AniPrefs (arm64)…[m
+[0;34m==> [1;39mSigning Gif2AniPrefs…[m
+[1;31m> [1;3;39mMaking stage for tweak Gif2Ani…[m
+[1;31m> [1;3;39mMaking stage in gif2aniprefs…[m
+[1;31m> [1;3;39mMaking stage for bundle Gif2AniPrefs…[m
+[0;36m==> [1;36mNotice:[m Neither plutil, ply, or libplist-utils are installed, so XML plist files were not optimized.
+dm.pl: building package `com.nightvibes33.gif2ani:iphoneos-arm64' in `./packages/com.nightvibes33.gif2ani_3.1.3_iphoneos-arm64.deb'
+build_exit=0
+2c07184aa1a9baff1dd6dce670ce4e809a1ca8300c9f3c0f2ce8972492859f1d  Gif2Ani-3.1.3-rootless.deb
+ new Debian package, version 2.0.
+ size 22806 bytes: control archive=703 bytes.
+     693 bytes,    12 lines      control
+     297 bytes,     7 lines   *  postinst             #!/bin/sh
+      60 bytes,     3 lines   *  prerm                #!/bin/sh
+ Package: com.nightvibes33.gif2ani
+ Name: Gif2Ani Rootless
+ Depends: firmware (>= 15.0), mobilesubstrate
+ Conflicts: com.nightvibes33.darkboot, com.wizage.gif2ani2, com.wizages.gif2ani
+ Replaces: com.nightvibes33.darkboot
+ Description: Crash-safe custom GIF animations for the BackBoard respring screen on rootless iOS 15 and 16. Selection is inert and processed off the Settings main thread; Apply uses bounded ImageIO decoding and attaches the animation only after BackBoard prepares a valid content layer, with automatic quarantine on failure.
+ Maintainer: NightVibes33
+ Author: wizages, rootless port by NightVibes33
+ Section: Tweaks
+ Architecture: iphoneos-arm64
+ Version: 3.1.3
+ Installed-Size: 212
+
+
+--- generated GIF ---
+input_bytes=112843
+1d0ce5316dbf6d9eacaf38606c70c850c523b21115c40fc1651badc3cefdaccf  Gif2Ani-84-frame-test.gif
+
+
+--- device output ---
+connected=1
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== PRECHECK ===
+initial_backboardd=11895
+initial_springboard=11920
+initial_backboardd_env=  PID   TT  STAT      TIME COMMAND
+11895   ??  ?s     0:00.00 /usr/libexec/backboardd XPC_SERVICE_NAME=com.apple.backboardd PATH=/usr/bin:/bin:/usr/sbin:/sbin XPC_FLAGS=9 LOGNAME=mobile USER=mobile HOME=/var/mobile SHELL=/bin/sh DYLD_INSERT_LIBRARIES=/cores/binpack/usr/lib/systemhook.dylib DYLD_LIBRARY_PATH=/cores/binpack/usr/lib/libroot JB_SANDBOX_EXTENSIONS=8e6c9f13d0cb72057dd695cbf86e7d80c160693ae5cfd6a52a90be6e753b0ed5;01;00000000;00000000;00000000;0000000000000034;com.apple.security.exception.mach-lookup.global-name;in.palera.palera1nd.systemwide|df1ecf8ceaa25ef97dd100b8e27feb0710b25a56ab3333a41d50050b91292bca;01;00000000;00000000;00000000;000000000000001a;com.apple.app-sandbox.mach;in.palera.palera1nd.systemwide JB_ROOT_PATH=/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus JB_PINFO_FLAGS=0x4c00082 JB_TWEAKLOADER_PATH=@default
+=== INSTALL 3.1.3 DISABLED ===
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+(Reading database ... 19748 files and directories currently installed.)
+Preparing to unpack .../Gif2Ani-3.1.3-rootless.deb ...
+Unpacking com.nightvibes33.gif2ani (3.1.3) over (3.1.2) ...
+Setting up com.nightvibes33.gif2ani (3.1.3) ...
+Processing triggers for org.coolstar.sileo (2.5.1) ...
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+installed_version=3.1.3
+disabled_backboardd=12001
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>BKDisplayRenderOverlaySpinny</key>
+	<true/>
+	<key>animationPending</key>
+	<false/>
+	<key>event</key>
+	<string>tweak-loaded-no-media-decode</string>
+	<key>frameCount</key>
+	<integer>0</integer>
+	<key>gifExists</key>
+	<false/>
+	<key>process</key>
+	<string>backboardd</string>
+	<key>safetyLimits</key>
+	<dict>
+		<key>maximumDecodedFrames</key>
+		<integer>24</integer>
+		<key>maximumEstimatedDecodedBytes</key>
+		<integer>50331648</integer>
+		<key>maximumInputBytes</key>
+		<integer>26214400</integer>
+		<key>maximumPixelDimension</key>
+		<integer>640</integer>
+		<key>maximumSourceFrames</key>
+		<integer>240</integer>
+	</dict>
+	<key>timestamp</key>
+	<real>1785008802.469039</real>
+</dict>
+</plist>
+=== PREPARE ENABLED 84-FRAME TEST ===
+enabled_backboardd=12036
+enabled_backboardd_env=  PID   TT  STAT      TIME COMMAND
+12036   ??  ?s     0:00.00 /usr/libexec/backboardd XPC_SERVICE_NAME=com.apple.backboardd PATH=/usr/bin:/bin:/usr/sbin:/sbin XPC_FLAGS=9 LOGNAME=mobile USER=mobile HOME=/var/mobile SHELL=/bin/sh DYLD_INSERT_LIBRARIES=/cores/binpack/usr/lib/systemhook.dylib DYLD_LIBRARY_PATH=/cores/binpack/usr/lib/libroot JB_SANDBOX_EXTENSIONS=8e6c9f13d0cb72057dd695cbf86e7d80c160693ae5cfd6a52a90be6e753b0ed5;01;00000000;00000000;00000000;0000000000000034;com.apple.security.exception.mach-lookup.global-name;in.palera.palera1nd.systemwide|df1ecf8ceaa25ef97dd100b8e27feb0710b25a56ab3333a41d50050b91292bca;01;00000000;00000000;00000000;000000000000001a;com.apple.app-sandbox.mach;in.palera.palera1nd.systemwide JB_ROOT_PATH=/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus JB_PINFO_FLAGS=0x4c00082 JB_TWEAKLOADER_PATH=@default
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>BKDisplayRenderOverlaySpinny</key>
+	<true/>
+	<key>animationPending</key>
+	<false/>
+	<key>event</key>
+	<string>custom-animation-stable</string>
+	<key>frameCount</key>
+	<integer>24</integer>
+	<key>gifExists</key>
+	<true/>
+	<key>media</key>
+	<dict>
+		<key>decodedFrames</key>
+		<integer>24</integer>
+		<key>decodedHeight</key>
+		<integer>240</integer>
+		<key>decodedWidth</key>
+		<integer>320</integer>
+		<key>estimatedDecodedBytes</key>
+		<integer>7372800</integer>
+		<key>inputBytes</key>
+		<integer>112843</integer>
+		<key>sourceFrames</key>
+		<integer>84</integer>
+		<key>sourceHeight</key>
+		<integer>240</integer>
+		<key>sourceWidth</key>
+		<integer>320</integer>
+	</dict>
+	<key>process</key>
+	<string>backboardd</string>
+	<key>safetyLimits</key>
+	<dict>
+		<key>maximumDecodedFrames</key>
+		<integer>24</integer>
+		<key>maximumEstimatedDecodedBytes</key>
+		<integer>50331648</integer>
+		<key>maximumInputBytes</key>
+		<integer>26214400</integer>
+		<key>maximumPixelDimension</key>
+		<integer>640</integer>
+		<key>maximumSourceFrames</key>
+		<integer>240</integer>
+	</dict>
+	<key>timestamp</key>
+	<real>1785008816.411181</real>
+</dict>
+</plist>
+=== CLEANUP ===
+cleanup_backboardd=12067
+final_connected=1
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+final_version=
+dpkg-query: error in show format: may not be empty string
+final_backboardd=12067
+final_state=gif2ani_3.1.3_installed_disabled_no_media
+
