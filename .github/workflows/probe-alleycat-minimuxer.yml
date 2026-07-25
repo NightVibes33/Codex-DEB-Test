@@ -1,0 +1,51 @@
+name: Probe AlleyCat Minimuxer Failure
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/probe-alleycat-minimuxer.yml
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Extract failed minimuxer step
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_ID: '89651432379'
+        run: |
+          set -euo pipefail
+          mkdir -p build-diagnostics
+          gh api \
+            -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/jobs/${JOB_ID}/logs" > "$RUNNER_TEMP/job.log"
+          {
+            echo '# AlleyCat minimuxer failure'
+            echo
+            echo "- Job: ${JOB_ID}"
+            echo
+            echo '```text'
+            grep -nEi 'minimuxer|rustbridge|rust_bridge|error:|failed|No such file|not found|exit code|cargo build|bindgen|cmake|pkgconf|openssl|aws-lc' "$RUNNER_TEMP/job.log" | tail -n 300 || true
+            echo
+            echo '--- final 350 lines ---'
+            tail -n 350 "$RUNNER_TEMP/job.log"
+            echo '```'
+          } > build-diagnostics/alleycat-minimuxer-error.md
+      - name: Commit probe result
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add build-diagnostics/alleycat-minimuxer-error.md
+          git commit -m 'Record AlleyCat minimuxer failure [skip ci]' || exit 0
+          git pull --rebase origin main
+          git push origin HEAD:main
