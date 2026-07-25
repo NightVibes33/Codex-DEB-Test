@@ -1,0 +1,6 @@
+Current ElleKit Loader Path Verification
+run_id=30170633461
+collect=failure
+
+scp_exit=255
+probe_exit=255
