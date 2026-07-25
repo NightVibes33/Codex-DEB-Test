@@ -49,7 +49,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build official-protocol launchd helper
+      - name: Build runtime-resolved launchd helper
         id: build
         env:
           THEOS: /opt/theos
@@ -78,30 +78,33 @@ jobs:
           MK
 
           cat > launchdflagsync/main.c <<'CC'
+          #include <dlfcn.h>
+          #include <mach/mach.h>
           #include <stdint.h>
           #include <stdio.h>
           #include <stdlib.h>
           #include <xpc/xpc.h>
-          #include <xpc/connection.h>
-          #include <xpc/private.h>
-          #include <os/alloc_once_private.h>
 
-          enum {
-              JBD_CMD_GET_PINFO_FLAGS = 1,
-              LAUNCHD_CMD_SET_PINFO_FLAGS = 3
+          #define OS_ALLOC_ONCE_KEY_LIBXPC 1
+          #define JBD_CMD_GET_PINFO_FLAGS 1
+          #define LAUNCHD_CMD_SET_PINFO_FLAGS 3
+
+          struct os_alloc_once_entry {
+              long once;
+              void *ptr;
           };
 
           struct xpc_global_data {
               uint64_t a;
               uint64_t xpc_flags;
               mach_port_t task_bootstrap_port;
-          #ifndef _64
-              uint32_t padding;
-          #endif
-              xpc_object_t xpc_bootstrap_pipe;
+              void *xpc_bootstrap_pipe;
           };
 
-          static xpc_object_t send_jailbreakd(uint64_t command) {
+          typedef int (*pipe_interface_fn)(void *, uint64_t, xpc_object_t, xpc_object_t *, uint64_t);
+          typedef int (*pipe_routine_fn)(void *, xpc_object_t, xpc_object_t *);
+
+          static xpc_object_t query_live_flags(void) {
               xpc_connection_t connection = xpc_connection_create_mach_service(
                   "in.palera.palera1nd.systemwide", NULL, 0);
               if (!connection) return NULL;
@@ -110,7 +113,7 @@ jobs:
               });
               xpc_connection_activate(connection);
               xpc_object_t request = xpc_dictionary_create(NULL, NULL, 0);
-              xpc_dictionary_set_uint64(request, "cmd", command);
+              xpc_dictionary_set_uint64(request, "cmd", JBD_CMD_GET_PINFO_FLAGS);
               xpc_object_t reply = xpc_connection_send_message_with_reply_sync(connection, request);
               xpc_release(request);
               xpc_connection_cancel(connection);
@@ -118,71 +121,87 @@ jobs:
               return reply;
           }
 
-          static int send_launchd_flags(uint64_t flags, xpc_object_t *reply_out) {
+          static int sync_launchd(uint64_t flags, xpc_object_t *reply_out) {
+              struct os_alloc_once_entry *table =
+                  (struct os_alloc_once_entry *)dlsym(RTLD_DEFAULT, "_os_alloc_once_table");
+              pipe_interface_fn interface_routine =
+                  (pipe_interface_fn)dlsym(RTLD_DEFAULT, "_xpc_pipe_interface_routine");
+              pipe_routine_fn pipe_routine =
+                  (pipe_routine_fn)dlsym(RTLD_DEFAULT, "xpc_pipe_routine");
+
+              if (!table) {
+                  fprintf(stderr, "os_alloc_once_table=missing\n");
+                  return 80;
+              }
+              struct xpc_global_data *global =
+                  (struct xpc_global_data *)table[OS_ALLOC_ONCE_KEY_LIBXPC].ptr;
+              if (!global || !global->xpc_bootstrap_pipe) {
+                  fprintf(stderr, "bootstrap_pipe=missing\n");
+                  return 81;
+              }
+
               xpc_object_t request = xpc_dictionary_create(NULL, NULL, 0);
               xpc_dictionary_set_bool(request, "jailbreak", true);
               xpc_dictionary_set_uint64(request, "cmd", LAUNCHD_CMD_SET_PINFO_FLAGS);
               xpc_dictionary_set_uint64(request, "flags", flags);
 
-              struct xpc_global_data *global =
-                  (struct xpc_global_data *)_os_alloc_once_table[OS_ALLOC_ONCE_KEY_LIBXPC].ptr;
-              if (!global || !global->xpc_bootstrap_pipe) {
-                  fprintf(stderr, "bootstrap_pipe=missing\n");
+              xpc_object_t reply = NULL;
+              int result;
+              if (interface_routine) {
+                  result = interface_routine(global->xpc_bootstrap_pipe, 0, request, &reply, 0);
+                  printf("pipe_api=interface_routine\n");
+              } else if (pipe_routine) {
+                  result = pipe_routine(global->xpc_bootstrap_pipe, request, &reply);
+                  printf("pipe_api=pipe_routine\n");
+              } else {
+                  fprintf(stderr, "pipe_routine_symbols=missing\n");
                   xpc_release(request);
-                  return 70;
+                  return 82;
               }
 
-              xpc_object_t reply = NULL;
-              int ret;
-              if (__builtin_available(iOS 15.0, *)) {
-                  ret = _xpc_pipe_interface_routine(
-                      global->xpc_bootstrap_pipe, 0, request, &reply, 0);
-              } else {
-                  ret = xpc_pipe_routine(global->xpc_bootstrap_pipe, request, &reply);
-              }
               xpc_release(request);
-              if (reply_out) *reply_out = reply;
-              else if (reply) xpc_release(reply);
-              return ret;
+              *reply_out = reply;
+              return result;
           }
 
           int main(void) {
-              xpc_object_t jbd_reply = send_jailbreakd(JBD_CMD_GET_PINFO_FLAGS);
+              xpc_object_t jbd_reply = query_live_flags();
               if (!jbd_reply) {
                   fprintf(stderr, "jailbreakd_reply=missing\n");
-                  return 71;
+                  return 70;
               }
               if (xpc_get_type(jbd_reply) == XPC_TYPE_ERROR) {
                   char *description = xpc_copy_description(jbd_reply);
-                  fprintf(stderr, "jailbreakd_xpc_error=%s\n", description ?: "unknown");
-                  free(description);
+                  fprintf(stderr, "jailbreakd_xpc_error=%s\n", description ? description : "unknown");
+                  if (description) free(description);
                   xpc_release(jbd_reply);
-                  return 72;
+                  return 71;
               }
+
               int64_t jbd_error = xpc_dictionary_get_int64(jbd_reply, "error");
-              uint64_t live_flags = xpc_dictionary_get_uint64(jbd_reply, "flags");
+              uint64_t flags = xpc_dictionary_get_uint64(jbd_reply, "flags");
               printf("jailbreakd_error=%lld\n", (long long)jbd_error);
-              printf("live_flags=0x%llx\n", (unsigned long long)live_flags);
-              printf("live_safe_bit=%d\n", (live_flags & (1ULL << 25)) ? 1 : 0);
-              printf("live_failure_bit=%d\n", (live_flags & (1ULL << 60)) ? 1 : 0);
+              printf("live_flags=0x%llx\n", (unsigned long long)flags);
+              printf("live_safe_bit=%d\n", (flags & (1ULL << 25)) ? 1 : 0);
+              printf("live_failure_bit=%d\n", (flags & (1ULL << 60)) ? 1 : 0);
               xpc_release(jbd_reply);
-              if (jbd_error != 0 || live_flags == 0) return 73;
+              if (jbd_error != 0 || flags == 0) return 72;
 
               xpc_object_t launchd_reply = NULL;
-              int pipe_ret = send_launchd_flags(live_flags, &launchd_reply);
-              printf("launchd_pipe_ret=%d\n", pipe_ret);
+              int pipe_result = sync_launchd(flags, &launchd_reply);
+              printf("launchd_pipe_result=%d\n", pipe_result);
               if (!launchd_reply) {
                   fprintf(stderr, "launchd_reply=missing\n");
-                  return pipe_ret ? pipe_ret : 74;
+                  return pipe_result ? pipe_result : 73;
               }
+
               char *description = xpc_copy_description(launchd_reply);
-              printf("launchd_reply=%s\n", description ?: "unknown");
-              free(description);
+              printf("launchd_reply=%s\n", description ? description : "unknown");
+              if (description) free(description);
               int64_t launchd_error = xpc_dictionary_get_int64(launchd_reply, "error");
               printf("launchd_error=%lld\n", (long long)launchd_error);
               xpc_release(launchd_reply);
-              if (pipe_ret != 0) return pipe_ret;
-              if (launchd_error != 0) return 75;
+              if (pipe_result != 0 || launchd_error != 0) return 74;
               printf("sync_result=success\n");
               return 0;
           }
@@ -210,7 +229,7 @@ jobs:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
           version: latest
 
-      - name: Sync launchd flags and safely restart UI processes
+      - name: Sync flags and restart only UI processes
         id: apply
         env:
           SSHPASS: ${{ secrets.IPAD_PASSWORD }}
@@ -264,9 +283,7 @@ jobs:
           chown root:wheel "$helper" "$entitlements"
           chmod 0755 "$helper"
           chmod 0644 "$entitlements"
-          if [ -x /var/jb/usr/bin/ldid ]; then
-            /var/jb/usr/bin/ldid -S"$entitlements" "$helper"
-          fi
+          /var/jb/usr/bin/ldid -S"$entitlements" "$helper"
 
           echo '=== BEFORE SYNC ==='
           bb=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')
@@ -274,16 +291,17 @@ jobs:
           echo "backboardd_before=$bb"
           echo "springboard_before=$sb"
           ps eww -p "$bb" 2>/dev/null || true
-          echo '=== HELPER ENTITLEMENTS ==='
-          /var/jb/usr/bin/ldid -e "$helper" 2>&1 || true
 
-          touch "$marker"
           echo '=== OFFICIAL LAUNCHD COMMAND 3 SYNC ==='
-          "$helper"
+          helper_output=$("$helper" 2>&1)
+          echo "$helper_output"
+          live_flags=$(printf '%s\n' "$helper_output" | sed -n 's/^live_flags=//p' | tail -n1)
+          test -n "$live_flags"
+          touch "$marker"
 
           echo '=== RESTART UI PROCESSES ==='
           killall -9 backboardd SpringBoard 2>/dev/null || true
-          sleep 15
+          sleep 20
 
           echo '=== AFTER RESTART ==='
           bb=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')
@@ -295,6 +313,7 @@ jobs:
           echo "backboardd_env=$bb_env"
           echo "springboard_env=$sb_env"
           spawned_flags=$(printf '%s\n' "$bb_env" | sed -n 's/.*JB_PINFO_FLAGS=\([^ ]*\).*/\1/p' | tail -n1)
+          echo "live_flags_expected=$live_flags"
           echo "spawned_flags=$spawned_flags"
 
           echo '=== GIF2ANI CONSTRUCTOR STATUS ==='
@@ -315,7 +334,7 @@ jobs:
             -newer "$marker" -print 2>/dev/null | wc -l | tr -d ' ')
           echo "new_crash_reports=$crash_count"
 
-          test "$spawned_flags" = '0x4c00082'
+          test "$spawned_flags" = "$live_flags"
           test -f "$media/runtime-status.plist"
           grep -a -q 'tweak-loaded-no-media-decode' "$media/runtime-status.plist"
           test ! -e "$media/Pending.gif"
@@ -324,6 +343,7 @@ jobs:
           test "$crash_count" = 0
           echo final_result=launchd_flags_synced_tweak_injection_restored
           SH
+
           chmod +x apply-launchd-flag-sync.sh
           sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             apply-launchd-flag-sync.sh mobile@"$IPAD_HOST":/var/mobile/Media/
@@ -357,7 +377,7 @@ jobs:
           if pw:
               text=text.replace(pw,'***REDACTED***')
           out=[
-              'launchd palera1n Flag Synchronization',
+              'launchd palera1n Flag Synchronization V2',
               f"run_id={os.environ.get('GITHUB_RUN_ID','')}",
               f"build={os.environ.get('BUILD_OUTCOME','')}",
               f"apply={os.environ.get('APPLY_OUTCOME','')}",
@@ -372,7 +392,7 @@ jobs:
             cp /tmp/launchd-palera1n-flag-sync.txt remote/launchd-palera1n-flag-sync.txt
             git add remote/launchd-palera1n-flag-sync.txt
             if git diff --cached --quiet; then exit 0; fi
-            git commit -m "Record launchd palera1n flag synchronization [skip ci]"
+            git commit -m "Record launchd palera1n flag synchronization V2 [skip ci]"
             if git push origin HEAD:main; then exit 0; fi
             sleep 3
           done
