@@ -1,4 +1,4 @@
-diagnostic=tweak-injection-policy-v2
-requested_at=2026-07-25T14:05:00-05:00
-state=gif2ani-3.1.1-disabled-no-gif
-reason=decode-choicy-and-loaded-libraries
+diagnostic=registered-explicit-tweakloader-test
+requested_at=2026-07-25T14:33:00-05:00
+state=gif2ani-3.1.1-disabled-no-media
+reason=verify-palera1n-explicit-loader-path
