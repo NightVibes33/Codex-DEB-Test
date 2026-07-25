@@ -15,14 +15,15 @@ if command -v sysctl >/dev/null 2>&1; then
 fi
 
 SYSTEM_VERSION_PLIST=/System/Library/CoreServices/SystemVersion.plist
-if [ -f "$SYSTEM_VERSION_PLIST" ]; then
-  if command -v plutil >/dev/null 2>&1; then
-    printf 'product_name='; plutil -extract ProductName raw "$SYSTEM_VERSION_PLIST" 2>/dev/null || true
-    printf 'product_version='; plutil -extract ProductVersion raw "$SYSTEM_VERSION_PLIST" 2>/dev/null || true
-    printf 'build_version='; plutil -extract ProductBuildVersion raw "$SYSTEM_VERSION_PLIST" 2>/dev/null || true
-  else
-    grep -A1 -E '<key>(ProductName|ProductVersion|ProductBuildVersion)</key>' "$SYSTEM_VERSION_PLIST" 2>/dev/null || true
-  fi
+if [ -f "$SYSTEM_VERSION_PLIST" ] && command -v python3 >/dev/null 2>&1; then
+  python3 - "$SYSTEM_VERSION_PLIST" <<'PY'
+import plistlib, sys
+with open(sys.argv[1], 'rb') as handle:
+    data = plistlib.load(handle)
+print('product_name=' + str(data.get('ProductName', '')))
+print('product_version=' + str(data.get('ProductVersion', '')))
+print('build_version=' + str(data.get('ProductBuildVersion', '')))
+PY
 fi
 
 if [ -d /var/jb ]; then
