@@ -1,12 +1,12 @@
 palera1n Pinfo Query
-run_id=30170533267
+run_id=30170550433
 build=success
 probe=success
 
 --- sanitized output ---
 Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
-reply=<dictionary: 0xb8a8073e0> { count = 1, transaction: 0, voucher = 0x0, contents =
-	"flags" => <uint64: 0xa7759ecad7e74c17>: 79691906
+reply=<dictionary: 0x6dc9041a0> { count = 1, transaction: 0, voucher = 0x0, contents =
+	"flags" => <uint64: 0xbc86a009aed964f7>: 79691906
 }
 jailbreakd_error=0
 jailbreakd_flags=0x4c00082
