@@ -8,22 +8,54 @@ on:
 
 permissions:
   actions: write
-  contents: read
+  contents: write
 
 jobs:
   dispatch:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Dispatch safe installer
+        id: dispatch
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
-          curl --fail --silent --show-error \
+          set -uo pipefail
+          set +e
+          http_code=$(curl --silent --show-error \
+            -o dispatch-response.txt \
+            -w '%{http_code}' \
             -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/install-gif2ani-3.1.0-safe.yml/dispatches" \
-            -d '{"ref":"main"}'
-          echo "safe_installer_dispatched=yes"
+            -d '{"ref":"main"}')
+          code=$?
+          set -e
+          echo "curl_exit=$code" | tee dispatch-status.txt
+          echo "http_code=$http_code" | tee -a dispatch-status.txt
+          if [ -s dispatch-response.txt ]; then cat dispatch-response.txt | tee -a dispatch-status.txt; fi
+          test "$code" -eq 0
+          test "$http_code" = "204"
+          echo "safe_installer_dispatched=yes" | tee -a dispatch-status.txt
+      - name: Publish dispatcher status
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          mkdir -p remote
+          {
+            echo "Gif2Ani Safe Installer Dispatch"
+            echo "run_id=${GITHUB_RUN_ID}"
+            echo "outcome=${{ steps.dispatch.outcome }}"
+            echo
+            if [ -f dispatch-status.txt ]; then cat dispatch-status.txt; else echo "No dispatch output."; fi
+          } > remote/gif2ani-safe-dispatch-status.txt
+          git add remote/gif2ani-safe-dispatch-status.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record Gif2Ani safe installer dispatch [skip ci]"
+            git push origin HEAD:main
+          fi
