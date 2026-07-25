@@ -1,0 +1,211 @@
+name: Activate ElleKit Safely on iPad
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/activate-ellekit-safe-ipad.txt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  activate:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Join Tailscale
+        id: tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - name: Install SSH tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends openssh-client sshpass
+      - name: Create device scripts
+        run: |
+          cat > activate-ellekit-safe.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media="/var/mobile/Library/Application Support/Gif2Ani"
+          prefs="/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist"
+          marker="/var/mobile/Media/ellekit-safe-activation.marker"
+          loader="/var/jb/usr/libexec/ellekit/loader"
+          launchctl_bin="/var/jb/usr/bin/launchctl"
+
+          test "$(dpkg-query -W com.nightvibes33.gif2ani | cut -f2)" = "3.1.1"
+          test "$(dpkg-query -W ellekit | cut -f2)" = "1.1.3"
+          test -x "$loader"
+          test -x "$launchctl_bin"
+
+          mkdir -p "$media"
+          cat > "$prefs" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>isEnabled</key><false/>
+            <key>pendingReady</key><false/>
+            <key>imageTransformation</key><string>resizeAspect</string>
+            <key>customLoop</key><real>-1</real>
+            <key>customDuration</key><real>-1</real>
+            <key>backgroundColor</key><string>#000000</string>
+          </dict></plist>
+          PLIST
+          chown mobile:mobile "$media" "$prefs"
+          chmod 0755 "$media"
+          chmod 0644 "$prefs"
+          rm -f "$media/Pending.gif" "$media/Active.gif" "$media/Rejected.gif" "$media/load-in-progress" "$media/runtime-status.plist"
+          touch "$marker"
+
+          echo "=== RUN ELLEKIT LOADER ==="
+          "$loader"
+          echo "ellekit_loader_exit=0"
+          sleep 4
+
+          echo "=== SCHEDULE USERSPACE REBOOT ==="
+          nohup sh -c 'sleep 2; /var/jb/usr/bin/launchctl reboot userspace' \
+            >/var/mobile/Media/ellekit-userspace-reboot.log 2>&1 </dev/null &
+          echo "userspace_reboot_scheduled=yes"
+          SH
+
+          cat > verify-ellekit-safe.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media="/var/mobile/Library/Application Support/Gif2Ani"
+          marker="/var/mobile/Media/ellekit-safe-activation.marker"
+          test "$(dpkg-query -W com.nightvibes33.gif2ani | cut -f2)" = "3.1.1"
+          test "$(dpkg-query -W ellekit | cut -f2)" = "1.1.3"
+          test ! -e "$media/Pending.gif"
+          test ! -e "$media/Active.gif"
+          test ! -e "$media/Rejected.gif"
+          test ! -e "$media/load-in-progress"
+          test -f "$media/runtime-status.plist"
+          cat "$media/runtime-status.plist"
+          grep -a -q 'tweak-loaded-no-media-decode' "$media/runtime-status.plist"
+          crashes=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -newer "$marker" -print 2>/dev/null | wc -l | tr -d ' ')
+          echo "post_activation_crashes=$crashes"
+          test "$crashes" = "0"
+          echo "ellekit_normal_injection=success"
+          ps ax | grep -E '[b]ackboardd|[S]pringBoard' || true
+          SH
+          chmod +x activate-ellekit-safe.sh verify-ellekit-safe.sh
+
+      - name: Upload scripts
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 24); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then break; fi
+            sleep 5
+          done
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            activate-ellekit-safe.sh verify-ellekit-safe.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+
+      - name: Activate loader and schedule reboot
+        id: activate_loader
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -uo pipefail
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/activate-ellekit-safe.sh' \
+            2>&1 | tee ellekit-safe-activation.txt
+          code=${PIPESTATUS[1]}
+          set -e
+          echo "activation_ssh_exit=$code" | tee -a ellekit-safe-activation.txt
+          if [ "$code" -ne 0 ] && [ "$code" -ne 255 ]; then exit "$code"; fi
+
+      - name: Wait for iPad after userspace reboot
+        id: reconnect
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          sleep 8
+          connected=0
+          for attempt in $(seq 1 60); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then
+              connected=1
+              echo "reconnected_after_userspace=yes" | tee -a ellekit-safe-activation.txt
+              break
+            fi
+            sleep 5
+          done
+          test "$connected" -eq 1
+          sleep 8
+
+      - name: Verify normal injection with no GIF
+        id: verify
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/verify-ellekit-safe.sh' \
+            2>&1 | tee -a ellekit-safe-activation.txt
+
+      - name: Publish sanitized status
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          ACTIVATE_OUTCOME: ${{ steps.activate_loader.outcome }}
+          RECONNECT_OUTCOME: ${{ steps.reconnect.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('ellekit-safe-activation.txt').read_text(errors='replace') if Path('ellekit-safe-activation.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=['ElleKit Safe Activation',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"activate={os.environ.get('ACTIVATE_OUTCOME','')}",f"reconnect={os.environ.get('RECONNECT_OUTCOME','')}",f"verify={os.environ.get('VERIFY_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-400:]]
+          Path('remote/ellekit-safe-activation-status.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/ellekit-safe-activation-status.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record ElleKit safe activation [skip ci]"
+            git push origin HEAD:main
+          fi
