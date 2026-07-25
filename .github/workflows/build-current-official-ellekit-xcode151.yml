@@ -1,0 +1,123 @@
+name: Build Current Official ElleKit with Xcode 15.1
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - triggers/build-current-official-ellekit-xcode151.txt
+
+permissions:
+  contents: write
+
+env:
+  ELLEKIT_REPO: https://github.com/palera1n/ellekit.git
+  ELLEKIT_COMMIT: 37d34cabc2d11931b24ab19d00fbd1c725e2589d
+
+jobs:
+  build:
+    runs-on: macos-13
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select official CI Xcode
+        id: xcode
+        run: |
+          set -euo pipefail
+          ls -1 /Applications | grep '^Xcode' | sort -V || true
+          test -d /Applications/Xcode_15.1.app
+          sudo xcode-select --switch /Applications/Xcode_15.1.app
+          xcodebuild -version
+          echo 'selected_xcode=/Applications/Xcode_15.1.app' >> "$GITHUB_OUTPUT"
+      - name: Bootstrap Procursus
+        uses: dhinakg/procursus-action@main
+        with:
+          packages: ldid findutils sed coreutils dpkg
+          cache: true
+          cache-path: ~/__cache-xcode151
+      - name: Clone pinned source
+        run: |
+          set -euo pipefail
+          git clone "$ELLEKIT_REPO" ellekit-source
+          cd ellekit-source
+          git fetch --force --tags origin
+          git checkout --detach "$ELLEKIT_COMMIT"
+          test "$(git rev-parse HEAD)" = "$ELLEKIT_COMMIT"
+          git describe --tags --always | tee ../source-version-xcode151.txt
+      - name: Build rootless release
+        id: compile
+        run: |
+          set -uo pipefail
+          : > ellekit-xcode151-build.log
+          set +e
+          make -C ellekit-source deb-ios-rootless RELEASE=1 2>&1 | tee ellekit-xcode151-build.log
+          code=${PIPESTATUS[0]}
+          set -e
+          echo "compile_exit=$code" | tee -a ellekit-xcode151-build.log
+          exit "$code"
+      - name: Validate package
+        id: validate
+        if: steps.compile.outcome == 'success'
+        run: |
+          set -euo pipefail
+          DEB="$(find ellekit-source/packages -maxdepth 1 -type f -name 'ellekit_*_iphoneos-arm64.deb' -print | head -n1)"
+          test -n "$DEB"
+          dpkg-deb --info "$DEB" | tee ellekit-xcode151-package-info.txt
+          dpkg-deb --contents "$DEB" | tee ellekit-xcode151-package-contents.txt
+          test "$(dpkg-deb --field "$DEB" Package)" = ellekit
+          test "$(dpkg-deb --field "$DEB" Architecture)" = iphoneos-arm64
+          rm -rf ellekit-xcode151-root ellekit-xcode151-control
+          dpkg-deb -x "$DEB" ellekit-xcode151-root
+          dpkg-deb -e "$DEB" ellekit-xcode151-control
+          test -f ellekit-xcode151-root/var/jb/usr/lib/ellekit/pspawn.dylib
+          test -f ellekit-xcode151-root/var/jb/usr/lib/ellekit/libinjector.dylib
+          test -f ellekit-xcode151-root/var/jb/usr/lib/libellekit.dylib
+          test -x ellekit-xcode151-root/var/jb/usr/libexec/ellekit/loader
+          test -L ellekit-xcode151-root/var/jb/etc/rc.d/ellekit-loader
+          test -x ellekit-xcode151-control/preinst
+          test -x ellekit-xcode151-control/postinst
+          file ellekit-xcode151-root/var/jb/usr/lib/ellekit/pspawn.dylib | grep -q arm64
+          file ellekit-xcode151-root/var/jb/usr/libexec/ellekit/loader | grep -q arm64
+          cp "$DEB" Current-Official-ElleKit-Xcode151-rootless.deb
+          shasum -a 256 Current-Official-ElleKit-Xcode151-rootless.deb | tee ellekit-xcode151-sha256.txt
+          {
+            echo "package_version=$(dpkg-deb --field "$DEB" Version)"
+            echo "source_commit=$ELLEKIT_COMMIT"
+            echo "validation=success"
+          } | tee ellekit-xcode151-validation.txt
+      - name: Upload validated DEB
+        if: steps.validate.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Current-Official-ElleKit-Xcode151-rootless
+          path: Current-Official-ElleKit-Xcode151-rootless.deb
+          if-no-files-found: error
+          retention-days: 14
+      - name: Publish status
+        if: always()
+        env:
+          COMPILE_OUTCOME: ${{ steps.compile.outcome }}
+          VALIDATE_OUTCOME: ${{ steps.validate.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin main
+          {
+            echo 'Current Official ElleKit Xcode 15.1 Build'
+            echo "run_id=${GITHUB_RUN_ID}"
+            echo "source_commit=${ELLEKIT_COMMIT}"
+            echo "compile=${COMPILE_OUTCOME}"
+            echo "validate=${VALIDATE_OUTCOME}"
+            echo
+            cat ellekit-xcode151-validation.txt 2>/dev/null || true
+            cat ellekit-xcode151-sha256.txt 2>/dev/null || true
+            echo
+            echo '--- build tail ---'
+            tail -n 220 ellekit-xcode151-build.log 2>/dev/null || echo 'No build log.'
+          } > remote/current-official-ellekit-xcode151-build.txt
+          git add remote/current-official-ellekit-xcode151-build.txt
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record current official ElleKit Xcode 15.1 build [skip ci]'
+            git push origin HEAD:main
+          fi
