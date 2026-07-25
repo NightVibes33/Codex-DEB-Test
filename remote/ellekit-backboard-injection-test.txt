@@ -1,0 +1,23 @@
+ElleKit BackBoard Injection Test
+run_id=30170039065
+restart=success
+verify=failure
+
+--- sanitized output ---
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+prepared_disabled_no_gif=yes
+backboardd_before=7331
+=== ELLEKIT LOADER OUTPUT ===
+ellekit_loader_exit=0
+=== RESTART BACKBOARD ===
+restart_ssh_exit=0
+reconnected=1
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+backboardd_after=7629
+springboard_after=7636
+=== RUNTIME STATUS ===
+runtime_status=missing
