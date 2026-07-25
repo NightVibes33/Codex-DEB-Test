@@ -73,8 +73,10 @@ jobs:
           prefs='/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist'
           runtime="$media/runtime-status.plist"
           marker='/var/mobile/Media/reload-palera1n-env.marker'
-          p1ctl='/cores/payload'
+          p1ctl='/var/mobile/Media/p1ctl'
 
+          ln -sf /cores/payload "$p1ctl"
+          chmod 0755 "$p1ctl"
           mkdir -p "$media"
           rm -f "$media/Pending.gif" "$media/Active.gif" "$media/Rejected.gif" "$media/load-in-progress" "$media/runtime-status.plist" "$media/pending-metadata.plist"
           cat > "$prefs" <<'PLIST'
