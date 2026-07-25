@@ -1,0 +1,130 @@
+name: Probe Respring Theme Catalog
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - triggers/probe-respring-theme-catalog.txt
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1)) == target:
+                  print('environment_name='+env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  probe:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends openssh-client sshpass python3-bs4
+
+      - name: Probe public package pages and iPad catalogs
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          : > respring-theme-catalog-probe.txt
+          echo '=== PUBLIC PAGE PROBE ===' | tee -a respring-theme-catalog-probe.txt
+          python3 - <<'PY' | tee -a respring-theme-catalog-probe.txt
+          import requests
+          from bs4 import BeautifulSoup
+          pages=[
+            'https://www.ios-repo-updates.com/repository/viren-s-repo-1/',
+            'https://www.ios-repo-updates.com/repository/viren-s-repo-1/package/io.github.virenmohindra.bubbles/',
+            'https://www.ios-repo-updates.com/repository/basepack/package/com.project.brooklyn/',
+          ]
+          for url in pages:
+              print('\nPAGE',url)
+              try:
+                  r=requests.get(url,timeout=30,headers={'User-Agent':'Mozilla/5.0'})
+                  print('status',r.status_code,'bytes',len(r.content),'final',r.url)
+                  s=BeautifulSoup(r.text,'html.parser')
+                  print('title',s.title.get_text(' ',strip=True) if s.title else '')
+                  for a in s.find_all('a',href=True):
+                      href=a['href']
+                      text=a.get_text(' ',strip=True)
+                      low=href.lower()
+                      if any(x in low for x in ('cydia','sileo','zbra','source=','.deb','packages','release','download')):
+                          print('LINK',text[:100],href)
+              except Exception as e:
+                  print('error',type(e).__name__,str(e))
+          PY
+
+          connected=0
+          for attempt in $(seq 1 35); do
+            sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1 && { connected=1; break; }
+            sleep 5
+          done
+          echo "connected=$connected" | tee -a respring-theme-catalog-probe.txt
+          test "$connected" -eq 1
+
+          sshpass -e ssh -p 22 -o ConnectTimeout=60 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sh -s' <<'SH' 2>&1 | tee -a respring-theme-catalog-probe.txt
+          set -u
+          echo '=== IPAD SOURCES ==='
+          for f in /var/jb/etc/apt/sources.list /var/jb/etc/apt/sources.list.d/* /etc/apt/sources.list /etc/apt/sources.list.d/*; do
+            [ -f "$f" ] || continue
+            echo "--- $f"
+            sed -n '1,200p' "$f"
+          done
+          echo '=== APT CACHE SEARCH ==='
+          if command -v apt-cache >/dev/null 2>&1; then
+            apt-cache search springy 2>/dev/null || true
+            apt-cache search respring 2>/dev/null | head -300 || true
+            apt-cache search bootlogo 2>/dev/null | head -300 || true
+          fi
+          echo '=== PACKAGE LIST MATCHES ==='
+          grep -R -i -n -E '(^Package: .*springy|^Depends: .*springy|^Name: .*Springy|Springy BootLogo|Respring (Theme|Animation))' /var/jb/var/lib/apt/lists /var/lib/apt/lists 2>/dev/null | head -1200 || true
+          echo '=== INSTALLED/DOWNLOADED THEME PATHS ==='
+          find /var/jb/Library /Library /var/mobile/Library -maxdepth 5 -type d \( -iname '*springy*' -o -iname '*respring*' -o -iname '*bootlogo*' \) -print 2>/dev/null | head -500 || true
+          SH
+
+      - name: Publish probe
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          mkdir -p remote
+          {
+            echo 'Respring Theme Catalog Probe'
+            echo "run_id=${GITHUB_RUN_ID}"
+            echo
+            cat respring-theme-catalog-probe.txt 2>/dev/null || echo 'No output.'
+          } > remote/respring-theme-catalog-probe.txt
+          git add remote/respring-theme-catalog-probe.txt
+          git commit -m 'Record respring theme catalog probe [skip ci]' || exit 0
+          git push origin HEAD:main
