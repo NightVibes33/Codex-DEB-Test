@@ -1,4 +1,4 @@
-name: Patch Gif2Ani 3.1.3 Installer Theos Path
+name: Patch Gif2Ani 3.1.3 Installer Toolchain
 
 on:
   workflow_dispatch:
@@ -15,18 +15,36 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Patch installer
+      - name: Patch installer toolchain setup
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
           p=Path('.github/workflows/install-gif2ani-3.1.3-safe.yml')
           text=p.read_text()
-          old='THEOS=/opt/theos make clean package FINALPACKAGE=1 2>&1 | tee ../build-313-install.log'
-          new='THEOS=/opt/theos THEOS_MAKE_PATH=/opt/theos/makefiles make clean package FINALPACKAGE=1 2>&1 | tee ../build-313-install.log'
+          old='''          sudo apt-get install -y --no-install-recommends \\
+            bash curl sudo build-essential fakeroot rsync perl git libxml2 dpkg-dev \\
+            unzip xz-utils ca-certificates python3 file imagemagick openssh-client sshpass
+          sudo rm -rf /opt/theos
+          sudo mkdir -p /opt
+          sudo chown "$USER:$USER" /opt
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+'''
+          new='''          sudo apt-get install -y --no-install-recommends \\
+            bash curl sudo build-essential fakeroot rsync perl git libxml2 dpkg-dev libtinfo6 \\
+            unzip xz-utils ca-certificates python3 file imagemagick openssh-client sshpass
+          sudo rm -rf /opt/theos /tmp/theos-sdks
+          sudo mkdir -p /opt
+          sudo chown "$USER:$USER" /opt
+          git clone --recursive https://github.com/theos/theos.git /opt/theos
+          git clone --depth=1 https://github.com/theos/sdks.git /tmp/theos-sdks
+          cp -a /tmp/theos-sdks/iPhoneOS16.5.sdk /opt/theos/sdks/
+          test -f /opt/theos/makefiles/aggregate.mk
+          test -f /opt/theos/sdks/iPhoneOS16.5.sdk/SDKSettings.plist
+'''
           count=text.count(old)
           if count != 1:
-              raise SystemExit(f'expected one match, got {count}')
+              raise SystemExit(f'expected one toolchain block, got {count}')
           p.write_text(text.replace(old,new,1))
           PY
           git diff --check
@@ -38,6 +56,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .github/workflows/install-gif2ani-3.1.3-safe.yml
           if ! git diff --cached --quiet; then
-            git commit -m "Fix Theos make path in Gif2Ani 3.1.3 installer"
+            git commit -m "Use complete Theos toolchain in Gif2Ani 3.1.3 installer"
             git push origin HEAD:main
           fi
