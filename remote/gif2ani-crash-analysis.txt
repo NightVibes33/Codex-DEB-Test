@@ -1,6 +1,206 @@
 Gif2Ani Crash Analysis
-run_id=30165608225
-copy_logs=failure
-parse=skipped
+run_id=30165722909
+copy_logs=success
+parse=success
 
-No analysis produced.
+Crash files analyzed: 11
+
+=== SpringBoard-2026-07-25-102729.ips ===
+process=SpringBoard
+captureTime=2026-07-25 10:27:29.5715 -0500
+exception_type=None
+exception_signal=None
+exception_codes=None
+termination_namespace=WATCHDOG
+termination_code=1
+termination_indicator=monitoring timed out for service
+termination_reason=None
+faultingThread=None
+gif2ani_text_reference=False
+memory_reference=True
+faulting_frames:
+relevant_images=none-listed
+
+=== backboardd-2026-07-25-102627.ips ===
+process=backboardd
+captureTime=2026-07-25 10:26:24.4452 -0500
+exception_type=EXC_CRASH
+exception_signal=SIGABRT
+exception_codes=0x0000000000000000, 0x0000000000000000
+termination_namespace=SIGNAL
+termination_code=6
+termination_indicator=Abort trap: 6
+termination_reason=backboardd
+faultingThread=0
+gif2ani_text_reference=True
+memory_reference=False
+faulting_frames:
+  00 libsystem_kernel.dylib __pthread_kill offset=29080
+  01 libsystem_pthread.dylib pthread_kill offset=54776
+  02 libsystem_c.dylib abort offset=115896
+  03 libc++abi.dylib abort_message offset=81748
+  04 libc++abi.dylib demangling_terminate_handler() offset=19020
+  05 libobjc.A.dylib _objc_terminate() offset=109308
+  06 libc++abi.dylib std::__terminate(void (*)()) offset=78884
+  07 libc++abi.dylib std::terminate() offset=78804
+  08 libdispatch.dylib _dispatch_client_callout offset=411540
+  09 libdispatch.dylib _dispatch_main_queue_drain offset=68572
+  10 libdispatch.dylib _dispatch_main_queue_callback_4CF$VARIANT$mp offset=67628
+  11 CoreFoundation __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ offset=596396
+  12 CoreFoundation __CFRunLoopRun offset=480840
+  13 CoreFoundation CFRunLoopRunSpecific offset=498976
+  14 backboardd  offset=40512
+  15 dyld start offset=82756
+relevant_images=libellekit.dylib, Gif2Ani.dylib
+asi={'libsystem_c.dylib': ['abort() called']}
+vmSummary=ReadOnly portion of Libraries: Total=899.7M resident=0K(0%) swapped_out_or_unallocated=899.7M(100%) Writable regions: Total=74.1M written=0K(0%) resident=0K(0%) swapped_out=0K(0%) unallocated=74.1M(100%)                                  VIRTUAL   REGION  REGION TYPE                        SIZE    COUNT (non-coalesced)  ===========                     =======  =======  Activity Tracing                   256K        1  CG raster data                     608K        1  ColorSync                          560K       31  CoreAnimation                     7920K      194  Dispatch continuations            2048K        1  Foundation                          16K        1  Image IO                            16K        1  Kernel Alloc Once                   32K        1  MALLOC                            51.1M      315  MALLOC guard page                  128K        8  Mach message                        32K        2  STACK GUARD                        272K       17  Stack                             12.5M       17  VM_ALLOCATE                        992K        1  __CTF                               824        1  __DATA                            12.5M      666  __DATA_CONST                 
+legacyInfo={'threadTriggered': {'queue': 'com.apple.main-thread'}}
+
+=== backboardd-2026-07-25-102719.ips ===
+process=backboardd
+captureTime=2026-07-25 10:27:19.5730 -0500
+exception_type=None
+exception_signal=None
+exception_codes=None
+termination_namespace=WATCHDOG
+termination_code=1
+termination_indicator=monitoring timed out for service
+termination_reason=None
+faultingThread=None
+gif2ani_text_reference=False
+memory_reference=True
+faulting_frames:
+relevant_images=none-listed
+
+=== backboardd-2026-07-25-102819.ips ===
+process=backboardd
+captureTime=2026-07-25 10:28:19.5805 -0500
+exception_type=None
+exception_signal=None
+exception_codes=None
+termination_namespace=WATCHDOG
+termination_code=1
+termination_indicator=monitoring timed out for service
+termination_reason=None
+faultingThread=None
+gif2ani_text_reference=False
+memory_reference=True
+faulting_frames:
+relevant_images=none-listed
+
+=== backboardd-2026-07-25-104651.ips ===
+process=backboardd
+captureTime=2026-07-25 10:46:51.8370 -0500
+exception_type=None
+exception_signal=None
+exception_codes=None
+termination_namespace=WATCHDOG
+termination_code=1
+termination_indicator=monitoring timed out for service
+termination_reason=None
+faultingThread=None
+gif2ani_text_reference=False
+memory_reference=True
+faulting_frames:
+relevant_images=none-listed
+
+=== backboardd-2026-07-25-104751.ips ===
+process=backboardd
+captureTime=2026-07-25 10:47:51.8411 -0500
+exception_type=None
+exception_signal=None
+exception_codes=None
+termination_namespace=WATCHDOG
+termination_code=1
+termination_indicator=monitoring timed out for service
+termination_reason=None
+faultingThread=None
+gif2ani_text_reference=False
+memory_reference=True
+faulting_frames:
+relevant_images=none-listed
+
+=== backboardd-2026-07-25-105346.ips ===
+process=backboardd
+captureTime=2026-07-25 10:53:46.8134 -0500
+exception_type=None
+exception_signal=None
+exception_codes=None
+termination_namespace=WATCHDOG
+termination_code=1
+termination_indicator=monitoring timed out for service
+termination_reason=None
+faultingThread=None
+gif2ani_text_reference=False
+memory_reference=True
+faulting_frames:
+relevant_images=none-listed
+
+=== backboardd-2026-07-25-105446.ips ===
+process=backboardd
+captureTime=2026-07-25 10:54:46.8168 -0500
+exception_type=None
+exception_signal=None
+exception_codes=None
+termination_namespace=WATCHDOG
+termination_code=1
+termination_indicator=monitoring timed out for service
+termination_reason=None
+faultingThread=None
+gif2ani_text_reference=False
+memory_reference=True
+faulting_frames:
+relevant_images=none-listed
+
+=== backboardd-2026-07-25-105656.ips ===
+process=backboardd
+captureTime=2026-07-25 10:56:56.9400 -0500
+exception_type=None
+exception_signal=None
+exception_codes=None
+termination_namespace=WATCHDOG
+termination_code=1
+termination_indicator=monitoring timed out for service
+termination_reason=None
+faultingThread=None
+gif2ani_text_reference=False
+memory_reference=True
+faulting_frames:
+relevant_images=none-listed
+
+=== backboardd-2026-07-25-105756.ips ===
+process=backboardd
+captureTime=2026-07-25 10:57:56.9473 -0500
+exception_type=None
+exception_signal=None
+exception_codes=None
+termination_namespace=WATCHDOG
+termination_code=1
+termination_indicator=monitoring timed out for service
+termination_reason=None
+faultingThread=None
+gif2ani_text_reference=False
+memory_reference=True
+faulting_frames:
+relevant_images=none-listed
+
+=== backboardd-2026-07-25-110005.ips ===
+process=backboardd
+captureTime=2026-07-25 11:00:05.3918 -0500
+exception_type=None
+exception_signal=None
+exception_codes=None
+termination_namespace=WATCHDOG
+termination_code=1
+termination_indicator=monitoring timed out for service
+termination_reason=None
+faultingThread=None
+gif2ani_text_reference=False
+memory_reference=True
+faulting_frames:
+relevant_images=none-listed
+
+=== Signature counts ===
+9x process=backboardd exception=None signal=None termination=WATCHDOG/1
+1x process=SpringBoard exception=None signal=None termination=WATCHDOG/1
+1x process=backboardd exception=EXC_CRASH signal=SIGABRT termination=SIGNAL/6
