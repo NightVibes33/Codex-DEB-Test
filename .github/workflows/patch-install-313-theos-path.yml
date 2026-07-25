@@ -1,0 +1,43 @@
+name: Patch Gif2Ani 3.1.3 Installer Theos Path
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - triggers/patch-install-313-theos-path.txt
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch installer
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.github/workflows/install-gif2ani-3.1.3-safe.yml')
+          text=p.read_text()
+          old='THEOS=/opt/theos make clean package FINALPACKAGE=1 2>&1 | tee ../build-313-install.log'
+          new='THEOS=/opt/theos THEOS_MAKE_PATH=/opt/theos/makefiles make clean package FINALPACKAGE=1 2>&1 | tee ../build-313-install.log'
+          count=text.count(old)
+          if count != 1:
+              raise SystemExit(f'expected one match, got {count}')
+          p.write_text(text.replace(old,new,1))
+          PY
+          git diff --check
+          git diff -- .github/workflows/install-gif2ani-3.1.3-safe.yml
+      - name: Commit patch
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/install-gif2ani-3.1.3-safe.yml
+          if ! git diff --cached --quiet; then
+            git commit -m "Fix Theos make path in Gif2Ani 3.1.3 installer"
+            git push origin HEAD:main
+          fi
