@@ -1,5 +1,5 @@
 ElleKit Safe Activation
-run_id=30168045227
+run_id=30168203512
 activate=success
 reconnect=success
 verify=failure
@@ -10,6 +10,14 @@ dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 pa
  missing 'Maintainer' field
 dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
  missing 'Maintainer' field
+=== SAFE MODE GATES BEFORE ===
+_MSSafeMode=
+_SafeMode=
+eksafemode_file=absent
+=== SAFE MODE GATES AFTER ===
+_MSSafeMode=
+_SafeMode=
+safe_mode_gates_cleared=yes
 === RUN ELLEKIT LOADER ===
 ellekit_loader_exit=0
 === SCHEDULE USERSPACE REBOOT ===
