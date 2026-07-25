@@ -53,7 +53,6 @@ jobs:
         uses: tailscale/github-action@v4
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
-          ping: ${{ env.IPAD_HOST }}
           version: latest
       - name: Install SSH client
         run: |
@@ -99,6 +98,7 @@ jobs:
               rm -rf /var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle
               rm -f /var/jb/Library/PreferenceLoader/Preferences/Gif2Ani.plist
               rm -f /var/mobile/Media/Gif2Ani-3.0.0-rootless.deb
+              rm -f /var/mobile/Media/Gif2Ani-3.0.1-rootless.deb
               echo "package_purged=yes"
 
               killall -9 Preferences 2>/dev/null || true
@@ -132,7 +132,7 @@ jobs:
               test ! -e /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist
               test ! -e /var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle
               test ! -e /var/jb/Library/PreferenceLoader/Preferences/Gif2Ani.plist
-              test ! -e /var/mobile/Library/Preferences/Respring.gif
+              test ! -e "/var/mobile/Library/Application Support/Gif2Ani"
               echo "gif2ani_package=removed"
               echo "gif2ani_files=removed"
               echo "selected_gif=removed"
