@@ -1,0 +1,3 @@
+trigger=install-gif2ani-3.0.0
+requested_at=2026-07-25T15:05:00Z
+source_commit=d9fc4f234f3bf07838a864f2a5194146ab2d2b11
