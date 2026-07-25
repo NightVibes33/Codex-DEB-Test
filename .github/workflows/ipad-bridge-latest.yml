@@ -1,0 +1,42 @@
+name: iPad Bridge Latest Run
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/ipad-bridge-latest.yml"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Query bridge runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p remote
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/ipad-tailscale-ssh.yml/runs?branch=main&per_page=10" \
+            --jq '.workflow_runs[] | [.id,.head_sha,.status,(.conclusion // "null"),.created_at,.updated_at,.html_url] | @tsv' \
+            > remote/ipad-bridge-latest.tsv
+          cat remote/ipad-bridge-latest.tsv
+
+      - name: Publish bridge report
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          git add remote/ipad-bridge-latest.tsv
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Record latest iPad bridge runs [skip ci]"
+          git push origin HEAD:main
