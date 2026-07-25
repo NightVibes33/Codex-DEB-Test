@@ -99,7 +99,6 @@ jobs:
 
               echo "=== GIF2ANI LOAD COMMANDS ==="
               if command -v otool >/dev/null 2>&1; then otool -L /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib 2>&1 || true; fi
-              if [ -x /var/jb/usr/bin/ldid ]; then /var/jb/usr/bin/ldid -e /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib 2>&1 || true; fi
               file /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib 2>&1 || true
 
               echo "=== FILTER ==="
