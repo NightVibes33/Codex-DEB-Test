@@ -1,2 +1,3 @@
 patch=official-exit-xpc-link
-requested_at=2026-07-25T18:15:00-05:00
+requested_at=2026-07-25T18:16:00-05:00
+reason=retry-after-workflow-registration
