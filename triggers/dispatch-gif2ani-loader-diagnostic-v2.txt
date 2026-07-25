@@ -1,0 +1,2 @@
+dispatch=gif2ani-loader-diagnostic-v2
+requested_at=2026-07-25T17:20:00-05:00
