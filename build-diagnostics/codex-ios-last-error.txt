@@ -1,0 +1,75 @@
+Run: 30136106053
+Commit: adc1dc680470e628618b17a9db5b83f0d97a20af
+Upstream: 63fe5a6b71d45dfff24a6a1e5da0699e054f145d
+
+info: syncing channel updates for 1.95.0-aarch64-apple-darwin
+info: latest update on 2026-04-16 for version 1.95.0 (59807616e 2026-04-14)
+info: downloading 6 components
+error: failed to run `rustc` to learn about target-specific information
+
+Caused by:
+  process didn't exit successfully: `/Users/runner/.rustup/toolchains/1.95.0-aarch64-apple-darwin/bin/rustc - --crate-name ___ --print=file-names --crate-type bin --crate-type rlib --crate-type dylib --crate-type cdylib --crate-type staticlib --crate-type proc-macro --print=sysroot --print=split-debuginfo --print=crate-name --print=cfg -Wwarnings` (exit status: 1)
+  --- stdout
+  ___
+  lib___.rlib
+  lib___.dylib
+  lib___.dylib
+  lib___.a
+  lib___.dylib
+  /Users/runner/.rustup/toolchains/1.95.0-aarch64-apple-darwin
+  off
+  packed
+  unpacked
+  ___
+  debug_assertions
+  panic="unwind"
+  proc_macro
+  target_abi=""
+  target_arch="aarch64"
+  target_endian="little"
+  target_env=""
+  target_family="unix"
+  target_feature="aes"
+  target_feature="crc"
+  target_feature="dit"
+  target_feature="dotprod"
+  target_feature="dpb"
+  target_feature="dpb2"
+  target_feature="fcma"
+  target_feature="fhm"
+  target_feature="flagm"
+  target_feature="fp16"
+  target_feature="frintts"
+  target_feature="jsconv"
+  target_feature="lor"
+  target_feature="lse"
+  target_feature="neon"
+  target_feature="paca"
+  target_feature="pacg"
+  target_feature="pan"
+  target_feature="pmuv3"
+  target_feature="ras"
+  target_feature="rcpc"
+  target_feature="rcpc2"
+  target_feature="rdm"
+  target_feature="sb"
+  target_feature="sha2"
+  target_feature="sha3"
+  target_feature="ssbs"
+  target_feature="vh"
+  target_has_atomic="128"
+  target_has_atomic="16"
+  target_has_atomic="32"
+  target_has_atomic="64"
+  target_has_atomic="8"
+  target_has_atomic="ptr"
+  target_os="macos"
+  target_pointer_width="64"
+  target_vendor="apple"
+  unix
+
+  --- stderr
+  error: failed to parse deployment target specified in MACOSX_DEPLOYMENT_TARGET: cannot parse integer from empty string
+
+  error: aborting due to 1 previous error
+
