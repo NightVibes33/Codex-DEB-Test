@@ -1,0 +1,130 @@
+name: Inspect iPad Browser Environment
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/inspect-ipad-browser.txt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name']); raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  inspect:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Join Tailscale
+        id: tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          ping: ${{ env.IPAD_HOST }}
+          version: latest
+      - name: Prepare SSH
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends openssh-client sshpass
+          mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+          ssh-keyscan -T 20 -H -p 22 "$IPAD_HOST" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+      - name: Inspect device
+        id: inspect
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -uo pipefail
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=20 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            mobile@"$IPAD_HOST" 'sudo -S -p "" sh -c '\''
+              set -u
+              echo "=== DEVICE ==="
+              sw_vers 2>/dev/null || true
+              echo "product_version=$(defaults read /System/Library/CoreServices/SystemVersion ProductVersion 2>/dev/null || true)"
+              echo "build_version=$(defaults read /System/Library/CoreServices/SystemVersion ProductBuildVersion 2>/dev/null || true)"
+              echo "machine=$(uname -m)"
+              df -h /var/mobile /var/jb 2>/dev/null || true
+              echo "=== SAFARI / WEBKIT ==="
+              defaults read /System/Library/Frameworks/WebKit.framework/Info CFBundleShortVersionString 2>/dev/null || true
+              defaults read /Applications/MobileSafari.app/Info CFBundleShortVersionString 2>/dev/null || true
+              echo "=== INSTALL SUPPORT ==="
+              dpkg-query -s ai.akemi.appsyncunified 2>/dev/null | grep -E "^(Package|Status|Version|Architecture):" || echo "appsync=absent"
+              dpkg-query -s com.opa334.trollstorehelper 2>/dev/null | grep -E "^(Package|Status|Version):" || echo "trollstore_helper=absent"
+              command -v appinst || true
+              command -v uicache || true
+              ls -l /var/jb/usr/bin/appinst /var/jb/usr/bin/uicache 2>/dev/null || true
+              echo "=== POLYFILLS ==="
+              dpkg-query -s com.ps.polyfills 2>/dev/null | grep -E "^(Package|Status|Version|Architecture):" || echo "polyfills=absent"
+              grep -R "poomsmart" /var/jb/etc/apt /etc/apt 2>/dev/null || true
+              echo "=== EXISTING BROWSERS ==="
+              find /var/containers/Bundle/Application -maxdepth 3 -type d \( -name "Reynard.app" -o -name "CyberKit.app" \) 2>/dev/null || true
+            '\''' 2>&1 | tee browser-inspect.txt
+          code=${PIPESTATUS[1]}
+          set -e
+          echo "inspect_ssh_exit=$code" | tee -a browser-inspect.txt
+          exit "$code"
+      - name: Publish status
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          TAILSCALE_OUTCOME: ${{ steps.tailscale.outcome }}
+          INSPECT_OUTCOME: ${{ steps.inspect.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('browser-inspect.txt').read_text(errors='replace') if Path('browser-inspect.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=[
+            'iPad Browser Environment Inspection',
+            f"run_id={os.environ.get('GITHUB_RUN_ID','')}",
+            f"tailscale={os.environ.get('TAILSCALE_OUTCOME','')}",
+            f"inspect={os.environ.get('INSPECT_OUTCOME','')}",
+            '', '--- sanitized output ---', *text.splitlines()[-220:]
+          ]
+          Path('remote/browser-inspect-status.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/browser-inspect-status.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record iPad browser inspection [skip ci]"
+            git push origin HEAD:main
+          fi
