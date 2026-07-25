@@ -1,0 +1,28 @@
+Signed Python Launchd Flag Sync
+run_id=30171869827
+sync=failure
+verify=skipped
+
+--- sanitized output ---
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== SIGNED PYTHON ENTITLEMENTS ===
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>platform-application</key>
+	<true/>
+	<key>com.apple.private.security.no-container</key>
+	<true/>
+	<key>in.palera.private.launchd-commands.client</key>
+	<true/>
+	<key>in.palera.loader.bootstrapper</key>
+	<true/>
+</dict>
+</plist>
+/var/mobile/Media/run-python-sync.sh: 31: pgrep: not found
+/var/mobile/Media/run-python-sync.sh: 32: pgrep: not found
+old_backboardd_pid=
+old_springboard_pid=
+Bus error: 10
+sync_ssh_exit=138
