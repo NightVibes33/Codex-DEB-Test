@@ -1,4 +1,4 @@
-name: Patch Official Exit V2 SDK Discovery
+name: Patch Official Exit V3 Theos Path
 
 on:
   workflow_dispatch:
@@ -15,33 +15,36 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Accept Theos iPhoneOS SDK symlinks
+      - name: Export the intended Theos installation path
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          path = Path('.github/workflows/official-exit-palera1n-safemode-v2.yml')
+          path = Path('scripts/official-exit-palera1n-v3.sh')
           text = path.read_text()
-          old = '''          SDK="$(find /opt/theos/sdks -maxdepth 1 -type d -name 'iPhoneOS*.sdk' | sort -V | tail -n1)"
+          old = '''sudo chown "$USER:$USER" /opt
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
 '''
-          new = '''          SDK="$(ls -d /opt/theos/sdks/iPhoneOS*.sdk 2>/dev/null | sort -V | tail -n1)"
+          new = '''sudo chown "$USER:$USER" /opt
+export THEOS=/opt/theos
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
 '''
           if new in text:
-              print('sdk_symlink_patch=already_present')
+              print('theos_path_patch=already_present')
           elif old in text:
               path.write_text(text.replace(old, new, 1))
-              print('sdk_symlink_patch=applied')
+              print('theos_path_patch=applied')
           else:
-              raise SystemExit('expected_sdk_discovery_line_not_found')
+              raise SystemExit('expected_theos_install_block_not_found')
           PY
-          grep -n 'SDK=' .github/workflows/official-exit-palera1n-safemode-v2.yml | head
+          grep -n -A2 -B2 'export THEOS' scripts/official-exit-palera1n-v3.sh
       - name: Commit patch
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .github/workflows/official-exit-palera1n-safemode-v2.yml
+          git add scripts/official-exit-palera1n-v3.sh
           if ! git diff --cached --quiet; then
-            git commit -m "Fix official Exit V2 SDK discovery [skip ci]"
+            git commit -m "Fix official Exit V3 Theos installation path [skip ci]"
             git push origin HEAD:main
           fi
