@@ -1,0 +1,278 @@
+Choicy Injection Rules
+run_id=30170303687
+collect=success
+
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== CURRENT STATE ===
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+com.nightvibes33.gif2ani	3.1.1
+com.opa334.choicy	1.5.3-2
+ellekit	1.1.3
+ 7629   ??  ?s     0:00.00 /usr/libexec/backboardd
+ 7636   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+ 8346   ??  ?s     0:00.00 sh -c \012    buddy="/var/jb/usr/libexec/PlistBuddy"\012    dump() {\012      f="$1"\012      echo "--- $f"\012      if [ -x "$buddy" ]; then "$buddy" -c Print "$f" 2>&1 || true; else file "$f" 2>&1 || true; fi\012    }\012\012    echo "=== CURRENT STATE ==="\012    dpkg-query -W ellekit com.nightvibes33.gif2ani com.opa334.choicy 2>&1 || true\012    ps ax | grep -E "[b]ackboardd|[S]pringBoard" || true\012    echo "_MSSafeMode=$(/var/jb/usr/bin/launchctl getenv _MSSafeMode 2>/dev/null || true)"\012    echo "_SafeMode=$(/var/jb/usr/bin/launchctl getenv _SafeMode 2>/dev/null || true)"\012\012    echo "=== CHOICY DEFAULTS ==="\012    defaults read com.opa334.choicy 2>&1 || true\012\012    echo "=== CHOICY PREFERENCE FILE ==="\012    pref="/var/mobile/Library/Preferences/com.opa334.choicy.plist"\012    ls -la "$pref" 2>&1 || true\012    [ -e "$pref" ] && dump "$pref"\012\012    echo "=== CHOICY INJECTION FILTERS ==="\012    find /var/jb/usr/lib/TweakInject -maxdepth 1 -iname "*choicy*.plist" -print 2>/dev/null | while IFS= read -r f; do dump "$f"; done\012\012    echo "=== CHOICY SETTINGS SCHEMAS ==="\012    for f in \\012      "/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/ApplicationDaemon.plist" \\012      "/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/GlobalTweakConfiguration.plist" \\012      "/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/Root.plist"; do\012      [ -e "$f" ] && dump "$f"\012    done\012\012    echo "=== GIF2ANI FILTER ==="\012    dump /var/jb/usr/lib/TweakInject/Gif2Ani.plist\012\012    echo "=== BACKBOARDD FILTER MATCHES ==="\012    for f in /var/jb/usr/lib/TweakInject/*.plist; do\012      [ -f "$f" ] || continue\012      if grep -a -q "backboardd" "$f" 2>/dev/null; then\012        echo "$f"\012      fi\012    done\012\012    echo "=== RUNTIME STATUS ==="\012    media="/var/mobile/Library/Application Support/Gif2Ani"\012    if [ -e "$media/runtime-status.plist" ]; then dump "$media/runtime-status.plist"; else echo runtime_status=missing; fi\012    echo "=== RECENT CRASHES ==="\012    find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name "backboardd-*.ips" -o -name "SpringBoard-*.ips" \) -mmin -30 -print 2>/dev/null || true\012  
+_MSSafeMode=
+_SafeMode=
+=== CHOICY DEFAULTS ===
+{
+    appSettings =     {
+        "com.apple.SafariViewService" =         {
+            CustomTweakConfiguration = 0;
+            TweakInjectionDisabled = 1;
+        };
+        "com.apple.WebKit.WebContent" =         {
+            CustomTweakConfiguration = 0;
+            TweakInjectionDisabled = 1;
+        };
+        "com.google.ios.youtube" =         {
+            CustomTweakConfiguration = 0;
+            TweakInjectionDisabled = 1;
+        };
+        "com.google.ios.youtubekids" =         {
+            CustomTweakConfiguration = 0;
+            TweakInjectionDisabled = 1;
+        };
+    };
+}
+=== CHOICY PREFERENCE FILE ===
+-rw-r--r-- 1 mobile mobile 859 Jul 24 23:38 /var/mobile/Library/Preferences/com.opa334.choicy.plist
+--- /var/mobile/Library/Preferences/com.opa334.choicy.plist
+Dict {
+    appSettings = Dict {
+        com.google.ios.youtube = Dict {
+            CustomTweakConfiguration = false
+            TweakInjectionDisabled = true
+        }
+        com.apple.WebKit.WebContent = Dict {
+            CustomTweakConfiguration = false
+            TweakInjectionDisabled = true
+        }
+        com.apple.SafariViewService = Dict {
+            CustomTweakConfiguration = false
+            TweakInjectionDisabled = true
+        }
+        com.google.ios.youtubekids = Dict {
+            CustomTweakConfiguration = false
+            TweakInjectionDisabled = true
+        }
+    }
+}
+=== CHOICY INJECTION FILTERS ===
+--- /var/jb/usr/lib/TweakInject/   Choicy.plist
+Dict {
+    IsTweakManager = true
+    Filter = Dict {
+        Bundles = Array {
+            com.apple.Security
+        }
+    }
+}
+Cannot Write File
+--- /var/jb/usr/lib/TweakInject/ChoicySB.plist
+Dict {
+    Filter = Dict {
+        Bundles = Array {
+            com.apple.springboard
+        }
+        Executables = Array {
+            runningboardd
+        }
+    }
+}
+Cannot Write File
+=== CHOICY SETTINGS SCHEMAS ===
+--- /var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/ApplicationDaemon.plist
+Dict {
+    items = Array {
+        Dict {
+            cell = PSGroupCell
+        }
+        Dict {
+            cell = PSSwitchCell
+            label = OVERWRITE_GLOBAL_TWEAK_CONFIGURATION
+            default = false
+            defaults = com.opa334.choicyprefs
+            key = overwriteGlobalTweakConfiguration
+            PostNotification = com.opa334.choicyprefs/ReloadPrefs
+        }
+        Dict {
+            cell = PSGroupCell
+        }
+        Dict {
+            cell = PSSwitchCell
+            label = DISABLE_TWEAK_INJECTION
+            default = false
+            defaults = com.opa334.choicyprefs
+            key = tweakInjectionDisabled
+            PostNotification = com.opa334.choicyprefs/ReloadPrefs
+        }
+        Dict {
+            cell = PSGroupCell
+        }
+        Dict {
+            cell = PSSwitchCell
+            label = CUSTOM_TWEAK_CONFIGURATION
+            default = false
+            defaults = com.opa334.choicyprefs
+            key = customTweakConfigurationEnabled
+            PostNotification = com.opa334.choicyprefs/ReloadPrefs
+        }
+    }
+}
+Cannot Write File
+--- /var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/GlobalTweakConfiguration.plist
+Dict {
+    items = Array {
+        Dict {
+            cell = PSGroupCell
+        }
+    }
+}
+Cannot Write File
+--- /var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/Root.plist
+Dict {
+    items = Array {
+        Dict {
+            label = GLOBAL_CONFIGURATION
+            cell = PSGroupCell
+        }
+        Dict {
+            cell = PSLinkCell
+            label = GLOBAL_TWEAK_CONFIGURATION
+            detail = CHPGlobalTweakConfigurationController
+            isController = true
+        }
+        Dict {
+            label = PROCESS_CONFIGURATION
+            cell = PSGroupCell
+            footerText = PROCESS_CONFIGURATION_FOOTER
+        }
+        Dict {
+            cell = PSLinkCell
+            label = SpringBoard
+            detail = CHPProcessConfigurationListController
+            applicationIdentifier = com.apple.springboard
+            isController = true
+        }
+        Dict {
+            detail = CHPApplicationListSubcontrollerController
+            sections = Array {
+                Dict {
+                    sectionType = Visible
+                }
+                Dict {
+                    sectionType = Hidden
+                }
+            }
+            useSearchBar = true
+            cell = PSLinkListCell
+            includeIdentifiersInSearch = true
+            subcontrollerClass = CHPProcessConfigurationListController
+            label = APPLICATIONS
+            showIdentifiersAsSubtitle = true
+        }
+        Dict {
+            cell = PSLinkCell
+            label = DAEMONS
+            detail = CHPDaemonListController
+            isController = true
+        }
+        Dict {
+            cell = PSLinkCell
+            label = ADDITIONAL_EXECUTABLES
+            detail = CHPAdditionalExecutablesListController
+            isController = true
+        }
+        Dict {
+            label = APP_OPTIONS
+            cell = PSGroupCell
+            footerText = APP_OPTIONS_FOOTER
+        }
+        Dict {
+            cell = PSSwitchCell
+            label = LAUNCH_WITHOUT_TWEAKS_OPTION
+            default = true
+            key = launchWithoutTweaksOptionEnabled
+            PostNotification = com.opa334.choicyprefs/ReloadPrefs
+        }
+        Dict {
+            cell = PSSwitchCell
+            label = LAUNCH_WITH_TWEAKS_OPTION
+            default = false
+            key = launchWithTweaksOptionEnabled
+            PostNotification = com.opa334.choicyprefs/ReloadPrefs
+        }
+        Dict {
+            label = TROUBLESHOOTING
+            cell = PSGroupCell
+            footerText = TWEAK_TROUBLESHOOTING_FOOTER
+        }
+        Dict {
+            cell = PSLinkCell
+            label = TWEAK_TROUBLESHOOTING
+            detail = CHPTweakTroubleshootListController
+            isController = true
+        }
+        Dict {
+            label = OTHER
+            cell = PSGroupCell
+        }
+        Dict {
+            cell = PSButtonCell
+            label = SOURCE_CODE
+            icon = GitHub
+            action = sourceLink
+        }
+        Dict {
+            cell = PSButtonCell
+            label = FOLLOW_ME_ON_MASTODON
+            icon = Mastodon
+            action = openMastodon
+        }
+        Dict {
+            cell = PSButtonCell
+            label = DONATE
+            icon = Donate
+            action = donationLink
+        }
+        Dict {
+            cell = PSLinkListCell
+            label = CREDITS
+            defaults = com.opa334.safariplusprefs
+            icon = Credits
+            detail = CHPCreditsListController
+        }
+        Dict {
+            cell = PSGroupCell
+        }
+        Dict {
+            cell = PSButtonCell
+            label = RESET_PREFERENCES
+            cellClass = CHPDestructiveTableCell
+            action = resetPreferences
+        }
+        Dict {
+            footerText = (null)
+            cell = PSGroupCell
+        }
+    }
+    title = Choicy
+}
+Cannot Write File
+=== GIF2ANI FILTER ===
+--- /var/jb/usr/lib/TweakInject/Gif2Ani.plist
+Dict {
+    Filter = Dict {
+        Executables = Array {
+            backboardd
+        }
+    }
+}
+Cannot Write File
+=== BACKBOARDD FILTER MATCHES ===
+/var/jb/usr/lib/TweakInject/Gif2Ani.plist
+=== RUNTIME STATUS ===
+runtime_status=missing
+=== RECENT CRASHES ===
+ssh_exit=0
