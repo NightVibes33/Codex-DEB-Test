@@ -1,0 +1,33 @@
+Gif2Ani Final Cleanup
+run_id=30163115968
+tailscale=success
+cleanup=success
+
+--- sanitized output ---
+old_darkboot_data=removed
+gif2ani_version=3.0.0
+runtime_marker_raw_begin
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>BKDisplayRenderOverlaySpinny</key>
+	<true/>
+	<key>BKImageSequence</key>
+	<true/>
+	<key>event</key>
+	<string>gif-load-failed</string>
+	<key>frameCount</key>
+	<integer>0</integer>
+	<key>gifExists</key>
+	<false/>
+	<key>process</key>
+	<string>backboardd</string>
+	<key>timestamp</key>
+	<real>1784992111.411701</real>
+</dict>
+</plist>
+runtime_marker_raw_end
+cleanup_result=old-package-files-data-removed-new-runtime-preserved
