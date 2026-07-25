@@ -1,0 +1,28 @@
+iPad Browser Environment Inspection
+run_id=30163524872
+tailscale=success
+inspect=success
+
+--- sanitized output ---
+=== DEVICE ===
+ProductName:    iPhone OS
+ProductVersion: 16.7.11
+BuildVersion:   20H360
+product_version=
+build_version=
+machine=iPad6,11
+Filesystem                                                                          Size   Used  Avail Capacity iused      ifree %iused  Mounted on
+/dev/disk1s2                                                                        30Gi   16Gi  4.8Gi    78%  158027   50842080    0%   /private/var
+/dev/disk1s5                                                                        30Gi  4.2Gi  4.8Gi    47%   27045   50842080    0%   /private/preboot
+=== SAFARI / WEBKIT ===
+=== INSTALL SUPPORT ===
+appsync=absent
+trollstore_helper=absent
+/var/jb/usr/bin/appinst
+/var/jb/usr/bin/uicache
+-rwxr-xr-x 1 root wheel 370064 Nov 28  2024 /var/jb/usr/bin/appinst
+-rwxr-xr-x 1 root wheel 116016 May 26 09:02 /var/jb/usr/bin/uicache
+=== POLYFILLS ===
+polyfills=absent
+=== EXISTING BROWSERS ===
+inspect_ssh_exit=0
