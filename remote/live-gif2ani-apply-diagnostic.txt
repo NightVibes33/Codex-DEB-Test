@@ -1,46 +1,56 @@
 Live Gif2Ani Apply Diagnostic
-run_id=30172910122
+run_id=30173512070
 inspect=success
 
 --- sanitized output ---
 connected=1
 Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
 === TIME ===
-Sat Jul 25 15:06:40 CDT 2026
+Sat Jul 25 15:25:16 CDT 2026
 === PACKAGE ===
 dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
  missing 'Maintainer' field
 package=com.nightvibes33.gif2ani
-version=3.1.3
+version=3.1.4
 status=install ok installed
 === PREFERENCES ===
-/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist 10000040000001a ? 1a 4096 4096 7808393 1284583 1284583 51540815 51383320
+/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist 10000040000001a ? 1a 4096 4096 7808393 1282633 1282633 51462892 51305320
 stat: cannot read file system information for 'prefs_mtime=%Sm prefs_size=%z': No such file or directory
 stat: cannot read file system information for '%Y-%m-%dT%H:%M:%S%z': No such file or directory
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-  <key>isEnabled</key><false/>
-  <key>pendingReady</key><false/>
-  <key>imageTransformation</key><string>resizeAspect</string>
-  <key>customLoop</key><real>-1</real>
-  <key>customDuration</key><real>-1</real>
-  <key>backgroundColor</key><string>#000000</string>
-</dict></plist>
+<plist version="1.0">
+<dict>
+	<key>backgroundColor</key>
+	<string>#000000</string>
+	<key>customDuration</key>
+	<real>-1</real>
+	<key>customLoop</key>
+	<real>-1</real>
+	<key>imageTransformation</key>
+	<string>resizeAspect</string>
+	<key>isEnabled</key>
+	<true/>
+	<key>lastAppliedAt</key>
+	<real>1785010925.404526</real>
+	<key>pendingReady</key>
+	<false/>
+</dict>
+</plist>
 === MEDIA DIRECTORY ===
+ls: invalid tab size: ‘/var/mobile/Library/Application Support/Gif2Ani’
 Pending.gif=absent
 Active.gif=present
-ls: invalid tab size: ‘/var/mobile/Library/Application Support/Gif2Ani’
-/var/mobile/Library/Application Support/Gif2Ani/Active.gif 10000040000001a ? 1a 4096 4096 7808393 1284583 1284583 51540815 51383320
+/var/mobile/Library/Application Support/Gif2Ani/Active.gif 10000040000001a ? 1a 4096 4096 7808393 1282633 1282633 51462892 51305320
+stat: cannot read file system information for 'Active.gif size=%z mtime=%Sm mode=%Sp uid=%u gid=%g': No such file or directory
+stat: cannot read file system information for '%Y-%m-%dT%H:%M:%S%z': No such file or directory
 /var/mobile/Media/live-gif2ani-diagnostic.sh: 21: /usr/bin/file: not found
 /var/mobile/Media/live-gif2ani-diagnostic.sh: 21: shasum: not found
 Rejected.gif=absent
 load-in-progress=absent
 pending-metadata.plist=absent
 runtime-status.plist=present
-stat: cannot read file system information for 'Active.gif size=%z mtime=%Sm mode=%Sp uid=%u gid=%g': No such file or directory
-stat: cannot read file system information for '%Y-%m-%dT%H:%M:%S%z': No such file or directory
-/var/mobile/Library/Application Support/Gif2Ani/runtime-status.plist 10000040000001a ? 1a 4096 4096 7808393 1284583 1284583 51540815 51383320
+/var/mobile/Library/Application Support/Gif2Ani/runtime-status.plist 10000040000001a ? 1a 4096 4096 7808393 1282633 1282633 51462892 51305320
 stat: cannot read file system information for 'runtime-status.plist size=%z mtime=%Sm mode=%Sp uid=%u gid=%g': No such file or directory
 stat: cannot read file system information for '%Y-%m-%dT%H:%M:%S%z': No such file or directory
 <?xml version="1.0" encoding="UTF-8"?>
@@ -52,11 +62,30 @@ stat: cannot read file system information for '%Y-%m-%dT%H:%M:%S%z': No such fil
 	<key>animationPending</key>
 	<false/>
 	<key>event</key>
-	<string>tweak-loaded-no-media-decode</string>
+	<string>custom-animation-stable</string>
 	<key>frameCount</key>
-	<integer>0</integer>
+	<integer>21</integer>
 	<key>gifExists</key>
 	<true/>
+	<key>media</key>
+	<dict>
+		<key>decodedFrames</key>
+		<integer>21</integer>
+		<key>decodedHeight</key>
+		<integer>480</integer>
+		<key>decodedWidth</key>
+		<integer>320</integer>
+		<key>estimatedDecodedBytes</key>
+		<integer>12902400</integer>
+		<key>inputBytes</key>
+		<integer>360114</integer>
+		<key>sourceFrames</key>
+		<integer>21</integer>
+		<key>sourceHeight</key>
+		<integer>480</integer>
+		<key>sourceWidth</key>
+		<integer>320</integer>
+	</dict>
 	<key>process</key>
 	<string>backboardd</string>
 	<key>safetyLimits</key>
@@ -73,7 +102,7 @@ stat: cannot read file system information for '%Y-%m-%dT%H:%M:%S%z': No such fil
 		<integer>240</integer>
 	</dict>
 	<key>timestamp</key>
-	<real>1785009896.478277</real>
+	<real>1785010930.196934</real>
 </dict>
 </plist>
 === RUNTIME STATUS ===
@@ -86,11 +115,30 @@ stat: cannot read file system information for '%Y-%m-%dT%H:%M:%S%z': No such fil
 	<key>animationPending</key>
 	<false/>
 	<key>event</key>
-	<string>tweak-loaded-no-media-decode</string>
+	<string>custom-animation-stable</string>
 	<key>frameCount</key>
-	<integer>0</integer>
+	<integer>21</integer>
 	<key>gifExists</key>
 	<true/>
+	<key>media</key>
+	<dict>
+		<key>decodedFrames</key>
+		<integer>21</integer>
+		<key>decodedHeight</key>
+		<integer>480</integer>
+		<key>decodedWidth</key>
+		<integer>320</integer>
+		<key>estimatedDecodedBytes</key>
+		<integer>12902400</integer>
+		<key>inputBytes</key>
+		<integer>360114</integer>
+		<key>sourceFrames</key>
+		<integer>21</integer>
+		<key>sourceHeight</key>
+		<integer>480</integer>
+		<key>sourceWidth</key>
+		<integer>320</integer>
+	</dict>
 	<key>process</key>
 	<string>backboardd</string>
 	<key>safetyLimits</key>
@@ -107,17 +155,17 @@ stat: cannot read file system information for '%Y-%m-%dT%H:%M:%S%z': No such fil
 		<integer>240</integer>
 	</dict>
 	<key>timestamp</key>
-	<real>1785009896.478277</real>
+	<real>1785010930.196934</real>
 </dict>
 </plist>
 === BACKBOARDD ===
-backboardd_pid=12641
+backboardd_pid=12826
   PID   TT  STAT      TIME COMMAND
-12641   ??  ?s     0:00.00 /usr/libexec/backboardd XPC_SERVICE_NAME=com.apple.backboardd PATH=/usr/bin:/bin:/usr/sbin:/sbin XPC_FLAGS=9 LOGNAME=mobile USER=mobile HOME=/var/mobile SHELL=/bin/sh DYLD_INSERT_LIBRARIES=/cores/binpack/usr/lib/systemhook.dylib DYLD_LIBRARY_PATH=/cores/binpack/usr/lib/libroot JB_SANDBOX_EXTENSIONS=8e6c9f13d0cb72057dd695cbf86e7d80c160693ae5cfd6a52a90be6e753b0ed5;01;00000000;00000000;00000000;0000000000000034;com.apple.security.exception.mach-lookup.global-name;in.palera.palera1nd.systemwide|df1ecf8ceaa25ef97dd100b8e27feb0710b25a56ab3333a41d50050b91292bca;01;00000000;00000000;00000000;000000000000001a;com.apple.app-sandbox.mach;in.palera.palera1nd.systemwide JB_ROOT_PATH=/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus JB_PINFO_FLAGS=0x4c00082 JB_TWEAKLOADER_PATH=@default
+12826   ??  ?s     0:00.00 /usr/libexec/backboardd XPC_SERVICE_NAME=com.apple.backboardd PATH=/usr/bin:/bin:/usr/sbin:/sbin XPC_FLAGS=9 LOGNAME=mobile USER=mobile HOME=/var/mobile SHELL=/bin/sh DYLD_INSERT_LIBRARIES=/cores/binpack/usr/lib/systemhook.dylib DYLD_LIBRARY_PATH=/cores/binpack/usr/lib/libroot JB_SANDBOX_EXTENSIONS=8e6c9f13d0cb72057dd695cbf86e7d80c160693ae5cfd6a52a90be6e753b0ed5;01;00000000;00000000;00000000;0000000000000034;com.apple.security.exception.mach-lookup.global-name;in.palera.palera1nd.systemwide|df1ecf8ceaa25ef97dd100b8e27feb0710b25a56ab3333a41d50050b91292bca;01;00000000;00000000;00000000;000000000000001a;com.apple.app-sandbox.mach;in.palera.palera1nd.systemwide JB_ROOT_PATH=/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus JB_PINFO_FLAGS=0x4c00082 JB_TWEAKLOADER_PATH=@default
 === SPRINGBOARD ===
-springboard_pid=12643
+springboard_pid=12828
   PID   TT  STAT      TIME COMMAND
-12643   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard CA_ASSERT_MAIN_THREAD_TRANSACTIONS=1 XPC_SERVICE_NAME=com.apple.SpringBoard PATH=/usr/bin:/bin:/usr/sbin:/sbin XPC_FLAGS=1 LOGNAME=mobile USER=mobile HOME=/var/mobile SHELL=/bin/sh DYLD_INSERT_LIBRARIES=/cores/binpack/usr/lib/systemhook.dylib DYLD_LIBRARY_PATH=/cores/binpack/usr/lib/libroot JB_SANDBOX_EXTENSIONS=8e6c9f13d0cb72057dd695cbf86e7d80c160693ae5cfd6a52a90be6e753b0ed5;01;00000000;00000000;00000000;0000000000000034;com.apple.security.exception.mach-lookup.global-name;in.palera.palera1nd.systemwide|df1ecf8ceaa25ef97dd100b8e27feb0710b25a56ab3333a41d50050b91292bca;01;00000000;00000000;00000000;000000000000001a;com.apple.app-sandbox.mach;in.palera.palera1nd.systemwide JB_ROOT_PATH=/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus JB_PINFO_FLAGS=0x4c00082 JB_TWEAKLOADER_PATH=@default
+12828   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard CA_ASSERT_MAIN_THREAD_TRANSACTIONS=1 XPC_SERVICE_NAME=com.apple.SpringBoard PATH=/usr/bin:/bin:/usr/sbin:/sbin XPC_FLAGS=1 LOGNAME=mobile USER=mobile HOME=/var/mobile SHELL=/bin/sh DYLD_INSERT_LIBRARIES=/cores/binpack/usr/lib/systemhook.dylib DYLD_LIBRARY_PATH=/cores/binpack/usr/lib/libroot JB_SANDBOX_EXTENSIONS=8e6c9f13d0cb72057dd695cbf86e7d80c160693ae5cfd6a52a90be6e753b0ed5;01;00000000;00000000;00000000;0000000000000034;com.apple.security.exception.mach-lookup.global-name;in.palera.palera1nd.systemwide|df1ecf8ceaa25ef97dd100b8e27feb0710b25a56ab3333a41d50050b91292bca;01;00000000;00000000;00000000;000000000000001a;com.apple.app-sandbox.mach;in.palera.palera1nd.systemwide JB_ROOT_PATH=/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus JB_PINFO_FLAGS=0x4c00082 JB_TWEAKLOADER_PATH=@default
 === RECENT CRASH REPORTS ===
 === RECENT TWEAK LOG STRINGS ===
 log_command=absent
