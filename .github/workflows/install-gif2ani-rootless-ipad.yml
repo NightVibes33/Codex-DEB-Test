@@ -1,0 +1,317 @@
+name: Install Gif2Ani Rootless on iPad
+
+on:
+  workflow_dispatch:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: install-gif2ani-rootless-ipad
+  cancel-in-progress: false
+
+env:
+  IPAD_HOST: "100.116.117.65"
+  SOURCE_REPO: "https://github.com/NightVibes33/Dark-Boot.git"
+  SOURCE_COMMIT: "d9fc4f234f3bf07838a864f2a5194146ab2d2b11"
+
+jobs:
+  resolve-environment:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.actor == 'NightVibes33' && github.event.issue.title == '[Install Gif2Ani 3.0.0]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - name: Resolve bridge environment
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json, sys
+          target = int(sys.argv[1])
+          for env in json.load(open('environments.json', encoding='utf-8')).get('environments', []):
+              if int(env.get('id', -1)) == target:
+                  print('environment_name=' + env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  install:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.actor == 'NightVibes33' && github.event.issue.title == '[Install Gif2Ani 3.0.0]')
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build exact green Gif2Ani source
+        env:
+          THEOS: /opt/theos
+          CI: "1"
+          SHELL: /bin/bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            bash curl sudo build-essential fakeroot rsync perl git libxml2 \
+            dpkg-dev unzip xz-utils ca-certificates python3 file openssh-client sshpass
+          sudo rm -rf /opt/theos
+          sudo mkdir -p /opt
+          sudo chown "$USER:$USER" /opt
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          git clone "$SOURCE_REPO" gif2ani-source
+          cd gif2ani-source
+          git checkout "$SOURCE_COMMIT"
+          make clean package FINALPACKAGE=1 2>&1 | tee ../gif2ani-install.txt
+          DEB="$(find packages -maxdepth 1 -type f -name '*.deb' | head -n1)"
+          test -n "$DEB"
+          test "$(dpkg-deb --field "$DEB" Package)" = "com.nightvibes33.gif2ani"
+          test "$(dpkg-deb --field "$DEB" Version)" = "3.0.0"
+          cp "$DEB" ../Gif2Ani-3.0.0-rootless.deb
+          cd ..
+          sha256sum Gif2Ani-3.0.0-rootless.deb | tee -a gif2ani-install.txt
+
+      - name: Join Tailscale
+        id: tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          ping: ${{ env.IPAD_HOST }}
+          version: latest
+
+      - name: Prepare SSH
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          ssh-keyscan -T 20 -H -p 22 "$IPAD_HOST" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Upload new DEB before removal
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          sshpass -e scp -P 22 \
+            -o ConnectTimeout=20 \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            Gif2Ani-3.0.0-rootless.deb mobile@"$IPAD_HOST":/var/mobile/Media/Gif2Ani-3.0.0-rootless.deb
+
+      - name: Purge old Dark-Boot package and stale files
+        id: remove_old
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -uo pipefail
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=20 \
+            -o ServerAliveInterval=5 \
+            -o ServerAliveCountMax=2 \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            mobile@"$IPAD_HOST" \
+            'sudo -S -p "" sh -c '\''
+              set -u
+              echo "=== BEFORE REMOVAL ==="
+              dpkg-query -W -f="old_darkboot=${Version}\n" com.nightvibes33.darkboot 2>/dev/null || echo "old_darkboot=not-installed"
+              dpkg --purge com.nightvibes33.darkboot 2>&1 || true
+              dpkg --purge com.wizage.gif2ani2 2>&1 || true
+              dpkg --purge com.wizages.gif2ani 2>&1 || true
+              rm -f /var/jb/Library/MobileSubstrate/DynamicLibraries/DarkBoot.dylib
+              rm -f /var/jb/Library/MobileSubstrate/DynamicLibraries/DarkBoot.plist
+              rm -rf /var/jb/Library/PreferenceBundles/DarkBootPrefs.bundle
+              rm -f /var/jb/Library/PreferenceLoader/Preferences/DarkBoot.plist
+              echo "old_files_removed=yes"
+            '\''' 2>&1 | tee -a gif2ani-install.txt
+          code=${PIPESTATUS[1]}
+          set -e
+          echo "remove_old_ssh_exit=$code" | tee -a gif2ani-install.txt
+          if [ "$code" -ne 0 ] && [ "$code" -ne 255 ]; then exit "$code"; fi
+
+      - name: Reconnect after old package removal
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5 6; do
+            if sshpass -e ssh -p 22 \
+              -o ConnectTimeout=15 \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              mobile@"$IPAD_HOST" 'true'; then exit 0; fi
+            sleep 8
+          done
+          exit 1
+
+      - name: Install Gif2Ani 3.0.0
+        id: install_new
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=20 \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            mobile@"$IPAD_HOST" \
+            'sudo -S -p "" sh -c '\''
+              set -eu
+              dpkg -i /var/mobile/Media/Gif2Ani-3.0.0-rootless.deb
+              version=$(dpkg-query -W -f="${Version}" com.nightvibes33.gif2ani)
+              echo "installed_version=$version"
+              test "$version" = "3.0.0"
+              test ! -e /var/jb/Library/MobileSubstrate/DynamicLibraries/DarkBoot.dylib
+              test ! -e /var/jb/Library/PreferenceBundles/DarkBootPrefs.bundle
+              test -f /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib
+              test -f /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist
+              test -x /var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/Gif2AniPrefs
+              test -f /var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/Root.plist
+              test -f /var/jb/Library/PreferenceLoader/Preferences/Gif2Ani.plist
+              echo "new_package_files=present"
+            '\''' 2>&1 | tee -a gif2ani-install.txt
+
+      - name: Respring into new tweak
+        id: respring
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -uo pipefail
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=20 \
+            -o ServerAliveInterval=5 \
+            -o ServerAliveCountMax=2 \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            mobile@"$IPAD_HOST" \
+            'sudo -S -p "" sh -c '\''killall -9 Preferences 2>/dev/null || true; if [ -x /var/jb/usr/bin/sbreload ]; then /var/jb/usr/bin/sbreload; elif [ -x /usr/bin/sbreload ]; then /usr/bin/sbreload; else killall -9 SpringBoard; fi'\''' \
+            2>&1 | tee -a gif2ani-install.txt
+          code=${PIPESTATUS[1]}
+          set -e
+          echo "respring_ssh_exit=$code" | tee -a gif2ani-install.txt
+          if [ "$code" -ne 0 ] && [ "$code" -ne 255 ]; then exit "$code"; fi
+          sleep 20
+
+      - name: Reconnect and verify runtime
+        id: verify
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in 1 2 3 4 5 6; do
+            if sshpass -e ssh -p 22 \
+              -o ConnectTimeout=15 \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              mobile@"$IPAD_HOST" 'true'; then connected=1; break; fi
+            sleep 8
+          done
+          test "$connected" -eq 1
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=20 \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            mobile@"$IPAD_HOST" \
+            'sudo -S -p "" sh -c '\''
+              set -eu
+              echo "=== FINAL VERIFICATION ==="
+              version=$(dpkg-query -W -f="${Version}" com.nightvibes33.gif2ani)
+              echo "installed_version=$version"
+              test "$version" = "3.0.0"
+              if dpkg-query -W com.nightvibes33.darkboot >/dev/null 2>&1; then exit 41; fi
+              echo "old_darkboot=removed"
+              test ! -e /var/jb/Library/MobileSubstrate/DynamicLibraries/DarkBoot.dylib
+              test ! -e /var/jb/Library/PreferenceBundles/DarkBootPrefs.bundle
+              echo "old_darkboot_files=removed"
+              test -f /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib
+              test -x /var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/Gif2AniPrefs
+              echo "gif2ani_files=present"
+              echo "backboardd_pid=$(pgrep -x backboardd | head -n1 || true)"
+              if [ -f "/var/mobile/Library/Application Support/Gif2Ani/runtime-status.plist" ]; then
+                echo "runtime_marker=present"
+                plutil -p "/var/mobile/Library/Application Support/Gif2Ani/runtime-status.plist" 2>/dev/null || cat "/var/mobile/Library/Application Support/Gif2Ani/runtime-status.plist"
+              else
+                echo "runtime_marker=missing"
+                exit 42
+              fi
+              echo "verification_result=old-removed-new-installed-backboard-runtime-loaded"
+            '\''' 2>&1 | tee -a gif2ani-install.txt
+
+      - name: Upload installation diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gif2ani-ipad-install-${{ github.run_id }}
+          path: |
+            gif2ani-install.txt
+            Gif2Ani-3.0.0-rootless.deb
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Publish sanitized installation status
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          TAILSCALE_OUTCOME: ${{ steps.tailscale.outcome }}
+          REMOVE_OUTCOME: ${{ steps.remove_old.outcome }}
+          INSTALL_OUTCOME: ${{ steps.install_new.outcome }}
+          RESPRING_OUTCOME: ${{ steps.respring.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text = Path('gif2ani-install.txt').read_text(errors='replace') if Path('gif2ani-install.txt').exists() else 'No install output was produced.'
+          password = os.environ.get('IPAD_PASSWORD', '')
+          if password:
+              text = text.replace(password, '***REDACTED***')
+          lines = [
+              'Gif2Ani 3.0.0 iPad Installation',
+              f"run_id={os.environ.get('GITHUB_RUN_ID', '')}",
+              f"run_url=https://github.com/{os.environ.get('GITHUB_REPOSITORY', '')}/actions/runs/{os.environ.get('GITHUB_RUN_ID', '')}",
+              f"tailscale={os.environ.get('TAILSCALE_OUTCOME', '')}",
+              f"remove_old={os.environ.get('REMOVE_OUTCOME', '')}",
+              f"install_new={os.environ.get('INSTALL_OUTCOME', '')}",
+              f"respring={os.environ.get('RESPRING_OUTCOME', '')}",
+              f"verify={os.environ.get('VERIFY_OUTCOME', '')}",
+              '',
+              '--- sanitized output ---',
+              *text.splitlines()[-260:],
+          ]
+          Path('remote/gif2ani-install-status.txt').write_text('\n'.join(lines) + '\n')
+          PY
+          git add remote/gif2ani-install-status.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record Gif2Ani iPad installation [skip ci]"
+            git push origin HEAD:main
+          fi
