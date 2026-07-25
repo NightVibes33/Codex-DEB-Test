@@ -1,5 +1,5 @@
 Gif2Ani Emergency Rescue
-run_id=30165072010
+run_id=30165397547
 tailscale=success
 rescue=success
 verify=success
@@ -7,12 +7,18 @@ verify=success
 --- sanitized output ---
 ssh_attempt=1
 Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== EMERGENCY DISABLE ===
+injection_disabled=yes
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+dpkg: warning: ignoring request to remove com.nightvibes33.gif2ani which isn't installed
+package_purged=yes
 Timeout, server 100.116.117.65 not responding.
 rescue_ssh_exit=255
 Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
 gif2ani_package=removed
 gif2ani_files=removed
 selected_gif=removed
-  389   ??  ?s     0:00.00 /usr/libexec/backboardd
-  391   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+  519   ??  ?s     0:00.00 /usr/libexec/backboardd
+  521   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
 rescue_result=removed-and-reconnected
