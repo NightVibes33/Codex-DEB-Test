@@ -1,0 +1,49 @@
+Gif2Ani Injection Metadata Diagnostic
+run_id=30169965306
+probe=success
+
+--- sanitized output ---
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== DIRECTORY MAPPING ===
+122423 lrwxr-xr-x  1 root wheel   27 Jan 10  2026 /var/jb/Library/MobileSubstrate/DynamicLibraries -> /var/jb/usr/lib/TweakInject
+122422 drwxr-xr-x 81 root wheel 2592 Jul 25 12:02 /var/jb/usr/lib/TweakInject
+/var/jb/usr/lib/TweakInject
+=== GIF2ANI METADATA ===
+198720 -rwxr-xr-x 1 root wheel 89104 Jul 25 12:02 /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib
+198723 -rw-r--r-- 1 root wheel   313 Jul 25 12:02 /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist
+198720 -rwxr-xr-x 1 root wheel 89104 Jul 25 12:02 /var/jb/usr/lib/TweakInject/Gif2Ani.dylib
+198723 -rw-r--r-- 1 root wheel   313 Jul 25 12:02 /var/jb/usr/lib/TweakInject/Gif2Ani.plist
+=== FILTER CONTENTS ===
+-- MobileSubstrate filter --
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Filter</key>
+  <dict>
+    <key>Executables</key>
+    <array>
+      <string>backboardd</string>
+    </array>
+  </dict>
+</dict>
+</plist>
+-- TweakInject filter --
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Filter</key>
+  <dict>
+    <key>Executables</key>
+    <array>
+      <string>backboardd</string>
+    </array>
+  </dict>
+</dict>
+</plist>
+=== DLOPEN ===
+dlopen_success=yes
+=== CURRENT MARKER ===
+runtime_status=missing
+probe_exit=0
