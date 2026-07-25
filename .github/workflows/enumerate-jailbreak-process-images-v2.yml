@@ -1,0 +1,243 @@
+name: Enumerate Jailbreak Process Images V2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/enumerate-jailbreak-process-images-v2.txt
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name']); raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  inspect:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image enumerator V2
+        id: build
+        env:
+          THEOS: /opt/theos
+          THEOS_MAKE_PATH: /opt/theos/makefiles
+          CI: "1"
+          SHELL: /bin/bash
+        run: |
+          set -euo pipefail
+          : > imageprobe-v2-build.txt
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends bash curl build-essential git ca-certificates file openssh-client sshpass
+          sudo rm -rf /opt/theos
+          sudo mkdir -p /opt
+          sudo chown "$USER:$USER" /opt
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)" 2>&1 | tee -a imageprobe-v2-build.txt
+          mkdir -p imageprobe2
+          cat > imageprobe2/Makefile <<'MK'
+          ARCHS = arm64
+          TARGET = iphone:clang:latest:15.0
+          TOOL_NAME = imageprobe2
+          imageprobe2_FILES = main.c
+          imageprobe2_CFLAGS = -Wall -Wextra
+          imageprobe2_CODESIGN_FLAGS = -SEntitlements.plist
+          include $(THEOS)/makefiles/common.mk
+          include $(THEOS_MAKE_PATH)/tool.mk
+          MK
+          cat > imageprobe2/main.c <<'CC'
+          #include <mach/mach.h>
+          #include <mach/mach_error.h>
+          #include <mach/mach_vm.h>
+          #include <mach/task_info.h>
+          #include <mach-o/dyld_images.h>
+          #include <stdint.h>
+          #include <stdio.h>
+          #include <stdlib.h>
+          #include <string.h>
+
+          static kern_return_t read_bytes(task_t task, mach_vm_address_t address, void *buffer, mach_vm_size_t size) {
+              mach_vm_size_t copied = 0;
+              kern_return_t kr = mach_vm_read_overwrite(task, address, size, (mach_vm_address_t)buffer, &copied);
+              if (kr != KERN_SUCCESS) return kr;
+              return copied == size ? KERN_SUCCESS : KERN_FAILURE;
+          }
+
+          static void read_cstring(task_t task, mach_vm_address_t address, char *out, size_t cap) {
+              if (!out || cap == 0) return;
+              out[0] = 0;
+              if (!address) return;
+              size_t used = 0;
+              while (used + 1 < cap) {
+                  char buf[128];
+                  mach_vm_size_t want = sizeof(buf);
+                  if (want > cap - used - 1) want = cap - used - 1;
+                  mach_vm_size_t copied = 0;
+                  kern_return_t kr = mach_vm_read_overwrite(task, address + used, want, (mach_vm_address_t)buf, &copied);
+                  if (kr != KERN_SUCCESS || copied == 0) break;
+                  for (mach_vm_size_t i = 0; i < copied && used + 1 < cap; i++) {
+                      out[used++] = buf[i];
+                      if (buf[i] == 0) return;
+                  }
+              }
+              out[used] = 0;
+          }
+
+          static int wanted(const char *path) {
+              static const char *needles[] = {
+                  "systemhook", "TweakLoader", "TweakInject", "ellekit", "libinjector",
+                  "Gif2Ani", "substrate", "Substrate", "MobileSafety", NULL
+              };
+              for (int i = 0; needles[i]; i++) if (strstr(path, needles[i])) return 1;
+              return 0;
+          }
+
+          static int inspect(pid_t pid) {
+              task_t task = MACH_PORT_NULL;
+              kern_return_t kr = task_for_pid(mach_task_self(), pid, &task);
+              printf("pid=%d task_for_pid=%d %s\n", pid, kr, mach_error_string(kr));
+              if (kr != KERN_SUCCESS) return 1;
+
+              task_dyld_info_data_t td = {0};
+              mach_msg_type_number_t count = TASK_DYLD_INFO_COUNT;
+              kr = task_info(task, TASK_DYLD_INFO, (task_info_t)&td, &count);
+              printf("task_info=%d %s address=0x%llx size=%llu\n", kr, mach_error_string(kr),
+                     (unsigned long long)td.all_image_info_addr,
+                     (unsigned long long)td.all_image_info_size);
+              if (kr != KERN_SUCCESS) { mach_port_deallocate(mach_task_self(), task); return 2; }
+
+              struct dyld_all_image_infos infos;
+              memset(&infos, 0, sizeof(infos));
+              kr = read_bytes(task, (mach_vm_address_t)td.all_image_info_addr, &infos, sizeof(infos));
+              printf("read_infos=%d %s image_count=%u array=0x%llx\n", kr, mach_error_string(kr),
+                     infos.infoArrayCount, (unsigned long long)(uintptr_t)infos.infoArray);
+              if (kr != KERN_SUCCESS || !infos.infoArray || infos.infoArrayCount > 8192) {
+                  mach_port_deallocate(mach_task_self(), task);
+                  return 3;
+              }
+
+              uint32_t n = infos.infoArrayCount;
+              size_t bytes = (size_t)n * sizeof(struct dyld_image_info);
+              struct dyld_image_info *images = calloc(1, bytes);
+              if (!images) { mach_port_deallocate(mach_task_self(), task); return 4; }
+              kr = read_bytes(task, (mach_vm_address_t)(uintptr_t)infos.infoArray, images, (mach_vm_size_t)bytes);
+              printf("read_array=%d %s\n", kr, mach_error_string(kr));
+              int matches = 0;
+              if (kr == KERN_SUCCESS) {
+                  for (uint32_t i = 0; i < n; i++) {
+                      char path[1024];
+                      read_cstring(task, (mach_vm_address_t)(uintptr_t)images[i].imageFilePath, path, sizeof(path));
+                      if (wanted(path)) {
+                          printf("image[%u]=%s\n", i, path);
+                          matches++;
+                      }
+                  }
+              }
+              printf("interesting_image_count=%d\n", matches);
+              free(images);
+              mach_port_deallocate(mach_task_self(), task);
+              return kr == KERN_SUCCESS ? 0 : 5;
+          }
+
+          int main(int argc, char **argv) {
+              if (argc < 2) { fprintf(stderr, "usage: %s pid...\n", argv[0]); return 64; }
+              int rc = 0;
+              for (int i = 1; i < argc; i++) {
+                  printf("=== TARGET %s ===\n", argv[i]);
+                  int one = inspect((pid_t)strtol(argv[i], NULL, 10));
+                  if (one) rc = one;
+              }
+              return rc;
+          }
+          CC
+          cat > imageprobe2/Entitlements.plist <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>platform-application</key><true/>
+            <key>com.apple.private.security.no-container</key><true/>
+            <key>com.apple.system-task-ports</key><true/>
+            <key>task_for_pid-allow</key><true/>
+            <key>get-task-allow</key><true/>
+          </dict></plist>
+          PLIST
+          set +e
+          make -C imageprobe2 clean all FINALPACKAGE=1 2>&1 | tee -a imageprobe-v2-build.txt
+          code=${PIPESTATUS[0]}
+          set -e
+          test "$code" -eq 0
+          BIN="$(find imageprobe2/.theos -type f -name imageprobe2 -perm -111 | head -n1)"
+          test -n "$BIN"
+          cp "$BIN" imageprobe2-tool
+          file imageprobe2-tool | tee -a imageprobe-v2-build.txt | grep -q arm64
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - name: Enumerate process images
+        id: probe
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 60); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          test "$connected" -eq 1
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null imageprobe2-tool mobile@"$IPAD_HOST":/var/mobile/Media/imageprobe2
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=60 -o ServerAliveInterval=10 -o ServerAliveCountMax=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh -c '\''chmod 0755 /var/mobile/Media/imageprobe2; bb=$(pgrep -x backboardd | head -n1); sb=$(pgrep -x SpringBoard | head -n1); echo launchd_pid=1; echo backboardd_pid=$bb; echo springboard_pid=$sb; /var/mobile/Media/imageprobe2 1 "$bb" "$sb"'\''' 2>&1 | tee process-images-v2.txt
+      - name: Publish result
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          PROBE_OUTCOME: ${{ steps.probe.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          build=Path('imageprobe-v2-build.txt').read_text(errors='replace') if Path('imageprobe-v2-build.txt').exists() else 'No build output.'
+          probe=Path('process-images-v2.txt').read_text(errors='replace') if Path('process-images-v2.txt').exists() else 'No probe output.'
+          text='--- build ---\n'+build+'\n--- probe ---\n'+probe
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=['Jailbreak Process Image Enumeration V2',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"build={os.environ.get('BUILD_OUTCOME','')}",f"probe={os.environ.get('PROBE_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-650:]]
+          Path('remote/jailbreak-process-images-v2.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/jailbreak-process-images-v2.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record jailbreak process image enumeration V2 [skip ci]"
+            git push origin HEAD:main
+          fi
