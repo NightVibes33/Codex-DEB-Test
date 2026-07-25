@@ -15,31 +15,44 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Fix generated-name binary checks
+        with:
+          fetch-depth: 0
+      - name: Make binary string checks pipefail-safe
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
+          import re
+
           path=Path('.github/workflows/build-install-gif2ani-340-downloadable.yml')
           text=path.read_text()
-          old="          strings \"$BUNDLE/Gif2AniPrefs\" | grep -q 'Cyan Pulse Rings'\n"
-          new=("          strings \"$BUNDLE/Gif2AniPrefs\" | grep -q 'Pulse Rings'\n"
-               "          strings \"$BUNDLE/Gif2AniPrefs\" | grep -q 'Cyan'\n")
-          count=text.count(old)
-          if count != 2:
-              raise SystemExit(f'expected 2 generated-name checks, found {count}')
-          path.write_text(text.replace(old,new))
+          pattern=r'''(?m)^(\s*)strings "([^"]+)" \| grep -q '([^']+)'\s*$'''
+          def replace(match):
+              indent,binary,literal=match.groups()
+              return f'''{indent}grep -a -q '{literal}' "{binary}"'''
+          updated,count=re.subn(pattern,replace,text)
+          if count < 4:
+              raise SystemExit(f'expected at least 4 strings pipelines, converted {count}')
+          path.write_text(updated)
+
           trigger=Path('triggers/build-install-gif2ani-340-downloadable.txt')
-          trigger.write_text('build=2026-07-25T20:08:00-05:00\nversion=3.4.0\ndownloadable_builtins=54\nfix=generated-name-proof-literals\n')
+          trigger.write_text(
+              'build=2026-07-25T20:23:00-05:00\n'
+              'version=3.4.0\n'
+              'downloadable_builtins=54\n'
+              'fix=pipefail-safe-binary-checks\n'
+          )
+          print(f'converted_binary_checks={count}')
           PY
-          grep -q "grep -q 'Pulse Rings'" .github/workflows/build-install-gif2ani-340-downloadable.yml
-          grep -q "grep -q 'Cyan'" .github/workflows/build-install-gif2ani-340-downloadable.yml
+          ! grep -q 'strings .*| grep -q' .github/workflows/build-install-gif2ani-340-downloadable.yml
+          grep -q "grep -a -q 'Download & Preview'" .github/workflows/build-install-gif2ani-340-downloadable.yml
+          grep -q "grep -a -q 'userSettingsPreserved'" .github/workflows/build-install-gif2ani-340-downloadable.yml
       - name: Commit and trigger proof
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .github/workflows/build-install-gif2ani-340-downloadable.yml triggers/build-install-gif2ani-340-downloadable.txt
-          git commit -m "Fix generated downloadable theme proof checks"
+          git commit -m "Make Gif2Ani binary proof checks pipefail-safe"
           git pull --rebase origin main
           git push origin HEAD:main
