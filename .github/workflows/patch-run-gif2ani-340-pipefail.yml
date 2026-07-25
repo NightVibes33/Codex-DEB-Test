@@ -1,0 +1,82 @@
+name: Patch and Run Gif2Ani 3.4 Pipefail Proof
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - triggers/patch-run-gif2ani-340-pipefail.txt
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gif2ani-340-pipefail-patch
+  cancel-in-progress: false
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Replace unsafe binary pipelines
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/workflows/build-install-gif2ani-340-downloadable.yml')
+          text = path.read_text()
+          replacements = {
+              '''          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'Download & Preview'\n''':
+                  '''          grep -a -q 'Download & Preview' "$BUNDLE/Gif2AniPrefs"\n''',
+              '''          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'Cyan Pulse Rings'\n''':
+                  '''          grep -a -q 'Cyan Pulse Rings' "$BUNDLE/Gif2AniPrefs"\n''',
+              '''          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'Legacy Source Catalog'\n''':
+                  '''          grep -a -q 'Legacy Source Catalog' "$BUNDLE/Gif2AniPrefs"\n''',
+              '''          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'userSettingsPreserved'\n''':
+                  '''          grep -a -q 'userSettingsPreserved' "$BUNDLE/Gif2AniPrefs"\n''',
+              '''          strings "$bundle/Gif2AniPrefs" | grep -q 'Download & Preview'\n''':
+                  '''          grep -a -q 'Download & Preview' "$bundle/Gif2AniPrefs"\n''',
+              '''          strings "$bundle/Gif2AniPrefs" | grep -q 'Cyan Pulse Rings'\n''':
+                  '''          grep -a -q 'Cyan Pulse Rings' "$bundle/Gif2AniPrefs"\n''',
+              '''          strings "$bundle/Gif2AniPrefs" | grep -q 'Legacy Source Catalog'\n''':
+                  '''          grep -a -q 'Legacy Source Catalog' "$bundle/Gif2AniPrefs"\n''',
+          }
+          changed = 0
+          for old, new in replacements.items():
+              if old in text:
+                  text = text.replace(old, new, 1)
+                  changed += 1
+              elif new not in text:
+                  raise SystemExit(f'missing expected binary check: {old!r}')
+          if 'strings "$BUNDLE/Gif2AniPrefs" | grep -q' in text or 'strings "$bundle/Gif2AniPrefs" | grep -q' in text:
+              raise SystemExit('unsafe strings pipeline remains')
+          path.write_text(text)
+          print(f'pipefail_safe_checks={len(replacements)}')
+
+          trigger = Path('triggers/build-install-gif2ani-340-downloadable.txt')
+          trigger.write_text(
+              'build=2026-07-25T20:36:00-05:00\n'
+              'version=3.4.0\n'
+              'downloadable_builtins=54\n'
+              'fix=seven-pipefail-safe-binary-checks\n'
+          )
+          PY
+          test "$(grep -c "grep -a -q .*Gif2AniPrefs" .github/workflows/build-install-gif2ani-340-downloadable.yml)" -ge 7
+          ! grep -q 'strings .*Gif2AniPrefs.*| grep -q' .github/workflows/build-install-gif2ani-340-downloadable.yml
+
+      - name: Commit patch and trigger proof
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/build-install-gif2ani-340-downloadable.yml triggers/build-install-gif2ani-340-downloadable.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Make Gif2Ani 3.4 binary checks pipefail-safe"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
