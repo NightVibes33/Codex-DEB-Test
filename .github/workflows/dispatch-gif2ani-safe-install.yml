@@ -1,10 +1,10 @@
-name: Dispatch ElleKit Startup Inspection
+name: Dispatch Safe ElleKit Activation
 
 on:
   push:
     branches: [main]
     paths:
-      - triggers/dispatch-ellekit-rcd-inspection.txt
+      - triggers/dispatch-activate-ellekit-safe.txt
 
 permissions:
   actions: write
@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Dispatch inspection
+      - name: Dispatch activation
         id: dispatch
         env:
           GH_TOKEN: ${{ github.token }}
@@ -29,7 +29,7 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/inspect-ellekit-rcd.yml/dispatches" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/activate-ellekit-safe-ipad.yml/dispatches" \
             -d '{"ref":"main"}')
           code=$?
           set -e
@@ -38,7 +38,7 @@ jobs:
           if [ -s dispatch-response.txt ]; then cat dispatch-response.txt | tee -a dispatch-status.txt; fi
           test "$code" -eq 0
           test "$http_code" = "204"
-          echo "ellekit_rcd_inspection_dispatched=yes" | tee -a dispatch-status.txt
+          echo "ellekit_safe_activation_dispatched=yes" | tee -a dispatch-status.txt
       - name: Publish dispatcher status
         if: always()
         run: |
@@ -48,14 +48,14 @@ jobs:
           git pull --rebase origin main
           mkdir -p remote
           {
-            echo "ElleKit Startup Inspection Dispatch"
+            echo "Safe ElleKit Activation Dispatch"
             echo "run_id=${GITHUB_RUN_ID}"
             echo "outcome=${{ steps.dispatch.outcome }}"
             echo
             if [ -f dispatch-status.txt ]; then cat dispatch-status.txt; else echo "No dispatch output."; fi
-          } > remote/ellekit-rcd-dispatch-status.txt
-          git add remote/ellekit-rcd-dispatch-status.txt
+          } > remote/ellekit-safe-activation-dispatch-status.txt
+          git add remote/ellekit-safe-activation-dispatch-status.txt
           if ! git diff --cached --quiet; then
-            git commit -m "Record ElleKit startup inspection dispatch [skip ci]"
+            git commit -m "Record safe ElleKit activation dispatch [skip ci]"
             git push origin HEAD:main
           fi
