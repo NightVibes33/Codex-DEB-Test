@@ -1,0 +1,182 @@
+name: Query palera1n Pinfo Flags
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/query-palera1n-pinfo.txt
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name']); raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  query:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build XPC query helper
+        id: build
+        env:
+          THEOS: /opt/theos
+          THEOS_MAKE_PATH: /opt/theos/makefiles
+          CI: "1"
+          SHELL: /bin/bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends bash curl build-essential git ca-certificates file openssh-client sshpass
+          sudo rm -rf /opt/theos
+          sudo mkdir -p /opt
+          sudo chown "$USER:$USER" /opt
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          mkdir -p pinfoquery
+          cat > pinfoquery/Makefile <<'MK'
+          ARCHS = arm64
+          TARGET = iphone:clang:latest:15.0
+          TOOL_NAME = pinfoquery
+          pinfoquery_FILES = main.c
+          pinfoquery_CFLAGS = -fblocks -Wall -Wextra
+          pinfoquery_CODESIGN_FLAGS = -Sentitlements.plist
+          include $(THEOS)/makefiles/common.mk
+          include $(THEOS_MAKE_PATH)/tool.mk
+          MK
+          cat > pinfoquery/main.c <<'CC'
+          #include <dlfcn.h>
+          #include <stdint.h>
+          #include <stdio.h>
+          #include <stdlib.h>
+          typedef void *xpc_object_t;
+          typedef void *xpc_connection_t;
+          typedef void (^xpc_handler_t)(xpc_object_t);
+          typedef xpc_connection_t (*fn_create)(const char *, void *, uint64_t);
+          typedef void (*fn_handler)(xpc_connection_t, xpc_handler_t);
+          typedef void (*fn_activate)(xpc_connection_t);
+          typedef xpc_object_t (*fn_create_dict)(const char *const *, const xpc_object_t *, size_t);
+          typedef void (*fn_set_u64)(xpc_object_t, const char *, uint64_t);
+          typedef xpc_object_t (*fn_send)(xpc_connection_t, xpc_object_t);
+          typedef uint64_t (*fn_get_u64)(xpc_object_t, const char *);
+          typedef int64_t (*fn_get_i64)(xpc_object_t, const char *);
+          typedef char *(*fn_desc)(xpc_object_t);
+          typedef void (*fn_cancel)(xpc_connection_t);
+          typedef void (*fn_release)(xpc_object_t);
+          #define LOAD(var, sym, type) type var=(type)dlsym(h,sym); if(!var){fprintf(stderr,"missing=%s\n",sym);return 78;}
+          int main(void) {
+              void *h=dlopen("/usr/lib/system/libxpc.dylib",RTLD_NOW|RTLD_LOCAL);
+              if(!h){fprintf(stderr,"dlopen=%s\n",dlerror());return 77;}
+              LOAD(create,"xpc_connection_create_mach_service",fn_create);
+              LOAD(set_handler,"xpc_connection_set_event_handler",fn_handler);
+              LOAD(activate,"xpc_connection_activate",fn_activate);
+              LOAD(dict_create,"xpc_dictionary_create",fn_create_dict);
+              LOAD(set_u64,"xpc_dictionary_set_uint64",fn_set_u64);
+              LOAD(send_sync,"xpc_connection_send_message_with_reply_sync",fn_send);
+              LOAD(get_u64,"xpc_dictionary_get_uint64",fn_get_u64);
+              LOAD(get_i64,"xpc_dictionary_get_int64",fn_get_i64);
+              LOAD(copy_desc,"xpc_copy_description",fn_desc);
+              LOAD(cancel,"xpc_connection_cancel",fn_cancel);
+              LOAD(release,"xpc_release",fn_release);
+              xpc_connection_t c=create("in.palera.palera1nd.systemwide",NULL,0);
+              if(!c)return 70;
+              set_handler(c,^(xpc_object_t e){(void)e;});
+              activate(c);
+              xpc_object_t q=dict_create(NULL,NULL,0);
+              set_u64(q,"cmd",1);
+              xpc_object_t r=send_sync(c,q);
+              release(q); cancel(c); release(c);
+              if(!r)return 71;
+              char *d=copy_desc(r); if(d){printf("reply=%s\n",d);free(d);}
+              printf("jailbreakd_error=%lld\n",(long long)get_i64(r,"error"));
+              uint64_t flags=get_u64(r,"flags");
+              printf("jailbreakd_flags=0x%llx\n",(unsigned long long)flags);
+              printf("safemode_bit=%d\n",(flags&(1ULL<<25))?1:0);
+              printf("failure_bit=%d\n",(flags&(1ULL<<60))?1:0);
+              release(r); dlclose(h); return 0;
+          }
+          CC
+          cat > pinfoquery/entitlements.plist <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>platform-application</key><true/>
+            <key>com.apple.private.security.no-container</key><true/>
+            <key>in.palera.loader.bootstrapper</key><true/>
+            <key>in.palera.private.launchd-commands.client</key><true/>
+          </dict></plist>
+          PLIST
+          make -C pinfoquery clean all FINALPACKAGE=1
+          BIN="$(find pinfoquery/.theos -type f -name pinfoquery -perm -111 | head -n1)"
+          test -n "$BIN"
+          cp "$BIN" pinfoquery-tool
+          file pinfoquery-tool | grep -q arm64
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - name: Query device
+        id: probe
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 60); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          test "$connected" -eq 1
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null pinfoquery-tool mobile@"$IPAD_HOST":/var/mobile/Media/pinfoquery
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=30 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh -c '\''chmod 0755 /var/mobile/Media/pinfoquery; /var/mobile/Media/pinfoquery; echo launchd_flags=$(/var/jb/usr/bin/launchctl getenv JB_PINFO_FLAGS 2>/dev/null || true)'\''' 2>&1 | tee palera1n-pinfo.txt
+      - name: Publish result
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          PROBE_OUTCOME: ${{ steps.probe.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('palera1n-pinfo.txt').read_text(errors='replace') if Path('palera1n-pinfo.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=['palera1n Pinfo Query',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"build={os.environ.get('BUILD_OUTCOME','')}",f"probe={os.environ.get('PROBE_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-250:]]
+          Path('remote/palera1n-pinfo-query.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/palera1n-pinfo-query.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record palera1n pinfo query [skip ci]"
+            git push origin HEAD:main
+          fi
