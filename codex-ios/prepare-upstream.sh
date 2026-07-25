@@ -63,6 +63,20 @@ if copy.exists():
     text = text.replace('unavailable on Android', 'unavailable on this mobile platform')
     copy.write_text(text)
 
+clipboard_text = Path('codex-rs/tui/src/clipboard_text.rs')
+if clipboard_text.exists():
+    text = clipboard_text.read_text()
+    text = text.replace(
+        '#[cfg(not(target_os = "android"))]',
+        '#[cfg(not(any(target_os = "android", target_os = "ios")))]',
+    )
+    text = text.replace(
+        '#[cfg(target_os = "android")]',
+        '#[cfg(any(target_os = "android", target_os = "ios"))]',
+    )
+    text = text.replace('unsupported on Android', 'unsupported on this mobile platform')
+    clipboard_text.write_text(text)
+
 # set_core_file_size_limit_to_zero() is cfg(unix), but its error constant omitted
 # iOS even though libc::setrlimit and RLIMIT_CORE are available there.
 hardening = Path('codex-rs/process-hardening/src/lib.rs')
@@ -79,6 +93,7 @@ PY
 
 grep -q 'target_os = "ios"' codex-rs/tui/Cargo.toml
 grep -q 'target_os = "ios"' codex-rs/tui/src/clipboard_paste.rs
+grep -q 'target_os = "ios"' codex-rs/tui/src/clipboard_text.rs
 grep -q 'target_os = "ios"' codex-rs/process-hardening/src/lib.rs
 
 # OpenAI's rust-toolchain.toml lives inside codex-rs. Install the iOS standard
