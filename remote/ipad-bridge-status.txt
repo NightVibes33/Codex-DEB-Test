@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30150189897
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30150189897
-commit=378350c96d8f3799c65860c87cde782f384d123b
+run_id=30150411788
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30150411788
+commit=263e95bb29b9ebacbc42063938fc46ddce4773dd
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -9,68 +9,103 @@ install_ssh=success
 ssh=success
 
 --- sanitized SSH output ---
-Checking SSH host key over Tailscale...
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-=== Memory before helper cleanup ===
+=== VM statistics ===
 Mach Virtual Memory Statistics: (page size of 16384 bytes)
-Pages free:                                1181.
-Pages active:                             40904.
-Pages inactive:                           39693.
-Pages speculative:                          871.
+Pages free:                                 997.
+Pages active:                             39376.
+Pages inactive:                           38952.
+Pages speculative:                          530.
 Pages throttled:                              0.
-Pages wired down:                         24222.
-Pages purgeable:                            971.
-"Translation faults":                  29316919.
-Pages copy-on-write:                     720909.
-Pages zero filled:                     11772108.
-Pages reactivated:                      5561187.
-Pages purged:                            300673.
-File-backed pages:                        44330.
-Anonymous pages:                          37138.
-Pages stored in compressor:               58541.
-Pages occupied by compressor:             19734.
-Decompressions:                         3630346.
-Compressions:                           4481301.
-Pageins:                                4778932.
-target_count=5
-terminating pid=9997 name=SparseBox elapsed=02:43:32 command=/var/containers/Bundle/Application/5094319B-7459-4428-BE53-11390AA1072A/SparseBox.app/SparseBox
-terminating pid=9998 name=PureKFD elapsed=02:43:32 command=/var/containers/Bundle/Application/A97BB718-6AEB-4835-8827-E6A360138E3B/PureKFD.app/PureKFD
-terminating pid=9999 name=dirtyZero elapsed=02:43:32 command=/var/containers/Bundle/Application/AA25AFA4-6BF2-4E95-8F81-FE39BDF4DD04/dirtyZero.app/dirtyZero
-terminating pid=10359 name=DebToIPA elapsed=01:13:33 command=/var/containers/Bundle/Application/93E3B39D-8317-4416-986F-BE5BAF25D257/DebToIPA.app/DebToIPA
-terminating pid=10361 name=NathanLR elapsed=01:13:33 command=/var/containers/Bundle/Application/69539B48-A140-4D54-A233-52B3697B9222/NathanLR.app/NathanLR
-exited pid=9997 name=SparseBox signal=TERM
-exited pid=9998 name=PureKFD signal=TERM
-exited pid=9999 name=dirtyZero signal=TERM
-exited pid=10359 name=DebToIPA signal=TERM
-exited pid=10361 name=NathanLR signal=TERM
-remaining_target_count=0
-=== Memory after helper cleanup ===
-Mach Virtual Memory Statistics: (page size of 16384 bytes)
-Pages free:                                1614.
-Pages active:                             40747.
-Pages inactive:                           39917.
-Pages speculative:                          612.
-Pages throttled:                              0.
-Pages wired down:                         24160.
-Pages purgeable:                            971.
-"Translation faults":                  29321832.
-Pages copy-on-write:                     721223.
-Pages zero filled:                     11774412.
-Pages reactivated:                      5561194.
-Pages purged:                            300675.
-File-backed pages:                        44003.
-Anonymous pages:                          37273.
-Pages stored in compressor:               58012.
-Pages occupied by compressor:             19616.
-Decompressions:                         3630419.
-Compressions:                           4481301.
-Pageins:                                4779195.
-node_processes=0
-all_processes=298
-protected=Paleramine,sshd,system-daemons,active-apps
+Pages wired down:                         25348.
+Pages purgeable:                            977.
+"Translation faults":                  29598950.
+Pages copy-on-write:                     726015.
+Pages zero filled:                     11888709.
+Pages reactivated:                      5598146.
+Pages purged:                            301567.
+File-backed pages:                        42426.
+Anonymous pages:                          36432.
+Pages stored in compressor:               64204.
+Pages occupied by compressor:             21459.
+Decompressions:                         3653394.
+Compressions:                           4512528.
+Pageins:                                4822727.
+Pageouts:                                 60565.
+Swapins:                                  19230.
+Swapouts:                                 40523.
+=== Dynamic pager availability ===
+dynamic_pager_binary=missing
+Could not find service "com.apple.dynamic_pager" in domain for system
+=== VM storage directories ===
+path=/private/var/vm
+total 131072
+drwxr-xr-x  3 root wheel        96 Jul 24 22:37 .
+drwxr-xr-x 54 root wheel      1728 Jul 24 01:05 ..
+-rw-------  1 root wheel 134217728 Jul 24 00:40 swapfile0
+path=/var/vm
+total 131072
+drwxr-xr-x  3 root wheel        96 Jul 24 22:37 .
+drwxr-xr-x 54 root wheel      1728 Jul 24 01:05 ..
+-rw-------  1 root wheel 134217728 Jul 24 00:40 swapfile0
+path=/private/var/mobile/Library/Caches
+total 148
+drwx------ 145 mobile mobile  4640 Jul 25 02:56 .
+drwx--x--x 150 mobile mobile  4800 Jul 24 01:16 ..
+-rw-r--r--   1 mobile mobile     0 Oct 25  2025 .com.apple.persistentconnection.settings.lock.lock
+-rw-r--r--   1 root   wheel   9328 Mar 20  2025 Checkpoint.plist
+drwxr-xr-x  62 mobile mobile  1984 Jul 24 23:12 CloudKit
+-rw-r--r--   1 mobile mobile  1020 Jan  5  2026 DateFormats.plist
+drwxr-xr-x   4 mobile mobile   128 Jan  4  2026 FamilyCircle
+-rw-r--r--   1 mobile mobile  7239 Jul 19 23:35 FamilyMarqueeDarkMode-8D7A52EF-07F5-4DCB-AC18-1BB9130BCF94@2x.png
+-rw-r--r--   1 mobile mobile  7239 Jul 19 23:35 FamilyMarqueeLightMode-8D7A52EF-07F5-4DCB-AC18-1BB9130BCF94@2x.png
+-rw-r--r--   1 mobile mobile 53248 Jan  9  2026 GDFileManagerCache.sqlite
+-rw-r--r--   1 mobile mobile 32768 Jan  9  2026 GDFileManagerCache.sqlite-shm
+-rw-r--r--   1 mobile mobile     0 Jan  9  2026 GDFileManagerCache.sqlite-wal
+drwx--x--x   7 mobile mobile   224 Jan 11  2026 GameKit
+drwxr-xr-x  15 mobile mobile   480 Jul 25 00:12 GeoServices
+-rw-r--r--   1 mobile mobile    36 Jan  4  2026 INSTALLATION
+drwxr-xr-x   4 mobile mobile   128 Jan 10  2026 ImageTables
+drwxr-xr-x   6 mobile mobile   192 Jul 25 00:12 MappedImageCache
+drwxr-xr-x  10 mobile mobile   320 Jan 12  2026 PPZebraBundle.bundle
+drwxr-xr-x   6 mobile mobile   192 Jul 25 03:02 PassKit
+drwx------   3 mobile mobile    96 Jan  4  2026 SentryCrash
+drwxr-xr-x  12 mobile mobile   384 May  1 10:40 TelephonyUI-9
+drwx------   3 mobile mobile    96 Jul 25 00:12 VoiceServices
+drwxr-xr-x   2 mobile mobile    64 Jul 25 00:12 VoiceTrigger
+drwxr-xr-x   3 mobile mobile    96 Jan 11  2026 cache
+drwxr-xr-x   6 mobile mobile   192 Jan  5  2026 com.apple.AppleAccount
+drwxr-xr-x  12 mobile mobile   384 Jul 22 23:16 com.apple.AppleMediaServices
+drwxr-xr-x   2 mobile mobile    64 Jul 24 22:20 com.apple.AssistantServices
+drwxr-xr-x   3 mobile mobile    96 Jan 13  2026 com.apple.AvatarKit
+drwxr-xr-x   3 mobile mobile    96 Jan  5  2026 com.apple.ClipServices
+drwxr-xr-x   6 mobile mobile   192 Jan 10  2026 com.apple.ClipServices.clipserviced
+drwxr-xr-x   6 mobile mobile   192 Jan 19  2026 com.apple.DeviceCheckInternal
+drwxr-xr-x   6 mobile mobile   192 Jan  4  2026 com.apple.FileProviderDaemon.AppStoreService
+drwxr-xr-x   9 mobile mobile   288 Jan  9  2026 com.apple.HomeKit
+drwxr-xr-x   4 mobile mobile   128 Jan  7  2026 com.apple.MTLAssetUpgraderD
+drwxr-xr-x   4 mobile mobile   128 Jan  7  2026 com.apple.MapKit.SnapshotService
+drwxr-xr-x   4 mobile mobile   128 Jul 23 08:15 com.apple.MobileSMS
+drwxr-xr-x   6 mobile mobile   192 Jan  8  2026 com.apple.NewDeviceOutreach
+drwxr-xr-x   5 mobile mobile   160 Jul 24 02:51 com.apple.Pasteboard
+drwxr-xr-x   7 mobile mobile   224 Jul 25 00:13 com.apple.Preferences
+=== Filesystem capacity ===
+Filesystem                                                                          Size   Used  Avail Capacity iused      ifree %iused  Mounted on
+com.apple.os.update-8579078043F0FC7B23462C6FC23605D3A3BB1E07@/dev/disk1s1           30Gi  4.2Gi  5.3Gi    45%  237568   55118120    0%   /
+/dev/disk1s2                                                                        30Gi   16Gi  5.3Gi    76%  156606   55118120    0%   /private/var
+com.apple.os.update-8579078043F0FC7B23462C6FC23605D3A3BB1E07@/dev/disk1s1 on / (apfs, sealed, local, nosuid, read-only, journaled, noatime)
+devfs on /dev (devfs, local, nosuid, nobrowse)
+/dev/md0 on /cores (hfs, local, nosuid)
+/dev/disk1s5 on /private/preboot (apfs, local, nosuid, journaled, noatime)
+/dev/disk3 on /cores/binpack (hfs, local, nosuid, read-only)
+/dev/disk4 on /cores/binpack/Applications (hfs, local, nosuid, read-only)
+/dev/disk1s3 on /private/xarts (apfs, local, nodev, nosuid, journaled, noatime, nobrowse)
+/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/usr/standalone/firmware on /usr/standalone/firmware (bindfs, local, nodev, nosuid, read-only, nobrowse)
+/dev/disk1s2 on /private/var (apfs, local, nodev, nosuid, journaled, noatime, protect)
+/dev/disk1s6 on /private/var/MobileSoftwareUpdate (apfs, local, nodev, nosuid, journaled, noatime, nobrowse)
+/dev/disk1s4 on /private/var/hardware (apfs, local, nodev, nosuid, journaled, noatime, nobrowse)
+/private/var/hardware/FactoryData/System/Library/Caches/com.apple.factorydata on /System/Library/Caches/com.apple.factorydata (bindfs, local, nodev, nosuid, read-only, nobrowse)
+=== Current pressure evidence ===
+process_count=309
+node_count=0
+diagnostic=read-only-no-memory-settings-changed
 ssh_exit_code=0
