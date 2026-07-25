@@ -1,12 +1,12 @@
 Official ElleKit DEB Inspection
-run_id=30170307863
+run_id=30170326060
 inspection=success
 
 --- sanitized output ---
 Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
 === DOWNLOAD ===
 Get:1 https://ellekit.space ./ ellekit 1.1.3 [353 kB]
-Fetched 353 kB in 1s (653 kB/s)
+Fetched 353 kB in 0s (1056 kB/s)
 W: Download is performed unsandboxed as root as file '/private/var/mobile/Media/ellekit-official-inspect/ellekit_1.1.3_iphoneos-arm64.deb' couldn't be accessed by user '_apt'. - pkgAcquire::Run (13: Permission denied)
 deb=/var/mobile/Media/ellekit-official-inspect/ellekit_1.1.3_iphoneos-arm64.deb
 -rw-r--r-- 1 root wheel 352628 Jul 21 11:42 /var/mobile/Media/ellekit-official-inspect/ellekit_1.1.3_iphoneos-arm64.deb
