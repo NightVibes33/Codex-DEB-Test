@@ -1,6 +1,230 @@
 ElleKit Loader Diagnostic
-run_id=30167688387
-collect=skipped
+run_id=30169249303
+collect=success
 
 --- sanitized output ---
-No output.
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== PACKAGE STATUS ===
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+com.nightvibes33.gif2ani	3.1.1	install ok installed
+ellekit	1.1.3	install ok installed
+=== ELLEKIT PACKAGE FILES ===
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+/.
+/var
+/var/jb
+/var/jb/Library
+/var/jb/Library/Frameworks
+/var/jb/Library/Frameworks/CydiaSubstrate.framework
+/var/jb/Library/MobileSubstrate
+/var/jb/etc
+/var/jb/etc/rc.d
+/var/jb/usr
+/var/jb/usr/lib
+/var/jb/usr/lib/TweakInject
+/var/jb/usr/lib/ellekit
+/var/jb/usr/lib/ellekit/MobileSafety.dylib
+/var/jb/usr/lib/ellekit/libinjector.dylib
+/var/jb/usr/lib/ellekit/pspawn.dylib
+/var/jb/usr/lib/libellekit.dylib
+/var/jb/usr/libexec
+/var/jb/usr/libexec/ellekit
+/var/jb/usr/libexec/ellekit/loader
+/var/jb/usr/share
+/var/jb/usr/share/doc
+/var/jb/usr/share/doc/ellekit
+/var/jb/usr/share/doc/ellekit/LICENSE
+/var/jb/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate
+/var/jb/Library/MobileSubstrate/DynamicLibraries
+/var/jb/etc/rc.d/ellekit-loader
+/var/jb/usr/lib/TweakInject.dylib
+/var/jb/usr/lib/TweakLoader.dylib
+/var/jb/usr/lib/libblackjack.dylib
+/var/jb/usr/lib/libhooker.dylib
+/var/jb/usr/lib/libsubstrate.dylib
+=== ELLEKIT FILE SEARCH ===
+=== LAUNCH DAEMONS ===
+/var/jb/Library/LaunchDaemons/com.apple.atrun.plist
+/var/jb/Library/LaunchDaemons/com.corellium.usbfluxd.plist
+/var/jb/Library/LaunchDaemons/com.openssh.sshd.plist
+/var/jb/Library/LaunchDaemons/com.tigisoftware.filza.helper.plist
+/var/jb/Library/LaunchDaemons/org.libimobiledevice.usbmuxd.plist
+/var/jb/Library/LaunchDaemons/us.diatr.shshd.plist
+=== MATCHING PLISTS ===
+=== PROCESSES ===
+ 4606   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+ 4638   ??  ?s     0:00.00 /usr/libexec/backboardd
+ 4921   ??  ?s     0:00.00 sudo -S -p  sh /var/mobile/Media/diagnose-ellekit.sh
+ 4922   ??  ?      0:00.00 sh /var/mobile/Media/diagnose-ellekit.sh
+=== LAUNCHCTL LIST MATCHES ===
+=== BOOTSTRAP DIRECTORIES ===
+/var/jb/Library:
+total 0
+drwxrwxr-x 19 root   wheel  608 Jan 12  2026 .
+drwxr-xr-x 22 root   wheel  704 Jul 23 08:35 ..
+drwxr-xr-x  8 root   wheel  256 Jul 24 23:30 Application Support
+drwxr-xr-x  3 root   wheel   96 Jan 10  2026 CT5
+drwxr-xr-x  4 root   wheel  128 Jan 10  2026 ControlCenter
+drwxr-xr-x 14 root   wheel  448 Jan 10  2026 Cylinder
+drwxr-xr-x 11 root   wheel  352 Jan 12  2026 Frameworks
+drwxr-xr-x  2 root   wheel   64 May  2  2023 LaunchAgents
+drwxr-xr-x  8 root   wheel  256 Jul 24 01:27 LaunchDaemons
+drwxr-xr-x  3 root   wheel   96 Jan 10  2026 MobileSubstrate
+drwxr-xr-x 19 root   wheel  608 Jul 25 11:36 PreferenceBundles
+drwxr-xr-x  3 root   wheel   96 Jan  9  2026 PreferenceLoader
+drwxr-xr-x  2 root   wheel   64 May  2  2023 Preferences
+drwxr-xr-x  2 root   wheel   64 May  2  2023 Ringtones
+drwxr-xr-x  3 mobile mobile  96 Jan 10  2026 Switches
+drwxr-xr-x  5 mobile staff  160 Jan 11  2026 Themes
+drwxr-xr-x  3 root   wheel   96 Jan 10  2026 Tweak Support
+drwxr-xr-x  2 root   wheel   64 May  2  2023 Wallpaper
+drwxr-xr-x 12 root   wheel  384 Jul 25 12:02 dpkg
+
+/var/jb/usr/lib:
+total 27776
+drwxr-xr-x 111 root   wheel    3552 Jul 24 10:30 .
+drwxr-xr-x  10 root   wheel     320 Jan 10  2026 ..
+lrwxr-xr-x   1 root   wheel      24 Jul 31  2024 LLVMPolly.dylib -> llvm-16/lib/LLVMPolly.so
+drwxr-xr-x  81 root   wheel    2592 Jul 25 12:02 TweakInject
+lrwxr-xr-x   1 root   wheel      41 Jun 11  2024 TweakInject.dylib -> /var/jb/usr/lib/ellekit/libinjector.dylib
+lrwxr-xr-x   1 root   wheel      41 Jun 11  2024 TweakLoader.dylib -> /var/jb/usr/lib/ellekit/libinjector.dylib
+drwxr-xr-x  41 root   wheel    1312 Jan  7  2026 bash
+lrwxr-xr-x   1 root   wheel      20 Jan 10  2026 dpkg -> /var/jb/Library/dpkg
+drwxr-xr-x   5 root   wheel     160 Jan 10  2026 ellekit
+drwxr-xr-x   5 root   wheel     160 Jan  7  2026 engines-3
+drwxr-xr-x   4 root   wheel     128 May  2  2023 ex
+drwxr-xr-x   3 root   wheel      96 Jan 10  2026 filza
+drwxr-xr-x  26 root   wheel     832 Jan 10  2026 gawk
+lrwxr-xr-x   1 root   wheel      24 Jul 31  2024 libLTO.dylib -> llvm-16/lib/libLTO.dylib
+-rwxr-xr-x   1 root   wheel 1982240 Jun  4  2024 libapt-pkg.6.0.0.dylib
+lrwxr-xr-x   1 root   wheel      22 Jun  4  2024 libapt-pkg.6.0.dylib -> libapt-pkg.6.0.0.dylib
+-rwxr-xr-x   1 root   wheel  506064 Jun  4  2024 libapt-private.0.0.0.dylib
+lrwxr-xr-x   1 root   wheel      26 Jun  4  2024 libapt-private.0.0.dylib -> libapt-private.0.0.0.dylib
+-rwxr-xr-x   1 root   wheel  112896 Jun  1  2024 libassuan.0.dylib
+lrwxr-xr-x   1 root   wheel      32 Jun 11  2024 libblackjack.dylib -> /var/jb/usr/lib/libellekit.dylib
+-rwxr-xr-x   1 root   wheel  166576 Sep 10  2023 libbrotlicommon.1.1.0.dylib
+lrwxr-xr-x   1 root   wheel      27 Sep 10  2023 libbrotlicommon.1.dylib -> libbrotlicommon.1.1.0.dylib
+-rwxr-xr-x   1 root   wheel   85152 Sep 10  2023 libbrotlidec.1.1.0.dylib
+lrwxr-xr-x   1 root   wheel      24 Sep 10  2023 libbrotlidec.1.dylib -> libbrotlidec.1.1.0.dylib
+-rwxr-xr-x   1 root   wheel  745696 Sep 10  2023 libbrotlienc.1.1.0.dylib
+lrwxr-xr-x   1 root   wheel      24 Sep 10  2023 libbrotlienc.1.dylib -> libbrotlienc.1.1.0.dylib
+-rwxr-xr-x   1 root   wheel  177696 Jun 18  2024 libcares.2.dylib
+-rwxr-xr-x   1 root   wheel  168368 May 22  2023 libcolorpicker.dylib
+-rwxr-xr-x   1 root   wheel  222384 Sep 10  2023 libcrypt.2.dylib
+-rwxr-xr-x   1 root   wheel 4095456 Jun  1  2024 libcrypto.3.dylib
+-rwxr-xr-x   1 root   wheel  601840 Jun  1  2024 libcurl.4.dylib
+-rwxr-xr-x   1 root   wheel   71424 May  2  2023 libdimentio.0.dylib
+-rwxr-xr-x   1 root   wheel  200128 Sep 10  2023 libedit.0.dylib
+-rw-r--r--   1 root   wheel  820000 Jun 11  2024 libellekit.dylib
+-rwxr-xr-x   1 root   wheel   71888 Apr 15  2023 libfakeroot-0.dylib
+-rw-r--r--   1 root   wheel   69696 Apr 15  2023 libfakeroot.a
+lrwxr-xr-x   1 mobile staff      19 Apr 15  2023 libfakeroot.dylib -> libfakeroot-0.dylib
+-rwxr-xr-x   1 root   wheel  102720 Jun  1  2024 libffi.8.dylib
+-rwxr-xr-x   1 root   wheel  108432 May  2  2023 libformw.6.dylib
+-rwxr-xr-x   1 root   wheel  807360 Jun  2  2024 libgcrypt.20.dylib
+-rwxr-xr-x   1 root   wheel  361600 May 13  2024 libgcuniversal.dylib
+-rwxr-xr-x   1 root   wheel  108480 Jun  1  2024 libgdbm.6.dylib
+-rwxr-xr-x   1 root   wheel   55840 Jan 18  2023 libgeneral.0.dylib
+-rwxr-xr-x   1 root   wheel  520912 Sep 10  2023 libgmp.10.dylib
+-rwxr-xr-x   1 root   wheel 1832944 Jun  1  2024 libgnutls.30.dylib
+-rwxr-xr-x   1 root   wheel  172912 Jun  1  2024 libgpg-error.0.dylib
+-rwxr-xr-x   1 root   wheel   89792 May  2  2023 libhistory.8.2.dylib
+lrwxrwxrwx   1 root   wheel      20 May  2  2023 libhistory.8.dylib -> libhistory.8.2.dylib
+-rw-r--r--   1 root   wheel  289392 Sep 10  2023 libhogweed.6.8.dylib
+lrwxr-xr-x   1 root   wheel      20 Sep 10  2023 libhogweed.6.dylib -> libhogweed.6.8.dylib
+lrwxr-xr-x   1 root   wheel      32 Jun 11  2024 libhooker.dylib -> /var/jb/usr/lib/libellekit.dylib
+-rwxr-xr-x   1 root   wheel  169920 Jun  1  2024 libidn2.0.dylib
+-rwxr-xr-x   1 root   wheel  255904 Jan 18  2023 libimobiledevice-1.0.6.dylib
+-rwxr-xr-x   1 root   wheel   93312 Jan 18  2023 libimobiledevice-glue-1.0.0.dylib
+-rw-r--r--   1 root   wheel  138656 Sep 10  2023 libintl.8.dylib
+-rw-r--r--   1 root   wheel   70848 May  2  2023 libiosexec.1.dylib
+-rwxr-xr-x   1 root   wheel   89920 Jan 18  2023 libirecovery-1.0.3.dylib
+drwxr-xr-x   3 root   wheel      96 Jan  7  2026 libkrw
+-rwxr-xr-x   1 root   wheel   51072 Jun  9  2024 libkrw.0.dylib
+-rwxr-xr-x   1 root   wheel  155040 Sep 10  2023 liblz4.1.9.4.dylib
+lrwxr-xr-x   1 root   wheel      18 Sep 10  2023 liblz4.1.dylib -> liblz4.1.9.4.dylib
+-rwxr-xr-x   1 root   wheel  190480 Sep 10  2023 liblzma.5.dylib
+-rwxr-xr-x   1 root   wheel  173184 Jun  1  2024 libmagic.1.dylib
+-rwxr-xr-x   1 root   wheel   87632 Sep 10  2023 libmd.0.dylib
+-rwxr-xr-x   1 root   wheel   72384 May  2  2023 libmenuw.6.dylib
+-rwxr-xr-x   1 root   wheel  454544 Jan 18  2023 libmpfr.6.dylib
+-rwxr-xr-x   1 root   wheel  340752 May  2  2023 libncursesw.6.dylib
+-rw-r--r--   1 root   wheel  318032 Sep 10  2023 libnettle.8.8.dylib
+lrwxr-xr-x   1 root   wheel      19 Sep 10  2023 libnettle.8.dylib -> libnettle.8.8.dylib
+-rwxr-xr-x   1 root   wheel  180624 Jun  1  2024 libnghttp2.14.dylib
+-rwxr-xr-x   1 root   wheel   70896 Jun  1  2024 libnpth.0.dylib
+-rwxr-xr-x   1 root   wheel 1142496 Jun  1  2024 libp11-kit.0.dylib
+-rwxr-xr-x   1 root   wheel   89664 Sep 10  2023 libpam.2.dylib
+-rwxr-xr-x   1 root   wheel   51392 May  2  2023 libpanelw.6.dylib
+-rwxr-xr-x   1 root   wheel  433536 May  2  2023 libpcre.1.dylib
+-rwxr-xr-x   1 root   wheel  535904 Jun  1  2024 libpcre2-8.0.dylib
+-rwxr-xr-x   1 root   wheel  106208 Feb  1  2023 libplist-2.0.3.dylib
+-rwxr-xr-x   1 root   wheel  208912 Jul 22  2024 libprefs.dylib
+-rwxr-xr-x   1 root   wheel 2681824 Jan 18  2023 libpython3.9.dylib
+-rwxr-xr-x   1 root   wheel  297744 May  2  2023 libreadline.8.2.dylib
+lrwxrwxrwx   1 root   wheel      21 May  2  2023 libreadline.8.dylib -> libreadline.8.2.dylib
+-rwxr-xr-x   1 root   wheel  178528 Jun  1  2024 librtmp.1.dylib
+-rwxr-xr-x   1 root   wheel  243104 Jan 18  2023 libsodium.23.dylib
+-rwxr-xr-x   1 root   wheel  251248 Jun  1  2024 libssh2.1.dylib
+-rwxr-xr-x   1 root   wheel  785216 Jun  1  2024 libssl.3.dylib
+lrwxr-xr-x   1 root   wheel      32 Jun 11  2024 libsubstrate.dylib -> /var/jb/usr/lib/libellekit.dylib
+-rwxr-xr-x   1 root   wheel  409328 Jul 30  2024 libtapi.dylib
+-rwxr-xr-x   1 root   wheel  103760 Sep 10  2023 libtasn1.6.dylib
+-rwxr-xr-x   1 root   wheel 1816384 Jun  1  2024 libunistring.5.dylib
+-rwxr-xr-x   1 root   wheel  145648 Jan 18  2023 libusb-1.0.0.dylib
+-rwxr-xr-x   1 root   wheel   88144 Jan 18  2023 libusbmuxd-2.0.6.dylib
+-rw-r--r--   1 root   wheel   88272 Dec 23  2022 libuuid.16.dylib
+-rwxr-xr-x   1 root   wheel  135808 Jan 18  2023 libxar.1.dylib
+-rwxr-xr-x   1 root   wheel   53168 Sep 10  2023 libxxhash.0.8.2.dylib
+lrwxr-xr-x   1 root   wheel      21 Sep 10  2023 libxxhash.0.dylib -> libxxhash.0.8.2.dylib
+-rwxr-xr-x   1 root   wheel  171552 Jun  1  2024 libz-ng.2.1.6.dylib
+lrwxr-xr-x   1 root   wheel      19 Jun  1  2024 libz-ng.2.dylib -> libz-ng.2.1.6.dylib
+-rwxr-xr-x   1 root   wheel  177632 Jan 18  2023 libzip.5.5.dylib
+lrwxr-xr-x   1    505 staff      16 Jan 18  2023 libzip.5.dylib -> libzip.5.5.dylib
+-rwxr-xr-x   1 root   wheel  658464 May  2  2023 libzstd.1.5.5.dylib
+lrwxrwxrwx   1 root   wheel      19 May  2  2023 libzstd.1.dylib -> libzstd.1.5.5.dylib
+drwxr-xr-x   6 root   wheel     192 Jan 10  2026 llvm-16
+drwxr-xr-x   3 root   wheel      96 Jan  7  2026 ossl-modules
+drwxr-xr-x   8 root   wheel     256 Jan 10  2026 p7zip
+drwxr-xr-x  12 root   wheel     384 May  2  2023 pam
+drwxr-xr-x   3 root   wheel      96 Jan  7  2026 pkgconfig
+drwxr-xr-x   3 root   wheel      96 Jul 24 01:37 python3
+drwxr-xr-x 211 root   wheel    6752 Jul 24 01:37 python3.9
+drwxr-xr-x   4 root   wheel     128 Jan  7  2026 ssl
+lrwxrwxrwx   1 root   wheel      17 May  2  2023 terminfo -> ../share/terminfo
+drwxr-xr-x   3 root   wheel      96 May  2  2023 zsh
+
+/var/jb/usr/libexec:
+total 1748
+drwxr-xr-x  26 root wheel    832 Jul 24 23:24 .
+drwxr-xr-x  10 root wheel    320 Jan 10  2026 ..
+-rwxr-xr-x   1 root wheel  56192 Jan 18  2023 PlistBuddy
+drwxr-xr-x   6 root wheel    192 Jan  7  2026 apt
+drwxr-xr-x   5 root wheel    160 Jan 10  2026 as
+-rwxr-xr-x   1 root wheel  78624 Jun  1  2024 atrun
+drwxr-xr-x   4 root wheel    128 Jan 10  2026 awk
+drwxr-xr-x   3 root wheel     96 Jul 24 23:24 codex-ios
+drwxr-xr-x   3 root wheel     96 Jan  7  2026 coreutils
+drwxr-xr-x   3 root wheel     96 May  2  2023 dpkg
+drwxr-xr-x   3 root wheel     96 Jan 10  2026 ellekit
+drwxr-xr-x   5 root wheel    160 Jan 10  2026 filza
+-rwxr-xr-x   1 root wheel 105360 May  2  2023 firmware
+-rwxr-xr-x   1 root wheel    114 May  2  2023 firmware-wrapper
+-rwxr-xr-x   1 root wheel  96224 Jun  1  2024 frcode
+-rwxr-xr-x   1 root wheel  96384 Jun  1  2024 getty
+drwxr-xr-x 176 root wheel   5632 Jul 24 01:37 git-core
+-rwsr-sr-x   1 root wheel 168128 Jul  9  2023 ldrestartutil-bsc
+-rwxr-xr-x   1 root wheel  51872 May  2  2023 path_helper
+-rwxr-xr-x   1 root wheel 149216 Jul  1  2024 sftp-server
+-rwxr-xr-x   1 root wheel     40 May  2  2023 shshd-wrapper
+-rwx--x--x   1 root wheel 375984 Jul  1  2024 ssh-keysign
+-rwxr-xr-x   1 root wheel 290640 Jul  1  2024 ssh-pkcs11-helper
+-rwxr-xr-x   1 root wheel 287792 Jul  1  2024 ssh-sk-helper
+-rwxr-xr-x   1 root wheel    714 Jul  1  2024 sshd-keygen-wrapper
+drwxr-xr-x  10 root wheel    320 Jan  7  2026 sudo
+=== RUNTIME MARKER ===
+runtime_status=missing
+=== RECENT CRASH COUNT ===
+0
