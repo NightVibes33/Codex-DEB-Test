@@ -1,11 +1,15 @@
 iPad Tailscale SSH Bridge
-run_id=30146929287
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30146929287
-commit=fcf253c59dc66cc4af73bad2aba9013ef28e17d3
+run_id=30146965483
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30146965483
+commit=9daddffbc6b7abc8b061760341927293fc16c6e2
 validate=failure
 tailscale=skipped
 install_ssh=skipped
 ssh=skipped
+
+--- validation error ---
+Missing repository secret: TAILSCALE_AUTHKEY
+Missing repository secret: IPAD_PASSWORD
 
 --- sanitized SSH output ---
 No SSH output file was created; failure occurred before the SSH step.
