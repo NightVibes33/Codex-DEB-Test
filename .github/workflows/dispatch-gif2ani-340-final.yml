@@ -9,55 +9,17 @@ on:
 
 permissions:
   actions: write
-  contents: write
+  contents: read
 
 concurrency:
   group: gif2ani-340-final-dispatch
   cancel-in-progress: false
 
 jobs:
-  repair-and-dispatch:
+  dispatch:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Split generated theme-name checks
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          path=Path('.github/workflows/build-install-gif2ani-340-final.yml')
-          text=path.read_text()
-          replacements={
-              "          grep -a -F -q 'Cyan Pulse Rings' \"$BUNDLE/Gif2AniPrefs\"\n":
-                  "          grep -a -F -q 'Cyan' \"$BUNDLE/Gif2AniPrefs\"\n          grep -a -F -q 'Pulse Rings' \"$BUNDLE/Gif2AniPrefs\"\n",
-              "          grep -a -F -q 'Cyan Pulse Rings' \"$bundle/Gif2AniPrefs\"\n":
-                  "          grep -a -F -q 'Cyan' \"$bundle/Gif2AniPrefs\"\n          grep -a -F -q 'Pulse Rings' \"$bundle/Gif2AniPrefs\"\n",
-          }
-          changed=0
-          for old,new in replacements.items():
-              if old in text:
-                  text=text.replace(old,new)
-                  changed+=1
-          if "grep -a -F -q 'Cyan Pulse Rings'" in text:
-              raise SystemExit('combined generated-name binary check remains')
-          if text.count("grep -a -F -q 'Cyan'") < 2 or text.count("grep -a -F -q 'Pulse Rings'") < 2:
-              raise SystemExit('split checks are incomplete')
-          path.write_text(text)
-          print(f'patched_combined_checks={changed}')
-          PY
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .github/workflows/build-install-gif2ani-340-final.yml
-          if ! git diff --cached --quiet; then
-            git commit -m "Split generated Gif2Ani theme binary checks"
-            git pull --rebase origin main
-            git push origin HEAD:main
-          fi
-
-      - name: Dispatch clean build and device proof
+      - name: Dispatch isolated direct-device proof
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run build-install-gif2ani-340-final.yml --repo "$GITHUB_REPOSITORY" --ref main
+        run: gh workflow run gif2ani-340-direct-device-proof-20260725.yml --repo "$GITHUB_REPOSITORY" --ref main
