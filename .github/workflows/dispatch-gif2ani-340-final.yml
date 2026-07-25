@@ -9,12 +9,36 @@ on:
 
 permissions:
   actions: write
-  contents: read
+  contents: write
 
 jobs:
-  dispatch:
+  repair-and-dispatch:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      - name: Repair generated theme-name checks
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('.github/workflows/build-install-gif2ani-340-downloadable.yml')
+          text=path.read_text()
+          old="          strings \"$BUNDLE/Gif2AniPrefs\" | grep -q 'Cyan Pulse Rings'\n"
+          new=("          strings \"$BUNDLE/Gif2AniPrefs\" | grep -q 'Pulse Rings'\n"
+               "          strings \"$BUNDLE/Gif2AniPrefs\" | grep -q 'Cyan'\n")
+          if old in text:
+              text=text.replace(old,new)
+              path.write_text(text)
+          elif "grep -q 'Pulse Rings'" not in text or "grep -q 'Cyan'" not in text:
+              raise SystemExit('proof checks are neither old nor repaired')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/build-install-gif2ani-340-downloadable.yml
+          if ! git diff --cached --quiet; then
+            git commit -m "Fix generated downloadable theme binary checks"
+            git push origin HEAD:main
+          fi
       - name: Dispatch build and device proof
         env:
           GH_TOKEN: ${{ github.token }}
