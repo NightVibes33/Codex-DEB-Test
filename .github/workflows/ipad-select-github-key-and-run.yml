@@ -86,6 +86,7 @@ jobs:
           REPO=/var/mobile/Documents/DarkSword-Workspace/Dopamine
           KEY=/var/root/.ssh/darksword_github_ed25519
           KNOWN_HOSTS=/var/root/.ssh/known_hosts
+          WRAPPER=/var/root/.ssh/github-ssh-wrapper
 
           echo '=== Existing GitHub SSH identity ==='
           test -f "$KEY" || { echo 'existing_key=missing'; exit 40; }
@@ -105,12 +106,21 @@ jobs:
           fi
           echo 'github_auth=success'
 
-          export GIT_SSH_COMMAND="ssh -i $KEY -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN_HOSTS"
+          SSH_BIN="$(command -v ssh)"
+          cat > "$WRAPPER" <<EOF
+          #!/bin/sh
+          exec "$SSH_BIN" -i "$KEY" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" "\$@"
+          EOF
+          chmod 700 "$WRAPPER"
+
+          export GIT_SSH_COMMAND="$WRAPPER"
           cd "$REPO"
           git remote set-url origin git@github.com:NightVibes33/Dopamine.git
-          git config core.sshCommand "$GIT_SSH_COMMAND"
+          git config --unset-all core.sshCommand 2>/dev/null || true
+          git config core.sshCommand "$WRAPPER"
           git ls-remote origin HEAD >/dev/null
           printf 'repo_remote='; git remote get-url origin
+          printf 'ssh_wrapper=%s\n' "$WRAPPER"
           echo 'git_remote_auth=success'
           REMOTE
 
