@@ -1,0 +1,21 @@
+Official Exit V3 Workflow Status
+run_id=30169048809
+status=completed
+conclusion=failure
+event=push
+head_sha=3282b7945fd978bf121e24df463187271e17367f
+created_at=2026-07-25T18:09:02Z
+updated_at=2026-07-25T18:11:17Z
+job=resolve-environment status=completed conclusion=success id=89706857489
+  step=1 Set up job status=completed conclusion=success
+  step=2 Run set -euo pipefail status=completed conclusion=success
+  step=3 Complete job status=completed conclusion=success
+job=run status=completed conclusion=failure id=89706864728
+  step=1 Set up job status=completed conclusion=success
+  step=2 Run actions/checkout@v4 status=completed conclusion=success
+  step=3 Join Tailscale status=completed conclusion=success
+  step=4 Run official Exit Safemode V3 status=completed conclusion=failure
+  step=5 Publish sanitized status status=completed conclusion=success
+  step=9 Post Join Tailscale status=completed conclusion=success
+  step=10 Post Run actions/checkout@v4 status=completed conclusion=success
+  step=11 Complete job status=completed conclusion=success
