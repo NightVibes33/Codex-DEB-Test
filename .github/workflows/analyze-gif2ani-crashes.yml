@@ -63,13 +63,14 @@ jobs:
           set -euo pipefail
           mkdir -p crashlogs
           ssh_opts=(-p 22 -o ConnectTimeout=15 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null)
+          scp_opts=(-P 22 -o ConnectTimeout=15 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null)
           sshpass -e ssh "${ssh_opts[@]}" mobile@"$IPAD_HOST" \
             'find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name "backboardd-*.ips" -o -name "SpringBoard-*.ips" \) -mmin -360 -print 2>/dev/null | sort | tail -n 12' \
             > crash-paths.txt
           test -s crash-paths.txt
           while IFS= read -r remote_path; do
             [ -n "$remote_path" ] || continue
-            sshpass -e scp "${ssh_opts[@]}" mobile@"$IPAD_HOST:$remote_path" crashlogs/
+            sshpass -e scp "${scp_opts[@]}" mobile@"$IPAD_HOST:$remote_path" crashlogs/
           done < crash-paths.txt
           ls -lah crashlogs
       - name: Parse fault details without device identifiers
