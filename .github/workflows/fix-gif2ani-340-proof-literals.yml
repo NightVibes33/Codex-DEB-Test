@@ -1,0 +1,45 @@
+name: Fix Gif2Ani 3.4 Proof Literals
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/fix-gif2ani-340-proof-literals.txt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fix generated-name binary checks
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('.github/workflows/build-install-gif2ani-340-downloadable.yml')
+          text=path.read_text()
+          old="          strings \"$BUNDLE/Gif2AniPrefs\" | grep -q 'Cyan Pulse Rings'\n"
+          new=("          strings \"$BUNDLE/Gif2AniPrefs\" | grep -q 'Pulse Rings'\n"
+               "          strings \"$BUNDLE/Gif2AniPrefs\" | grep -q 'Cyan'\n")
+          count=text.count(old)
+          if count != 2:
+              raise SystemExit(f'expected 2 generated-name checks, found {count}')
+          path.write_text(text.replace(old,new))
+          trigger=Path('triggers/build-install-gif2ani-340-downloadable.txt')
+          trigger.write_text('build=2026-07-25T20:08:00-05:00\nversion=3.4.0\ndownloadable_builtins=54\nfix=generated-name-proof-literals\n')
+          PY
+          grep -q "grep -q 'Pulse Rings'" .github/workflows/build-install-gif2ani-340-downloadable.yml
+          grep -q "grep -q 'Cyan'" .github/workflows/build-install-gif2ani-340-downloadable.yml
+      - name: Commit and trigger proof
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/build-install-gif2ani-340-downloadable.yml triggers/build-install-gif2ani-340-downloadable.txt
+          git commit -m "Fix generated downloadable theme proof checks"
+          git pull --rebase origin main
+          git push origin HEAD:main
