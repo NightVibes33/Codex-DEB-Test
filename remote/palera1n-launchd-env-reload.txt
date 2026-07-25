@@ -1,0 +1,8 @@
+palera1n Launchd Environment Reload
+run_id=30171298436
+repair=failure
+
+--- sanitized output ---
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== BEFORE ===
+this is a plinit internal utility, do not run
