@@ -1,4 +1,4 @@
-build=2026-07-25T19:37:00-05:00
+build=2026-07-25T19:45:00-05:00
 version=3.4.0
 downloadable_builtins=54
-validator=source-markers
+fix=split-source-integration
