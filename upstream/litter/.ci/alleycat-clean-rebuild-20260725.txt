@@ -1,0 +1,2 @@
+Clean AlleyCat rebuild trigger after removing temporary run-cancel helpers.
+Source state includes the iOS 16 Hairball compatibility pin and animator shims.
