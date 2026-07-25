@@ -1,0 +1,153 @@
+name: iPad select GitHub SSH key and run patch
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/ipad-select-github-key-and-run.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ipad-select-github-key-and-run
+  cancel-in-progress: true
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - name: Resolve environment
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          environment_name="$(python3 - "$TARGET_ENVIRONMENT_ID" <<'PY'
+          import json, sys
+          target = int(sys.argv[1])
+          data = json.load(open('environments.json'))
+          for item in data.get('environments', []):
+              if int(item.get('id', -1)) == target:
+                  print(item['name'])
+                  break
+          PY
+          )"
+          test -n "$environment_name"
+          echo "environment_name=$environment_name" >> "$GITHUB_OUTPUT"
+
+  run:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Join Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          ping: 100.116.117.65
+          version: latest
+
+      - name: Install SSH client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends openssh-client sshpass
+
+      - name: Select existing iPad GitHub key and run patch
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          ssh-keyscan -T 15 -H 100.116.117.65 > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+          cat > /tmp/select-key.sh <<'REMOTE'
+          set -eu
+          export HOME=/var/mobile
+          export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
+          SSH_DIR="$HOME/.ssh"
+          REPO=/var/mobile/Documents/DarkSword-Workspace/Dopamine
+          mkdir -p "$SSH_DIR"
+          chmod 700 "$SSH_DIR"
+
+          echo '=== Existing SSH identities ==='
+          found=0
+          selected=''
+          for key in "$SSH_DIR"/*; do
+              [ -f "$key" ] || continue
+              case "$key" in
+                  *.pub|*/authorized_keys|*/known_hosts|*/known_hosts.old|*/config|*/environment|*/github-ssh-wrapper*) continue ;;
+              esac
+              if ! ssh-keygen -y -f "$key" >/dev/null 2>&1; then
+                  continue
+              fi
+              found=$((found + 1))
+              chmod 600 "$key"
+              printf 'candidate=%s fingerprint=' "$(basename "$key")"
+              ssh-keygen -lf "$key" | awk '{print $2, $4}'
+              auth_output="$(ssh -i "$key" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=accept-new -T git@github.com </dev/null 2>&1 || true)"
+              if printf '%s' "$auth_output" | grep -q 'successfully authenticated'; then
+                  selected="$key"
+                  printf 'github_auth=success key=%s\n' "$(basename "$key")"
+                  break
+              fi
+              printf 'github_auth=not_selected key=%s\n' "$(basename "$key")"
+          done
+
+          printf 'private_key_candidates=%s\n' "$found"
+          if [ -z "$selected" ]; then
+              echo 'github_auth=failure_no_existing_key_was_accepted'
+              exit 41
+          fi
+
+          export GIT_SSH_COMMAND="ssh -i $selected -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new"
+          cd "$REPO"
+          git config core.sshCommand "$GIT_SSH_COMMAND"
+          printf 'repo_remote='; git remote get-url origin
+          git ls-remote origin HEAD >/dev/null
+          printf 'selected_key=%s\n' "$(basename "$selected")"
+          echo 'git_remote_auth=success'
+          REMOTE
+
+          {
+            printf '%s\n' "$IPAD_PASSWORD"
+            cat /tmp/select-key.sh
+            cat remote/ipad-command.sh
+          } | sshpass -e ssh \
+                -o BatchMode=no \
+                -o ConnectTimeout=20 \
+                -o ServerAliveInterval=15 \
+                -o ServerAliveCountMax=3 \
+                -o StrictHostKeyChecking=yes \
+                -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+                mobile@100.116.117.65 \
+                'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
+                2>&1 | tee ipad-select-key-output.txt
+
+      - name: Upload result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipad-select-key-output-${{ github.run_id }}
+          path: ipad-select-key-output.txt
+          if-no-files-found: warn
+          retention-days: 7
