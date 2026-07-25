@@ -1,10 +1,10 @@
-name: Dispatch ElleKit Activation After Official Exit
+name: Dispatch Current Official palera1n Exit V4
 
 on:
   push:
     branches: [main]
     paths:
-      - triggers/dispatch-ellekit-after-official-exit.txt
+      - triggers/dispatch-current-official-exit-v4.txt
 
 permissions:
   actions: write
@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Dispatch safe ElleKit activation
+      - name: Dispatch current V4 workflow
         id: dispatch
         env:
           GH_TOKEN: ${{ github.token }}
@@ -29,7 +29,7 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/activate-ellekit-safe-ipad.yml/dispatches" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/official-exit-palera1n-safemode-v4.yml/dispatches" \
             -d '{"ref":"main"}')
           code=$?
           set -e
@@ -38,7 +38,7 @@ jobs:
           if [ -s dispatch-response.txt ]; then cat dispatch-response.txt | tee -a dispatch-status.txt; fi
           test "$code" -eq 0
           test "$http_code" = "204"
-          echo "ellekit_activation_dispatched=yes" | tee -a dispatch-status.txt
+          echo "current_v4_dispatched=yes" | tee -a dispatch-status.txt
       - name: Publish dispatcher status
         if: always()
         run: |
@@ -48,14 +48,14 @@ jobs:
           git pull --rebase origin main
           mkdir -p remote
           {
-            echo "ElleKit Activation After Official Exit Dispatch"
+            echo "Current Official palera1n Exit V4 Dispatch"
             echo "run_id=${GITHUB_RUN_ID}"
             echo "outcome=${{ steps.dispatch.outcome }}"
             echo
             if [ -f dispatch-status.txt ]; then cat dispatch-status.txt; else echo "No dispatch output."; fi
-          } > remote/ellekit-after-official-exit-dispatch.txt
-          git add remote/ellekit-after-official-exit-dispatch.txt
+          } > remote/current-official-exit-v4-dispatch.txt
+          git add remote/current-official-exit-v4-dispatch.txt
           if ! git diff --cached --quiet; then
-            git commit -m "Record ElleKit post-exit activation dispatch [skip ci]"
+            git commit -m "Record current official Exit V4 dispatch [skip ci]"
             git push origin HEAD:main
           fi
