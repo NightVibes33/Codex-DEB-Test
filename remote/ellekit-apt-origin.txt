@@ -1,0 +1,425 @@
+ElleKit APT Origin Inspection
+run_id=30170261280
+probe=success
+
+--- sanitized output ---
+Depends: mobilesubstrate
+Description: Replace Arcade button with "Show Updates" button in the AppStore app
+Depiction: https://repo.cypwn.xyz/depiction/1370
+SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/1370
+Name: AppStoreUpdatesTab
+Icon: https://siieo.github.io/sileodepictions/UpdateTab/icon.png
+Author: Johnzaro & Hitori
+Package: xyz.cypwn.appsyncunified
+Status: install ok installed
+Section: Tweaks
+Maintainer: CyPwn
+Architecture: iphoneos-arm64
+Version: 116.0
+Replaces: us.hackulo.appsync50, net.angelxwind.appsyncunified
+Provides: appsync, net.angelxwind.appsyncunified
+Depends: firmware (>= 5.0), mobilesubstrate (>= 0.9.5100), firmware (<= 18.2)
+Conflicts: us.hackulo.appsync50, us.hackulo.appsync50plus, com.hackyouriphone.appsync7, com.teiron.ppsync, appsync50plus2.25pp, com.linusyang.appsync, com.sull.appsyncunified, com.sull.appsyncunifiedbeta, com.xsellize.appsync50, com.xsellize.appsync50plus, appsync50plus.178, appsync50plus2.178, cydia.net.angelxwind.appsyncunified, com.ifucker.appsync, com.sexyphonetech.appsyncunified, appsyncunifiedofficial, org.digbick.asufixed, cn.mingmei.asu623517234615234813, technology.goated.appsync, technology.goated.appsyncunified, vaginalfisting.appsynctool, science.xnu.substitute, akemi.appsink, akemi.appsyncunifed, akemi.appsyncunifed2, akemi.appsyncunifedpatched, appsyncpatched, appsyncrootless, weaponized.autism.technology.appsyncunified, ellekit (<< 1.1)
+Description: Enables the ability to install unsigned/fakesigned iOS applications.
+Name: AppSync Unified
+Depiction: https://repo.cypwn.xyz/depiction/3213
+SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/3213
+Author: Karen/あけみ, Linus Yang
+Package: xyz.cypwn.bigsurcenter
+Status: install ok installed
+Section: Tweaks
+Installed-Size: 1820
+Maintainer: CyPwn
+Architecture: iphoneos-arm64
+Version: 1.4.5k
+Depends: mobilesubstrate, preferenceloader, com.opa334.ccsupport, ws.hbang.common (>= 1.17), ws.hbang.alderis (>= 1.2)
+Description: BigSurCenter replaces the default iOS control center with a new lightweight and elegant one inspired by the control center in MacOS Big Sur. Cracked by CBZ
+Depiction: https://repo.cypwn.xyz/depiction/2714
+SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/2714
+Icon: https://repo.cypwn.xyz/packages/BigSurCenter-Rootless/icon.png
+Name: BigSurCenter
+Author: nicho1asdev
+Package: xyz.cypwn.claude-code
+Status: install ok installed
+Section: Development
+Installed-Size: 166456
+Maintainer: CyPwn
+Architecture: iphoneos-arm64
+Version: 2.1.45-1
+Provides: claude-code
+Depends: firmware (>= 15.0), zsh, ldid
+Conflicts: com.anthropic.claude-code-beta
+Description: Claude Code CLI for iOS - AI-powered coding assistant
+ Run Claude Code natively on your jailbroken iPhone.
+ Includes Node.js 18.20.4 runtime with iOS-optimized V8 flags.
+ Supports API key and OAuth authentication.
+Depiction: https://repo.cypwn.xyz/depiction/3497
+SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/3497
+Icon: https://repo.cypwn.xyz/packages/ClaudeCode-Rootless/icon.png
+Name: Claude Code
+Author: Anthropic (iOS package by Bryan)
+Homepage: https://claude.ai
+Package: xyz.cypwn.crackfouad
+Status: install ok installed
+Section: Cracks
+Installed-Size: 9732
+Maintainer: CyPwn
+Architecture: iphoneos-arm64
+Version: 2.0
+Depends: mobilesubstrate (>= 0.9.5000)
+Conflicts: com.blatant.regramcrack (= 1.2)
+Description: Cracked By Blatant | Compatible with up to following: WatusiTools: v2.5.10; ContactSync: v1.1.14; OnlineNotify: v3.4.13; Watusi 3: v1.2.60; Stalky: v4.1.37; Regram: B23.
+Depiction: https://repo.cypwn.xyz/depiction/3105
+SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/3105
+Icon: https://repo.cypwn.xyz/packages/FouadCrack-Rootless/icon.png
+Name: Fouad Crack
+Author: blatant
+Package: xyz.cypwn.cydown
+Status: install ok installed
+Section: Tweaks
+Maintainer: CyPwn
+Architecture: iphoneos-arm64
+Version: 7.2.0
+Depends: coreutils-bin, coreutils, mobilesubstrate, preferenceloader, cy+cpu.arm64v8 | oldabi-xina | oldabi
+Conflicts: com.julioverne.cydown
+Description: Download tweaks for free
+Name: CyDown++
+Author: Julioverne & CyPwn
+SileoDepiction: https://paisseon.github.io/info/cydown.json
+Depiction: https://paisseon.github.io/info/cydown.html
+Icon: https://repo.cypwn.xyz/assets/repo/Featured/cydownpp.png
+Package: xyz.cypwn.cylinder
+Status: install ok installed
+Section: Tweaks
+Maintainer: CyPwn
+Architecture: iphoneos-arm64
+Version: 1.1.1
+Depends: firmware (>= 15.0), preferenceloader
+Description: Make your icons dance
+Depiction: https://repo.cypwn.xyz/depiction/1710
+SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/1710
+Author: Ryan Nair
+Name: Cylinder
+Icon: https://repo.cypwn.xyz/assets/repo/Featured/cylinder.png
+Package: xyz.cypwn.dumpdecrypter
+Status: install ok installed
+Section: Tweaks
+Maintainer: CyPwn
+Architecture: iphoneos-arm64
+Version: 1.5-1
+Depends: firmware (>= 15.0), mobilesubstrate
+Description: Decrypt iOS Apps and Plugins, Supports iOS15+
+Depiction: https://repo.cypwn.xyz/depiction/2893
+SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/2893
+Icon: https://repo.cypwn.xyz/packages/DumpDecrypter-Rootless/icon.png
+Name: DumpDecrypter
+Author: Netskao
+Package: xyz.cypwn.erika
+Status: install ok installed
+Section: Tweaks
+Maintainer: CyPwn
+Architecture: iphoneos-arm64
+Version: 1.13.3
+Depends: mobilesubstrate, firmware (>= 15.0)
+Description: Piracy downloader for Saily, Sileo, and Zebra
+Depiction: https://repo.cypwn.xyz/depiction/1966
+SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/1966
+Name: Erika
+Author: Paisseon
+Icon: https://paisseon.github.io/icons/Erika.png
+Package: xyz.cypwn.everest
+Status: install ok installed
+Section: Tweaks
+Maintainer: CyPwn
+Architecture: iphoneos-arm64
+Version: 1.0.1
+Depends: mobilesubstrate, ws.hbang.common
+Description: App icon animations
+Depiction: https://repo.cypwn.xyz/depiction/3174
+SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/3174
+Icon: https://repo.cypwn.xyz/packages/Everest-Rootless/icon.png
+Name: Everest
+Author: Christopher Anderson
+Package: xyz.cypwn.explosiveicons
+Status: install ok installed
+Section: Tweaks
+Maintainer: CyPwn
+Architecture: iphoneos-arm64
+Version: 1.1.1
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader
+Description: Explode your icons when deleting them. Does not work with Atria.
+Depiction: https://repo.cypwn.xyz/depiction/2416
+SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/2416
+Name: ExplosiveIcons
+Author: Wes
+Icon: https://repo.cypwn.xyz/assets/repo/Featured/explosiveicons.png
+Package: xyz.cypwn.filzacrackrootless
+Status: install ok installed
+Section: Cracks
+Installed-Size: 196
+Maintainer: CyPwn
+Architecture: iphoneos-arm64
+Version: 0.0.4
+Depends: firmware (>= 15.0)
+Description: Filza and AppsManager activation for free
+Depiction: https://repo.cypwn.xyz/depiction/1171
+SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/1171
+Name: Filza Crack (rootless)
+Author: Lilliana
+Package: xyz.cypwn.flex3
+Status: install ok installed
+Section: Tweaks
+Maintainer: CyPwn
+Architecture: iphoneos-arm64
+Version: 3.0
+Depends: mobilesubstrate, firmware (>= 15.0)
+Description: Develop your own tweaks and share them on the Flex Community Cloud
+Depiction: https://repo.cypwn.xyz/depiction/1988
+SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/1988
+Name: Flex 3
+Author: John Coates
+Icon: https://repo.cypwn.xyz/assets/repo/Featured/flex3.png
+Package: xyz.cypwn.iarrayshack
+Status: install ok installed
+Section: Development
+Maintainer: CyPwn
+Architecture: iphoneos-arm64
+Version: 1.0
+Depends: firmware (>= 15.0)
+Description: iArrays hack. Install alongside original iArrays packages. Click Activate on each tweak.
+Depiction: https://repo.cypwn.xyz/depiction/1899
+SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/1899
+Name: iArrays Hack
+Author: CyPwn
+Icon: https://repo.cypwn.xyz/assets/repo/Featured/iarrays.png
+Package: xyz.cypwn.icleanerpro
+Status: install ok installed
+Section: Utilities
+Maintainer: CyPwn
+Architecture: iphoneos-arm64
+Version: 7.10.0
+Replaces: org.altervista.exilecom.icleaner
+Depends: firmware (>= 4.0), findutils, apt | apt7, xyz.cypwn.icleanerprocrack
+Conflicts: org.altervista.exilecom.icleaner
+Description: The first real iOS system cleanup and management utility.
+Depiction: https://repo.cypwn.xyz/depiction/2564
+SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/2564
+Icon: https://repo.cypwn.xyz/packages/iCleanerPro-Rootless/icon.png
+Name: iCleaner Pro
+Author: Ivano Bilenchi
+Package: xyz.cypwn.igamegodnoads
+Status: install ok installed
+Section: Tweaks
+Maintainer: CyPwn
+Architecture: iphoneos-arm64
+Version: 1.0.0
+Depends: mobilesubstrate (>= 0.9.5000)
+Description: No ads for iGameGod 0.4.4
+Depiction: https://repo.cypwn.xyz/depiction/2927
+SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/2927
+Icon: https://repo.cypwn.xyz/packages/iGameGodNoAds-Rootless/icon.png
+Name: iGameGodNoAds
+Author: x✨
+Package: xyz.cypwn.installer
+Status: install ok installed
+Section: Packaging
+Maintainer: CyPwn
+Architecture: iphoneos-arm64
+Version: 5.1.1
+Depends: firmware (>= 12.0)
+Description: Installer 5.1 beta. Fastest Package Manager for iOS.
+Depiction: https://repo.cypwn.xyz/depiction/1804
+SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/1804
+Author: AppTapp
+Icon: https://synnygr.dev/AppTapp/icon51.png
+Name: Installer
+Package: xyz.cypwn.limneos
+Status: install ok installed
+Section: Tweaks
+Installed-Size: 168
+Maintainer: CyPwn
+Architecture: iphoneos-arm64
+Version: 3.1
+Depends: mobilesubstrate
+Description: Crack for Limneos tweaks by CBZ. Compiled using NewABI
+Depiction: https://repo.cypwn.xyz/depiction/1940
+SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/1940
+Name: Limneos Crack
+Author: CBZ
+Package: xyz.cypwn.macosspinnerrespring
+Status: install ok installed
+Section: Themes
+Maintainer: CyPwn
+Architecture: iphoneos-arm64
+Version: 1.0
+Description: macOS Spinner Respring Theme
+Depiction: https://repo.cypwn.xyz/depiction/2059
+SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/2059
+Name: macOS Spinner Respring Theme
+Author: Korboy
+Icon: https://i.imgur.com/AtIW75g.png
+Package: xyz.cypwn.nebbs
+Status: install ok installed
+Section: Tweaks
+Maintainer: CyPwn
+Architecture: iphoneos-arm64
+Version: 1.0.0
+Depends: mobilesubstrate
+Description: Crack for Nebbs tweaks, by CBZ!
+Depiction: https://repo.cypwn.xyz/depiction/2046
+SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/2046
+Name: Nebbs Crack
+Author: CBZ
+Package: xyz.cypwn.newterm3
+Status: install ok installed
+Section: Terminal Support
+Installed-Size: 10748
+Maintainer: Korboy <korboybeats@gmail.com>
+Architecture: iphoneos-arm64
+Version: 3.1
+Replaces: ws.hbang.newterm, ws.hbang.newterm2, ws.hbang.newterm3
+Depends: firmware (>= 14.0), zsh | bash | fish, coreutils, ncurses, system-cmds
+Recommends: gettext-localizations, iterm2-shell-integration, zsh-autosuggestions, zsh-syntax-highlighting
+Conflicts: ws.hbang.newterm, ws.hbang.newterm2, ws.hbang.newterm3
+Description: A powerful terminal emulator for iOS, bug fixes and new features implemented by Korboy.
+  - ****`--- New in 3.1 ---`****
+  - Custom fonts with live preview
+  - Customizable tab widths with border outlines
+  - Current directory display in tabs (OSC 7)
+  - Keyboard toolbar with haptic feedback
+  - Live preferences updates
+  - ****`--- Bug Fixes ---`****
+  - Fixed VNC keyboard key repeat issues
+  - Fixed black lines between rows at small font sizes
+  - Fixed tab layout and behavior issues
+Name: NewTerm 3
+Depiction: https://repo.cypwn.xyz/depiction/3479
+SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/3479
+Author: HASHBANG Productions, Korboy <korboybeats@gmail.com>
+Icon: https://repo.cypwn.xyz/assets/repo/Featured/newterm3.png
+Tag: compatible_min::ios14.0
+Package: xyz.cypwn.ocd
+Status: install ok installed
+Section: Tweaks
+Maintainer: CyPwn
+Architecture: iphoneos-arm64
+Version: 5.2
+Depends: com.mrgcgamer.libgcuniversal, preferenceloader
+Description: OCD - Obssesive Color Disorder.
+Depiction: https://repo.cypwn.xyz/depiction/2501
+SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/2501
+Icon: https://repo.cypwn.xyz/packages/OCD-Rootless/icon.png
+Name: OCD
+Author: b4db1r3
+Package: xyz.cypwn.terminal
+Status: install ok installed
+Section: Applications
+Maintainer: CyPwn
+Architecture: iphoneos-arm64
+Version: 1.11.2
+Description: Secret Native Apple Terminal for iOS
+Depiction: https://repo.cypwn.xyz/depiction/3150
+SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/3150
+Icon: https://repo.cypwn.xyz/packages/Terminal-Rootless/icon.png
+Name: Terminal
+Author: Tim Apple
+Package: xyz.cypwn.tweakhub
+Status: install ok installed
+Section: Tweaks
+Installed-Size: 464
+Maintainer: CyPwn
+Architecture: iphoneos-arm64
+Version: 1.0.2
+Depends: mobilesubstrate, com.mrgcgamer.libgcuniversal
+Description: List all installed tweaks and access their settings directly. With this tweak, you can view a popup that displays all installed tweaks on your system. Quickly access the settings of each tweak with just a tap.
+Depiction: https://repo.cypwn.xyz/depiction/1516
+SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/1516
+Name: TweakHub
+Author: SOPPPra
+Icon: https://i.postimg.cc/pd0ZkKZJ/tweakhub.png
+Package: xyz.cypwn.xinam1ne
+Status: install ok installed
+Section: Utilities
+Maintainer: CyPwn
+Architecture: iphoneos-arm64
+Version: 2.6-8
+Replaces: emt.paisseon.xinamine
+Provides: emt.paisseon.xinamine (= 99)
+Depends: mobilesubstrate, firmware (>= 15.0), gawk, gzip, libclang-cpp16, llvm-16, llvm-16-runtime, file, odcctools, ldid, plutil, com.tigisoftware.filza64bit (>= 4.0) | com.tigisoftware.filza (>= 4.0), cy+cpu.arm64v8 | oldabi-xina | oldabi
+Description: Xinamine Official All-in-One bundle. Convert rootful tweaks to rootless (and rootless to rootful) with ease using the Xinam1nePatcher in Filza or use the included Xinaf1re app.
+Depiction: https://repo.cypwn.xyz/depiction/2816
+SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/2816
+Icon: https://repo.cypwn.xyz/packages/Xinam1neAIO-Rootless/icon.png
+Name: Xinam1ne AIO
+Author: Paisseon, Sudo, NoW4U2Kid, Kixrd
+Package: xyz.willy.zebra
+Status: install ok installed
+Section: Packaging
+Installed-Size: 6992
+Maintainer: Zebra Team <team@getzbra.com>
+Architecture: iphoneos-arm64
+Version: 1.1.36
+Depends: dpkg, uikittools, firmware (>= 9.0)
+Description: A Useful Package Manager
+Name: Zebra
+Author: Zebra Team <team@getzbra.com>
+Icon: file:///Applications/Zebra.app/AppIcon60x60@3x.png
+Depiction: https://getzbra.com/repo/depictions/xyz.willy.Zebra/
+Support: https://getzbra.com/repo/depictions/xyz.willy.Zebra/bug_report.html
+Tag: compatible::9.0-16.6
+Package: xz-utils
+Status: install ok installed
+Priority: standard
+Section: Archiving
+Installed-Size: 900
+Maintainer: Procursus Team <support@procurs.us>
+Architecture: iphoneos-arm64
+Version: 5.4.4
+Replaces: xz, lzma
+Provides: xz (= 1:0), lzma (= 3:0)
+Depends: libiosexec1 (>= 1.3.1), liblzma5 (>= 5.4.4), libintl8
+Conflicts: xz (<< 1:0), lzma (<< 3:0)
+Description: XZ-format compression utilities
+ XZ is the successor to the Lempel-Ziv/Markov-chain Algorithm
+ compression format, which provides memory-hungry but powerful
+ compression (often better than bzip2) and fast, easy decompression.
+ .
+ This package provides the command line tools for working with XZ
+ compression, including xz, unxz, xzcat, xzgrep, and so on. They can
+ also handle the older LZMA format, and if invoked via appropriate
+ symlinks will emulate the behavior of the commands in the lzma
+ package.
+ .
+ The XZ format is similar to the older LZMA format but includes some
+ improvements for general use:
+ .
+  * 'file' magic for detecting XZ files;
+  * crc64 data integrity check;
+  * limited random-access reading support;
+  * improved support for multithreading (not used in xz-utils);
+  * support for flushing the encoder.
+Homepage: https://tukaani.org/xz/
+Package: zip
+Status: install ok installed
+Priority: important
+Section: Archiving
+Installed-Size: 592
+Maintainer: Procursus Team <support@procurs.us>
+Architecture: iphoneos-arm64
+Multi-Arch: foreign
+Version: 3.0-12
+Depends: libiosexec1 (>= 1.2.2)
+Description: standard Windows compression tool
+Package: zsh
+Essential: yes
+Status: install ok installed
+Priority: required
+Section: Terminal_Support
+Installed-Size: 12052
+Maintainer: Procursus Team <support@procurs.us>
+Architecture: iphoneos-arm64
+Version: 5.9
+Depends: libiosexec1 (>= 1.3.1), libncursesw6, libpcre1, debianutils (>= 4.11.2)
+Pre-Depends: debianutils (>= 4.11.2)
+Description: a shell with interactive features
+probe_exit=0
