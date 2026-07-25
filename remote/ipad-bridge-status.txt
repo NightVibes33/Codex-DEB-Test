@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30158436954
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30158436954
-commit=bbce2f6c148a52b36c6d47627188dfb2b2e03481
+run_id=30158653369
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30158653369
+commit=960ec666a3e1aa3237951c046fca8926262e797f
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -16,31 +16,88 @@ Checking SSH host key over Tailscale...
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-=== iPad rootless jailbreak verification ===
-verified_at_utc=2026-07-25T12:44:05Z
-effective_identity=uid=0(root) gid=0(wheel) groups=0(wheel)
-kernel_machine=iPad6,11
-kernel_release=22.6.0
-hardware_model=J71tAP
-product_name=iPhone OS
-product_version=16.7.11
-build_version=20H360
-rootless_prefix=/var/jb
-rootless_prefix_present=yes
-lrwxr-xr-x 1 root wheel 79 Jan 10  2026 /var/jb -> /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus
-dpkg_architecture=iphoneos-arm64
-jailbreak_packages_begin
-ellekit	1.1.3
-ldid	2.1.5-procursus7
-org.coolstar.sileo	2.5.1
-procursus-keyring	2020.05.09-4
-xyz.willy.zebra	1.1.36
-jailbreak_packages_end
-path_present=yes path=/var/jb/Library/MobileSubstrate/DynamicLibraries
-path_present=yes path=/var/jb/usr/lib/TweakInject
-path_present=yes path=/var/jb/Library/PreferenceBundles
-path_present=yes path=/var/jb/usr/bin
-path_present=yes path=/var/jb/usr/lib
-palera1n_marker=/var/jb/.installed_palera1n
-verification_result=completed-read-only
+=== TrollStore installation verification ===
+verified_at_utc=2026-07-25T12:51:32Z
+identity=uid=0(root) gid=0(wheel) groups=0(wheel)
+model=J71tAP
+ios_version=16.7.11
+ios_build=20H360
+=== Package database ===
+package=com.kdt.trollpad version=1.2.1 status=rc 
+=== Registered apps mentioning TrollStore ===
+com.hammerandchisel.discord : /private/var/containers/Bundle/Application/76AA5788-7232-4F82-832E-F171B6AFE8F2/Discord.app
+com.jbdotparty.PancakeStore : /private/var/containers/Bundle/Application/D381462D-806B-4D58-BA26-9EDEBBED56CC/PancakeStore.app
+com.opa334.trollnonce : /private/var/containers/Bundle/Application/4E9D6B84-1E2E-4D7A-A342-FA48C9204E6E/TrollNonce.app
+ph.telegra.Telegraph : /private/var/containers/Bundle/Application/D4A78BF7-C2F7-4726-A3D0-B5F21F718887/Telegram.app
+com.idevicecentral.toolkit : /private/var/containers/Bundle/Application/E0470BE4-1BAB-4367-82AF-31ED4AF53C0C/iDevice Toolkit.app
+com.34306.mdc0 : /private/var/containers/Bundle/Application/CA0052A9-D0E0-48D9-8F78-55ADE9D83650/mdc0.app
+--
+app.ish.iSH : /private/var/containers/Bundle/Application/BC53E4F2-976D-4855-BEB0-34FBAF144323/iSH.app
+com.plisteditor.SamoExc : /private/var/containers/Bundle/Application/D8CD582B-A169-4389-961F-DE27F7C03893/plistEditor.app
+com.opa334.TrollStore : /private/var/containers/Bundle/Application/4541A08E-1D66-47EB-AC1E-4050977B1D77/TrollStore.app
+com.powen.ModMyIPA : /private/var/containers/Bundle/Application/18F4ADCF-715E-4673-A6C5-00B661E36045/ModMyIPA.app
+com.wtfapps.apollo16 : /private/var/containers/Bundle/Application/928D4CCD-71A2-4165-B146-F881842D30D3/BitLife.app
+com.apple.mobilemail : /private/var/containers/Bundle/Application/CF3D14E6-DEF2-4DDF-9256-89436FF575DD/MobileMail.app
+--
+com.libii.nailsalon : /private/var/containers/Bundle/Application/F5B77A38-EB25-421B-83A7-35576041B1F9/nailsalon.app
+com.cokepokes.AppStorePlus : /private/var/containers/Bundle/Application/38839394-178B-4011-917A-F45B9DB70D3B/AppStorePlus.app
+com.fiore.trolldecrypt : /private/var/containers/Bundle/Application/B04E7DFA-36E9-4579-ABDE-2EF9E11A7E1B/TrollDecrypt.app
+Ed0ardo.CyPwnStore : /private/var/containers/Bundle/Application/FF00E46E-AC99-4DD8-9C2B-F52ED03E1085/CyPwn Store.app
+com.outfit7.mytalkingtomfriends : /private/var/containers/Bundle/Application/C4992D6D-EF50-44A9-B703-4C6444883409/TomFriends-row.app
+com.hhnios.HackStore : /private/var/containers/Bundle/Application/FDE63686-9242-4CF5-939E-AF61620F6A9E/HackStoreIPA.app
+ai.perplexity.app : /private/var/containers/Bundle/Application/853E8699-F131-4AF6-9395-19F9DA37E0F0/Perplexity.app
+com.nightvibes33.paleramine.ipad5 : /private/var/containers/Bundle/Application/EBC0B1B9-0064-43EA-B0B1-A6F742F41FD2/Paleramine.app
+live.cclerc.trollbox : /private/var/containers/Bundle/Application/2816D68F-6C28-4EDA-BE6D-682CF37EE69F/TrollBox.app
+com.outfit7.mytalkingangela : /private/var/containers/Bundle/Application/4D39AF2C-19F1-41FC-ACC8-F82335447156/MyAngela-row.app
+com.ea.sims3deluxe.ipad.inc : /private/var/containers/Bundle/Application/942B1E56-6090-479B-80CD-8227817444C0/SIMS3_UNIVERSAL.app
+=== App bundles ===
+trollstore_app_bundles=2
+---
+app_path=/private/var/containers/Bundle/Application/4541A08E-1D66-47EB-AC1E-4050977B1D77/TrollStore.app
+display_name=
+bundle_name=
+bundle_id=com.opa334.TrollStore
+short_version=
+bundle_version=2.1
+executable=TrollStore
+binary_size=  File: "/private/var/containers/Bundle/Application/4541A08E-1D66-47EB-AC1E-4050977B1D77/TrollStore.app/TrollStore"
+    ID: 10000040000001a Namelen: ?       Type: apfs
+Block size: 4096       Fundamental block size: 4096
+Blocks: Total: 7808393    Free: 1313136    Available: 1313136
+Inodes: Total: 52682131   Free: 52525440
+278835
+binary_type=/private/var/containers/Bundle/Application/4541A08E-1D66-47EB-AC1E-4050977B1D77/TrollStore.app/TrollStore: Mach-O 64-bit arm64 executable, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|PIE>
+entitlements_begin
+	<key>application-identifier</key>
+	<key>com.apple.private.security.container-manager</key>
+	<key>com.apple.private.security.no-sandbox</key>
+	<key>com.apple.private.security.storage.MobileDocuments</key>
+	<key>platform-application</key>
+entitlements_end
+---
+app_path=/var/containers/Bundle/Application/4541A08E-1D66-47EB-AC1E-4050977B1D77/TrollStore.app
+display_name=
+bundle_name=
+bundle_id=com.opa334.TrollStore
+short_version=
+bundle_version=2.1
+executable=TrollStore
+binary_size=  File: "/var/containers/Bundle/Application/4541A08E-1D66-47EB-AC1E-4050977B1D77/TrollStore.app/TrollStore"
+    ID: 10000040000001a Namelen: ?       Type: apfs
+Block size: 4096       Fundamental block size: 4096
+Blocks: Total: 7808393    Free: 1313128    Available: 1313128
+Inodes: Total: 52681815   Free: 52525120
+278835
+binary_type=/var/containers/Bundle/Application/4541A08E-1D66-47EB-AC1E-4050977B1D77/TrollStore.app/TrollStore: Mach-O 64-bit arm64 executable, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|PIE>
+entitlements_begin
+	<key>application-identifier</key>
+	<key>com.apple.private.security.container-manager</key>
+	<key>com.apple.private.security.no-sandbox</key>
+	<key>com.apple.private.security.storage.MobileDocuments</key>
+	<key>platform-application</key>
+entitlements_end
+=== TrollStore support files and helpers ===
+=== Running processes ===
+10758 /var/containers/Bundle/Application/4541A08E-1D66-47EB-AC1E-4050977B1D77/TrollStore.app/TrollStore
+verification=read-only-complete
 ssh_exit_code=0
