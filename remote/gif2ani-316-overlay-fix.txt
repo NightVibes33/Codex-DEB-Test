@@ -1,0 +1,85 @@
+Gif2Ani 3.1.6 Overlay Fix
+run_id=30173960502
+outcome=success
+
+connected=1
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== RECOVER USER GIF ===
+recovered_from=/var/mobile/Library/Application Support/Gif2Ani/Rejected.gif
+recovered_size=360114
+=== INSTALL 3.1.6 ===
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+(Reading database ... 19748 files and directories currently installed.)
+Preparing to unpack .../Gif2Ani-3.1.6-overlay-fix.deb ...
+Unpacking com.nightvibes33.gif2ani (3.1.6) over (3.1.5) ...
+Setting up com.nightvibes33.gif2ani (3.1.6) ...
+Processing triggers for org.coolstar.sileo (2.5.1) ...
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+=== RESTART BACKBOARD ===
+new_backboardd=13076
+new_springboard=13089
+=== VERIFIED RESULT ===
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>BKDisplayRenderOverlaySpinny</key>
+	<true/>
+	<key>animationPending</key>
+	<false/>
+	<key>appleLoaderHidden</key>
+	<true/>
+	<key>attachmentPoint</key>
+	<string>dedicated-overlay-layer</string>
+	<key>event</key>
+	<string>custom-animation-stable</string>
+	<key>frameCount</key>
+	<integer>21</integer>
+	<key>gifExists</key>
+	<true/>
+	<key>media</key>
+	<dict>
+		<key>decodedFrames</key>
+		<integer>21</integer>
+		<key>decodedHeight</key>
+		<integer>480</integer>
+		<key>decodedWidth</key>
+		<integer>320</integer>
+		<key>estimatedDecodedBytes</key>
+		<integer>12902400</integer>
+		<key>inputBytes</key>
+		<integer>360114</integer>
+		<key>sourceFrames</key>
+		<integer>21</integer>
+		<key>sourceHeight</key>
+		<integer>480</integer>
+		<key>sourceWidth</key>
+		<integer>320</integer>
+	</dict>
+	<key>overlayHeight</key>
+	<real>2048</real>
+	<key>overlayWidth</key>
+	<real>1536</real>
+	<key>process</key>
+	<string>backboardd</string>
+	<key>safetyLimits</key>
+	<dict>
+		<key>maximumDecodedFrames</key>
+		<integer>24</integer>
+		<key>maximumEstimatedDecodedBytes</key>
+		<integer>50331648</integer>
+		<key>maximumInputBytes</key>
+		<integer>26214400</integer>
+		<key>maximumPixelDimension</key>
+		<integer>640</integer>
+		<key>maximumSourceFrames</key>
+		<integer>240</integer>
+	</dict>
+	<key>timestamp</key>
+	<real>1785011938.020155</real>
+</dict>
+</plist>
+new_crash_reports=0
+overlay_316_result=success
