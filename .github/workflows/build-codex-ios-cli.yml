@@ -27,7 +27,7 @@ jobs:
   build-ios-cli:
     name: Build iphoneos-arm64 DEB
     runs-on: macos-15
-    timeout-minutes: 120
+    timeout-minutes: 240
 
     steps:
       - name: Checkout packaging repository
@@ -47,12 +47,13 @@ jobs:
         run: |
           set -euxo pipefail
           brew update
-          brew install ldid dpkg protobuf cmake ninja pkg-config
+          brew install ldid dpkg protobuf cmake ninja pkg-config llvm
           rustup toolchain install stable --profile minimal
           rustup default stable
           rustup target add "$IOS_TARGET"
           rustc -Vv
           cargo -V
+          "$(brew --prefix llvm)/bin/clang" --version
 
       - name: Clone official OpenAI Codex
         shell: bash
@@ -100,16 +101,17 @@ jobs:
           cd upstream/openai-codex
           bash "$GITHUB_WORKSPACE/codex-ios/prepare-upstream.sh"
 
-      - name: Cache Cargo
+      - name: Cache Cargo and V8
         uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+            ~/.cargo/.rusty_v8
             upstream/openai-codex/codex-rs/target
-          key: codex-ios-${{ runner.os }}-${{ hashFiles('codex-ios/**', '.github/workflows/build-codex-ios-cli.yml') }}
+          key: codex-ios-v8-${{ runner.os }}-${{ hashFiles('codex-ios/**', '.github/workflows/build-codex-ios-cli.yml') }}
           restore-keys: |
-            codex-ios-${{ runner.os }}-
+            codex-ios-v8-${{ runner.os }}-
 
       - name: Cross-compile official Codex CLI
         shell: bash
@@ -117,6 +119,9 @@ jobs:
           SQLX_OFFLINE: 'true'
           CARGO_INCREMENTAL: '0'
           RUST_BACKTRACE: '1'
+          V8_FROM_SOURCE: '1'
+          GN_ARGS: 'target_os="ios" ios_deployment_target="16.0" use_xcode_clang=true ios_enable_code_signing=false treat_warnings_as_errors=false'
+          PRINT_GN_ARGS: '1'
         run: |
           set -uxo pipefail
           cd upstream/openai-codex/codex-rs
@@ -128,6 +133,7 @@ jobs:
           export CFLAGS_aarch64_apple_ios="-isysroot $SDKROOT -miphoneos-version-min=16.0"
           export CXXFLAGS_aarch64_apple_ios="$CFLAGS_aarch64_apple_ios"
           export BINDGEN_EXTRA_CLANG_ARGS_aarch64_apple_ios="$CFLAGS_aarch64_apple_ios"
+          export LIBCLANG_PATH="$(brew --prefix llvm)/lib"
 
           set +e
           cargo build \
@@ -173,7 +179,16 @@ jobs:
           xcrun vtool -show-build "$BIN" | tee codex-ios-vtool.txt
           grep -Eiq 'platform[[:space:]]+IOS|platform[[:space:]]+2' codex-ios-vtool.txt
           otool -L "$BIN" | tee codex-ios-linked-libraries.txt
-          ldid -S "$BIN"
+          cat > codex-ios-entitlements.plist <<'ENTITLEMENTS'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>com.apple.security.cs.allow-jit</key><true/>
+            <key>dynamic-codesigning</key><true/>
+            <key>get-task-allow</key><true/>
+          </dict></plist>
+          ENTITLEMENTS
+          ldid -Scodex-ios-entitlements.plist "$BIN"
 
       - name: Build rootless DEB
         shell: bash
@@ -257,7 +272,7 @@ jobs:
           DEB="dist/codex-ios_latest_iphoneos-arm64.deb"
           dpkg-deb --root-owner-group --build "$PKGROOT" "$DEB"
           shasum -a 256 "$DEB" | awk '{print $1}' > "${DEB}.sha256"
-          cp codex-ios-vtool.txt codex-ios-linked-libraries.txt dist/
+          cp codex-ios-vtool.txt codex-ios-linked-libraries.txt codex-ios-entitlements.plist dist/
           ls -lh dist
           dpkg-deb --info "$DEB"
           dpkg-deb --contents "$DEB" | tee dist/deb-contents.txt
