@@ -1,4 +1,4 @@
-name: Read Choicy Injection Rules
+name: Trace ElleKit Launch Injection
 
 on:
   workflow_dispatch:
@@ -52,7 +52,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends openssh-client sshpass
-      - name: Read Choicy rules
+      - name: Inspect launch injection state
         id: collect
         env:
           SSHPASS: ${{ secrets.IPAD_PASSWORD }}
@@ -66,58 +66,52 @@ jobs:
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             mobile@"$IPAD_HOST" 'sh -c '\''
-              buddy="/var/jb/usr/libexec/PlistBuddy"
-              dump() {
-                f="$1"
-                echo "--- $f"
-                if [ -x "$buddy" ]; then "$buddy" -c Print "$f" 2>&1 || true; else file "$f" 2>&1 || true; fi
-              }
-
               echo "=== CURRENT STATE ==="
-              dpkg-query -W ellekit com.nightvibes33.gif2ani com.opa334.choicy 2>&1 || true
-              ps ax | grep -E "[b]ackboardd|[S]pringBoard" || true
+              dpkg-query -W ellekit com.nightvibes33.gif2ani 2>&1 || true
+              ps ax | grep -E "[l]aunchd|[b]ackboardd|[S]pringBoard" || true
               echo "_MSSafeMode=$(/var/jb/usr/bin/launchctl getenv _MSSafeMode 2>/dev/null || true)"
               echo "_SafeMode=$(/var/jb/usr/bin/launchctl getenv _SafeMode 2>/dev/null || true)"
 
-              echo "=== CHOICY DEFAULTS ==="
-              defaults read com.opa334.choicy 2>&1 || true
-
-              echo "=== CHOICY PREFERENCE FILE ==="
-              pref="/var/mobile/Library/Preferences/com.opa334.choicy.plist"
-              ls -la "$pref" 2>&1 || true
-              [ -e "$pref" ] && dump "$pref"
-
-              echo "=== CHOICY INJECTION FILTERS ==="
-              find /var/jb/usr/lib/TweakInject -maxdepth 1 -iname "*choicy*.plist" -print 2>/dev/null | while IFS= read -r f; do dump "$f"; done
-
-              echo "=== CHOICY SETTINGS SCHEMAS ==="
-              for f in \
-                "/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/ApplicationDaemon.plist" \
-                "/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/GlobalTweakConfiguration.plist" \
-                "/var/jb/Library/PreferenceBundles/ChoicyPrefs.bundle/Root.plist"; do
-                [ -e "$f" ] && dump "$f"
+              echo "=== GLOBAL LAUNCHD ENV ==="
+              for key in DYLD_INSERT_LIBRARIES SANDBOX_EXTENSION _MSSafeMode _SafeMode; do
+                printf "%s=" "$key"
+                /var/jb/usr/bin/launchctl getenv "$key" 2>/dev/null || true
               done
 
-              echo "=== GIF2ANI FILTER ==="
-              dump /var/jb/usr/lib/TweakInject/Gif2Ani.plist
+              echo "=== BACKBOARDD SERVICE ENVIRONMENT ==="
+              /var/jb/usr/bin/launchctl print system/com.apple.backboardd 2>&1 | awk '\''
+                /default environment = \{/ {show=1; count=0}
+                /environment = \{/ {show=1; count=0}
+                show {print; count++}
+                show && count>35 {show=0}
+              '\'' || true
 
-              echo "=== BACKBOARDD FILTER MATCHES ==="
-              for f in /var/jb/usr/lib/TweakInject/*.plist; do
-                [ -f "$f" ] || continue
-                if grep -a -q "backboardd" "$f" 2>/dev/null; then
-                  echo "$f"
-                fi
-              done
+              echo "=== BACKBOARDD PROCESS ENVIRONMENT ==="
+              pid=$(ps ax | awk "/[b]ackboardd/{print \$1; exit}")
+              echo "backboardd_pid=$pid"
+              ps eww -p "$pid" 2>&1 || true
 
-              echo "=== RUNTIME STATUS ==="
+              echo "=== LAUNCHD PROCESS ENVIRONMENT ==="
+              ps eww -p 1 2>&1 || true
+
+              echo "=== ELLEKIT PATHS ==="
+              ls -la /var/jb/usr/lib/ellekit/pspawn.dylib /var/jb/usr/lib/ellekit/libinjector.dylib /var/jb/usr/libexec/ellekit/loader /var/jb/etc/rc.d/ellekit-loader 2>&1 || true
+              file /var/jb/usr/lib/ellekit/pspawn.dylib /var/jb/usr/lib/ellekit/libinjector.dylib /var/jb/usr/libexec/ellekit/loader 2>&1 || true
+
+              echo "=== SYSTEM JOB MATCHES ==="
+              /var/jb/usr/bin/launchctl print system 2>&1 | grep -i -E "ellekit|pspawn|libinjector|DYLD_INSERT_LIBRARIES|SANDBOX_EXTENSION" | head -120 || true
+
+              echo "=== GIF2ANI RUNTIME ==="
               media="/var/mobile/Library/Application Support/Gif2Ani"
-              if [ -e "$media/runtime-status.plist" ]; then dump "$media/runtime-status.plist"; else echo runtime_status=missing; fi
+              ls -la "$media" 2>&1 || true
+              if [ -e "$media/runtime-status.plist" ]; then /var/jb/usr/libexec/PlistBuddy -c Print "$media/runtime-status.plist" 2>&1 || true; else echo runtime_status=missing; fi
+
               echo "=== RECENT CRASHES ==="
               find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name "backboardd-*.ips" -o -name "SpringBoard-*.ips" \) -mmin -30 -print 2>/dev/null || true
-            '\''' 2>&1 | tee choicy-rules.txt
+            '\''' 2>&1 | tee ellekit-launch-injection.txt
           code=${PIPESTATUS[0]}
           set -e
-          echo "ssh_exit=$code" | tee -a choicy-rules.txt
+          echo "ssh_exit=$code" | tee -a ellekit-launch-injection.txt
           exit "$code"
       - name: Publish status
         if: always()
@@ -127,14 +121,14 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git pull --rebase origin main
           {
-            echo "Choicy Injection Rules"
+            echo "ElleKit Launch Injection Trace"
             echo "run_id=${GITHUB_RUN_ID}"
             echo "collect=${{ steps.collect.outcome }}"
             echo
-            cat choicy-rules.txt 2>/dev/null || echo "No output."
-          } > remote/choicy-injection-rules.txt
-          git add remote/choicy-injection-rules.txt
+            cat ellekit-launch-injection.txt 2>/dev/null || echo "No output."
+          } > remote/ellekit-launch-injection-trace.txt
+          git add remote/ellekit-launch-injection-trace.txt
           if ! git diff --cached --quiet; then
-            git commit -m "Record Choicy injection rules [skip ci]"
+            git commit -m "Record ElleKit launch injection trace [skip ci]"
             git push origin HEAD:main
           fi
