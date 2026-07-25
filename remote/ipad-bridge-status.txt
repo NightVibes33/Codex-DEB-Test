@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30149941302
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30149941302
-commit=983a509fabaa47176e03a2c2e0562610d1603dae
+run_id=30150059210
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30150059210
+commit=fb24a5ffed1ea00340623845b59de0faa59d1902
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -9,103 +9,37 @@ install_ssh=success
 ssh=success
 
 --- sanitized SSH output ---
-proc={"name":"mDNSResponder","pid":9830,"rpages":1728,"reason":"per-process-limit","priority":140}
-proc={"name":"backboardd","pid":9683,"rpages":1255,"reason":"vm-compressor-space-shortage","priority":170}
-proc={"name":"aggregated","pid":84,"rpages":648,"reason":"vm-compressor-space-shortage","priority":180}
-proc={"name":"node","pid":9562,"rpages":614,"reason":null,"priority":180}
-proc={"name":"node","pid":9564,"rpages":614,"reason":null,"priority":180}
-proc={"name":"node","pid":8943,"rpages":588,"reason":null,"priority":180}
-proc={"name":"node","pid":8989,"rpages":587,"reason":null,"priority":180}
-proc={"name":"node","pid":9324,"rpages":583,"reason":null,"priority":180}
-proc={"name":"node","pid":8955,"rpages":582,"reason":null,"priority":180}
-proc={"name":"node","pid":8960,"rpages":580,"reason":null,"priority":180}
-proc={"name":"node","pid":9325,"rpages":579,"reason":null,"priority":180}
-proc={"name":"node","pid":8961,"rpages":578,"reason":null,"priority":180}
-proc={"name":"node","pid":8903,"rpages":573,"reason":null,"priority":180}
-proc={"name":"node","pid":9308,"rpages":572,"reason":null,"priority":180}
-proc={"name":"node","pid":8820,"rpages":565,"reason":null,"priority":180}
----
-file=JetsamEvent-2026-07-25-001035.ips
-timestamp=2026-07-25 00:10:35.00 -0500
-largest=aggregated
-free_pages=732
-compressor_size=48572
-proc={"name":"aggregated","pid":84,"rpages":648,"reason":null,"priority":180}
-proc={"name":"node","pid":9562,"rpages":614,"reason":null,"priority":180}
-proc={"name":"node","pid":8943,"rpages":588,"reason":null,"priority":180}
-proc={"name":"node","pid":8989,"rpages":587,"reason":null,"priority":180}
-proc={"name":"node","pid":9324,"rpages":583,"reason":null,"priority":180}
-proc={"name":"node","pid":8955,"rpages":582,"reason":null,"priority":180}
-proc={"name":"node","pid":8960,"rpages":580,"reason":null,"priority":180}
-proc={"name":"node","pid":9325,"rpages":579,"reason":null,"priority":180}
-proc={"name":"node","pid":8961,"rpages":578,"reason":null,"priority":180}
-proc={"name":"node","pid":8903,"rpages":573,"reason":null,"priority":180}
-proc={"name":"node","pid":9308,"rpages":572,"reason":null,"priority":180}
-proc={"name":"node","pid":8820,"rpages":565,"reason":null,"priority":180}
-proc={"name":"node","pid":8917,"rpages":565,"reason":null,"priority":180}
-proc={"name":"node","pid":8823,"rpages":564,"reason":null,"priority":180}
-proc={"name":"node","pid":8865,"rpages":563,"reason":null,"priority":180}
----
-file=JetsamEvent-2026-07-25-001028.ips
-timestamp=2026-07-25 00:10:28.00 -0500
-largest=backboardd
-free_pages=921
-compressor_size=48564
-proc={"name":"backboardd","pid":9488,"rpages":1355,"reason":"vm-compressor-space-shortage","priority":170}
-proc={"name":"aggregated","pid":84,"rpages":648,"reason":null,"priority":180}
-proc={"name":"node","pid":9308,"rpages":642,"reason":null,"priority":180}
-proc={"name":"node","pid":9324,"rpages":641,"reason":null,"priority":180}
-proc={"name":"node","pid":9325,"rpages":639,"reason":null,"priority":180}
-proc={"name":"node","pid":9327,"rpages":618,"reason":null,"priority":180}
-proc={"name":"node","pid":9329,"rpages":613,"reason":null,"priority":180}
-proc={"name":"node","pid":9331,"rpages":609,"reason":null,"priority":180}
-proc={"name":"node","pid":8943,"rpages":588,"reason":null,"priority":180}
-proc={"name":"node","pid":8989,"rpages":587,"reason":null,"priority":180}
-proc={"name":"node","pid":8955,"rpages":582,"reason":null,"priority":180}
-proc={"name":"node","pid":8960,"rpages":580,"reason":null,"priority":180}
-proc={"name":"node","pid":8961,"rpages":578,"reason":null,"priority":180}
-proc={"name":"node","pid":8903,"rpages":573,"reason":null,"priority":180}
-proc={"name":"node","pid":8820,"rpages":565,"reason":null,"priority":180}
----
-file=JetsamEvent-2026-07-25-001021.ips
-timestamp=2026-07-25 00:10:21.00 -0500
-largest=aggregated
-free_pages=3448
-compressor_size=48707
-proc={"name":"aggregated","pid":84,"rpages":654,"reason":null,"priority":180}
-proc={"name":"node","pid":9308,"rpages":642,"reason":null,"priority":180}
-proc={"name":"node","pid":9324,"rpages":641,"reason":null,"priority":180}
-proc={"name":"node","pid":9325,"rpages":639,"reason":null,"priority":180}
-proc={"name":"node","pid":9327,"rpages":618,"reason":null,"priority":180}
-proc={"name":"node","pid":9329,"rpages":613,"reason":null,"priority":180}
-proc={"name":"node","pid":9331,"rpages":609,"reason":null,"priority":180}
-proc={"name":"node","pid":8943,"rpages":588,"reason":null,"priority":180}
-proc={"name":"node","pid":8989,"rpages":587,"reason":null,"priority":180}
-proc={"name":"node","pid":8955,"rpages":582,"reason":null,"priority":180}
-proc={"name":"node","pid":8960,"rpages":580,"reason":null,"priority":180}
-proc={"name":"node","pid":8961,"rpages":578,"reason":null,"priority":180}
-proc={"name":"node","pid":8903,"rpages":573,"reason":null,"priority":180}
-proc={"name":"node","pid":8820,"rpages":565,"reason":null,"priority":180}
-proc={"name":"node","pid":8917,"rpages":565,"reason":null,"priority":180}
----
-file=JetsamEvent-2026-07-25-001017.ips
-timestamp=2026-07-25 00:10:17.00 -0500
-largest=backboardd
-free_pages=2647
-compressor_size=48615
-proc={"name":"backboardd","pid":9353,"rpages":1354,"reason":"vm-compressor-space-shortage","priority":170}
-proc={"name":"aggregated","pid":84,"rpages":654,"reason":null,"priority":180}
-proc={"name":"node","pid":9308,"rpages":641,"reason":null,"priority":180}
-proc={"name":"node","pid":9324,"rpages":637,"reason":null,"priority":180}
-proc={"name":"node","pid":9327,"rpages":618,"reason":null,"priority":180}
-proc={"name":"node","pid":9325,"rpages":615,"reason":null,"priority":180}
-proc={"name":"node","pid":9329,"rpages":613,"reason":null,"priority":180}
-proc={"name":"node","pid":9331,"rpages":609,"reason":null,"priority":180}
-proc={"name":"node","pid":8943,"rpages":588,"reason":null,"priority":180}
-proc={"name":"node","pid":8989,"rpages":587,"reason":null,"priority":180}
-proc={"name":"node","pid":8955,"rpages":582,"reason":null,"priority":180}
-proc={"name":"node","pid":8960,"rpages":580,"reason":null,"priority":180}
-proc={"name":"node","pid":8961,"rpages":578,"reason":null,"priority":180}
-proc={"name":"node","pid":8903,"rpages":573,"reason":null,"priority":180}
-proc={"name":"node","pid":8820,"rpages":565,"reason":null,"priority":180}
+Checking SSH host key over Tailscale...
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
+=== Memory before cleanup ===
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                                1515.
+Pages active:                             41514.
+Pages inactive:                           41183.
+Pages speculative:                          118.
+Pages throttled:                              0.
+Pages wired down:                         24215.
+Pages purgeable:                            912.
+"Translation faults":                  29161690.
+Pages copy-on-write:                     716429.
+Pages zero filled:                     11701142.
+Pages reactivated:                      5560745.
+Pages purged:                            300432.
+File-backed pages:                        43026.
+Anonymous pages:                          39789.
+Pages stored in compressor:               53542.
+Pages occupied by compressor:             18092.
+Decompressions:                         3620639.
+Compressions:                           4466351.
+Pageins:                                4762203.
+node_count=0
+=== Live Node process inventory ===
+live_node_count=0
+=== Parent process snapshot ===
+cleanup_phase=inventory-only
 ssh_exit_code=0
