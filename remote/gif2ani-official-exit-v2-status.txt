@@ -1,5 +1,5 @@
 Official palera1n Exit Safemode V2
-run_id=30168666437
+run_id=30168707233
 build=failure
 prepare=skipped
 exit_command=skipped
@@ -454,7 +454,7 @@ AppleTVOS12.4.sdk/usr/lib/libIOAccessoryManager.tbd
 AppleTVOS12.4.sdk/usr/lib/libbsm.0.tbd
 AppleTVOS12.4.sdk/usr/lib/libicucore.A.tbd
 
-100 5693k  100 5693k    0     0  9641k      0 --:--:-- --:--:-- --:--:-- 9641k
+100 5693k  100 5693k    0     0  9020k      0 --:--:-- --:--:-- --:--:-- 9020k
 AppleTVOS12.4.sdk/usr/lib/libbz2.tbd
 AppleTVOS12.4.sdk/usr/lib/libSystem_asan.tbd
 AppleTVOS12.4.sdk/usr/lib/libnetwork.tbd
