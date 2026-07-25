@@ -51,15 +51,13 @@ jobs:
           sudo apt-get install -y --no-install-recommends python3-pil openssh-client sshpass
           python3 - <<'PY'
           from PIL import Image, ImageDraw, ImageFilter
-          import math
           size=256
           frames=[]
           for index in range(6):
-              phase=2*math.pi*index/6
+              pulse=index/5
               base=Image.new('RGB',(size,size),(2,3,8))
               glow=Image.new('RGBA',(size,size),(0,0,0,0))
               d=ImageDraw.Draw(glow)
-              pulse=(math.sin(phase)+1)/2
               radius=int(48+22*pulse)
               cx=cy=size//2
               for spread,alpha in ((50,18),(34,28),(22,48),(10,90)):
