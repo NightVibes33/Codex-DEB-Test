@@ -1,0 +1,5 @@
+action=test-gif2ani-84-frame-v2
+requested_at=2026-07-25T16:36:00-05:00
+source_frames=84
+duration_seconds=33.6
+cleanup=mandatory-disabled-no-media
