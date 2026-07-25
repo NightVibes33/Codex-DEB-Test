@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30148418126
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30148418126
-commit=b1e79215399669451837af5eaf2341a9ca7c5e65
+run_id=30148444578
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30148444578
+commit=7f1513f3f454df9239a44074d08d8385f7569b01
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -9,103 +9,50 @@ install_ssh=success
 ssh=success
 
 --- sanitized SSH output ---
-top_process=node pid=9325 rpages=613 cpuTime=0.211217 state=None reason=None priority=180
-top_process=node pid=9329 rpages=613 cpuTime=0.196622 state=None reason=None priority=180
-top_process=node pid=9331 rpages=609 cpuTime=0.185138 state=None reason=None priority=180
-top_process=node pid=9324 rpages=608 cpuTime=0.194195 state=None reason=None priority=180
-top_process=node pid=8943 rpages=588 cpuTime=0.236898 state=None reason=None priority=180
-top_process=node pid=8989 rpages=587 cpuTime=0.23786 state=None reason=None priority=180
-top_process=node pid=8955 rpages=582 cpuTime=0.226945 state=None reason=None priority=180
-top_process=node pid=8960 rpages=580 cpuTime=0.218808 state=None reason=None priority=180
-top_process=node pid=8961 rpages=578 cpuTime=0.235457 state=None reason=None priority=180
-top_process=node pid=8903 rpages=573 cpuTime=0.21336 state=None reason=None priority=180
-top_process=node pid=8820 rpages=565 cpuTime=0.214159 state=None reason=None priority=180
-top_process=node pid=8917 rpages=565 cpuTime=0.219038 state=None reason=None priority=180
-top_process=node pid=8823 rpages=564 cpuTime=0.22026 state=None reason=None priority=180
-top_process=node pid=8865 rpages=563 cpuTime=0.224837 state=None reason=None priority=180
-top_process=node pid=8887 rpages=563 cpuTime=0.220405 state=None reason=None priority=180
-top_process=node pid=8749 rpages=562 cpuTime=0.220484 state=None reason=None priority=180
-candidate_process=not-present
---- /private/var/mobile/Library/Logs/CrashReporter/JetsamEvent-2026-07-25-001012.ips ---
-timestamp=2026-07-25 00:10:12.00 -0500 incident=82834327-8160-49CD-A5D3-BE5D6D243576 bug_type=298
-largestProcess=backboardd reason=None pageSize=None
-memoryStatus={"compressions": 4290880, "compressorSize": 48591, "decompressions": 3466478, "largestZone": "APFS_4K_OBJS", "largestZoneSize": 12091392, "memoryPages": {"active": 27860, "anonymous": 20580, "fileBacked": 34863, "free": 1128, "inactive": 27009, "purgeable": 0, "speculative": 574, "throttled": 0, "wired": 22037}, "pageSize": 16384, "uncompressed": 125096, "zoneMapCap": 748470272, "zoneMapSize": 125173760}
-memoryPages={}
-top_process=backboardd pid=8255 rpages=3378 cpuTime=120.938979 state=None reason=vm-compressor-space-shortage priority=170
-top_process=aggregated pid=84 rpages=653 cpuTime=197.885338 state=None reason=None priority=180
-top_process=node pid=9308 rpages=619 cpuTime=0.221058 state=None reason=None priority=180
-top_process=node pid=9327 rpages=618 cpuTime=0.209969 state=None reason=None priority=180
-top_process=node pid=9325 rpages=613 cpuTime=0.211217 state=None reason=None priority=180
-top_process=node pid=9329 rpages=613 cpuTime=0.196622 state=None reason=None priority=180
-top_process=node pid=9331 rpages=609 cpuTime=0.185138 state=None reason=None priority=180
-top_process=node pid=9324 rpages=608 cpuTime=0.194195 state=None reason=None priority=180
-top_process=node pid=8943 rpages=588 cpuTime=0.236898 state=None reason=None priority=180
-top_process=node pid=8989 rpages=587 cpuTime=0.23786 state=None reason=None priority=180
-top_process=node pid=8955 rpages=582 cpuTime=0.226945 state=None reason=None priority=180
-top_process=node pid=8960 rpages=580 cpuTime=0.218808 state=None reason=None priority=180
-top_process=node pid=8961 rpages=578 cpuTime=0.235457 state=None reason=None priority=180
-top_process=node pid=8903 rpages=573 cpuTime=0.21336 state=None reason=None priority=180
-top_process=node pid=8820 rpages=565 cpuTime=0.214159 state=None reason=None priority=180
-top_process=node pid=8917 rpages=565 cpuTime=0.219038 state=None reason=None priority=180
-top_process=node pid=8823 rpages=564 cpuTime=0.22026 state=None reason=None priority=180
-top_process=node pid=8865 rpages=563 cpuTime=0.224837 state=None reason=None priority=180
-top_process=node pid=8887 rpages=563 cpuTime=0.220405 state=None reason=None priority=180
-top_process=node pid=8749 rpages=562 cpuTime=0.220484 state=None reason=None priority=180
-candidate_process=not-present
---- /var/mobile/Library/Logs/CrashReporter/JetsamEvent-2026-07-25-001005.ips ---
-timestamp=2026-07-25 00:10:05.00 -0500 incident=5549F37E-2A0E-4691-81A4-6AAE5663DD73 bug_type=298
-largestProcess=SpringBoard reason=None pageSize=None
-memoryStatus={"compressions": 4289182, "compressorSize": 48630, "decompressions": 3466180, "largestZone": "vm objects", "largestZoneSize": 9584640, "memoryPages": {"active": 27786, "anonymous": 19308, "fileBacked": 36280, "free": 2677, "inactive": 25253, "purgeable": 19, "speculative": 2549, "throttled": 0, "wired": 22365}, "pageSize": 16384, "uncompressed": 126644, "zoneMapCap": 748470272, "zoneMapSize": 121503744}
-memoryPages={}
-top_process=SpringBoard pid=8253 rpages=4659 cpuTime=48.688188 state=None reason=vm-compressor-space-shortage priority=160
-top_process=backboardd pid=8255 rpages=3544 cpuTime=120.886542 state=None reason=None priority=170
-top_process=com.apple.DriverKit-AppleBCMWLAN pid=100 rpages=1156 cpuTime=326.497558 state=None reason=vm-compressor-space-shortage priority=150
-top_process=mediaserverd pid=9083 rpages=805 cpuTime=1.044336 state=None reason=vm-compressor-space-shortage priority=140
-top_process=aggregated pid=84 rpages=639 cpuTime=197.854855 state=None reason=None priority=180
-top_process=node pid=8990 rpages=625 cpuTime=0.203645 state=None reason=None priority=180
-top_process=node pid=8986 rpages=598 cpuTime=0.227892 state=None reason=None priority=180
-top_process=node pid=8987 rpages=589 cpuTime=0.245691 state=None reason=None priority=180
-top_process=node pid=8943 rpages=588 cpuTime=0.23679 state=None reason=None priority=180
-top_process=node pid=8989 rpages=587 cpuTime=0.237841 state=None reason=None priority=180
-top_process=node pid=8955 rpages=582 cpuTime=0.226868 state=None reason=None priority=180
-top_process=node pid=8960 rpages=580 cpuTime=0.218734 state=None reason=None priority=180
-top_process=node pid=8961 rpages=578 cpuTime=0.23535 state=None reason=None priority=180
-top_process=node pid=8903 rpages=573 cpuTime=0.21336 state=None reason=None priority=180
-top_process=node pid=8820 rpages=565 cpuTime=0.214159 state=None reason=None priority=180
-top_process=node pid=8917 rpages=565 cpuTime=0.219038 state=None reason=None priority=180
-top_process=node pid=8823 rpages=564 cpuTime=0.22026 state=None reason=None priority=180
-top_process=node pid=8865 rpages=563 cpuTime=0.224837 state=None reason=None priority=180
-top_process=node pid=8887 rpages=563 cpuTime=0.220405 state=None reason=None priority=180
-top_process=node pid=8749 rpages=562 cpuTime=0.220484 state=None reason=None priority=180
-candidate_process=not-present
---- /private/var/mobile/Library/Logs/CrashReporter/JetsamEvent-2026-07-25-001005.ips ---
-timestamp=2026-07-25 00:10:05.00 -0500 incident=5549F37E-2A0E-4691-81A4-6AAE5663DD73 bug_type=298
-largestProcess=SpringBoard reason=None pageSize=None
-memoryStatus={"compressions": 4289182, "compressorSize": 48630, "decompressions": 3466180, "largestZone": "vm objects", "largestZoneSize": 9584640, "memoryPages": {"active": 27786, "anonymous": 19308, "fileBacked": 36280, "free": 2677, "inactive": 25253, "purgeable": 19, "speculative": 2549, "throttled": 0, "wired": 22365}, "pageSize": 16384, "uncompressed": 126644, "zoneMapCap": 748470272, "zoneMapSize": 121503744}
-memoryPages={}
-top_process=SpringBoard pid=8253 rpages=4659 cpuTime=48.688188 state=None reason=vm-compressor-space-shortage priority=160
-top_process=backboardd pid=8255 rpages=3544 cpuTime=120.886542 state=None reason=None priority=170
-top_process=com.apple.DriverKit-AppleBCMWLAN pid=100 rpages=1156 cpuTime=326.497558 state=None reason=vm-compressor-space-shortage priority=150
-top_process=mediaserverd pid=9083 rpages=805 cpuTime=1.044336 state=None reason=vm-compressor-space-shortage priority=140
-top_process=aggregated pid=84 rpages=639 cpuTime=197.854855 state=None reason=None priority=180
-top_process=node pid=8990 rpages=625 cpuTime=0.203645 state=None reason=None priority=180
-top_process=node pid=8986 rpages=598 cpuTime=0.227892 state=None reason=None priority=180
-top_process=node pid=8987 rpages=589 cpuTime=0.245691 state=None reason=None priority=180
-top_process=node pid=8943 rpages=588 cpuTime=0.23679 state=None reason=None priority=180
-top_process=node pid=8989 rpages=587 cpuTime=0.237841 state=None reason=None priority=180
-top_process=node pid=8955 rpages=582 cpuTime=0.226868 state=None reason=None priority=180
-top_process=node pid=8960 rpages=580 cpuTime=0.218734 state=None reason=None priority=180
-top_process=node pid=8961 rpages=578 cpuTime=0.23535 state=None reason=None priority=180
-top_process=node pid=8903 rpages=573 cpuTime=0.21336 state=None reason=None priority=180
-top_process=node pid=8820 rpages=565 cpuTime=0.214159 state=None reason=None priority=180
-top_process=node pid=8917 rpages=565 cpuTime=0.219038 state=None reason=None priority=180
-top_process=node pid=8823 rpages=564 cpuTime=0.22026 state=None reason=None priority=180
-top_process=node pid=8865 rpages=563 cpuTime=0.224837 state=None reason=None priority=180
-top_process=node pid=8887 rpages=563 cpuTime=0.220405 state=None reason=None priority=180
-top_process=node pid=8749 rpages=562 cpuTime=0.220484 state=None reason=None priority=180
-candidate_process=not-present
-=== Paleramine bundle ===
-binary=/var/containers/Bundle/Application/EBC0B1B9-0064-43EA-B0B1-A6F742F41FD2/Paleramine.app/Paleramine bytes=2614224
-binary=/private/var/containers/Bundle/Application/EBC0B1B9-0064-43EA-B0B1-A6F742F41FD2/Paleramine.app/Paleramine bytes=2614224
-=== Done ===
+Checking SSH host key over Tailscale...
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
+=== Dopamine iPad5 DarkSword matrix ===
+run_id=30148380383
+head_sha=f725e81a24603e57764967f093d2188118783879
+status=in_progress
+conclusion=None
+event=push
+url=https://github.com/NightVibes33/Dopamine/actions/runs/30148380383
+--- job=Build stability control id=89654410042 status=in_progress conclusion=None ---
+step=1 name=Set up job status=completed conclusion=success
+step=2 name=Checkout main with submodules status=completed conclusion=success
+step=3 name=Select build profile status=completed conclusion=success
+step=4 name=Xcode setup status=completed conclusion=success
+step=5 name=Install Procursus status=completed conclusion=success
+step=6 name=Install build dependencies status=completed conclusion=success
+step=7 name=Install Theos and iOS SDK status=completed conclusion=success
+step=8 name=Build and install trustcache status=completed conclusion=success
+step=9 name=Download bootstraps status=completed conclusion=success
+step=10 name=Build IPA status=in_progress conclusion=None
+step=11 name=Package diagnostics status=pending conclusion=None
+step=12 name=Upload stability package status=pending conclusion=None
+step=23 name=Post Install Procursus status=pending conclusion=None
+step=24 name=Post Checkout main with submodules status=pending conclusion=None
+--- job=Build stock control id=89654410479 status=in_progress conclusion=None ---
+step=1 name=Set up job status=completed conclusion=success
+step=2 name=Checkout main with submodules status=completed conclusion=success
+step=3 name=Select build profile status=completed conclusion=success
+step=4 name=Xcode setup status=completed conclusion=success
+step=5 name=Install Procursus status=completed conclusion=success
+step=6 name=Install build dependencies status=completed conclusion=success
+step=7 name=Install Theos and iOS SDK status=completed conclusion=success
+step=8 name=Build and install trustcache status=completed conclusion=success
+step=9 name=Download bootstraps status=completed conclusion=success
+step=10 name=Build IPA status=in_progress conclusion=None
+step=11 name=Package diagnostics status=pending conclusion=None
+step=12 name=Upload stock package status=pending conclusion=None
+step=23 name=Post Install Procursus status=pending conclusion=None
+step=24 name=Post Checkout main with submodules status=pending conclusion=None
+=== Artifacts ===
+artifact_count=0
 ssh_exit_code=0
