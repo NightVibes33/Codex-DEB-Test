@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30148278764
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30148278764
-commit=f243e2440ea9780a14c016c331fd3cd3013a4ce3
+run_id=30148347109
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30148347109
+commit=038e6c39d9af2a1f00acfafc1f6c6472a84c1ea0
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -9,14 +9,103 @@ install_ssh=success
 ssh=failure
 
 --- sanitized SSH output ---
-Checking SSH host key over Tailscale...
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-  File "<stdin>", line 49
-    print(f'candidate_count={len(candidates)}')
-IndentationError: unexpected unindent
+    "reason" : "vm-compressor-space-shortage",
+    "rpages" : 157,
+    "cpuTime" : 3.1159340000000002,
+    "freeze_skip_reason:" : "disabled",
+    "reason" : "vm-compressor-space-shortage",
+    "rpages" : 352,
+    "cpuTime" : 12.827788,
+    "freeze_skip_reason:" : "disabled",
+    "reason" : "vm-compressor-space-shortage",
+--- report=/private/var/mobile/Library/Logs/CrashReporter/JetsamEvent-2026-07-25-000937.ips hits=['paleramine'] ---
+{"bug_type":"298","timestamp":"2026-07-25 00:09:37.00 -0500","os_version":"iPhone OS 16.7.11 (20H360)","roots_installed":0,"incident_id":"5D3918EB-82B5-434C-A45A-B6A67B9FBA1B"}
+  "bug_type" : "298",
+  "memoryStatus" : {
+  "memoryPages" : {
+    "rpages" : 402,
+    "cpuTime" : 0.45161000000000001,
+    "freeze_skip_reason:" : "none",
+    "reason" : "vm-compressor-space-shortage",
+    "rpages" : 513,
+    "cpuTime" : 0.86399199999999998,
+    "freeze_skip_reason:" : "none",
+    "reason" : "vm-compressor-space-shortage",
+    "rpages" : 444,
+    "cpuTime" : 0.767675,
+    "freeze_skip_reason:" : "none",
+    "reason" : "vm-compressor-space-shortage",
+    "rpages" : 292,
+    "cpuTime" : 0.44281300000000001,
+    "freeze_skip_reason:" : "none",
+    "reason" : "vm-compressor-space-shortage",
+    "rpages" : 401,
+    "cpuTime" : 0.51827599999999996,
+    "freeze_skip_reason:" : "none",
+    "reason" : "vm-compressor-space-shortage",
+    "rpages" : 481,
+    "cpuTime" : 0.991784,
+    "freeze_skip_reason:" : "none",
+    "reason" : "vm-compressor-space-shortage",
+    "rpages" : 325,
+    "cpuTime" : 0.85689800000000005,
+    "freeze_skip_reason:" : "disabled",
+    "reason" : "vm-compressor-space-shortage",
+    "rpages" : 1077,
+    "cpuTime" : 20.840516000000001,
+    "freeze_skip_reason:" : "none",
+    "reason" : "vm-compressor-space-shortage",
+    "rpages" : 461,
+    "cpuTime" : 1.52322,
+    "freeze_skip_reason:" : "disabled",
+    "reason" : "vm-compressor-space-shortage",
+    "rpages" : 754,
+    "cpuTime" : 216.75936300000001,
+    "freeze_skip_reason:" : "disabled",
+    "reason" : "vm-compressor-space-shortage",
+    "rpages" : 179,
+    "cpuTime" : 3.3127900000000001,
+    "freeze_skip_reason:" : "disabled",
+    "reason" : "vm-compressor-space-shortage",
+    "rpages" : 212,
+    "cpuTime" : 3.4984090000000001,
+    "freeze_skip_reason:" : "disabled",
+    "reason" : "vm-compressor-space-shortage",
+    "rpages" : 480,
+    "cpuTime" : 5.6943609999999998,
+    "freeze_skip_reason:" : "disabled",
+    "reason" : "vm-compressor-space-shortage",
+    "rpages" : 94,
+    "cpuTime" : 3.9801389999999999,
+    "freeze_skip_reason:" : "disabled",
+    "reason" : "vm-compressor-space-shortage",
+    "rpages" : 509,
+    "cpuTime" : 2.726111,
+    "freeze_skip_reason:" : "disabled",
+    "reason" : "vm-compressor-space-shortage",
+    "rpages" : 238,
+    "cpuTime" : 8.3352749999999993,
+    "freeze_skip_reason:" : "disabled",
+    "reason" : "vm-compressor-space-shortage",
+    "rpages" : 957,
+    "cpuTime" : 85.479675999999998,
+    "freeze_skip_reason:" : "disabled",
+    "reason" : "vm-compressor-space-shortage",
+    "rpages" : 157,
+    "cpuTime" : 3.1159340000000002,
+    "freeze_skip_reason:" : "disabled",
+    "reason" : "vm-compressor-space-shortage",
+    "rpages" : 352,
+    "cpuTime" : 12.827788,
+    "freeze_skip_reason:" : "disabled",
+    "reason" : "vm-compressor-space-shortage",
+matched_report_count=2
+
+=== Latest jetsam process tables ===
+--- jetsam=/var/mobile/Library/Logs/CrashReporter/JetsamEvent-2026-07-25-001035.ips ---
+timestamp=2026-07-25 00:10:35.00 -0500 incident=1FB427C3-2807-4D42-B223-36FEA90B6E0C bug_type=298
+largestProcess=aggregated reason=None pageSize=None
+Traceback (most recent call last):
+  File "<stdin>", line 165, in <module>
+TypeError: '<' not supported between instances of 'dict' and 'dict'
 ssh_exit_code=1
