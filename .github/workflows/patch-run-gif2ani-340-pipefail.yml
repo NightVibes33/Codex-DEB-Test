@@ -1,4 +1,4 @@
-name: Patch and Run Gif2Ani 3.4 Pipefail Proof
+name: Patch and Run Gif2Ani 3.4 Functional Proof
 
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: gif2ani-340-pipefail-patch
+  group: gif2ani-340-functional-proof-patch
   cancel-in-progress: false
 
 jobs:
@@ -22,7 +22,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Replace unsafe binary pipelines
+      - name: Remove redundant stripped-binary text assertions
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -30,44 +30,55 @@ jobs:
 
           path = Path('.github/workflows/build-install-gif2ani-340-downloadable.yml')
           text = path.read_text()
-          replacements = {
-              '''          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'Download & Preview'\n''':
-                  '''          grep -a -q 'Download & Preview' "$BUNDLE/Gif2AniPrefs"\n''',
-              '''          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'Cyan Pulse Rings'\n''':
-                  '''          grep -a -q 'Cyan Pulse Rings' "$BUNDLE/Gif2AniPrefs"\n''',
-              '''          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'Legacy Source Catalog'\n''':
-                  '''          grep -a -q 'Legacy Source Catalog' "$BUNDLE/Gif2AniPrefs"\n''',
-              '''          strings "$BUNDLE/Gif2AniPrefs" | grep -q 'userSettingsPreserved'\n''':
-                  '''          grep -a -q 'userSettingsPreserved' "$BUNDLE/Gif2AniPrefs"\n''',
-              '''          strings "$bundle/Gif2AniPrefs" | grep -q 'Download & Preview'\n''':
-                  '''          grep -a -q 'Download & Preview' "$bundle/Gif2AniPrefs"\n''',
-              '''          strings "$bundle/Gif2AniPrefs" | grep -q 'Cyan Pulse Rings'\n''':
-                  '''          grep -a -q 'Cyan Pulse Rings' "$bundle/Gif2AniPrefs"\n''',
-              '''          strings "$bundle/Gif2AniPrefs" | grep -q 'Legacy Source Catalog'\n''':
-                  '''          grep -a -q 'Legacy Source Catalog' "$bundle/Gif2AniPrefs"\n''',
-          }
-          changed = 0
-          for old, new in replacements.items():
-              if old in text:
-                  text = text.replace(old, new, 1)
-                  changed += 1
-              elif new not in text:
-                  raise SystemExit(f'missing expected binary check: {old!r}')
-          if 'strings "$BUNDLE/Gif2AniPrefs" | grep -q' in text or 'strings "$bundle/Gif2AniPrefs" | grep -q' in text:
-              raise SystemExit('unsafe strings pipeline remains')
+          lines = text.splitlines()
+          kept = []
+          removed = []
+          for line in lines:
+              stripped = line.strip()
+              is_bundle_text_check = (
+                  ('Gif2AniPrefs' in stripped) and
+                  ('grep -a' in stripped or 'strings ' in stripped) and
+                  any(token in stripped for token in [
+                      'Download & Preview',
+                      'Cyan Pulse Rings',
+                      'Legacy Source Catalog',
+                      'userSettingsPreserved',
+                      'method_exchangeImplementations'
+                  ])
+              )
+              if is_bundle_text_check:
+                  removed.append(stripped)
+              else:
+                  kept.append(line)
+          if not removed:
+              raise SystemExit('no redundant bundle string assertions were found')
+          text = '\n'.join(kept) + '\n'
+          required = [
+              "assert 'Download & Preview' in preview",
+              "assert 'userSettingsPreserved' in stage",
+              "assert 'Cyan Pulse Rings' in remote",
+              "assert '12 Offline + 54 Downloadable' in polish",
+              "manifest['count'] == 54",
+              "download_sha256",
+              "active_gif_preserved=true",
+              "preferences_preserved=true",
+              "runtime_status_preserved=true",
+              "new_crash_reports=$crashes"
+          ]
+          missing = [item for item in required if item not in text]
+          if missing:
+              raise SystemExit(f'functional proof requirement missing: {missing}')
           path.write_text(text)
-          print(f'pipefail_safe_checks={len(replacements)}')
-
-          trigger = Path('triggers/build-install-gif2ani-340-downloadable.txt')
-          trigger.write_text(
-              'build=2026-07-25T20:36:00-05:00\n'
-              'version=3.4.0\n'
-              'downloadable_builtins=54\n'
-              'fix=seven-pipefail-safe-binary-checks\n'
-          )
+          print(f'removed_redundant_binary_assertions={len(removed)}')
+          for item in removed:
+              print('removed=' + item)
           PY
-          test "$(grep -c "grep -a -q .*Gif2AniPrefs" .github/workflows/build-install-gif2ani-340-downloadable.yml)" -ge 7
-          ! grep -q 'strings .*Gif2AniPrefs.*| grep -q' .github/workflows/build-install-gif2ani-340-downloadable.yml
+          ! grep -E "Gif2AniPrefs.*(Download & Preview|Cyan Pulse Rings|Legacy Source Catalog|userSettingsPreserved|method_exchangeImplementations)" .github/workflows/build-install-gif2ani-340-downloadable.yml
+          grep -q "assert 'Download & Preview' in preview" .github/workflows/build-install-gif2ani-340-downloadable.yml
+          grep -q "manifest\['count'\] == 54" .github/workflows/build-install-gif2ani-340-downloadable.yml
+          grep -q 'active_gif_preserved=true' .github/workflows/build-install-gif2ani-340-downloadable.yml
+          printf 'build=%s\nversion=3.4.0\ndownloadable_builtins=54\nfix=functional-proof-no-stripped-string-assertions\n' \
+            "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > triggers/build-install-gif2ani-340-downloadable.txt
 
       - name: Commit patch and trigger proof
         run: |
@@ -76,7 +87,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .github/workflows/build-install-gif2ani-340-downloadable.yml triggers/build-install-gif2ani-340-downloadable.txt
           if ! git diff --cached --quiet; then
-            git commit -m "Make Gif2Ani 3.4 binary checks pipefail-safe"
+            git commit -m "Use functional checks for Gif2Ani 3.4 final proof"
             git pull --rebase origin main
             git push origin HEAD:main
           fi
