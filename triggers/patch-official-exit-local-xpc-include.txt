@@ -1,2 +1,3 @@
 patch=local-xpc-quoted-include
-requested_at=2026-07-25T17:41:00-05:00
+requested_at=2026-07-25T17:43:00-05:00
+retry=registered
