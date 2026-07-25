@@ -1,0 +1,127 @@
+name: Check Current Gif2Ani and Jailbreak Mode
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/check-gif2ani-current-mode.txt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  check:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Join Tailscale
+        id: tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - name: Install SSH tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends openssh-client sshpass
+      - name: Read current iPad state
+        id: read_state
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 24); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          test "$connected" -eq 1
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            mobile@"$IPAD_HOST" 'sudo -S -p "" sh -s' <<'SH' 2>&1 | tee current-mode.txt
+          set -u
+          media="/var/mobile/Library/Application Support/Gif2Ani"
+          prefs="/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist"
+          echo "=== PACKAGE ==="
+          dpkg-query -W -f='${Package}\t${Version}\t${Status}\n' com.nightvibes33.gif2ani 2>/dev/null || true
+          echo "=== PROCESSES ==="
+          ps ax | grep -E '[b]ackboardd|[S]pringBoard' || true
+          echo "=== RUNTIME STATUS ==="
+          if [ -f "$media/runtime-status.plist" ]; then cat "$media/runtime-status.plist"; else echo "runtime_status=missing"; fi
+          echo "=== MEDIA ==="
+          for f in Pending.gif Active.gif Rejected.gif load-in-progress; do if [ -e "$media/$f" ]; then echo "$f=present"; else echo "$f=absent"; fi; done
+          echo "=== PREFS ==="
+          if [ -f "$prefs" ]; then cat "$prefs"; else echo "prefs=missing"; fi
+          echo "=== SAFE MODE MARKERS ==="
+          find /var/jb /var/mobile -maxdepth 4 -type f \( -iname '*safe*mode*' -o -iname '*substrate*disabled*' -o -iname '*ellekit*disabled*' \) -print 2>/dev/null | head -n 40 || true
+          echo "=== RECENT CRASHES ==="
+          now=$(date +%s)
+          count=0
+          find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -mmin -15 -print 2>/dev/null | while IFS= read -r f; do echo "$f"; done
+          echo "current_state_read=success"
+          SH
+      - name: Publish sanitized state
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          TAILSCALE_OUTCOME: ${{ steps.tailscale.outcome }}
+          READ_OUTCOME: ${{ steps.read_state.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('current-mode.txt').read_text(errors='replace') if Path('current-mode.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=[
+              'Gif2Ani Current Device Mode',
+              f"run_id={os.environ.get('GITHUB_RUN_ID','')}",
+              f"tailscale={os.environ.get('TAILSCALE_OUTCOME','')}",
+              f"read_state={os.environ.get('READ_OUTCOME','')}",
+              '',
+              '--- sanitized output ---',
+              *text.splitlines()[-300:],
+          ]
+          Path('remote/gif2ani-311-current-mode-status.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/gif2ani-311-current-mode-status.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record Gif2Ani current device mode [skip ci]"
+            git push origin HEAD:main
+          fi
