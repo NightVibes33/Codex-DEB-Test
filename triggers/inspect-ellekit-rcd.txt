@@ -1,3 +1,3 @@
 inspect=ellekit-rcd
-requested_at=2026-07-25T17:50:00-05:00
-reason=retry-after-registration
+requested_at=2026-07-25T17:54:00-05:00
+reason=direct-push-after-workflow-update
