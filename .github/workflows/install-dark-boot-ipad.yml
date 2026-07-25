@@ -1,0 +1,267 @@
+name: Install Dark-Boot 2.0 on iPad
+
+on:
+  workflow_dispatch:
+  issues:
+    types: [opened]
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: install-dark-boot-ipad
+  cancel-in-progress: true
+
+env:
+  DARK_BOOT_ARTIFACT_ID: "8619962046"
+  DARK_BOOT_SHA256: "87e63557439e4cc918451dfc7a6542cff8d48c6ddee50e06fe5b12a985141a7c"
+  DARK_BOOT_VERSION: "2.0.0"
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.actor == 'NightVibes33' && github.event.issue.title == '[Install Dark-Boot 2.0]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - name: Resolve bridge environment
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" \
+            > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json, sys
+          target = int(sys.argv[1])
+          data = json.load(open('environments.json', encoding='utf-8'))
+          for env in data.get('environments', []):
+              if int(env.get('id', -1)) == target:
+                  print('environment_name=' + env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  install:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.actor == 'NightVibes33' && github.event.issue.title == '[Install Dark-Boot 2.0]')
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout bridge repository
+        uses: actions/checkout@v4
+
+      - name: Validate bridge secrets
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$TAILSCALE_AUTHKEY"
+          test -n "$IPAD_PASSWORD"
+
+      - name: Download exact Dark-Boot artifact
+        run: |
+          set -euo pipefail
+          mkdir -p dark-boot-artifact
+          curl --fail --location --retry 3 --retry-delay 2 \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/NightVibes33/Dark-Boot/actions/artifacts/${DARK_BOOT_ARTIFACT_ID}/zip" \
+            -o dark-boot-artifact.zip
+          unzip -q dark-boot-artifact.zip -d dark-boot-artifact
+          DEB="$(find dark-boot-artifact -type f -name 'com.nightvibes33.darkboot_2.0.0_iphoneos-arm64.deb' -print -quit)"
+          test -n "$DEB"
+          echo "${DARK_BOOT_SHA256}  $DEB" | sha256sum -c -
+          dpkg-deb --field "$DEB" Package | grep -Fx 'com.nightvibes33.darkboot'
+          dpkg-deb --field "$DEB" Version | grep -Fx "$DARK_BOOT_VERSION"
+          dpkg-deb --field "$DEB" Architecture | grep -Fx 'iphoneos-arm64'
+          cp "$DEB" ./Dark-Boot-2.0.0-rootless.deb
+
+      - name: Join Tailscale
+        id: tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          ping: ${{ env.IPAD_HOST }}
+          version: latest
+
+      - name: Install SSH tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends openssh-client sshpass
+
+      - name: Prepare trusted SSH connection
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          ssh-keyscan -T 20 -H -p 22 "$IPAD_HOST" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+          sshpass -e ssh -p 22 \
+            -o ConnectTimeout=20 \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            mobile@"$IPAD_HOST" 'echo bridge-ready'
+
+      - name: Copy package to iPad
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          sshpass -e scp -P 22 \
+            -o ConnectTimeout=20 \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            ./Dark-Boot-2.0.0-rootless.deb \
+            mobile@"$IPAD_HOST":/var/mobile/Documents/Dark-Boot-2.0.0-rootless.deb
+
+      - name: Record pre-install state
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          {
+            echo '=== PRE-INSTALL ==='
+            printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+              -o ConnectTimeout=20 \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              mobile@"$IPAD_HOST" \
+              'sudo -S -p "" sh -c '\''echo device=$(uname -m); echo ios=$(sw_vers -productVersion 2>/dev/null || true); echo springboard_pid=$(pgrep -x SpringBoard | head -n1 || true); dpkg-query -W -f="installed_before=${Version}\n" com.nightvibes33.darkboot 2>/dev/null || echo installed_before=none'\'''
+          } | tee install-status.txt
+
+      - name: Install package and allow post-install respring
+        id: install
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -uo pipefail
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=20 \
+            -o ServerAliveInterval=5 \
+            -o ServerAliveCountMax=2 \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            mobile@"$IPAD_HOST" \
+            'sudo -S -p "" sh -c '\''dpkg -i /var/mobile/Documents/Dark-Boot-2.0.0-rootless.deb; sync'\''' \
+            2>&1 | tee -a install-status.txt
+          code=${PIPESTATUS[1]}
+          set -e
+          echo "install_ssh_exit=$code" | tee -a install-status.txt
+          # A respring can intentionally terminate SSH after dpkg succeeds.
+          if [ "$code" -ne 0 ] && [ "$code" -ne 255 ]; then
+            exit "$code"
+          fi
+          sleep 20
+
+      - name: Reconnect and verify installed tweak and Settings pane
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in 1 2 3 4 5; do
+            if sshpass -e ssh -p 22 \
+              -o ConnectTimeout=15 \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              mobile@"$IPAD_HOST" 'true'; then
+              connected=1
+              break
+            fi
+            sleep 8
+          done
+          test "$connected" -eq 1
+
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 \
+            -o ConnectTimeout=20 \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            mobile@"$IPAD_HOST" \
+            'sudo -S -p "" sh -c '\''
+              set -eu
+              echo "=== POST-INSTALL ==="
+              version=$(dpkg-query -W -f="${Version}" com.nightvibes33.darkboot)
+              echo "installed_version=$version"
+              test "$version" = "2.0.0"
+              test -f /var/jb/Library/MobileSubstrate/DynamicLibraries/DarkBoot.dylib
+              test -f /var/jb/Library/MobileSubstrate/DynamicLibraries/DarkBoot.plist
+              test -x /var/jb/Library/PreferenceBundles/DarkBootPrefs.bundle/DarkBootPrefs
+              test -f /var/jb/Library/PreferenceBundles/DarkBootPrefs.bundle/Root.plist
+              test -f /var/jb/Library/PreferenceLoader/Preferences/DarkBoot.plist
+              test -d "/var/mobile/Library/Application Support/DarkBoot"
+              echo "tweak_dylib=present"
+              echo "settings_bundle=present"
+              echo "preference_loader_entry=present"
+              echo "media_directory=present"
+              echo "springboard_pid=$(pgrep -x SpringBoard | head -n1 || true)"
+              rm -f /var/mobile/Documents/Dark-Boot-2.0.0-rootless.deb
+              killall -9 Preferences 2>/dev/null || true
+            '\''' 2>&1 | tee -a install-status.txt
+
+      - name: Upload install diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dark-boot-ipad-install-${{ github.run_id }}
+          path: install-status.txt
+          retention-days: 7
+
+      - name: Publish sanitized install status
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          TAILSCALE_OUTCOME: ${{ steps.tailscale.outcome }}
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text = Path('install-status.txt').read_text(errors='replace') if Path('install-status.txt').exists() else 'No install status was produced.'
+          password = os.environ.get('IPAD_PASSWORD', '')
+          if password:
+              text = text.replace(password, '***REDACTED***')
+          lines = [
+              'Dark-Boot 2.0 iPad Installation',
+              f"run_id={os.environ.get('GITHUB_RUN_ID', '')}",
+              f"run_url=https://github.com/{os.environ.get('GITHUB_REPOSITORY', '')}/actions/runs/{os.environ.get('GITHUB_RUN_ID', '')}",
+              f"commit={os.environ.get('GITHUB_SHA', '')}",
+              f"tailscale={os.environ.get('TAILSCALE_OUTCOME', '')}",
+              f"install_step={os.environ.get('INSTALL_OUTCOME', '')}",
+              '',
+              '--- sanitized output ---',
+              *text.splitlines()[-180:],
+          ]
+          Path('remote/dark-boot-install-status.txt').write_text('\n'.join(lines) + '\n')
+          PY
+          git add remote/dark-boot-install-status.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record Dark-Boot iPad install status [skip ci]"
+            git push origin HEAD:main
+          fi
