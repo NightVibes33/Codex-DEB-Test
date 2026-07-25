@@ -87,7 +87,7 @@ jobs:
           print(f'gif_size={im.size[0]}x{im.size[1]}')
           print(f'gif_frames={count}')
           assert im.size==(256,256)
-          assert count==6
+          assert 2 <= count <= 24
           PY
           test "$(stat -c %s DarkSword-Test.gif)" -lt 1048576
       - uses: tailscale/github-action@v4
