@@ -1,3 +1,3 @@
 diagnose=choicy-injection-rules
-requested_at=2026-07-25T20:08:00-05:00
-reason=read-ios16-compatible-choicy-values
+requested_at=2026-07-25T20:09:00-05:00
+reason=retry-after-choicy-rules-registration
