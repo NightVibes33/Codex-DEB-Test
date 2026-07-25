@@ -1,0 +1,8 @@
+{
+  "name": "codex-ios-installer",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "rm -rf dist && mkdir -p dist && cp index.html install.sh dist/ && chmod 755 dist/install.sh"
+  }
+}
