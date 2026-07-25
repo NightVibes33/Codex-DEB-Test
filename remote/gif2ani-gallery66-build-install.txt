@@ -1,5 +1,5 @@
 Gif2Ani 3.3.0 Gallery 66 Build and Install
-run_id=30178849228
+run_id=30178897780
 install=success
 
 gallery_total=66
@@ -7,7 +7,7 @@ built_in=12
 legacy_import_catalog=54
 
 --- digest ---
-6abeb3aed97e7b03a0dbba620129a78fd1af3862c3d92b87650c1277145c564f  packages/com.nightvibes33.gif2ani_3.3.0_iphoneos-arm64.deb
+21c6ee5d8911b38f22c921555e94339148ff84274620314e6ee65aa6e3d3b500  packages/com.nightvibes33.gif2ani_3.3.0_iphoneos-arm64.deb
 
 --- device proof ---
 connected=1
@@ -16,7 +16,7 @@ dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 
  missing 'Maintainer' field
 (Reading database ... 19748 files and directories currently installed.)
 Preparing to unpack .../Gif2Ani-3.3.0-gallery66.deb ...
-Unpacking com.nightvibes33.gif2ani (3.3.0) over (3.2.1) ...
+Unpacking com.nightvibes33.gif2ani (3.3.0) over (3.3.0) ...
 Setting up com.nightvibes33.gif2ani (3.3.0) ...
 Processing triggers for org.coolstar.sileo (2.5.1) ...
 dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
