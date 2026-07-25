@@ -1,12 +1,12 @@
 Live Gif2Ani Apply Diagnostic
-run_id=30172874949
+run_id=30172910122
 inspect=success
 
 --- sanitized output ---
 connected=1
 Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
 === TIME ===
-Sat Jul 25 15:05:36 CDT 2026
+Sat Jul 25 15:06:40 CDT 2026
 === PACKAGE ===
 dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
  missing 'Maintainer' field
@@ -14,9 +14,9 @@ package=com.nightvibes33.gif2ani
 version=3.1.3
 status=install ok installed
 === PREFERENCES ===
+/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist 10000040000001a ? 1a 4096 4096 7808393 1284583 1284583 51540815 51383320
 stat: cannot read file system information for 'prefs_mtime=%Sm prefs_size=%z': No such file or directory
 stat: cannot read file system information for '%Y-%m-%dT%H:%M:%S%z': No such file or directory
-/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist 10000040000001a ? 1a 4096 4096 7808393 1287337 1287337 51650977 51493480
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
@@ -31,16 +31,16 @@ stat: cannot read file system information for '%Y-%m-%dT%H:%M:%S%z': No such fil
 Pending.gif=absent
 Active.gif=present
 ls: invalid tab size: ‘/var/mobile/Library/Application Support/Gif2Ani’
-/var/mobile/Library/Application Support/Gif2Ani/Active.gif 10000040000001a ? 1a 4096 4096 7808393 1287337 1287337 51650977 51493480
-stat: cannot read file system information for 'Active.gif size=%z mtime=%Sm mode=%Sp uid=%u gid=%g': No such file or directory
-stat: cannot read file system information for '%Y-%m-%dT%H:%M:%S%z': No such file or directory
+/var/mobile/Library/Application Support/Gif2Ani/Active.gif 10000040000001a ? 1a 4096 4096 7808393 1284583 1284583 51540815 51383320
 /var/mobile/Media/live-gif2ani-diagnostic.sh: 21: /usr/bin/file: not found
 /var/mobile/Media/live-gif2ani-diagnostic.sh: 21: shasum: not found
 Rejected.gif=absent
 load-in-progress=absent
 pending-metadata.plist=absent
 runtime-status.plist=present
-/var/mobile/Library/Application Support/Gif2Ani/runtime-status.plist 10000040000001a ? 1a 4096 4096 7808393 1287337 1287337 51650977 51493480
+stat: cannot read file system information for 'Active.gif size=%z mtime=%Sm mode=%Sp uid=%u gid=%g': No such file or directory
+stat: cannot read file system information for '%Y-%m-%dT%H:%M:%S%z': No such file or directory
+/var/mobile/Library/Application Support/Gif2Ani/runtime-status.plist 10000040000001a ? 1a 4096 4096 7808393 1284583 1284583 51540815 51383320
 stat: cannot read file system information for 'runtime-status.plist size=%z mtime=%Sm mode=%Sp uid=%u gid=%g': No such file or directory
 stat: cannot read file system information for '%Y-%m-%dT%H:%M:%S%z': No such file or directory
 <?xml version="1.0" encoding="UTF-8"?>
