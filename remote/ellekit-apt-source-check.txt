@@ -1,0 +1,122 @@
+ElleKit APT Source Check
+run_id=30170230387
+probe=success
+
+--- sanitized output ---
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+=== INSTALLED PACKAGE ===
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+Package: ellekit
+Status: install ok installed
+Priority: optional
+Section: Tweak Injection
+Maintainer: Dhinak G <dhinak@dhinak.net>
+Architecture: iphoneos-arm64
+Version: 1.1.3
+Replaces: com.ex.libsubstitute, org.coolstar.libhooker, mobilesubstrate
+Provides: mobilesubstrate (= 99), org.coolstar.libhooker (= 1.6.9)
+Conflicts: com.ex.substitute, org.coolstar.libhooker, science.xnu.substitute, mobilesubstrate, com.saurik.substrate.safemode
+Description: ElleKit tweak injection libraries and loader
+Name: ElleKit
+Author: Evelyn
+Icon: https://ellekit.space/logos/logo.png
+=== APT POLICY ===
+ellekit:
+  Installed: 1.1.3
+  Candidate: 1.1.3
+  Version table:
+ *** 1.1.3 500
+        500 https://ellekit.space ./ Packages
+        100 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus/Library/dpkg/status
+     1.1.2 500
+        500 https://ellekit.space ./ Packages
+     1.1.1 500
+        500 https://ellekit.space ./ Packages
+     1.1 500
+        500 https://ellekit.space ./ Packages
+     1.0 500
+        500 https://ellekit.space ./ Packages
+     0.6.3 500
+        500 https://ellekit.space ./ Packages
+     0.6.2 500
+        500 https://ellekit.space ./ Packages
+     0.6.1 500
+        500 https://ellekit.space ./ Packages
+     0.6-1 500
+        500 https://ellekit.space ./ Packages
+     0.6 500
+        500 https://ellekit.space ./ Packages
+     0.5.3 500
+        500 https://ellekit.space ./ Packages
+     0.4.5 500
+        500 https://ellekit.space ./ Packages
+     0.4.3 500
+        500 https://ellekit.space ./ Packages
+     0.4 500
+        500 https://ellekit.space ./ Packages
+     0.3-1 500
+        500 https://ellekit.space ./ Packages
+=== APT MADISON ===
+   ellekit |      1.1.3 | https://ellekit.space ./ Packages
+   ellekit |      1.1.2 | https://ellekit.space ./ Packages
+   ellekit |      1.1.1 | https://ellekit.space ./ Packages
+   ellekit |        1.1 | https://ellekit.space ./ Packages
+   ellekit |        1.0 | https://ellekit.space ./ Packages
+   ellekit |      0.6.3 | https://ellekit.space ./ Packages
+   ellekit |      0.6.2 | https://ellekit.space ./ Packages
+   ellekit |      0.6.1 | https://ellekit.space ./ Packages
+   ellekit |      0.6-1 | https://ellekit.space ./ Packages
+   ellekit |        0.6 | https://ellekit.space ./ Packages
+   ellekit |      0.5.3 | https://ellekit.space ./ Packages
+   ellekit |      0.4.5 | https://ellekit.space ./ Packages
+   ellekit |      0.4.3 | https://ellekit.space ./ Packages
+   ellekit |        0.4 | https://ellekit.space ./ Packages
+   ellekit |      0.3-1 | https://ellekit.space ./ Packages
+=== SOURCES ===
+Types: deb
+URIs: https://apt.procurs.us/
+Suites: 1900
+Components: main
+deb https://poomsmart.github.io/repo/ ./
+Types: deb
+URIs: https://repo.palera.in
+Suites: ./
+Components: 
+Types: deb
+URIs: https://ellekit.space
+Suites: ./
+Components: 
+Types: deb
+URIs: https://havoc.app/
+Suites: ./
+Components:
+Types: deb
+URIs: https://repo.chariz.com/
+Suites: ./
+Components:
+Types: deb
+URIs: http://apt.thebigboss.org/repofiles/cydia/
+Suites: stable
+Components: main
+Types: deb
+URIs: https://repo.cypwn.xyz/
+Suites: ./
+Components:
+Types: deb
+URIs: https://apt.iarrays.com/
+Suites: ./
+Components:
+Types: deb
+URIs: https://randy-420.github.io/
+Suites: ./
+Components:
+=== ELLEKIT FILES ===
+lrwxr-xr-x 1 root wheel     34 Jun 11  2024 /var/jb/etc/rc.d/ellekit-loader -> /var/jb/usr/libexec/ellekit/loader
+-rw-r--r-- 1 root wheel 136464 Jun 11  2024 /var/jb/usr/lib/ellekit/libinjector.dylib
+-rw-r--r-- 1 root wheel 930656 Jun 11  2024 /var/jb/usr/lib/ellekit/pspawn.dylib
+-rwxr-xr-x 1 root wheel 793168 Jun 11  2024 /var/jb/usr/libexec/ellekit/loader
+=== CHECKSUMS ===
+34619f5b536c63d7801e13e471a0a2986e6f6fa98ff07313d1840742094a24bd  /var/jb/usr/libexec/ellekit/loader
+a7bd185e42196ae8e7fbccc0a667cd29b21cc4e184a69ef058bdbe3abc70465f  /var/jb/usr/lib/ellekit/pspawn.dylib
+25e9d47fd811e49c88ceb5d5bae34554d0df357aad25b7cf88eeff374dea1af3  /var/jb/usr/lib/ellekit/libinjector.dylib
