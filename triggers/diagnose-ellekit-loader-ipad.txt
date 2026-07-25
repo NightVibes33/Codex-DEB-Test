@@ -1,3 +1,3 @@
 diagnose=gif2ani-ellekit-injection-trace
-requested_at=2026-07-25T19:44:00-05:00
-reason=compare-loader-paths-and-binary-load-state
+requested_at=2026-07-25T19:46:00-05:00
+reason=retry-after-workflow-registration
