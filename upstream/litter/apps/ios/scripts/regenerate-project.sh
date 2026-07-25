@@ -39,10 +39,30 @@ if [[ "${LITTER_NYXIAN_PRIVATE_BUILD:-0}" == "1" ]]; then
   if [[ ! -s "$llvm_archive" || ! -s "$swift_marker" || -z "$support_dylib" ]]; then
     echo "==> Restoring emexDE CoreCompiler/LLVM assets for full AlleyCat sideload build"
     release_repo="${LITTER_EMEXDE_RELEASE_REPOSITORY:-NightVibes33/litter}"
+    prepare_script="$ROOT_DIR/tools/scripts/prepare-emexde-corecompiler-artifacts.sh"
+
+    # macOS still ships Bash 3.2. With `set -u`, expanding an empty array is
+    # treated as an unbound variable. Keep the upstream authentication array
+    # non-empty with a harmless header so public release downloads work even
+    # when no token was exported into the shell environment.
+    python3 - "$prepare_script" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text()
+old = 'AUTH_HEADER=()\n'
+new = 'AUTH_HEADER=(-H "User-Agent: AlleyCat-iOS-CI")\n'
+if old in text:
+    path.write_text(text.replace(old, new, 1))
+elif new not in text:
+    raise SystemExit('could not apply Bash 3.2 AUTH_HEADER compatibility patch')
+PY
+
     (
       cd "$ROOT_DIR"
       env GITHUB_REPOSITORY="$release_repo" \
-        tools/scripts/prepare-emexde-corecompiler-artifacts.sh
+        "$prepare_script"
     )
   else
     echo "==> Using existing emexDE CoreCompiler/LLVM assets"
