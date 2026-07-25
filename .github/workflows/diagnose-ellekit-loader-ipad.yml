@@ -1,0 +1,128 @@
+name: Diagnose ElleKit Loader on iPad
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/diagnose-ellekit-loader-ipad.txt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  diagnose:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Join Tailscale
+        id: tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - name: Install SSH tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends openssh-client sshpass
+      - name: Create read-only device script
+        run: |
+          cat > diagnose-ellekit.sh <<'SH'
+          #!/bin/sh
+          set +e
+          echo '=== PACKAGE STATUS ==='
+          dpkg-query -W -f='${Package}\t${Version}\t${Status}\n' ellekit com.nightvibes33.gif2ani 2>&1
+          echo '=== ELLEKIT PACKAGE FILES ==='
+          dpkg -L ellekit 2>&1
+          echo '=== ELLEKIT FILE SEARCH ==='
+          find /var/jb -maxdepth 6 \( -iname '*ellekit*' -o -iname '*substrate*' -o -iname '*tweakinject*' \) -print 2>/dev/null | sort
+          echo '=== LAUNCH DAEMONS ==='
+          find /var/jb/Library/LaunchDaemons /var/jb/System/Library/LaunchDaemons -maxdepth 2 -type f -print 2>/dev/null | sort
+          echo '=== MATCHING PLISTS ==='
+          for f in $(find /var/jb/Library/LaunchDaemons /var/jb/System/Library/LaunchDaemons -maxdepth 2 -type f 2>/dev/null); do
+            if grep -ailE 'ellekit|tweakinject|substrate|hook' "$f" >/dev/null 2>&1; then
+              echo "--- $f"
+              cat "$f" 2>/dev/null
+            fi
+          done
+          echo '=== PROCESSES ==='
+          ps axww | grep -Ei '[e]llekit|[t]weakinject|[s]ubstrate|[b]ackboardd|[S]pringBoard'
+          echo '=== LAUNCHCTL LIST MATCHES ==='
+          /var/jb/usr/bin/launchctl list 2>/dev/null | grep -Ei 'ellekit|tweak|substrate|hook' || true
+          /bin/launchctl list 2>/dev/null | grep -Ei 'ellekit|tweak|substrate|hook' || true
+          echo '=== BOOTSTRAP DIRECTORIES ==='
+          ls -la /var/jb/basebin /var/jb/usr/lib /var/jb/usr/libexec /var/jb/Library 2>/dev/null
+          echo '=== RUNTIME MARKER ==='
+          cat '/var/mobile/Library/Application Support/Gif2Ani/runtime-status.plist' 2>/dev/null || echo runtime_status=missing
+          echo '=== RECENT CRASH COUNT ==='
+          find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -mmin -20 -print 2>/dev/null | wc -l | tr -d ' '
+          SH
+          chmod +x diagnose-ellekit.sh
+      - name: Upload and run read-only diagnostic
+        id: collect
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 18); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then break; fi
+            sleep 5
+          done
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null diagnose-ellekit.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" \
+            'sudo -S -p "" sh /var/mobile/Media/diagnose-ellekit.sh' 2>&1 | tee ellekit-diagnostic.txt
+      - name: Publish sanitized status
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          COLLECT_OUTCOME: ${{ steps.collect.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('ellekit-diagnostic.txt').read_text(errors='replace') if Path('ellekit-diagnostic.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=['ElleKit Loader Diagnostic',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"collect={os.environ.get('COLLECT_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-600:]]
+          Path('remote/ellekit-loader-diagnostic.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/ellekit-loader-diagnostic.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record ElleKit loader diagnostic [skip ci]"
+            git push origin HEAD:main
+          fi
