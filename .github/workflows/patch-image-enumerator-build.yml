@@ -1,0 +1,58 @@
+name: Patch Image Enumerator Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/patch-image-enumerator-build.txt
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch build and reporting
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.github/workflows/enumerate-jailbreak-process-images.yml')
+          s=p.read_text()
+          s=s.replace('#include <mach/mach_vm.h>\n', '#include <mach/mach_vm.h>\n          #include <mach/mach_error.h>\n', 1)
+          s=s.replace("cat > imageprobe/entitlements.plist <<'PLIST'", "cat > imageprobe/Entitlements.plist <<'PLIST'", 1)
+          old='''          make -C imageprobe clean all FINALPACKAGE=1
+          BIN="$(find imageprobe/.theos -type f -name imageprobe -perm -111 | head -n1)"
+'''
+          new='''          : > imageprobe-build.txt
+          set +e
+          make -C imageprobe clean all FINALPACKAGE=1 2>&1 | tee imageprobe-build.txt
+          build_code=${PIPESTATUS[0]}
+          set -e
+          test "$build_code" -eq 0
+          BIN="$(find imageprobe/.theos -type f -name imageprobe -perm -111 | head -n1)"
+'''
+          if old not in s:
+              raise SystemExit('build block not found')
+          s=s.replace(old,new,1)
+          old2="text=Path('process-images.txt').read_text(errors='replace') if Path('process-images.txt').exists() else 'No output.'"
+          new2="build=Path('imageprobe-build.txt').read_text(errors='replace') if Path('imageprobe-build.txt').exists() else 'No build output.'\n          probe=Path('process-images.txt').read_text(errors='replace') if Path('process-images.txt').exists() else 'No probe output.'\n          text='--- build ---\\n'+build+'\\n--- probe ---\\n'+probe"
+          if old2 not in s:
+              raise SystemExit('publish block not found')
+          s=s.replace(old2,new2,1)
+          p.write_text(s)
+          PY
+          grep -nE 'mach_error|Entitlements|imageprobe-build|build_code' .github/workflows/enumerate-jailbreak-process-images.yml
+      - name: Commit patch
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          git add .github/workflows/enumerate-jailbreak-process-images.yml
+          if ! git diff --cached --quiet; then
+            git commit -m "Fix image enumerator build diagnostics [skip ci]"
+            git push origin HEAD:main
+          fi
