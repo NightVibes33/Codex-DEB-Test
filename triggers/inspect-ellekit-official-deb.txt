@@ -1,0 +1,3 @@
+inspect=ellekit-official-deb
+requested_at=2026-07-25T20:25:00-05:00
+reason=compare-installed-injector-with-official-package
