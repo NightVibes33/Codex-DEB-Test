@@ -1,0 +1,406 @@
+name: Test Gif2Ani 3.1.1 Runtime
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/test-gif2ani-3.1.1-runtime.txt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+  SOURCE_REPO: "https://github.com/NightVibes33/Dark-Boot.git"
+  SOURCE_COMMIT: "4e276b1eb0554b67475a47d69735255871e8cc8e"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  runtime-test:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build exact green package and test GIF
+        id: build
+        env:
+          THEOS: /opt/theos
+          CI: "1"
+          SHELL: /bin/bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            bash curl sudo build-essential fakeroot rsync perl git libxml2 \
+            dpkg-dev unzip xz-utils ca-certificates python3 python3-pil file \
+            openssh-client sshpass
+          sudo rm -rf /opt/theos
+          sudo mkdir -p /opt
+          sudo chown "$USER:$USER" /opt
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          git clone "$SOURCE_REPO" gif2ani-source
+          cd gif2ani-source
+          git checkout "$SOURCE_COMMIT"
+          make clean package FINALPACKAGE=1 2>&1 | tee ../gif2ani-311-runtime.txt
+          DEB="$(find packages -maxdepth 1 -type f -name '*.deb' | head -n1)"
+          test -n "$DEB"
+          test "$(dpkg-deb --field "$DEB" Version)" = "3.1.1"
+          cp "$DEB" ../Gif2Ani-3.1.1-rootless.deb
+          cd ..
+          sha256sum Gif2Ani-3.1.1-rootless.deb | tee -a gif2ani-311-runtime.txt
+          python3 - <<'PY'
+          from PIL import Image
+          a=Image.new('RGB',(64,64),(0,0,0))
+          b=Image.new('RGB',(64,64),(255,255,255))
+          a.save('Gif2Ani-runtime-test.gif',save_all=True,append_images=[b],duration=[120,120],loop=0)
+          PY
+
+      - name: Create device scripts
+        run: |
+          cat > phase1-install-disabled.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media="/var/mobile/Library/Application Support/Gif2Ani"
+          prefs="/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist"
+          marker="/var/mobile/Media/gif2ani-phase1.marker"
+          dpkg -i /var/mobile/Media/Gif2Ani-3.1.1-rootless.deb
+          mkdir -p "$media"
+          cat > "$prefs" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>isEnabled</key><false/>
+            <key>pendingReady</key><false/>
+            <key>imageTransformation</key><string>resizeAspect</string>
+            <key>customLoop</key><real>-1</real>
+            <key>customDuration</key><real>-1</real>
+            <key>backgroundColor</key><string>#000000</string>
+          </dict></plist>
+          PLIST
+          chown mobile:mobile "$media" "$prefs"
+          chmod 0755 "$media"
+          chmod 0644 "$prefs"
+          rm -f "$media/Pending.gif" "$media/Active.gif" "$media/Rejected.gif" "$media/load-in-progress" "$media/runtime-status.plist"
+          touch "$marker"
+          echo "phase1_backboardd_before=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')"
+          killall -9 backboardd
+          SH
+
+          cat > phase1-verify.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media="/var/mobile/Library/Application Support/Gif2Ani"
+          marker="/var/mobile/Media/gif2ani-phase1.marker"
+          version=$(dpkg-query -W com.nightvibes33.gif2ani | cut -f2)
+          echo "installed_version=$version"
+          test "$version" = "3.1.1"
+          test -f "$media/runtime-status.plist"
+          cat "$media/runtime-status.plist"
+          grep -a -q 'tweak-loaded-no-media-decode' "$media/runtime-status.plist"
+          test ! -e "$media/Active.gif"
+          test ! -e "$media/load-in-progress"
+          crashes=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -newer "$marker" 2>/dev/null | wc -l | tr -d ' ')
+          echo "phase1_recent_crashes=$crashes"
+          test "$crashes" = "0"
+          echo "phase1_normal_injection=success"
+          SH
+
+          cat > phase2-apply.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media="/var/mobile/Library/Application Support/Gif2Ani"
+          prefs="/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist"
+          marker="/var/mobile/Media/gif2ani-phase2.marker"
+          cp /var/mobile/Media/Gif2Ani-runtime-test.gif "$media/Pending.gif"
+          chown mobile:mobile "$media/Pending.gif"
+          chmod 0644 "$media/Pending.gif"
+          cp "$media/Pending.gif" "$media/Active.gif.new"
+          chmod 0644 "$media/Active.gif.new"
+          mv -f "$media/Active.gif.new" "$media/Active.gif"
+          rm -f "$media/Pending.gif" "$media/Rejected.gif" "$media/load-in-progress"
+          cat > "$prefs" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>isEnabled</key><true/>
+            <key>pendingReady</key><false/>
+            <key>imageTransformation</key><string>resizeAspect</string>
+            <key>customLoop</key><real>-1</real>
+            <key>customDuration</key><real>-1</real>
+            <key>backgroundColor</key><string>#000000</string>
+          </dict></plist>
+          PLIST
+          chown mobile:mobile "$prefs"
+          chmod 0644 "$prefs"
+          if [ -x /usr/bin/notifyutil ]; then
+            /usr/bin/notifyutil -p 'com.nightvibes33.gif2ani/ReloadPrefs'
+          elif [ -x /var/jb/usr/bin/notifyutil ]; then
+            /var/jb/usr/bin/notifyutil -p 'com.nightvibes33.gif2ani/ReloadPrefs'
+          else
+            echo "notifyutil_missing=yes"
+            exit 41
+          fi
+          sleep 1
+          touch "$marker"
+          echo "phase2_backboardd_before=$(ps ax | awk '/[b]ackboardd/{print $1; exit}')"
+          if [ -x /var/jb/usr/bin/sbreload ]; then
+            /var/jb/usr/bin/sbreload
+          elif [ -x /usr/bin/sbreload ]; then
+            /usr/bin/sbreload
+          else
+            killall -9 SpringBoard
+          fi
+          SH
+
+          cat > phase2-verify.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media="/var/mobile/Library/Application Support/Gif2Ani"
+          marker="/var/mobile/Media/gif2ani-phase2.marker"
+          test -f "$media/runtime-status.plist"
+          cat "$media/runtime-status.plist"
+          grep -a -Eq 'custom-animation-(started|stable)' "$media/runtime-status.plist"
+          test -f "$media/Active.gif"
+          test ! -e "$media/Rejected.gif"
+          test ! -e "$media/load-in-progress"
+          crashes=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -newer "$marker" 2>/dev/null | wc -l | tr -d ' ')
+          echo "phase2_recent_crashes=$crashes"
+          test "$crashes" = "0"
+          echo "phase2_custom_animation=success"
+          SH
+
+          cat > phase3-cleanup.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          media="/var/mobile/Library/Application Support/Gif2Ani"
+          prefs="/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist"
+          cat > "$prefs" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>isEnabled</key><false/>
+            <key>pendingReady</key><false/>
+            <key>imageTransformation</key><string>resizeAspect</string>
+            <key>customLoop</key><real>-1</real>
+            <key>customDuration</key><real>-1</real>
+            <key>backgroundColor</key><string>#000000</string>
+          </dict></plist>
+          PLIST
+          chown mobile:mobile "$prefs"
+          chmod 0644 "$prefs"
+          rm -f "$media/Pending.gif" "$media/Active.gif" "$media/Rejected.gif" "$media/load-in-progress"
+          if [ -x /usr/bin/notifyutil ]; then /usr/bin/notifyutil -p 'com.nightvibes33.gif2ani/ReloadPrefs'; fi
+          if [ -x /var/jb/usr/bin/notifyutil ]; then /var/jb/usr/bin/notifyutil -p 'com.nightvibes33.gif2ani/ReloadPrefs'; fi
+          sleep 1
+          if [ -x /var/jb/usr/bin/sbreload ]; then /var/jb/usr/bin/sbreload; elif [ -x /usr/bin/sbreload ]; then /usr/bin/sbreload; else killall -9 SpringBoard; fi
+          SH
+          chmod +x phase*.sh
+
+      - name: Join Tailscale
+        id: tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Wait for SSH
+        id: wait_ssh
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 18); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then exit 0; fi
+            sleep 5
+          done
+          exit 1
+
+      - name: Upload package, GIF, and scripts
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            Gif2Ani-3.1.1-rootless.deb Gif2Ani-runtime-test.gif phase*.sh \
+            mobile@"$IPAD_HOST":/var/mobile/Media/
+
+      - name: Phase 1 install disabled and restart BackBoard
+        id: phase1
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -uo pipefail
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/phase1-install-disabled.sh' 2>&1 | tee -a gif2ani-311-runtime.txt
+          code=${PIPESTATUS[1]}
+          set -e
+          echo "phase1_restart_exit=$code" | tee -a gif2ani-311-runtime.txt
+          if [ "$code" -ne 0 ] && [ "$code" -ne 255 ]; then exit "$code"; fi
+          sleep 20
+
+      - name: Reconnect and verify normal injection
+        id: phase1_verify
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 24); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then break; fi
+            sleep 5
+          done
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/phase1-verify.sh' 2>&1 | tee -a gif2ani-311-runtime.txt
+
+      - name: Phase 2 apply tiny GIF and respring
+        id: phase2
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -uo pipefail
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/phase2-apply.sh' 2>&1 | tee -a gif2ani-311-runtime.txt
+          code=${PIPESTATUS[1]}
+          set -e
+          echo "phase2_respring_exit=$code" | tee -a gif2ani-311-runtime.txt
+          if [ "$code" -ne 0 ] && [ "$code" -ne 255 ]; then exit "$code"; fi
+          sleep 20
+
+      - name: Reconnect and verify custom animation
+        id: phase2_verify
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 24); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then break; fi
+            sleep 5
+          done
+          sleep 5
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/phase2-verify.sh' 2>&1 | tee -a gif2ani-311-runtime.txt
+
+      - name: Phase 3 clean test media and disable
+        if: always()
+        id: cleanup
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -uo pipefail
+          connected=0
+          for attempt in $(seq 1 24); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          test "$connected" -eq 1
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/phase3-cleanup.sh' 2>&1 | tee -a gif2ani-311-runtime.txt
+          code=${PIPESTATUS[1]}
+          set -e
+          echo "cleanup_respring_exit=$code" | tee -a gif2ani-311-runtime.txt
+          sleep 15
+
+      - name: Final device verification
+        if: always()
+        id: final_verify
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 24); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then break; fi
+            sleep 5
+          done
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh -c '\''
+            set -eu
+            media="/var/mobile/Library/Application Support/Gif2Ani"
+            test "$(dpkg-query -W com.nightvibes33.gif2ani | cut -f2)" = "3.1.1"
+            test ! -e "$media/Pending.gif"
+            test ! -e "$media/Active.gif"
+            test ! -e "$media/Rejected.gif"
+            test ! -e "$media/load-in-progress"
+            grep -a -q "<false/>" /var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist
+            echo "final_state=installed-disabled-no-gif"
+            ps ax | grep -E "[b]ackboardd|[S]pringBoard" || true
+            rm -f /var/mobile/Media/phase1-install-disabled.sh /var/mobile/Media/phase1-verify.sh /var/mobile/Media/phase2-apply.sh /var/mobile/Media/phase2-verify.sh /var/mobile/Media/phase3-cleanup.sh /var/mobile/Media/Gif2Ani-runtime-test.gif
+          '\''' 2>&1 | tee -a gif2ani-311-runtime.txt
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gif2ani-311-runtime-${{ github.run_id }}
+          path: |
+            gif2ani-311-runtime.txt
+            Gif2Ani-3.1.1-rootless.deb
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Publish sanitized runtime status
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          TAILSCALE_OUTCOME: ${{ steps.tailscale.outcome }}
+          PHASE1_OUTCOME: ${{ steps.phase1_verify.outcome }}
+          PHASE2_OUTCOME: ${{ steps.phase2_verify.outcome }}
+          CLEANUP_OUTCOME: ${{ steps.cleanup.outcome }}
+          FINAL_OUTCOME: ${{ steps.final_verify.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('gif2ani-311-runtime.txt').read_text(errors='replace') if Path('gif2ani-311-runtime.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=[
+            'Gif2Ani 3.1.1 Physical Runtime Test',
+            f"run_id={os.environ.get('GITHUB_RUN_ID','')}",
+            f"build={os.environ.get('BUILD_OUTCOME','')}",
+            f"tailscale={os.environ.get('TAILSCALE_OUTCOME','')}",
+            f"normal_injection={os.environ.get('PHASE1_OUTCOME','')}",
+            f"custom_animation={os.environ.get('PHASE2_OUTCOME','')}",
+            f"cleanup={os.environ.get('CLEANUP_OUTCOME','')}",
+            f"final_verify={os.environ.get('FINAL_OUTCOME','')}",
+            '', '--- sanitized output ---', *text.splitlines()[-420:]
+          ]
+          Path('remote/gif2ani-311-runtime-status.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/gif2ani-311-runtime-status.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record Gif2Ani 3.1.1 physical runtime test [skip ci]"
+            git push origin HEAD:main
+          fi
