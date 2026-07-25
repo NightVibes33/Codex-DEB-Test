@@ -1,3 +1,3 @@
 diagnose=ellekit-loader
-requested_at=2026-07-25T17:44:00-05:00
-reason=manual-restart-out-of-safe-mode-but-backboardd-has-no-injection
+requested_at=2026-07-25T17:46:00-05:00
+reason=retry-after-workflow-registration
