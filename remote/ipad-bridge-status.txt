@@ -1,111 +1,22 @@
 iPad Tailscale SSH Bridge
-run_id=30148195262
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30148195262
-commit=730e31e1d932b10ef44d900c638635fe666ce2ca
+run_id=30148278764
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30148278764
+commit=f243e2440ea9780a14c016c331fd3cd3013a4ce3
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
 install_ssh=success
-ssh=success
+ssh=failure
 
 --- sanitized SSH output ---
-    "rpages" : 120,
-    "physicalPages" : {
-    "freeze_skip_reason:" : "none",
-    "reason" : "vm-compressor-space-shortage",
-    "rpages" : 109,
-    "physicalPages" : {
-    "freeze_skip_reason:" : "none",
-    "reason" : "vm-compressor-space-shortage",
-    "rpages" : 83,
-    "physicalPages" : {
-    "freeze_skip_reason:" : "none",
-    "reason" : "vm-compressor-space-shortage",
-    "rpages" : 91,
-    "physicalPages" : {
-    "freeze_skip_reason:" : "none",
-    "reason" : "vm-compressor-space-shortage",
-    "rpages" : 76,
-    "physicalPages" : {
-    "freeze_skip_reason:" : "none",
-    "reason" : "vm-compressor-space-shortage",
-    "rpages" : 71,
-    "physicalPages" : {
-    "freeze_skip_reason:" : "none",
-    "reason" : "vm-compressor-space-shortage",
-    "rpages" : 101,
-    "physicalPages" : {
-    "freeze_skip_reason:" : "none",
-    "reason" : "vm-compressor-space-shortage",
-    "rpages" : 6,
-    "physicalPages" : {
-    "freeze_skip_reason:" : "none",
-    "reason" : "vm-compressor-space-shortage",
-    "rpages" : 266,
-    "physicalPages" : {
-    "freeze_skip_reason:" : "none",
-    "reason" : "vm-compressor-space-shortage",
-    "rpages" : 336,
-    "physicalPages" : {
-    "freeze_skip_reason:" : "none",
-    "reason" : "vm-compressor-space-shortage",
-    "rpages" : 447,
-    "physicalPages" : {
-    "freeze_skip_reason:" : "none",
-    "reason" : "vm-compressor-space-shortage",
-    "rpages" : 266,
-    "physicalPages" : {
-    "freeze_skip_reason:" : "disabled",
-    "reason" : "vm-compressor-space-shortage",
-    "rpages" : 292,
-    "physicalPages" : {
-    "freeze_skip_reason:" : "none",
-    "reason" : "vm-compressor-space-shortage",
-    "rpages" : 158,
-    "physicalPages" : {
-    "freeze_skip_reason:" : "none",
-    "reason" : "vm-compressor-space-shortage",
-    "rpages" : 805,
-    "physicalPages" : {
-    "freeze_skip_reason:" : "none",
-    "reason" : "vm-compressor-space-shortage",
-    "rpages" : 12,
-    "physicalPages" : {
-    "freeze_skip_reason:" : "none",
-    "reason" : "vm-compressor-space-shortage",
-    "rpages" : 200,
-    "physicalPages" : {
-
-=== Current memory and limits ===
-Mach Virtual Memory Statistics: (page size of 16384 bytes)
-Pages free:                                1441.
-Pages active:                             40658.
-Pages inactive:                           40677.
-Pages speculative:                          292.
-Pages throttled:                              0.
-Pages wired down:                         25282.
-Pages purgeable:                            824.
-"Translation faults":                  28422683.
-Pages copy-on-write:                     687764.
-Pages zero filled:                     11341573.
-Pages reactivated:                      5516133.
-Pages purged:                            297938.
-File-backed pages:                        44947.
-Anonymous pages:                          36680.
-Pages stored in compressor:               54238.
-Pages occupied by compressor:             18317.
-Decompressions:                         3607441.
-Compressions:                           4453314.
-Pageins:                                4728102.
-time(seconds)        unlimited
-file(blocks)         unlimited
-data(kbytes)         unlimited
-stack(kbytes)        1008
-coredump(blocks)     0
-memory(kbytes)       unlimited
-locked memory(kbytes) unlimited
-process              950
-nofiles              256
-vmemory(kbytes)      unlimited
-=== Diagnostic collection complete ===
-ssh_exit_code=0
+Checking SSH host key over Tailscale...
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
+  File "<stdin>", line 49
+    print(f'candidate_count={len(candidates)}')
+IndentationError: unexpected unindent
+ssh_exit_code=1
