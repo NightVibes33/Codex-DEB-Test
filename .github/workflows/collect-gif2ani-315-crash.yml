@@ -1,0 +1,115 @@
+name: Collect Gif2Ani 3.1.5 Crash
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - triggers/collect-gif2ani-315-crash.txt
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1)) == target:
+                  print('environment_name='+env['name']); raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  collect:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends openssh-client sshpass
+      - name: Collect live state and crash
+        id: collect
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 45); do
+            sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1 && break
+            sleep 5
+          done
+          cat > /tmp/collect-315.sh <<'SH'
+          #!/bin/sh
+          set +e
+          media='/var/mobile/Library/Application Support/Gif2Ani'
+          prefs='/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist'
+          marker='/var/mobile/Media/gif2ani-315-overlay-fix.marker'
+          echo '=== PACKAGE ==='
+          dpkg-query -W -f='${Package} ${Version} ${Status}\n' com.nightvibes33.gif2ani
+          echo '=== PREFS ==='; cat "$prefs" 2>/dev/null || true
+          echo '=== MEDIA ==='; ls -la "$media" 2>/dev/null || true
+          for f in Active.gif Rejected.gif load-in-progress runtime-status.plist; do
+            p="$media/$f"; [ -e "$p" ] && { echo "$f=present size=$(wc -c < "$p" | tr -d ' ')"; [ "$f" = runtime-status.plist ] && cat "$p"; } || echo "$f=absent"
+          done
+          for p in /var/mobile/Media/Gif2Ani-user-active-315-backup.gif /var/mobile/Media/Gif2Ani-user-active-backup.gif; do
+            [ -e "$p" ] && echo "backup=$p size=$(wc -c < "$p" | tr -d ' ')"
+          done
+          echo '=== PROCESSES ==='
+          ps ax | grep -E 'backboardd|SpringBoard' | grep -v grep
+          echo '=== CRASH FILES SINCE MARKER ==='
+          if [ -f "$marker" ]; then
+            find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -newer "$marker" -print 2>/dev/null | sort
+          fi
+          latest=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -newer "$marker" -print 2>/dev/null | sort | tail -1)
+          echo "latest_crash=${latest:-none}"
+          if [ -n "$latest" ]; then
+            echo '=== LATEST CRASH HEAD ==='; sed -n '1,220p' "$latest"
+            echo '=== LATEST CRASH TAIL ==='; tail -220 "$latest"
+          fi
+          echo collection_complete=yes
+          SH
+          chmod +x /tmp/collect-315.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null /tmp/collect-315.sh mobile@"$IPAD_HOST":/var/mobile/Media/collect-315.sh
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=60 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/collect-315.sh' 2>&1 | tee gif2ani-315-crash.txt
+
+      - name: Publish crash report
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          OUTCOME: ${{ steps.collect.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('gif2ani-315-crash.txt').read_text(errors='replace') if Path('gif2ani-315-crash.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          Path('remote/gif2ani-315-crash.txt').write_text('Gif2Ani 3.1.5 Crash Collection\noutcome='+os.environ.get('OUTCOME','')+'\n\n'+text)
+          PY
+          git add remote/gif2ani-315-crash.txt
+          if ! git diff --cached --quiet; then git commit -m "Record Gif2Ani 3.1.5 crash [skip ci]"; git push origin HEAD:main; fi
