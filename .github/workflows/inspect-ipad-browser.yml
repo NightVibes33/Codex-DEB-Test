@@ -6,6 +6,8 @@ on:
     paths:
       - triggers/inspect-ipad-browser.txt
   workflow_dispatch:
+  issues:
+    types: [opened]
 
 permissions:
   contents: write
@@ -15,6 +17,9 @@ env:
 
 jobs:
   resolve-environment:
+    if: >-
+      github.event_name != 'issues' ||
+      (github.actor == 'NightVibes33' && github.event.issue.title == '[Inspect iPad Browser]')
     runs-on: ubuntu-latest
     outputs:
       environment_name: ${{ steps.resolve.outputs.environment_name }}
@@ -37,6 +42,9 @@ jobs:
           PY
 
   inspect:
+    if: >-
+      github.event_name != 'issues' ||
+      (github.actor == 'NightVibes33' && github.event.issue.title == '[Inspect iPad Browser]')
     needs: resolve-environment
     environment:
       name: ${{ needs.resolve-environment.outputs.environment_name }}
