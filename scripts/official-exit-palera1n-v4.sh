@@ -21,7 +21,7 @@ echo "=== THEOS PATHS ==="
 ls -la "$THEOS"
 ls -la "$THEOS/sdks" || true
 SDK="$(ls -d "$THEOS"/sdks/iPhoneOS*.sdk 2>/dev/null | sort -V | tail -n1 || true)"
-CLANG="$(find "$THEOS/toolchain" -type f -name clang -perm -111 -print -quit)"
+CLANG="$(find -L "$THEOS/toolchain" -type f -name clang -perm -111 -print -quit)"
 LDID="$(find "$THEOS/toolchain" "$THEOS/bin" -type f -name ldid -perm -111 -print -quit)"
 if [[ -z "$SDK" ]]; then
   echo "iphoneos_sdk=missing"
