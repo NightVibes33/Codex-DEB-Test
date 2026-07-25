@@ -1,3 +1,2 @@
-patch=official-exit-v2-sdk-discovery
-requested_at=2026-07-25T18:30:00-05:00
-reason=retry-after-updated-workflow-registration
+patch=official-exit-v3-theos-path
+requested_at=2026-07-25T18:42:00-05:00
