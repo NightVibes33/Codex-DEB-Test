@@ -1,0 +1,212 @@
+name: Generate Gif2Ani Downloadable Theme Pack
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - triggers/generate-gif2ani-downloadable-theme-pack.txt
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gif2ani-theme-pack-generation
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Pillow
+        run: python3 -m pip install --disable-pip-version-check pillow
+
+      - name: Generate 54 bounded GIF themes
+        run: |
+          set -euo pipefail
+          rm -rf gif2ani-themes/v1
+          mkdir -p gif2ani-themes/v1
+          cat > /tmp/generate_themes.py <<'PY'
+          from PIL import Image, ImageDraw
+          from pathlib import Path
+          import colorsys, hashlib, json, math
+
+          OUT = Path('gif2ani-themes/v1')
+          SIZE = 360
+          FRAMES = 24
+          DELAY = 80
+
+          palettes = [
+              ('Cyan', 0.52),
+              ('Magenta', 0.90),
+              ('Lime', 0.30),
+              ('Amber', 0.10),
+              ('Violet', 0.75),
+              ('Ice', 0.58),
+          ]
+          engines = [
+              ('Pulse Rings', 'pulse'),
+              ('Orbit Dots', 'orbit'),
+              ('Equalizer', 'equalizer'),
+              ('Radar Sweep', 'radar'),
+              ('Cyber Grid', 'grid'),
+              ('Square Tunnel', 'tunnel'),
+              ('Spark Burst', 'spark'),
+              ('Halo Spinner', 'spinner'),
+              ('Energy Wave', 'wave'),
+          ]
+
+          def rgb(h, s=0.85, v=1.0):
+              r,g,b = colorsys.hsv_to_rgb(h % 1.0, s, v)
+              return int(r*255), int(g*255), int(b*255)
+
+          def rgba(h, a=255, s=0.85, v=1.0):
+              return (*rgb(h,s,v), int(a))
+
+          def slug(text):
+              return '-'.join(''.join(c.lower() if c.isalnum() else ' ' for c in text).split())
+
+          def frame_for(engine, hue, i):
+              t = i / FRAMES
+              im = Image.new('RGBA', (SIZE,SIZE), (0,0,0,255))
+              d = ImageDraw.Draw(im, 'RGBA')
+              c = SIZE/2
+              m = SIZE
+              main = rgba(hue,255)
+              second = rgba(hue+0.08,255)
+              soft = rgba(hue,110)
+
+              if engine == 'pulse':
+                  for ring in range(5):
+                      phase=(t+ring/5)%1
+                      r=m*(0.06+phase*0.43)
+                      a=int(255*(1-phase))
+                      d.ellipse((c-r,c-r,c+r,c+r), outline=rgba(hue+ring*.025,a), width=6)
+              elif engine == 'orbit':
+                  for dot in range(10):
+                      angle=2*math.pi*(t+dot/10)
+                      radius=m*.31
+                      x=c+math.cos(angle)*radius; y=c+math.sin(angle)*radius
+                      rr=6+8*((dot+i)%10)/9
+                      d.ellipse((x-rr,y-rr,x+rr,y+rr), fill=rgba(hue+dot*.015,100+15*((dot+i)%10)))
+              elif engine == 'equalizer':
+                  bars=15; gap=5; total=m*.72; w=(total-gap*(bars-1))/bars; left=c-total/2
+                  for b in range(bars):
+                      wave=(math.sin(t*2*math.pi+b*.68)+1)/2
+                      h=m*(.10+wave*.54)
+                      x=left+b*(w+gap)
+                      d.rounded_rectangle((x,c-h/2,x+w,c+h/2), radius=w/2, fill=rgba(hue+b*.01,255))
+              elif engine == 'radar':
+                  for rix in range(1,5):
+                      r=m*.09*rix
+                      d.ellipse((c-r,c-r,c+r,c+r), outline=rgba(hue,90), width=2)
+                  angle=t*2*math.pi
+                  x=c+math.cos(angle)*m*.42; y=c+math.sin(angle)*m*.42
+                  d.line((c,c,x,y), fill=main, width=7)
+                  for p in range(6):
+                      pa=2*math.pi*((p*.173)%1); pr=m*(.12+.05*p)
+                      px=c+math.cos(pa)*pr; py=c+math.sin(pa)*pr
+                      glow=max(0,1-abs(((angle-pa+math.pi)%(2*math.pi))-math.pi)/1.2)
+                      if glow>.1: d.ellipse((px-5,py-5,px+5,py+5), fill=rgba(hue, int(255*glow)))
+              elif engine == 'grid':
+                  horizon=SIZE*.43
+                  for col in range(-7,8):
+                      x=c+col*m*.075
+                      d.line((c,horizon,x,SIZE), fill=soft, width=2)
+                  for row in range(14):
+                      phase=(row/14+t)%1
+                      y=horizon+phase*(SIZE-horizon)
+                      half=phase*m*.50
+                      d.line((c-half,y,c+half,y), fill=rgba(hue,180), width=2)
+                  d.line((0,horizon,SIZE,horizon), fill=main, width=3)
+              elif engine == 'tunnel':
+                  for sq in range(9):
+                      phase=(t+sq/9)%1
+                      side=m*(.07+phase*.78)
+                      a=int(255*(1-phase))
+                      d.rectangle((c-side/2,c-side/2,c+side/2,c+side/2), outline=rgba(hue+sq*.02,a), width=5)
+              elif engine == 'spark':
+                  for ray in range(24):
+                      angle=2*math.pi*(ray/24+t*.35)
+                      phase=(t+ray/24)%1
+                      r1=m*(.05+.08*phase); r2=m*(.16+.30*phase)
+                      d.line((c+math.cos(angle)*r1,c+math.sin(angle)*r1,c+math.cos(angle)*r2,c+math.sin(angle)*r2), fill=rgba(hue+ray*.008,int(255*(1-phase))), width=4)
+                  d.ellipse((c-18,c-18,c+18,c+18), fill=second)
+              elif engine == 'spinner':
+                  for seg in range(12):
+                      angle=2*math.pi*seg/12
+                      alpha=45+210*((seg+12-(i%12))%12)/11
+                      inner=m*.23; outer=m*.37
+                      d.line((c+math.cos(angle)*inner,c+math.sin(angle)*inner,c+math.cos(angle)*outer,c+math.sin(angle)*outer), fill=rgba(hue+seg*.008,int(alpha)), width=13)
+              elif engine == 'wave':
+                  pts=[]
+                  for x in range(0,SIZE+1,3):
+                      y=c+math.sin((x/SIZE)*math.pi*4+t*2*math.pi)*m*.15
+                      pts.append((x,y))
+                  d.line(pts, fill=main, width=7)
+                  pts2=[]
+                  for x in range(0,SIZE+1,3):
+                      y=c+math.sin((x/SIZE)*math.pi*4+t*2*math.pi+math.pi)*m*.08
+                      pts2.append((x,y))
+                  d.line(pts2, fill=rgba(hue+.12,160), width=4)
+              return im.convert('P', palette=Image.Palette.ADAPTIVE, colors=128)
+
+          manifest=[]
+          for palette_name,hue in palettes:
+              for display,engine in engines:
+                  name=f'{palette_name} {display}'
+                  ident=slug(name)
+                  frames=[frame_for(engine,hue,i) for i in range(FRAMES)]
+                  path=OUT/f'{ident}.gif'
+                  frames[0].save(path, save_all=True, append_images=frames[1:], duration=DELAY, loop=0, optimize=True, disposal=2)
+                  data=path.read_bytes()
+                  manifest.append({
+                      'id': ident,
+                      'name': name,
+                      'engine': engine,
+                      'palette': palette_name,
+                      'file': path.name,
+                      'bytes': len(data),
+                      'sha256': hashlib.sha256(data).hexdigest(),
+                      'sourceFrames': FRAMES,
+                      'width': SIZE,
+                      'height': SIZE,
+                      'recommendedScaling': 'resizeAspect',
+                      'recommendedBackground': '#000000:1.000',
+                      'recommendedDuration': -1,
+                      'recommendedRepeat': -1,
+                      'license': 'CC0-1.0',
+                      'author': 'NightVibes33 / Gif2Ani procedural pack',
+                  })
+          assert len(manifest)==54
+          (OUT/'manifest.json').write_text(json.dumps({'version':1,'count':54,'themes':manifest},indent=2)+'\n')
+          (OUT/'LICENSE.txt').write_text('Gif2Ani Procedural Theme Pack\n\nAll generated animation assets in this directory are dedicated to the public domain under CC0 1.0.\n')
+          print('generated_themes=54')
+          print('total_bytes=',sum(x['bytes'] for x in manifest))
+          PY
+          python3 /tmp/generate_themes.py | tee gif2ani-theme-generation.txt
+          test "$(find gif2ani-themes/v1 -maxdepth 1 -name '*.gif' | wc -l)" -eq 54
+          python3 - <<'PY'
+          import json
+          d=json.load(open('gif2ani-themes/v1/manifest.json'))
+          assert d['count']==54 and len(d['themes'])==54
+          assert len({x['id'] for x in d['themes']})==54
+          assert all(x['bytes'] <= 25*1024*1024 for x in d['themes'])
+          assert all(x['sourceFrames']==24 for x in d['themes'])
+          print('manifest_validation=success')
+          PY
+
+      - name: Commit generated pack
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add gif2ani-themes/v1
+          git commit -m "Generate 54 downloadable Gif2Ani themes" || exit 0
+          git pull --rebase origin main
+          git push origin HEAD:main
