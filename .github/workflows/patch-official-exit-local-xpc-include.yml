@@ -1,0 +1,31 @@
+name: Patch Official Exit Local XPC Include
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/patch-official-exit-local-xpc-include.txt
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Change XPC include to local quoted header
+        run: |
+          set -euo pipefail
+          target=.github/workflows/official-exit-palera1n-safemode.yml
+          grep -q '#include <xpc/xpc.h>' "$target"
+          sed -i 's|#include <xpc/xpc.h>|#include "xpc/xpc.h"|' "$target"
+          grep -q '#include "xpc/xpc.h"' "$target"
+      - name: Commit patch
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/official-exit-palera1n-safemode.yml
+          git commit -m "Use vendored XPC header for official safe-mode exit"
+          git push origin HEAD:main
