@@ -1,0 +1,3 @@
+dispatch=read-only-ellekit-loader-diagnostic
+requested_at=2026-07-25T18:55:00-05:00
+reason=verify-after-official-palera1n-exit-v3
