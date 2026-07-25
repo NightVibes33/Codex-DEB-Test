@@ -1,16 +1,32 @@
 Gif2Ani 3.3.0 Gallery 66 Build and Install
-run_id=30178785483
-install=skipped
+run_id=30178849228
+install=success
 
 gallery_total=66
 built_in=12
 legacy_import_catalog=54
 
 --- digest ---
-
+6abeb3aed97e7b03a0dbba620129a78fd1af3862c3d92b87650c1277145c564f  packages/com.nightvibes33.gif2ani_3.3.0_iphoneos-arm64.deb
 
 --- device proof ---
-No device output.
+connected=1
+Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+(Reading database ... 19748 files and directories currently installed.)
+Preparing to unpack .../Gif2Ani-3.3.0-gallery66.deb ...
+Unpacking com.nightvibes33.gif2ani (3.3.0) over (3.2.1) ...
+Setting up com.nightvibes33.gif2ani (3.3.0) ...
+Processing triggers for org.coolstar.sileo (2.5.1) ...
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+installed_version=3.3.0
+active_gif_preserved=true
+preferences_preserved=true
+runtime_status_preserved=true
+new_crash_reports=0
+gallery66_install=success
 
 --- build tail ---
 [0;36m==> [1;39mCleaning…[m
@@ -18,8 +34,8 @@ No device output.
 [0;36m==> [1;39mCleaning…[m
 [1;31m> [1;3;39mMaking all for tweak Gif2Ani…[m
 [0;31m==> [1;39mPreprocessing Tweak.xm…[m
-[0;32m==> [1;39mCompiling UIImage+animatedGIF.m (arm64)…[m
 [0;32m==> [1;39mCompiling G2PreferencesManager.m (arm64)…[m
+[0;32m==> [1;39mCompiling UIImage+animatedGIF.m (arm64)…[m
 [0;32m==> [1;39mCompiling Tweak.xm (arm64)…[m
 [0;33m==> [1;39mLinking tweak Gif2Ani (arm64)…[m
 [0;34m==> [1;39mGenerating debug symbols for Gif2Ani…[m
@@ -28,31 +44,14 @@ No device output.
 [1;31m> [1;3;39mMaking all in gif2aniprefs…[m
 [1;31m> [1;3;39mMaking all for bundle Gif2AniPrefs…[m
 [0;35m==> [1;39mCopying resource directories into the bundle wrapper…[m
-[0;32m==> [1;39mCompiling G2ThemeGalleryController.m (arm64)…[m
-In file included from G2ThemeGalleryController.m:2:
-[1m./G2ThemeGalleryPart2.inc:2:55: [0m[0;1;31merror: [0m[1muse of undeclared identifier 'ray'[0m
-            CGFloat end = m * (0.15 + 0.28 * fmod(t + ray / 18.0, 1.0));
-[0;1;32m                                                      ^
-[0m[1m./G2ThemeGalleryPart2.inc:3:76: [0m[0;1;31merror: [0m[1muse of undeclared identifier 'ray'[0m
-            CGContextSetStrokeColorWithColor(ctx, G2RGB(1.0, 0.45 + 0.4 * (ray%3)/2.0, 0.1, 0.9).CGColor);
-[0;1;32m                                                                           ^
-[0m[1m./G2ThemeGalleryPart2.inc:5:49: [0m[0;1;31merror: [0m[1muse of undeclared identifier 'angle'[0m
-            CGContextMoveToPoint(ctx, c.x + cos(angle)*start, c.y + sin(angle)*start);
-[0;1;32m                                                ^
-[0m[1m./G2ThemeGalleryPart2.inc:5:73: [0m[0;1;31merror: [0m[1muse of undeclared identifier 'angle'[0m
-            CGContextMoveToPoint(ctx, c.x + cos(angle)*start, c.y + sin(angle)*start);
-[0;1;32m                                                                        ^
-[0m[1m./G2ThemeGalleryPart2.inc:6:52: [0m[0;1;31merror: [0m[1muse of undeclared identifier 'angle'[0m
-            CGContextAddLineToPoint(ctx, c.x + cos(angle)*end, c.y + sin(angle)*end);
-[0;1;32m                                                   ^
-[0m[1m./G2ThemeGalleryPart2.inc:6:74: [0m[0;1;31merror: [0m[1muse of undeclared identifier 'angle'[0m
-            CGContextAddLineToPoint(ctx, c.x + cos(angle)*end, c.y + sin(angle)*end);
-[0;1;32m                                                                         ^
-[0m6 errors generated.
-make[4]: *** [/opt/theos/makefiles/instance/rules.mk:305: /home/runner/work/Codex-DEB-Test/Codex-DEB-Test/darkboot/.theos/obj/arm64/G2ThemeGalleryController.m.517e5bae.o] Error 1
-make[4]: *** Waiting for unfinished jobs....
 [0;32m==> [1;39mCompiling gif2ani2RootListController.m (arm64)…[m
-make[3]: *** [/opt/theos/makefiles/instance/bundle.mk:37: /home/runner/work/Codex-DEB-Test/Codex-DEB-Test/darkboot/.theos/obj/arm64/Gif2AniPrefs.bundle/Gif2AniPrefs] Error 2
-make[2]: *** [/opt/theos/makefiles/instance/bundle.mk:26: internal-bundle-all_] Error 2
-make[1]: *** [/opt/theos/makefiles/master/rules.mk:146: Gif2AniPrefs.all.bundle.variables] Error 2
-make: *** [/opt/theos/makefiles/master/aggregate.mk:12: internal-all] Error 2
+[0;32m==> [1;39mCompiling G2ThemeGalleryController.m (arm64)…[m
+[0;33m==> [1;39mLinking bundle Gif2AniPrefs (arm64)…[m
+[0;34m==> [1;39mGenerating debug symbols for Gif2AniPrefs…[m
+[0;34m==> [1;39mStripping Gif2AniPrefs (arm64)…[m
+[0;34m==> [1;39mSigning Gif2AniPrefs…[m
+[1;31m> [1;3;39mMaking stage for tweak Gif2Ani…[m
+[1;31m> [1;3;39mMaking stage in gif2aniprefs…[m
+[1;31m> [1;3;39mMaking stage for bundle Gif2AniPrefs…[m
+[0;36m==> [1;36mNotice:[m Neither plutil, ply, or libplist-utils are installed, so XML plist files were not optimized.
+dm.pl: building package `com.nightvibes33.gif2ani:iphoneos-arm64' in `./packages/com.nightvibes33.gif2ani_3.3.0_iphoneos-arm64.deb'
