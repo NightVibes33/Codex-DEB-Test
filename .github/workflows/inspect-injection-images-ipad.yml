@@ -1,0 +1,153 @@
+name: Inspect iPad Injection Images
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - triggers/inspect-injection-images-ipad.txt
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments',[]):
+              if int(env.get('id',-1))==target:
+                  print('environment_name='+env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  inspect:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Join Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - name: Install SSH tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends openssh-client sshpass
+      - name: Create read-only probe
+        run: |
+          cat > inspect-injection-images.sh <<'SH'
+          #!/bin/sh
+          set +e
+          media='/var/mobile/Library/Application Support/Gif2Ani'
+          bbpid="$(pgrep -x backboardd | head -n1)"
+          sbpid="$(pgrep -x SpringBoard | head -n1)"
+          echo '=== PROCESS IDS ==='
+          echo "launchd_pid=1"
+          echo "backboardd_pid=$bbpid"
+          echo "springboard_pid=$sbpid"
+          echo '=== SAFE MODE GATES ==='
+          echo "_MSSafeMode=$(/var/jb/usr/bin/launchctl getenv _MSSafeMode 2>/dev/null)"
+          echo "_SafeMode=$(/var/jb/usr/bin/launchctl getenv _SafeMode 2>/dev/null)"
+          test -e /var/mobile/.eksafemode && echo 'eksafemode_file=present' || echo 'eksafemode_file=absent'
+          echo '=== AVAILABLE INSPECTION TOOLS ==='
+          for x in vmmap lsof jtool2 jtool dyld_info procinfo launchctl log; do
+            command -v "$x" 2>/dev/null || true
+          done
+          echo '=== PROCESS ENVIRONMENT ==='
+          ps eww -p 1 2>/dev/null || true
+          [ -n "$bbpid" ] && ps eww -p "$bbpid" 2>/dev/null || true
+          echo '=== VMMAP LAUNCHD ==='
+          if command -v vmmap >/dev/null 2>&1; then
+            vmmap 1 2>&1 | grep -Ei 'ellekit|pspawn|substrate|tweakinject|libhooker' || true
+          else
+            echo 'vmmap=unavailable'
+          fi
+          echo '=== VMMAP BACKBOARDD ==='
+          if command -v vmmap >/dev/null 2>&1 && [ -n "$bbpid" ]; then
+            vmmap "$bbpid" 2>&1 | grep -Ei 'Gif2Ani|ellekit|substrate|tweakinject|libhooker|MobileSafety' || true
+          else
+            echo 'vmmap_backboardd=unavailable'
+          fi
+          echo '=== LSOF BACKBOARDD ==='
+          if command -v lsof >/dev/null 2>&1 && [ -n "$bbpid" ]; then
+            lsof -p "$bbpid" 2>&1 | grep -Ei 'Gif2Ani|ellekit|substrate|tweakinject|libhooker|MobileSafety' || true
+          else
+            echo 'lsof_backboardd=unavailable'
+          fi
+          echo '=== RUNTIME MARKER ==='
+          cat "$media/runtime-status.plist" 2>/dev/null || echo 'runtime_status=missing'
+          echo '=== MEDIA STATE ==='
+          ls -la "$media" 2>/dev/null || true
+          echo '=== PACKAGE FILES ==='
+          ls -la /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.* 2>/dev/null || true
+          echo '=== RECENT UNIFIED LOG ==='
+          if command -v log >/dev/null 2>&1; then
+            log show --last 10m --style compact --predicate '(process == "backboardd") OR (process == "launchd")' 2>/dev/null | grep -Ei 'Gif2Ani|ellekit|substrate|tweak|dyld|image not found|library not loaded' | tail -n 120 || true
+          else
+            echo 'log_tool=unavailable'
+          fi
+          echo '=== RECENT CRASH COUNT ==='
+          find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'backboardd-*.ips' -o -name 'SpringBoard-*.ips' \) -mmin -30 -print 2>/dev/null | wc -l | tr -d ' '
+          SH
+          chmod +x inspect-injection-images.sh
+      - name: Run probe on iPad
+        id: probe
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 30); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 5
+          done
+          test "$connected" -eq 1
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null inspect-injection-images.sh mobile@"$IPAD_HOST":/var/mobile/Media/
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=30 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" \
+            'sudo -S -p "" sh /var/mobile/Media/inspect-injection-images.sh' 2>&1 | tee injection-images.txt
+      - name: Publish sanitized result
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          PROBE_OUTCOME: ${{ steps.probe.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text=Path('injection-images.txt').read_text(errors='replace') if Path('injection-images.txt').exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          out=['iPad Injection Image Probe',f"run_id={os.environ.get('GITHUB_RUN_ID','')}",f"probe={os.environ.get('PROBE_OUTCOME','')}",'','--- sanitized output ---',*text.splitlines()[-500:]]
+          Path('remote/ipad-injection-image-probe.txt').write_text('\n'.join(out)+'\n')
+          PY
+          git add remote/ipad-injection-image-probe.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record iPad injection image probe [skip ci]"
+            git push origin HEAD:main
+          fi
