@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30209039737
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30209039737
-commit=dcf88dece5d63174efc7f4f6549fc794dc1d81d3
+run_id=30209308956
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30209308956
+commit=c50dfb4acf08db511ed76b53931f38874a4270c5
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -18,15 +18,21 @@ SSH port attempt 1/18
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 ipad_ssh_port_ready=success
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-=== Inventory SnowBoard Respring packs from configured iPad repositories ===
-started_at_utc=2026-07-26T15:50:22Z
+=== Repair Gif2Ani gallery download permissions ===
+started_at_utc=2026-07-26T15:57:59Z
 identity=uid=0(root) gid=0(wheel) groups=0(wheel)
 model=J71tAP
 gif2ani_version=3.5.5
-snowboard_version=absent
-respring_extension_version=absent
---- configured_sources ---
-source=/var/jb/etc/apt/sources.list.d/poomsmart.list|deb https://poomsmart.github.io/repo/ ./
---- repository_candidates ---
-E: read, still have 1 to read but none left
-ssh_exit_code=100
+--- ownership_after ---
+drwxr-xr-x 14 mobile mobile 448 Jul 26 10:57 /var/mobile/Library/Application Support/Gif2Ani
+drwxr-xr-x  2 mobile mobile  64 Jul 26 10:44 /var/mobile/Library/Application Support/Gif2Ani/OpenThemeLibrary
+drwxr-xr-x  2 mobile mobile  64 Jul 25 21:29 /var/mobile/Library/Application Support/Gif2Ani/Packs
+drwxr-xr-x  2 mobile mobile  64 Jul 26 10:57 /var/mobile/Library/Application Support/Gif2Ani/RemoteThemes
+drwxr-xr-x  6 mobile mobile 192 Jul 26 10:02 /var/mobile/Library/Application Support/Gif2Ani/Rollbacks
+mobile_write_test_uid=  File: "/var/mobile/Library/Application Support/Gif2Ani/OpenThemeLibrary/.mobile-write-test"
+    ID: 10000040000001a Namelen: ?       Type: apfs
+Block size: 4096       Fundamental block size: 4096
+Blocks: Total: 7808393    Free: 1257611    Available: 1257611
+Inodes: Total: 50462590   Free: 50304440
+501
+ssh_exit_code=1
