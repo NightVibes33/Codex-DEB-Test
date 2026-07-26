@@ -1,4 +1,4 @@
-name: Report iPad SnowBoard Audit
+name: Report Gif2Ani 3.5.7 iPad Verification
 
 on:
   workflow_dispatch:
@@ -29,10 +29,10 @@ jobs:
             "https://api.github.com/repos/${REPO}/actions/workflows/ipad-tailscale-ssh-v2.yml/runs?per_page=20" > runs.json
           python3 - <<'PY'
           import json,os,pathlib,urllib.request
-          target='8c13a02fa29e13beaa490112f94bbbe13d5fe7df'
+          target='4c7d4ea4217eb1dd62e77bf808d6beb9eca36f5d'
           runs=json.loads(pathlib.Path('runs.json').read_text()).get('workflow_runs',[])
           run=next((x for x in runs if x.get('head_sha')==target),None)
-          lines=['Gif2Ani 3.5.6 All-Seven iPad Audit',f'target_sha={target}']
+          lines=['Gif2Ani 3.5.7 iPad Package-ID Verification',f'target_sha={target}']
           if run is None:
               lines.append('run=not_found')
           else:
@@ -42,7 +42,7 @@ jobs:
                   'Accept':'application/vnd.github+json',
                   'Authorization':f"Bearer {os.environ['GH_TOKEN']}",
                   'X-GitHub-Api-Version':'2022-11-28',
-                  'User-Agent':'Gif2Ani-iPad-audit-reporter',
+                  'User-Agent':'Gif2Ani-357-iPad-reporter',
               })
               with urllib.request.urlopen(req,timeout=30) as response:
                   jobs=json.load(response).get('jobs',[])
@@ -59,5 +59,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git pull --rebase origin main
           git add remote/ipad-snowboard-audit-run.txt
-          git commit -m 'Report all-seven iPad SnowBoard audit [skip ci]' || exit 0
+          git commit -m 'Report Gif2Ani 3.5.7 iPad verification [skip ci]' || exit 0
           git push origin HEAD:main
