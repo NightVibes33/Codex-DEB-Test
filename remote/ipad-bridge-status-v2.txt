@@ -1,18 +1,18 @@
 Stable iPad Tailscale SSH Bridge
-run_id=30211836154
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30211836154
-commit=8c13a02fa29e13beaa490112f94bbbe13d5fe7df
+run_id=30212520230
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30212520230
+commit=91d873034392262a87020fb7931a476ad941a51c
 validate=success
 install=success
 tailscale=success
-ssh=success
+ssh=failure
 
 --- sanitized output ---
-100.101.129.112  github-ipad-bridge         NightVibes33@  linux    -                           
-100.116.117.65   bobbys-ipad                NightVibes33@  iOS      -                           
-100.127.94.70    desktop-o56xs              NightVibes33@  windows  offline, last seen 1d ago   
-100.75.56.74     github-ipad-30209701594-3  NightVibes33@  linux    offline, last seen 55m ago  
-100.79.177.16    iphone173                  NightVibes33@  iOS      offline, last seen 1h ago   
+100.110.165.84  github-ipad-bridge         NightVibes33@  linux    -                          
+100.116.117.65  bobbys-ipad                NightVibes33@  iOS      -                          
+100.127.94.70   desktop-o56xs              NightVibes33@  windows  offline, last seen 1d ago  
+100.88.177.49   github-ipad-30212336840-1  NightVibes33@  linux    offline, last seen 4m ago  
+100.79.177.16   iphone173                  NightVibes33@  iOS      offline, last seen 2h ago  
 tailscale_ipad_node_visible=success
 SSH port attempt 1/18
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
@@ -21,57 +21,31 @@ SSH port attempt 1/18
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 ipad_ssh_port_ready=success
-=== Install Gif2Ani 3.5.6 and audit all verified SnowBoard packages on iPad ===
-started_at_utc=2026-07-26T17:05:42Z
+=== Install Gif2Ani 3.5.7 and verify shared Springy/SnowBoard package-ID fix ===
+started_at_utc=2026-07-26T17:25:31Z
 identity=uid=0(root) gid=0(wheel) groups=0(wheel)
 model=J71tAP
-version_before=3.5.6
-release_effective_url=https://raw.githubusercontent.com/NightVibes33/Dark-Boot/6017cd4bbfbbe28821fb9657c2823d3ad8a475a5/release-packages/Gif2Ani-3.5.6-verified-snowboard-library.deb
-release_sha256=b3de14935aea124f665803bfaa9140c0f81021e3f15add6e324ab504c1c44c16
+version_before=3.5.7
+release_effective_url=https://raw.githubusercontent.com/NightVibes33/Dark-Boot/267cb8e16d9c2bb30968e889a94e6bfc921e76f9/release-packages/Gif2Ani-3.5.7-shared-verifier-fix.deb
+release_sha256=7b02279eb5a6146cd5a3835b723cf6bb2d4434b5327f4bb51af17cf46fd4b04f
 release_package_metadata=passed
 dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
  missing 'Maintainer' field
 (Reading database ... 19751 files and directories currently installed.)
-Preparing to unpack .../Gif2Ani-3.5.6-verified-snowboard-library.deb ...
-Unpacking com.nightvibes33.gif2ani (3.5.6) over (3.5.6) ...
-Setting up com.nightvibes33.gif2ani (3.5.6) ...
+Preparing to unpack .../Gif2Ani-3.5.7-shared-verifier-fix.deb ...
+Unpacking com.nightvibes33.gif2ani (3.5.7) over (3.5.7) ...
+Setting up com.nightvibes33.gif2ani (3.5.7) ...
 Processing triggers for org.coolstar.sileo (2.5.1) ...
-version_immediate=3.5.6
 dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
  missing 'Maintainer' field
-installed_version_code_and_legacy_ui=passed
+version_immediate=3.5.7
+installed_357_binary_and_ui=passed
 installed_springy_themes=48
-installed_snowboard_packages=7
 installed_snowboard_themes=160
-installed_source_backed_themes=208
-mobile_cache_write_uid=501
-settings_download_cache_permission=passed
-snowboard_package_1_effective_url=https://hende101.github.io/repo/debs/Megapackbeta.deb
-snowboard_package_1=passed|beta.hende.megapack|themes=6|bytes=1424138|sha256=b166ad2873f459bcb1c6a7ef52ddc481b243b73f1da36d2f34f0529dbfc38a50|owner_uid=501
-snowboard_package_2_effective_url=https://repo.packix.com/debs/com.bluspark.pixeliosrespringpack1_1.0.deb
-snowboard_package_2=passed|com.bluspark.pixeliosrespringpack1|themes=19|bytes=39406|sha256=019b842090b48a494b2c0aa2e2dfd2836c856bff1feaf1369b4f653c0b6e7b92|owner_uid=501
-snowboard_package_3_effective_url=https://repo.packix.com/debs/com.rkycyku.allin1.respring_1.4.deb
-snowboard_package_3=passed|com.rkycyku.allin1.respring|themes=105|bytes=16732232|sha256=9f26a524f7b8bf3740c38e305704202cca6590a803cdb3597cbc3822bf11b3e1|owner_uid=501
-snowboard_package_4_effective_url=https://repo.packix.com/debs/com.shadows.respringmix_1.0.deb
-snowboard_package_4=passed|com.shadows.respringmix|themes=15|bytes=3535964|sha256=6b17a65ada7fc8b3b54a0f79eab69929015d603d775f703d98a5b4d04e753cb3|owner_uid=501
-snowboard_package_5_effective_url=https://repo.packix.com/debs/com.thwlfu.cakrespring_1.1.deb
-snowboard_package_5=passed|com.thwlfu.cakrespring|themes=1|bytes=134520|sha256=5f631f11600fba9f9fa95ee6e6b525ba504d0756841b5f9d3f36626a62af77dc|owner_uid=501
-snowboard_package_6_effective_url=https://repo.packix.com/debs/respring.hende.megapack_2.0.deb
-snowboard_package_6=passed|respring.hende.megapack|themes=10|bytes=3265988|sha256=ec511a2f5cb2aaf1f41811b74b45c3caa685e8d156dda022a8c1cb1113fa21da|owner_uid=501
-snowboard_package_7_effective_url=https://repo.packix.com/debs/respring.hende.razerlogo_1.0.deb
-snowboard_package_7=passed|respring.hende.razerlogo|themes=4|bytes=272830|sha256=15d743dc83098f4cd9f2b12fc692caf437be2bbf96b875a5e65382a83d2f13f1|owner_uid=501
-physical_snowboard_packages_passed=7
-physical_snowboard_theme_paths_passed=160
-version_after_8s=3.5.6
-visible_label=dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
- missing 'Maintainer' field
-GIF2ANI 3.5.6
-gif2ani_gallery_reopened=true
-tweak_binary_sha256=23ce0cd13044d90f67b4d46ae3e39bf21dbd49bfcbe8f80aeba6ddb9a18529b5
-prefs_binary_sha256=3ea7867bb85ce7aad4ab7b9600af86517732e13a30f4685a239441febae3edb8
-gif2ani_356_install=success
-gif2ani_356_snowboard_catalog=success
-gif2ani_356_mobile_download_permissions=success
-gif2ani_356_all_7_snowboard_packages=success
-gif2ani_356_all_160_snowboard_themes=success
-ssh_exit_code=0
+installed_gallery_total=274
+springy_effective_url=https://raw.githubusercontent.com/VirenMohindra/CydiaRepo/c507a391f193c2bb362ff77fc1c1673c0da2dcae/debs/io.github.virenmohindra.gameboy-advance_2.0_iphoneos-arm.deb
+springy_expected_package=io.github.virenmohindra.gameboy-advance
+springy_clean_stdout_package=io.github.virenmohindra.gameboy-advance
+springy_stderr_bytes=0
+springy_old_merged_capture_would_fail=false
+ssh_exit_code=1
