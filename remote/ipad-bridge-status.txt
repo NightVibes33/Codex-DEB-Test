@@ -1,12 +1,12 @@
 iPad Tailscale SSH Bridge
-run_id=30207964587
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30207964587
-commit=ddf1897d096a322b656ace0f1cb7cf2c852db77f
+run_id=30208019748
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30208019748
+commit=5ff7e0a058ba930bb5387837f9f8d4ea3c4e584d
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
 install_ssh=success
-ssh=failure
+ssh=success
 
 --- sanitized SSH output ---
 Waking and checking iPad SSH port over Tailscale...
@@ -19,9 +19,29 @@ SSH port attempt 1/18
 ipad_ssh_port_ready=success
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
 === Install and persist-verify Gif2Ani 3.5.3 ===
-started_at_utc=2026-07-26T15:20:30Z
+started_at_utc=2026-07-26T15:22:13Z
 identity=uid=0(root) gid=0(wheel) groups=0(wheel)
 model=J71tAP
 version_before=3.5.2
 download_sha256=ea4e5ac0c565587e9e9a36084a7a788128c2167cb1ec6b880a1194f974297a3d
-ssh_exit_code=1
+package_metadata=passed
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+(Reading database ... 19853 files and directories currently installed.)
+Preparing to unpack .../Gif2Ani-3.5.3-immutable-springy-fix.deb ...
+Unpacking com.nightvibes33.gif2ani (3.5.3) over (3.5.2) ...
+Setting up com.nightvibes33.gif2ani (3.5.3) ...
+Processing triggers for org.coolstar.sileo (2.5.1) ...
+version_immediate=3.5.3
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+immutable_springy_marker=passed
+version_after_12s=3.5.3
+status_file_version=dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+3.5.3
+prefs_bundle_mtime=/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle 10000070000001a ? 1a 4096 4096 7808393 1263518 1263518 50567822 50540720
+tweak_binary_sha256=23ce0cd13044d90f67b4d46ae3e39bf21dbd49bfcbe8f80aeba6ddb9a18529b5
+prefs_binary_sha256=22bc692d49397b11a3ef20679a79eec54cdc00744f493bb97e1e5f190a6fd243
+gif2ani_353_persistent_install=success
+ssh_exit_code=0
