@@ -1,12 +1,26 @@
 iPad Tailscale SSH Bridge
-run_id=30181965231
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30181965231
-commit=36e0faeef32d96da0fde29d293f1fd864646686f
+run_id=30182400007
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30182400007
+commit=231dca0cda0ab3ad109c4f0efd9ecc58774a9955
 environment=TAILSCALE_AUTHKEY-
 validate=success
-tailscale=cancelled
-install_ssh=skipped
-ssh=skipped
+tailscale=success
+install_ssh=success
+ssh=failure
 
 --- sanitized SSH output ---
-No SSH output file was created; failure occurred before the SSH step.
+Checking SSH host key over Tailscale...
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100  8211  100  8211    0     0  14010      0 --:--:-- --:--:-- --:--:-- 14011
+/var/jb/usr/bin/sh: 12: exec: /bin/sh: not found
+ssh_exit_code=127
