@@ -1,0 +1,2 @@
+requested_at_utc=2026-07-26T17:24:00Z
+purpose=report exact stable bridge run for Gif2Ani 3.5.7 package-ID verifier install commit 4c7d4ea4217eb1dd62e77bf808d6beb9eca36f5d
