@@ -1,0 +1,154 @@
+name: Install Gif2Ani 3.5.8 on iPad
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/install-gif2ani-358-ipad.yml
+      - remote/install-gif2ani-358-trigger.txt
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    name: Wait for iPad and install 3.5.8
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: TAILSCALE_AUTHKEY-
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate secrets and command
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$TAILSCALE_AUTHKEY"
+          test -n "$IPAD_PASSWORD"
+          test -s remote/ipad-command-v2.sh
+          grep -Fq "Version)' com.nightvibes33.gif2ani" remote/ipad-command-v2.sh
+          grep -Fq '3.5.8' remote/ipad-command-v2.sh
+
+      - name: Install Tailscale and SSH client
+        run: |
+          set -euo pipefail
+          sudo install -d -m 0755 /usr/share/keyrings
+          curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
+          curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list | sudo tee /etc/apt/sources.list.d/tailscale.list >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends tailscale openssh-client sshpass
+          sudo systemctl enable --now tailscaled
+
+      - name: Join tailnet
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+        run: |
+          set -euo pipefail
+          : > gif2ani-358-ipad-output.txt
+          sudo tailscale logout >/dev/null 2>&1 || true
+          sudo systemctl restart tailscaled
+          sleep 3
+          sudo tailscale up --auth-key="$TAILSCALE_AUTHKEY" --hostname="github-gif2ani-358-installer" --accept-dns=false --accept-routes=false --reset 2>&1 | tee -a gif2ani-358-ipad-output.txt
+          sudo tailscale status | tee -a gif2ani-358-ipad-output.txt
+
+      - name: Wait for SSH and install
+        env:
+          IPAD_HOST: 100.116.117.65
+          IPAD_PORT: '22'
+          IPAD_USER: mobile
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          ready=0
+          for attempt in $(seq 1 45); do
+            echo "Waiting for iPad SSH $attempt/45" | tee -a gif2ani-358-ipad-output.txt
+            rm -f "$HOME/.ssh/known_hosts"
+            if ssh-keyscan -T 8 -H -p "$IPAD_PORT" "$IPAD_HOST" > "$HOME/.ssh/known_hosts" 2>>gif2ani-358-ipad-output.txt && [ -s "$HOME/.ssh/known_hosts" ]; then
+              ready=1
+              break
+            fi
+            sudo tailscale ping --timeout=5s --c 1 "$IPAD_HOST" >>gif2ani-358-ipad-output.txt 2>&1 || true
+            sleep 20
+          done
+          if [ "$ready" != 1 ]; then
+            echo 'ipad_ssh_port_ready=failure' | tee -a gif2ani-358-ipad-output.txt
+            exit 1
+          fi
+          chmod 600 "$HOME/.ssh/known_hosts"
+          echo 'ipad_ssh_port_ready=success' | tee -a gif2ani-358-ipad-output.txt
+          set +e
+          {
+            printf '%s\n' "$IPAD_PASSWORD"
+            cat remote/ipad-command-v2.sh
+          } | sshpass -e ssh -p "$IPAD_PORT" \
+                -o BatchMode=no \
+                -o ConnectTimeout=20 \
+                -o ConnectionAttempts=2 \
+                -o ServerAliveInterval=15 \
+                -o ServerAliveCountMax=3 \
+                -o StrictHostKeyChecking=yes \
+                -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+                "$IPAD_USER@$IPAD_HOST" \
+                'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
+                2>&1 | tee -a gif2ani-358-ipad-output.txt
+          ssh_status=${PIPESTATUS[1]}
+          set -e
+          echo "ssh_exit_code=$ssh_status" | tee -a gif2ani-358-ipad-output.txt
+          exit "$ssh_status"
+
+      - name: Logout installer node
+        if: always()
+        run: sudo tailscale logout >/dev/null 2>&1 || true
+
+      - name: Upload output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gif2ani-358-ipad-install-${{ github.run_id }}
+          path: gif2ani-358-ipad-output.txt
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Publish install status
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          output=Path('gif2ani-358-ipad-output.txt')
+          text=output.read_text(errors='replace') if output.exists() else 'No output file.'
+          password=os.environ.get('IPAD_PASSWORD','')
+          if password:
+              text=text.replace(password,'***REDACTED***')
+          lines=[
+              'Gif2Ani 3.5.8 Dedicated iPad Installer',
+              f"run_id={os.environ.get('GITHUB_RUN_ID','')}",
+              f"run_url=https://github.com/{os.environ.get('GITHUB_REPOSITORY','')}/actions/runs/{os.environ.get('GITHUB_RUN_ID','')}",
+              f"commit={os.environ.get('GITHUB_SHA','')}",
+              f"status={os.environ.get('JOB_STATUS','')}",
+              '',
+              '--- sanitized output ---',
+          ]
+          lines.extend(text.splitlines()[-240:])
+          Path('remote/gif2ani-358-ipad-install-status.txt').write_text('\n'.join(lines)+'\n')
+          PY
+          git add remote/gif2ani-358-ipad-install-status.txt
+          git commit -m 'Record Gif2Ani 3.5.8 iPad install status [skip ci]' || exit 0
+          git push origin HEAD:main
