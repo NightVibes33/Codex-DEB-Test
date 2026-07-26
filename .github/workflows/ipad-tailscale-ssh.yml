@@ -135,19 +135,22 @@ jobs:
               --accept-dns=false \
               --accept-routes=false \
               --reset 2>&1 | tee -a ipad-output.txt; then
-              if sudo tailscale ping --timeout=20s --c 3 "$IPAD_HOST" 2>&1 | tee -a ipad-output.txt; then
+              sudo tailscale status 2>&1 | tee -a ipad-output.txt
+              if sudo tailscale status | grep -Fq "$IPAD_HOST"; then
                 connected=1
+                sudo tailscale ping --timeout=8s --c 1 "$IPAD_HOST" 2>&1 | tee -a ipad-output.txt || \
+                  echo 'tailscale_ping=advisory-timeout-continuing-to-ssh-port-check' | tee -a ipad-output.txt
                 break
               fi
             fi
             sleep $((attempt * 8))
           done
           if [ "$connected" != 1 ]; then
-            echo "Tailscale could not reach the iPad after three clean login attempts." | tee -a ipad-output.txt >&2
+            echo "Tailscale login succeeded inconsistently or the iPad node was not visible." | tee -a ipad-output.txt >&2
             sudo tailscale status 2>&1 | tee -a ipad-output.txt || true
             exit 1
           fi
-          echo 'tailscale_ipad_ping=success' | tee -a ipad-output.txt
+          echo 'tailscale_ipad_node_visible=success' | tee -a ipad-output.txt
 
       - name: Run command file on iPad as root
         id: ssh
@@ -170,12 +173,27 @@ jobs:
           mkdir -p "$HOME/.ssh"
           chmod 700 "$HOME/.ssh"
 
-          echo "Checking SSH host key over Tailscale..." | tee -a ipad-output.txt
-          if ! ssh-keyscan -T 15 -H -p "$IPAD_PORT" "$IPAD_HOST" > "$HOME/.ssh/known_hosts" 2>>ipad-output.txt; then
-            echo "Could not read an SSH host key from $IPAD_HOST:$IPAD_PORT" | tee -a ipad-output.txt
+          echo "Waking and checking iPad SSH port over Tailscale..." | tee -a ipad-output.txt
+          key_ready=0
+          for attempt in $(seq 1 18); do
+            echo "SSH port attempt $attempt/18" | tee -a ipad-output.txt
+            rm -f "$HOME/.ssh/known_hosts"
+            if ssh-keyscan -T 10 -H -p "$IPAD_PORT" "$IPAD_HOST" > "$HOME/.ssh/known_hosts" 2>>ipad-output.txt; then
+              if [ -s "$HOME/.ssh/known_hosts" ]; then
+                key_ready=1
+                break
+              fi
+            fi
+            sudo tailscale ping --timeout=5s --c 1 "$IPAD_HOST" >>ipad-output.txt 2>&1 || true
+            sleep 8
+          done
+          if [ "$key_ready" != 1 ]; then
+            echo "Could not reach iPad TCP port 22 after wake and retry attempts." | tee -a ipad-output.txt
+            sudo tailscale status 2>&1 | tee -a ipad-output.txt || true
             exit 1
           fi
           chmod 600 "$HOME/.ssh/known_hosts"
+          echo 'ipad_ssh_port_ready=success' | tee -a ipad-output.txt
 
           echo "Running remote/ipad-command.sh on $IPAD_USER@$IPAD_HOST:$IPAD_PORT as root..." | tee -a ipad-output.txt
           set +e
@@ -252,7 +270,7 @@ jobs:
               password = os.environ.get("IPAD_PASSWORD", "")
               if password:
                   text = text.replace(password, "***REDACTED***")
-              lines.extend(text.splitlines()[-140:])
+              lines.extend(text.splitlines()[-180:])
           else:
               lines.append("No SSH output file was created; failure occurred before the SSH step.")
 
