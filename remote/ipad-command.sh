@@ -9,4 +9,6 @@ rm -f "$SCRIPT"
 curl -fL --connect-timeout 20 --max-time 120 --retry 4 --retry-delay 2 "$SCRIPT_URL" -o "$SCRIPT"
 test -s "$SCRIPT"
 chmod 0700 "$SCRIPT"
-exec /bin/sh "$SCRIPT"
+SHELL_PATH="$(command -v sh || true)"
+[ -n "$SHELL_PATH" ] || SHELL_PATH='/var/jb/usr/bin/sh'
+exec "$SHELL_PATH" "$SCRIPT"
