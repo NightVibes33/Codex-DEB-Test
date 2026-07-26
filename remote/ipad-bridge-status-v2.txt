@@ -1,51 +1,46 @@
 Stable iPad Tailscale SSH Bridge
-run_id=30212520230
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30212520230
-commit=91d873034392262a87020fb7931a476ad941a51c
+run_id=30213015194
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30213015194
+commit=5f4de39b288ee481c60c9ab015fb36ee3e6c219a
 validate=success
 install=success
 tailscale=success
-ssh=failure
+ssh=cancelled
 
 --- sanitized output ---
-100.110.165.84  github-ipad-bridge         NightVibes33@  linux    -                          
-100.116.117.65  bobbys-ipad                NightVibes33@  iOS      -                          
-100.127.94.70   desktop-o56xs              NightVibes33@  windows  offline, last seen 1d ago  
-100.88.177.49   github-ipad-30212336840-1  NightVibes33@  linux    offline, last seen 4m ago  
-100.79.177.16   iphone173                  NightVibes33@  iOS      offline, last seen 2h ago  
+100.99.15.108   github-ipad-bridge         NightVibes33@  linux    -                           
+100.116.117.65  bobbys-ipad                NightVibes33@  iOS      offline, last seen 9m ago   
+100.127.94.70   desktop-o56xs              NightVibes33@  windows  offline, last seen 1d ago   
+100.88.177.49   github-ipad-30212336840-1  NightVibes33@  linux    offline, last seen 18m ago  
+100.79.177.16   iphone173                  NightVibes33@  iOS      offline, last seen 2h ago   
 tailscale_ipad_node_visible=success
 SSH port attempt 1/18
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-ipad_ssh_port_ready=success
-=== Install Gif2Ani 3.5.7 and verify shared Springy/SnowBoard package-ID fix ===
-started_at_utc=2026-07-26T17:25:31Z
-identity=uid=0(root) gid=0(wheel) groups=0(wheel)
-model=J71tAP
-version_before=3.5.7
-release_effective_url=https://raw.githubusercontent.com/NightVibes33/Dark-Boot/267cb8e16d9c2bb30968e889a94e6bfc921e76f9/release-packages/Gif2Ani-3.5.7-shared-verifier-fix.deb
-release_sha256=7b02279eb5a6146cd5a3835b723cf6bb2d4434b5327f4bb51af17cf46fd4b04f
-release_package_metadata=passed
-dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
- missing 'Maintainer' field
-(Reading database ... 19751 files and directories currently installed.)
-Preparing to unpack .../Gif2Ani-3.5.7-shared-verifier-fix.deb ...
-Unpacking com.nightvibes33.gif2ani (3.5.7) over (3.5.7) ...
-Setting up com.nightvibes33.gif2ani (3.5.7) ...
-Processing triggers for org.coolstar.sileo (2.5.1) ...
-dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
- missing 'Maintainer' field
-version_immediate=3.5.7
-installed_357_binary_and_ui=passed
-installed_springy_themes=48
-installed_snowboard_themes=160
-installed_gallery_total=274
-springy_effective_url=https://raw.githubusercontent.com/VirenMohindra/CydiaRepo/c507a391f193c2bb362ff77fc1c1673c0da2dcae/debs/io.github.virenmohindra.gameboy-advance_2.0_iphoneos-arm.deb
-springy_expected_package=io.github.virenmohindra.gameboy-advance
-springy_clean_stdout_package=io.github.virenmohindra.gameboy-advance
-springy_stderr_bytes=0
-springy_old_merged_capture_would_fail=false
-ssh_exit_code=1
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 2/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 3/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 4/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 5/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 6/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 7/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 8/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 9/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 10/18
+ping "100.116.117.65" timed out
+no reply
