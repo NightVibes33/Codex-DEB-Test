@@ -1,59 +1,13 @@
 iPad Tailscale SSH Bridge
-run_id=30159693755
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30159693755
-commit=3436d54c34a7d4f5c0fc603f5a650f531be1ed6c
+run_id=30181126510
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30181126510
+commit=434313410cb9a296affdbe570981b7d791dded16
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
 install_ssh=success
-ssh=success
+ssh=failure
 
 --- sanitized SSH output ---
 Checking SSH host key over Tailscale...
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-=== iPad dual-boot storage feasibility ===
-verified_at_utc=2026-07-25T13:25:58Z
-identity=uid=0(root) gid=0(wheel) groups=0(wheel)
-model=J71tAP
-ios_version=16.7.11
-ios_build=20H360
-=== Filesystem capacity ===
-path=/
-com.apple.os.update-8579078043F0FC7B23462C6FC23605D3A3BB1E07@/dev/disk1s1   30Gi  4.2Gi  5.0Gi    46%  237568 52353560    0%   /
-com.apple.os.update-8579078043F0FC7B23462C6FC23605D3A3BB1E07@/dev/disk1s1    31233572 4427016   5235356    46%  237568 52353560    0%   /
-path=/private/var
-/dev/disk1s2   30Gi   16Gi  5.0Gi    77%  156703 52353560    0%   /private/var
-/dev/disk1s2    31233572 17123740   5235356    77%  156703 52353560    0%   /private/var
-path=/var/mobile
-/dev/disk1s2   30Gi   16Gi  5.0Gi    77%  156703 52353560    0%   /private/var
-/dev/disk1s2    31233572 17123740   5235356    77%  156703 52353560    0%   /private/var
-path=/private/preboot
-/dev/disk1s5   30Gi  4.2Gi  5.0Gi    46%   27029 52353560    0%   /private/preboot
-/dev/disk1s5    31233572 4371716   5235356    46%   27029 52353560    0%   /private/preboot
-path=/var/jb
-/dev/disk1s5   30Gi  4.2Gi  5.0Gi    46%   27029 52353560    0%   /private/preboot
-/dev/disk1s5    31233572 4371716   5235356    46%   27029 52353560    0%   /private/preboot
-statvfs path=/ total_bytes=31983177728 used_bytes=26622173184 available_bytes=5361004544 total_gib=29.79 used_gib=24.79 available_gib=4.99
-statvfs path=/private/var total_bytes=31983177728 used_bytes=26622173184 available_bytes=5361004544 total_gib=29.79 used_gib=24.79 available_gib=4.99
-statvfs path=/var/mobile total_bytes=31983177728 used_bytes=26622173184 available_bytes=5361004544 total_gib=29.79 used_gib=24.79 available_gib=4.99
-statvfs path=/private/preboot total_bytes=31983177728 used_bytes=26622173184 available_bytes=5361004544 total_gib=29.79 used_gib=24.79 available_gib=4.99
-statvfs path=/var/jb total_bytes=31983177728 used_bytes=26622173184 available_bytes=5361004544 total_gib=29.79 used_gib=24.79 available_gib=4.99
-=== Key storage consumers ===
-du path=/private/preboot kib=6875092 gib=6.56
-du path=/var/mobile kib=3578892 gib=3.41
-du path=/var/jb kib=0 gib=0.00
-=== Mount layout ===
-com.apple.os.update-8579078043F0FC7B23462C6FC23605D3A3BB1E07@/dev/disk1s1 on / (apfs, sealed, local, nosuid, read-only, journaled, noatime)
-/dev/disk1s5 on /private/preboot (apfs, local, nosuid, journaled, noatime)
-/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/usr/standalone/firmware on /usr/standalone/firmware (bindfs, local, nodev, nosuid, read-only, nobrowse)
-/dev/disk1s2 on /private/var (apfs, local, nodev, nosuid, journaled, noatime, protect)
-/dev/disk1s6 on /private/var/MobileSoftwareUpdate (apfs, local, nodev, nosuid, journaled, noatime, nobrowse)
-/dev/disk1s4 on /private/var/hardware (apfs, local, nodev, nosuid, journaled, noatime, nobrowse)
-/private/var/hardware/FactoryData/System/Library/Caches/com.apple.factorydata on /System/Library/Caches/com.apple.factorydata (bindfs, local, nodev, nosuid, read-only, nobrowse)
-verification=read-only-complete
-ssh_exit_code=0
+Could not read an SSH host key from 100.116.117.65:22
