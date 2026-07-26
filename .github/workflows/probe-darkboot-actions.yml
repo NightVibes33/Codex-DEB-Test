@@ -1,4 +1,4 @@
-name: Probe Dark-Boot Actions
+name: Probe Gif2Ani Workflow Status
 
 on:
   workflow_dispatch:
@@ -25,12 +25,12 @@ jobs:
             -H 'Accept: application/vnd.github+json' \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H 'X-GitHub-Api-Version: 2022-11-28' \
-            'https://api.github.com/repos/NightVibes33/Dark-Boot/actions/runs?per_page=50' > runs.json
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs?per_page=50" > runs.json
           python3 - <<'PY'
           import json
           from pathlib import Path
           data=json.load(open('runs.json'))
-          out=['Dark-Boot Actions Probe',f"total_count={data.get('total_count',0)}"]
+          out=['Gif2Ani Bridge Actions Probe',f"total_count={data.get('total_count',0)}"]
           runs=list(data.get('workflow_runs',[]))
           runs.sort(key=lambda x:x.get('created_at',''), reverse=True)
           for run in runs[:35]:
@@ -48,9 +48,7 @@ jobs:
                 f"attempt={run.get('run_attempt')}",
                 f"url={run.get('html_url')}",
               ]
-          if not runs:
-              out.append('no_runs_visible=true')
-          Path('remote/darkboot-actions-probe.txt').write_text('\n'.join(out)+'\n')
+          Path('remote/gif2ani-actions-probe.txt').write_text('\n'.join(out)+'\n')
           print('\n'.join(out))
           PY
       - name: Commit probe
@@ -59,6 +57,6 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git pull --rebase origin main
-          git add remote/darkboot-actions-probe.txt
-          git commit -m 'Record Dark-Boot Actions probe [skip ci]' || exit 0
+          git add remote/gif2ani-actions-probe.txt
+          git commit -m 'Record Gif2Ani Actions probe [skip ci]' || exit 0
           git push origin HEAD:main
