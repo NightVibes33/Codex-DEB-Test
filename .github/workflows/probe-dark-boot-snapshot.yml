@@ -1,0 +1,62 @@
+name: Probe Dark-Boot Open Theme Snapshot
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/probe-dark-boot-snapshot.yml
+      - triggers/probe-dark-boot-snapshot.txt
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Query Dark-Boot workflow runs
+        run: |
+          set -euo pipefail
+          for workflow in apply-open-theme-live-snapshot.yml probe-open-theme-audit.yml build-gif2ani-340.yml; do
+            curl -fsSL \
+              -H 'Accept: application/vnd.github+json' \
+              -H 'X-GitHub-Api-Version: 2022-11-28' \
+              "https://api.github.com/repos/NightVibes33/Dark-Boot/actions/workflows/${workflow}/runs?per_page=8" \
+              -o "${workflow}.json"
+          done
+          python3 - <<'PY'
+          import json
+          from datetime import datetime,timezone
+          from pathlib import Path
+          lines=['Dark-Boot Open Theme Snapshot Probe','probed_at_utc='+datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')]
+          for workflow in ['apply-open-theme-live-snapshot.yml','probe-open-theme-audit.yml','build-gif2ani-340.yml']:
+              data=json.load(open(workflow+'.json'))
+              lines += ['', '['+workflow+']']
+              for run in data.get('workflow_runs',[])[:8]:
+                  lines += [
+                      'run_id='+str(run.get('id','')),
+                      'head_sha='+str(run.get('head_sha','')),
+                      'event='+str(run.get('event','')),
+                      'status='+str(run.get('status','')),
+                      'conclusion='+str(run.get('conclusion','')),
+                      'created_at='+str(run.get('created_at','')),
+                      'updated_at='+str(run.get('updated_at','')),
+                      'url='+str(run.get('html_url','')),
+                      '---',
+                  ]
+          Path('remote/dark-boot-snapshot-probe.txt').write_text('\n'.join(lines)+'\n')
+          PY
+      - name: Commit probe result
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin main
+          git add remote/dark-boot-snapshot-probe.txt
+          git commit -m 'Record Dark-Boot snapshot workflow probe [skip ci]' || exit 0
+          git push origin HEAD:main
