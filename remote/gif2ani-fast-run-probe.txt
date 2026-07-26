@@ -1,0 +1,18 @@
+Gif2Ani fast installer probe
+probed_at_utc=2026-07-26T01:03:16Z
+
+run_id=30182191674
+head_sha=8fac8cf6e7fd93df9bb9152592261c0114b8143b
+status=in_progress
+conclusion=None
+created_at=2026-07-26T01:01:46Z
+updated_at=2026-07-26T01:01:58Z
+url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30182191674
+
+run_id=30182186697
+head_sha=09fc399e1f4e7461bd834f03979f5e25e9a0bf9e
+status=completed
+conclusion=cancelled
+created_at=2026-07-26T01:01:34Z
+updated_at=2026-07-26T01:01:51Z
+url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30182186697
