@@ -1,12 +1,12 @@
 iPad Tailscale SSH Bridge
-run_id=30205578663
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30205578663
-commit=84c4f28a2320fef7d5c7a12faea35f439f2d1bc9
+run_id=30188437631
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30188437631
+commit=8b68c97b2370eef4fefed500e17ce2ff81291c2a
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
 install_ssh=success
-ssh=cancelled
+ssh=failure
 
 --- sanitized SSH output ---
 Waking and checking iPad SSH port over Tailscale...
@@ -62,3 +62,11 @@ SSH port attempt 17/18
 ping "100.116.117.65" timed out
 no reply
 SSH port attempt 18/18
+ping "100.116.117.65" timed out
+no reply
+Could not reach iPad TCP port 22 after wake and retry attempts.
+100.90.22.79    github-ipad-30188437631-1  NightVibes33@  linux    -                                   
+100.116.117.65  bobbys-ipad                NightVibes33@  iOS      active; relay "ord", tx 12480 rx 0  
+100.127.94.70   desktop-o56xs              NightVibes33@  windows  offline, last seen 1d ago           
+100.113.122.97  github-ipad-30205578663-1  NightVibes33@  linux    -                                   
+100.79.177.16   iphone173                  NightVibes33@  iOS      offline, last seen 11h ago          
