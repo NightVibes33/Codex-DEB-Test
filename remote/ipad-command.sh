@@ -3,56 +3,43 @@ set -eu
 export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
 export HOME=/var/mobile
 
-MEDIA='/var/mobile/Library/Application Support/Gif2Ani'
-LOG="$MEDIA/detached-theme-test-status.txt"
-PIDFILE="$MEDIA/detached-theme-test.pid"
+CRASH_DIR='/var/mobile/Library/Logs/CrashReporter'
+BUNDLE='/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle'
 PREFS='/var/mobile/Library/Preferences/com.nightvibes33.gif2ani.plist'
-ACTIVE="$MEDIA/Active.gif"
-RUNTIME="$MEDIA/runtime-status.plist"
 
-printf '%s\n' '=== Gif2Ani 3.4.1 detached proof reader ==='
-printf 'verified_at_utc='; date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || true
-printf 'installed_version=%s\n' "$(dpkg-query -W -f='${Version}' com.nightvibes33.gif2ani 2>/dev/null || true)"
-printf 'active_sha256=%s\n' "$(if [ -f "$ACTIVE" ]; then sha256sum "$ACTIVE" | awk '{print $1}'; else echo MISSING; fi)"
-printf 'preferences_sha256=%s\n' "$(if [ -f "$PREFS" ]; then sha256sum "$PREFS" | awk '{print $1}'; else echo MISSING; fi)"
+echo '=== Gif2Ani Settings crash collection ==='
+printf 'collected_at_utc='; date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || true
+printf 'identity='; id
+printf 'model='; sysctl -n hw.model 2>/dev/null || true
+printf 'installed_version='; dpkg-query -W -f='${Version}\n' com.nightvibes33.gif2ani 2>/dev/null || true
+printf 'settings_bundle='; file "$BUNDLE/Gif2AniPrefs" 2>/dev/null || true
+printf 'theme_catalog_bytes='; wc -c < "$BUNDLE/ThemeCatalog.json" 2>/dev/null || echo missing
+printf 'open_catalog_bytes='; wc -c < "$BUNDLE/OpenThemeCatalog.json" 2>/dev/null || echo missing
+printf 'preferences_exists='; [ -f "$PREFS" ] && echo true || echo false
 
-PID=''
-if [ -f "$PIDFILE" ]; then PID="$(cat "$PIDFILE" 2>/dev/null || true)"; fi
-printf 'detached_pid=%s\n' "$PID"
-if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then echo 'detached_process=running'; else echo 'detached_process=finished'; fi
+printf 'preferences_processes_before='; ps -A 2>/dev/null | grep '[P]references' | tr '\n' ' ' || true
+echo
 
-if [ -f "$RUNTIME" ]; then
-  python3 - "$RUNTIME" <<'PY'
-import json,plistlib,sys
-try:
-    with open(sys.argv[1],'rb') as f: data=plistlib.load(f)
-    print('current_runtime='+json.dumps(data,sort_keys=True,default=str))
-except Exception as e:
-    print('current_runtime_error='+repr(e))
-PY
-else
-  echo 'current_runtime=missing'
+echo '=== newest relevant crash files ==='
+FILES="$(find "$CRASH_DIR" -maxdepth 1 -type f \( -name 'Preferences-*.ips' -o -name 'Preferences_*.ips' -o -name 'Preferences*.ips' -o -name 'SpringBoard-*.ips' \) -print 2>/dev/null | while IFS= read -r f; do stat -f '%m %N' "$f" 2>/dev/null || stat -c '%Y %n' "$f" 2>/dev/null || true; done | sort -rn | head -n 5 | cut -d' ' -f2-)"
+
+if [ -z "$FILES" ]; then
+  echo 'relevant_crash_files=none'
+  exit 2
 fi
 
-echo '=== detached test log ==='
-if [ -f "$LOG" ]; then
-  cat "$LOG"
-else
-  echo 'detached_test_log=missing'
-  exit 91
-fi
+count=0
+printf '%s\n' "$FILES" | while IFS= read -r crash; do
+  [ -n "$crash" ] || continue
+  count=$((count + 1))
+  echo "--- crash_file_$count=$crash ---"
+  printf 'mtime='; stat -f '%Sm' -t '%Y-%m-%dT%H:%M:%SZ' "$crash" 2>/dev/null || stat -c '%y' "$crash" 2>/dev/null || true
+  printf 'bytes='; wc -c < "$crash" 2>/dev/null || true
+  echo '--- key crash lines ---'
+  grep -E -i -m 120 'incident|crashReporterKey|process|bundle|exception|termination|reason|signal|faulting|triggered by|last exception|backtrace|abort|selector|unrecognized|NSInvalidArgument|NSInternalInconsistency|SIGABRT|EXC_|Gif2Ani|G2Theme|G2Open|G2Remote|Preference' "$crash" 2>/dev/null || true
+  echo '--- crash head ---'
+  sed -n '1,220p' "$crash" 2>/dev/null || true
+  echo "--- end crash_file_$count ---"
+done
 
-if grep -q '^detached_theme_test=success$' "$LOG" && \
-   grep -q '^runtime_themes_passed=3$' "$LOG" && \
-   grep -q '^active_state_restored=true$' "$LOG"; then
-  echo 'detached_proof_reader=success'
-  exit 0
-fi
-
-if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
-  echo 'detached_proof_reader=still_running'
-  exit 0
-fi
-
-echo 'detached_proof_reader=failed_or_incomplete'
-exit 92
+echo 'crash_collection=complete'
