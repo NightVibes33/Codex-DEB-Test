@@ -1,13 +1,12 @@
 iPad Tailscale SSH Bridge
-run_id=30181126510
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30181126510
-commit=434313410cb9a296affdbe570981b7d791dded16
+run_id=30181965231
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30181965231
+commit=36e0faeef32d96da0fde29d293f1fd864646686f
 environment=TAILSCALE_AUTHKEY-
 validate=success
-tailscale=success
-install_ssh=success
-ssh=failure
+tailscale=cancelled
+install_ssh=skipped
+ssh=skipped
 
 --- sanitized SSH output ---
-Checking SSH host key over Tailscale...
-Could not read an SSH host key from 100.116.117.65:22
+No SSH output file was created; failure occurred before the SSH step.
