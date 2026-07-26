@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30184420605
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30184420605
-commit=98aec34078985374e221f865812f132534438582
+run_id=30186029600
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30186029600
+commit=1b9b836727f19805f9048c845e22e73e5c32a382
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -16,46 +16,33 @@ Checking SSH host key over Tailscale...
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-=== Exact newest Gif2Ani Browse crash parser ===
-collected_at_utc=2026-07-26T02:21:56Z
+=== Install and validate Gif2Ani 3.5.0 modernization ===
+started_at_utc=2026-07-26T03:21:47Z
 model=J71tAP
-installed_version=3.4.1
-bundle_sha256=62763ed85a45f797be4d52a92b78cb021d2882c3ce3d20782ef87c17b493373f
-newest_crash=/var/mobile/Library/Logs/CrashReporter/Preferences-2026-07-25-211833.ips
-crash_bytes=25551
-incident_id=E38F6007-4200-4796-A446-18981382076E
-timestamp=2026-07-25 21:18:33.00 -0500
-process=Preferences
-pid=16355
-exception={"codes": "0x0000000000000000, 0x0000000000000000", "rawCodes": [0, 0], "signal": "SIGABRT", "type": "EXC_CRASH"}
-termination={"byPid": 16355, "byProc": "Preferences", "code": 6, "flags": 0, "indicator": "Abort trap: 6", "namespace": "SIGNAL"}
-asi={"libsystem_c.dylib": ["abort() called"]}
-coalitionName="com.apple.Preferences"
-body_keys=asi,bug_type,bundleInfo,captureTime,coalitionID,coalitionName,codeSigningFlags,codeSigningID,codeSigningTeamID,codeSigningTrustLevel,codeSigningValidationCategory,cpuType,crashReporterKey,deployVersion,exception,faultingThread,incident,lastExceptionBacktrace,legacyInfo,logWritingSignature,modelCode,osVersion,parentPid,parentProc,pid,procExitAbsTime,procLaunch,procName,procPath,procRole,procStartAbsTime,roots_installed,sharedCache,storeInfo,termination,threads,trialInfo,uptime,usedImages,userID,version,vmSummary
-gif2ani_image_index=23
-gif2ani_image={"arch": "arm64", "base": 4305371136, "name": "Gif2AniPrefs", "path": "/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus/Library/PreferenceBundles/Gif2AniPrefs.bundle/Gif2AniPrefs", "size": 180224, "source": "P", "uuid": "e9989fdc-51a5-38f6-803d-e9b9a11b1d2a"}
-faulting_thread_name=com.apple.main-thread
-frame_00=image:libsystem_kernel.dylib|symbol:__pthread_kill|symbolOffset:8|imageOffset:29080
-frame_01=image:libsystem_pthread.dylib|symbol:pthread_kill|symbolOffset:208|imageOffset:54776
-frame_02=image:libsystem_c.dylib|symbol:abort|symbolOffset:124|imageOffset:115896
-frame_03=image:libc++abi.dylib|symbol:abort_message|symbolOffset:128|imageOffset:81748
-frame_04=image:libc++abi.dylib|symbol:demangling_terminate_handler()|symbolOffset:300|imageOffset:19020
-frame_05=image:libobjc.A.dylib|symbol:_objc_terminate()|symbolOffset:124|imageOffset:109308
-frame_06=image:libc++abi.dylib|symbol:std::__terminate(void (*)())|symbolOffset:12|imageOffset:78884
-frame_07=image:libc++abi.dylib|symbol:__cxa_rethrow|symbolOffset:144|imageOffset:90000
-frame_08=image:libobjc.A.dylib|symbol:objc_exception_rethrow|symbolOffset:40|imageOffset:94460
-frame_09=image:CoreFoundation|symbol:CFRunLoopRunSpecific|symbolOffset:780|imageOffset:499172
-frame_10=image:GraphicsServices|symbol:GSEventRunModal|symbolOffset:160|imageOffset:6552
-frame_11=image:UIKitCore|symbol:-[UIApplication _run]|symbolOffset:868|imageOffset:3609420
-frame_12=image:UIKitCore|symbol:UIApplicationMain|symbolOffset:312|imageOffset:3608516
-frame_13=image:Preferences|symbol:|symbolOffset:None|imageOffset:44180
-frame_14=image:dyld|symbol:start|symbolOffset:1860|imageOffset:82756
-last_exception_backtrace=[{"imageIndex": 36, "imageOffset": 37900, "symbol": "__exceptionPreprocess", "symbolLocation": 160}, {"imageIndex": 35, "imageOffset": 89128, "symbol": "objc_exception_throw", "symbolLocation": 56}, {"imageIndex": 36, "imageOffset": 1483776, "symbol": "+[NSObject(NSObject) _copyDescription]", "symbolLocation": 0}, {"imageIndex": 38, "imageOffset": 13210120, "symbol": "-[UIResponder doesNotRecognizeSelector:]", "symbolLocation": 232}, {"imageIndex": 36, "imageOffset": 125112, "symbol": "___forwarding___", "symbolLocation": 1340}, {"imageIndex": 36, "imageOffset": 526588, "symbol": "_CF_forwarding_prep_0", "symbolLocation": 92}, {"imageIndex": 23, "imageOffset": 66620}, {"imageIndex": 38, "imageOffset": 3487948, "symbol": "-[UIViewController _sendViewDidLoadWithAppearanceProxyObjectTaggingEnabled]", "symbolLocation": 80}, {"imageIndex": 38, "imageOffset": 102648, "symbol": "-[UIViewController loadViewIfRequired]", "symbolLocation": 708}, {"imageIndex": 38, "imageOffset": 101924, "symbol": "-[UIViewController view]", "symbolLocation": 20}, {"imageIndex": 38, "imageOffset": 2855376, "symbol": "-[UINavigationController _startCustomTransition:]", "symbolLocation": 940}, {"imageIndex": 38, "imageOffset": 1639100, "symbol": "-[UINavigationController _startDeferredTransitionIfNeeded:]", "symbolLocation": 492}, {"imageIndex": 38, "imageOffset": 1636792, "symbol": "-[UINavigationController __viewWillLayoutSubviews]", "symbolLocation": 92}, {"imageIndex": 38, "imageOffset": 1636640, "symbol": "-[UILayoutContainerView layoutSubviews]", "symbolLocation": 168}, {"imageIndex": 38, "imageOffset": 17128, "symbol": "-[UIView(CALayerDelegate) layoutSublayersOfLayer:]", "symbolLocation": 1932}, {"imageIndex": 41, "imageOffset": 38412, "symbol": "CA::Layer::layout_if_needed(CA::Transaction*)", "symbolLocation": 496}, {"imageIndex": 41, "imageOffset": 114476, "symbol": "CA::Layer::layout_and_display_if_needed(CA::Transaction*)", "symbolLocation": 144}, {"imageIndex": 41, "imageOffset": 182768, "symbol": "CA::Context::commit_transaction(CA::Transaction*, double, double*)", "symbolLocation": 456}, {"imageIndex": 41, "imageOffset": 368064, "symbol": "CA::Transaction::commit()", "symbolLocation": 644}, {"imageIndex": 41, "imageOffset": 282044, "symbol": "CA::Transaction::flush_as_runloop_observer(bool)", "symbolLocation": 84}, {"imageIndex": 36, "imageOffset": 563432, "symbol": "__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__", "symbolLocation": 32}, {"imageIndex": 36, "imageOffset": 103708, "symbol": "__CFRunLoopDoObservers", "symbolLocation": 552}, {"imageIndex": 36, "imageOffset": 479764, "symbol": "__CFRunLoopRun", "symbolLocation": 1004}, {"imageIndex": 36, "imageOffset": 498976, "symbol": "CFRunLoopRunSpecific", "symbolLocation": 584}, {"imageIndex": 37, "imageOffset": 6552, "symbol": "GSEventRunModal", "symbolLocation": 160}, {"imageIndex": 38, "imageOffset": 3609420, "symbol": "-[UIApplication _run]", "symbolLocation": 868}, {"imageIndex": 38, "imageOffset": 3608516, "symbol": "UIApplicationMain", "symbolLocation": 312}, {"imageIndex": 1, "imageOffset": 44180}, {"imageIndex": 0, "imageOffset": 82756, "symbol": "start", "symbolLocation": 1860}]
-recursive_clue_00=root.lastExceptionBacktrace[0].symbol=__exceptionPreprocess
-recursive_clue_01=root.lastExceptionBacktrace[1].symbol=objc_exception_throw
-recursive_clue_02=root.lastExceptionBacktrace[3].symbol=-[UIResponder doesNotRecognizeSelector:]
-recursive_clue_03=root.threads[0].frames[8].symbol=objc_exception_rethrow
-recursive_clue_04=root.usedImages[23].path=/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus/Library/PreferenceBundles/Gif2AniPrefs.bundle/Gif2AniPrefs
-recursive_clue_05=root.usedImages[23].name=Gif2AniPrefs
-exact_crash_parse=complete
+previous_version=3.4.2
+preserved_files_before=182
+download_sha256=75168e3ce66aaf041c41ba16eded7994e2d4670c44e0b7c94623666fc3b718b0
+package_metadata=passed
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+(Reading database ... 19750 files and directories currently installed.)
+Preparing to unpack .../Gif2Ani-3.5.0-modern-gallery.deb ...
+Unpacking com.nightvibes33.gif2ani (3.5.0) over (3.4.2) ...
+Setting up com.nightvibes33.gif2ani (3.5.0) ...
+Processing triggers for org.coolstar.sileo (2.5.1) ...
+installed_version=dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+3.5.0
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+browse_navigation_contract=passed
+modern_gallery_markers=passed
+backboard_reliability_markers=passed
+preserved_files_after=182
+downloaded_theme_data_preserved=true
+settings_links_opened=true
+new_preferences_crashes=0
+gif2ani_350_install=success
+gif2ani_350_static_feature_validation=success
+gif2ani_350_settings_launch_test=success
 ssh_exit_code=0
