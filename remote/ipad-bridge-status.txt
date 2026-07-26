@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30205578663
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30205578663
-commit=84c4f28a2320fef7d5c7a12faea35f439f2d1bc9
+run_id=30207964587
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30207964587
+commit=ddf1897d096a322b656ace0f1cb7cf2c852db77f
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -18,28 +18,10 @@ SSH port attempt 1/18
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 ipad_ssh_port_ready=success
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-=== Install and validate Gif2Ani 3.5.2 download and preview fix ===
-started_at_utc=2026-07-26T15:09:08Z
+=== Install and persist-verify Gif2Ani 3.5.3 ===
+started_at_utc=2026-07-26T15:20:30Z
+identity=uid=0(root) gid=0(wheel) groups=0(wheel)
 model=J71tAP
-previous_version=3.5.1
-preserved_files_before=189
-preserved_kib_before=7788
-download_sha256=ad97f541cdc273bd7db68436c3555cb0a8c3d71b2c590d73649adbb739169234
-package_metadata=passed
-dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
- missing 'Maintainer' field
-(Reading database ... 19750 files and directories currently installed.)
-Preparing to unpack .../Gif2Ani-3.5.2-download-previews-fix.deb ...
-Unpacking com.nightvibes33.gif2ani (3.5.2) over (3.5.1) ...
-Setting up com.nightvibes33.gif2ani (3.5.2) ...
-Processing triggers for org.coolstar.sileo (2.5.1) ...
-dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
- missing 'Maintainer' field
-installed_version=3.5.2
-dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
- missing 'Maintainer' field
-gallery_352_markers=passed
-bundled_preview_count=102
-all_bundled_previews_png_220x220=passed
-ui_curl_cc0_download_path=passed
+version_before=3.5.2
+download_sha256=ea4e5ac0c565587e9e9a36084a7a788128c2167cb1ec6b880a1194f974297a3d
 ssh_exit_code=1
