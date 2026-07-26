@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30183657585
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30183657585
-commit=618ab7ef2e758a773889f11cecc95bcfcb2662d6
+run_id=30184316494
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30184316494
+commit=71c93f182e6a28e1491d8e89fc86a46a73b6736c
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -16,42 +16,35 @@ Checking SSH host key over Tailscale...
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-=== Gif2Ani Settings compact crash summary ===
-collected_at_utc=2026-07-26T01:55:00Z
+=== Install Gif2Ani gallery crash hotfix ===
+started_at_utc=2026-07-26T02:17:50Z
+identity=uid=0(root) gid=0(wheel) groups=0(wheel)
 model=J71tAP
-installed_version=3.4.1
-bundle_binary=/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/Gif2AniPrefs: Mach-O 64-bit arm64 dynamically linked shared library, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|NO_REEXPORTED_DYLIBS>
-bundle_uuid=newest_preferences_crash=/var/mobile/Library/Logs/CrashReporter/Preferences-2026-07-25-204647.ips
-crash_bytes=24419
-incident_id=6525B393-F4C5-4B00-BF62-55BB10456BFD
-timestamp=2026-07-25 20:46:47.00 -0500
-process=Preferences
-pid=15647
-os_version={'isEmbedded': True, 'train': 'iPhone OS 16.7.11', 'releaseType': 'User', 'build': '20H360'}
-exception={"codes": "0x0000000000000000, 0x0000000000000000", "rawCodes": [0, 0], "signal": "SIGABRT", "type": "EXC_CRASH"}
-termination={"byPid": 15647, "byProc": "Preferences", "code": 6, "flags": 0, "indicator": "Abort trap: 6", "namespace": "SIGNAL"}
-faulting_thread=0
-last_exception_backtrace=[{"imageIndex": 36, "imageOffset": 37900, "symbol": "__exceptionPreprocess", "symbolLocation": 160}, {"imageIndex": 35, "imageOffset": 89128, "symbol": "objc_exception_throw", "symbolLocation": 56}, {"imageIndex": 36, "imageOffset": 1483776, "symbol": "+[NSObject(NSObject) _copyDescription]", "symbolLocation": 0}, {"imageIndex": 38, "imageOffset": 13210120, "symbol": "-[UIResponder doesNotRecognizeSelector:]", "symbolLocation": 232}, {"imageIndex": 36, "imageOffset": 125112, "symbol": "___forwarding___", "symbolLocation": 1340}, {"imageIndex": 36, "imageOffset": 526588, "symbol": "_CF_forwarding_prep_0", "symbolLocation": 92}, {"imageIndex": 41, "imageOffset": 113360, "symbol": "-[PSListController controllerForSpecifier:]", "symbolLocation": 844}, {"imageIndex": 41, "imageOffset": 165456, "symbol": "-[PSListController tableView:didSelectRowAtIndexPath:]", "symbolLocation": 340}, {"imageIndex": 38, "imageOffset": 14355076, "symbol": "-[UITableView _selectRowAtIndexPath:animated:scrollPosition:notifyDelegate:isCellMultiSelect:deselectPrevious:performCustomSelectionAction:]", "symbolLocation": 1228}, {"imageIndex": 38, "imageOffset": 14355860, "symbol": "-[UITableView _userSelectRowAtPendingSelectionIndexPath:]", "symbolLocation": 252}, {"imageIndex": 38, "imageOffset": 1627228, "symbol": "-[_UIAfterCACommitBlock run]", "symbolLocation": 64}, {"imageIndex": 38, "imageOffset": 1627032, "symbol": "-[_UIAfterCACommitQueue flush]", "symbolLocation": 184}, {"imageIndex": 38, "imageOffset": 1626780, "symbol": "_runAfterCACommitDeferredBlocks", "symbolLocation": 492}, {"imageIndex": 38, "imageOffset": 243880, "symbol": "_cleanUpAfterCAFlushAndRunDeferredBlocks", "symbolLocation": 104}, {"imageIndex": 38, "imageOffset": 4257348, "symbol": "_afterCACommitHandler", "symbolLocation": 60}, {"imageIndex": 36, "imageOffset": 563432, "symbol": "__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__", "symbolLocation": 32}, {"imageIndex": 36, "imageOffset": 103708, "symbol": "__CFRunLoopDoObservers", "symbolLocation": 552}, {"imageIndex": 36, "imageOffset": 479764, "symbol": "__CFRunLoopRun", "symbolLocation": 1004}, {"imageIndex": 36, "imageOffset": 498976, "symbol": "CFRunLoopRunSpecific", "symbolLocation": 584}, {"imageIndex": 37, "imageOffset": 6552, "symbol": "GSEventRunModal", "symbolLocation": 160}, {"imageIndex": 38, "imageOffset": 3609420, "symbol": "-[UIApplication _run]", "symbolLocation": 868}, {"imageIndex": 38, "imageOffset": 3608516, "symbol": "UIApplicationMain", "symbolLocation": 312}, {"imageIndex": 1, "imageOffset": 44180}, {"imageIndex": 0, "imageOffset": 82756, "symbol": "start", "symbolLocation": 1860}]
-gif2ani_image_index=30
-gif2ani_image={"arch": "arm64", "base": 4347576320, "name": "Gif2AniPrefs", "path": "/private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/jb-TbZKok0K/procursus/Library/PreferenceBundles/Gif2AniPrefs.bundle/Gif2AniPrefs", "size": 180224, "source": "P", "uuid": "672c0308-c3fe-300a-8442-6e1c48c8df0e"}
-faulting_thread_name=com.apple.main-thread
-frame_0=image:libsystem_kernel.dylib|symbol:__pthread_kill|symbolOffset:8|imageOffset:29080
-frame_1=image:libsystem_pthread.dylib|symbol:pthread_kill|symbolOffset:208|imageOffset:54776
-frame_2=image:libsystem_c.dylib|symbol:abort|symbolOffset:124|imageOffset:115896
-frame_3=image:libc++abi.dylib|symbol:abort_message|symbolOffset:128|imageOffset:81748
-frame_4=image:libc++abi.dylib|symbol:demangling_terminate_handler()|symbolOffset:300|imageOffset:19020
-frame_5=image:libobjc.A.dylib|symbol:_objc_terminate()|symbolOffset:124|imageOffset:109308
-frame_6=image:libc++abi.dylib|symbol:std::__terminate(void (*)())|symbolOffset:12|imageOffset:78884
-frame_7=image:libc++abi.dylib|symbol:__cxa_rethrow|symbolOffset:144|imageOffset:90000
-frame_8=image:libobjc.A.dylib|symbol:objc_exception_rethrow|symbolOffset:40|imageOffset:94460
-frame_9=image:CoreFoundation|symbol:CFRunLoopRunSpecific|symbolOffset:780|imageOffset:499172
-frame_10=image:GraphicsServices|symbol:GSEventRunModal|symbolOffset:160|imageOffset:6552
-frame_11=image:UIKitCore|symbol:-[UIApplication _run]|symbolOffset:868|imageOffset:3609420
-frame_12=image:UIKitCore|symbol:UIApplicationMain|symbolOffset:312|imageOffset:3608516
-frame_13=image:Preferences|symbol:|symbolOffset:None|imageOffset:44180
-frame_14=image:dyld|symbol:start|symbolOffset:1860|imageOffset:82756
-text_clue_0=  "exception" : {"codes":"0x0000000000000000, 0x0000000000000000","rawCodes":[0,0],"type":"EXC_CRASH","signal":"SIGABRT"},
-text_clue_1=  "lastExceptionBacktrace" : [{"imageOffset":37900,"symbol":"__exceptionPreprocess","symbolLocation":160,"imageIndex":36},{"imageOffset":89128,"symbol":"objc_exception_throw","symbolLocation":56,"imageIndex":35},{"imageOffset":1483776,"symbol":"+[NSObject(NSObject) _copyDescription]","symbolLocation":0,"imageIndex":36},{"imageOffset":13210120,"symbol":"-[UIResponder doesNotRecognizeSelector:]","symbolLocation":232,"imageIndex":38},{"imageOffset":125112,"symbol":"___forwarding___","symbolLocation":1340,"imageIndex":36},{"imageOffset":526588,"symbol":"_CF_forwarding_prep_0","symbolLocation":92,"imageIndex":36},{"imageOffset":113360,"symbol":"-[PSListController controllerForSpecifier:]","symbolLocation":844,"imageIndex":41},{"imageOffset":165456,"symbol":"-[PSListController tableView:didSelectRowAtIndexPath:]","symbolLocation":340,"imageIndex":41},{"imageOffset":14355076,"symbol":"-[UITableView _selectRowAtIndexPath:animated:scrollPosition:notifyDelegate:isCellMultiSelect:deselectPrevious
-text_clue_2=  "threads" : [{"triggered":true,"id":250529,"threadState":{"x":[{"value":0},{"value":0},{"value":0},{"value":0},{"value":8390501631},{"value":6129103936},{"value":110},{"value":18446744073709551125},{"value":4339949056,"symbolLocation":0,"symbol":"_main_thread"},{"value":9152217384033730914},{"value":512},{"value":11},{"value":11},{"value":2095104},{"value":2043},{"value":1},{"value":328},{"value":10773191808},{"value":0},{"value":6},{"value":259},{"value":4339949280,"symbolLocation":224,"symbol":"_main_thread"},{"value":8621558960,"symbolLocation":0,"symbol":"__kCFAllocatorSystemDefault"},{"value":10795126240},{"value":1},{"value":1},{"value":1},{"value":0},{"value":7680645328,"symbolLocation":0,"symbol":"tlv_get_addr"}],"flavor":"ARM_THREAD_STATE64","lr":{"value":8391304696},"cpsr":{"value":1073741824},"fp":{"value":6129103792},"sp":{"value":6129103760},"esr":{"value":1442840704,"description":" Address size fault"},"pc":{"value":8134586776,"matchesCrashFrame":1},"far":{"value":0}},"
-compact_crash_summary=complete
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100 87880  100 87880    0     0  98130      0 --:--:-- --:--:-- --:--:-- 98189
+downloaded_sha256=722709acc93a489f5f7f6239338d01a3d1d3d203ba98ae9eb7b435714b747883
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+(Reading database ... 19750 files and directories currently installed.)
+Preparing to unpack .../Gif2Ani-3.4.1-gallery-crash-hotfix.deb ...
+Unpacking com.nightvibes33.gif2ani (3.4.1) over (3.4.1) ...
+Setting up com.nightvibes33.gif2ani (3.4.1) ...
+Processing triggers for org.coolstar.sileo (2.5.1) ...
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+browse_row_cell=PSButtonCell
+browse_row_action=openAnimationGallery
+legacy_detail_removed=true
+compiled_navigation_selectors=passed
+preferences_after_root_open=10132 ??         0:00.00 /System/Library/PrivateFrameworks/IntlPreferences.framework/Support/localizationswitcherd
+preferences_after_gallery_deeplink=10132 ??         0:00.00 /System/Library/PrivateFrameworks/IntlPreferences.framework/Support/localizationswitcherd
+new_preferences_crashes=0
+gallery_crash_hotfix_install=success
+settings_launch_test=success
+browse_preview_navigation_fix=installed
+completed_at_utc=2026-07-26T02:18:10Z
 ssh_exit_code=0
