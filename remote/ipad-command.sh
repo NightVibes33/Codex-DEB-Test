@@ -4,7 +4,7 @@ export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/local/bin:/usr/bin:/usr/sbin:
 export HOME=/var/mobile
 
 URL='https://raw.githubusercontent.com/NightVibes33/Dark-Boot/main/release-packages/Gif2Ani-3.5.3-immutable-springy-fix.deb'
-EXPECTED_SHA='72dfdc70626136db5321bae7e8c2401c4fa3b8df8578df5d101f1fce4e96e654'
+EXPECTED_SHA='ea4e5ac0c565587e9e9a36084a7a788128c2167cb1ec6b880a1194f974297a3d'
 TMP='/tmp/Gif2Ani-3.5.3-immutable-springy-fix.deb'
 BUNDLE='/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle'
 PREFS_BIN="$BUNDLE/Gif2AniPrefs"
@@ -47,7 +47,7 @@ VERSION_DELAYED="$(dpkg-query -W -f='${Version}' com.nightvibes33.gif2ani)"
 printf 'version_after_12s=%s\n' "$VERSION_DELAYED"
 test "$VERSION_DELAYED" = '3.5.3'
 
-printf 'status_file_version='; awk '/^Version:/{print $2; exit}' /var/jb/Library/dpkg/status 2>/dev/null || true
+printf 'status_file_version='; awk '/^Package: com.nightvibes33.gif2ani$/{found=1; next} found && /^Version:/{print $2; exit}' /var/jb/Library/dpkg/status 2>/dev/null || true
 printf 'prefs_bundle_mtime='; stat -f '%Sm' -t '%Y-%m-%dT%H:%M:%SZ' "$BUNDLE" 2>/dev/null || true
 printf 'tweak_binary_sha256='; sha256sum "$TWEAK_BIN" | awk '{print $1}'
 printf 'prefs_binary_sha256='; sha256sum "$PREFS_BIN" | awk '{print $1}'
