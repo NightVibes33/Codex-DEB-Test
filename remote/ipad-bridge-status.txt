@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30187027801
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30187027801
-commit=b0e9a9418ec22e30ddba689af8e83a69791586e4
+run_id=30187123154
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30187123154
+commit=bd6d225f028ab42904ee3035ff0eb83c2714035e
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -16,52 +16,32 @@ Checking SSH host key over Tailscale...
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-=== Gif2Ani 3.5.0 device management and runtime audit ===
-started_at_utc=2026-07-26T03:59:28Z
+=== Gif2Ani source-backed download tests ===
+started_at_utc=2026-07-26T04:02:46Z
 model=J71tAP
 installed_version=3.5.0
 dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
  missing 'Maintainer' field
-cc0_catalog_count=54
-cc0_catalog_integrity=passed
-favorites_preferences_roundtrip=passed
-recent_preferences_roundtrip=passed
-original_enabled=true
-original_pending_ready=false
-original_last_applied_theme=none
-catalog_files=0
-catalog_bytes=0
-springy_files=162
-springy_bytes=4792927
-imported_files=0
-imported_bytes=0
-rollbacks_files=0
-rollbacks_bytes=0
-rollback_slots=0
-rollback_retention_limit=passed
-cc0_cached_valid=0
-cc0_cached_stale=0
-cc0_cache_integrity=passed
-springy_cached_valid=2
-springy_cached_stale=0
-springy_cache_metadata=passed
-active_gif_exists=true
-active_gif_bytes=600246
-pending_gif_exists=false
-rejected_gif_exists=false
-runtime-status_plist_exists=true
-runtime-status_plist_bytes=1681
-pending-metadata_plist_exists=false
-runtime_event=custom-animation-stable
-runtime_frame_count=6
-runtime_animation_pending=false
-runtime_decoded_frames=6
-runtime_estimated_decoded_bytes=4124160
-device_data_audit=passed
-preferences_restored=true
+cc0_download_bytes=130275
+cc0_download_sha256=1975aa569fb5ee0002856a7cff3b60bbcde04126514386fbd52b89d9f5349a46
+cc0_gif_structure=passed
+cc0_cache_install=success
+springy_download_bytes=2971658
+springy_download_sha256=853d01e5a41092561d47dc6ccfc87b9e547dd926b7ba1daa9980fe148e276279
+springy_package_version=2.0
+
+springy_archive_entries=100
+springy_archive_preflight=passed
+springy_extracted_files=96
+springy_extracted_bytes=3514914
+springy_animation_media_files=96
+springy_extracted_tree_validation=passed
+springy_legacy_package_installed=false
+springy_original_deb_test=success
+springy_normalized_cache=valid
 settings_gallery_links_opened=true
 new_preferences_crashes=0
-gif2ani_350_management_audit=success
-gif2ani_350_cache_audit=success
-gif2ani_350_runtime_audit=success
+gif2ani_cc0_download_test=success
+gif2ani_springy_download_test=success
+gif2ani_source_backed_tests=success
 ssh_exit_code=0
