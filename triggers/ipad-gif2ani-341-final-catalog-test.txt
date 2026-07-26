@@ -1,0 +1,4 @@
+requested_at_utc=2026-07-26T02:25:00Z
+version=3.4.1
+expected_deb_sha256=07e8e0cd8c51d18b3d2f3ba61617972717d04837e2bf22b5637018e99574ae8f
+source_pack_tests=2
