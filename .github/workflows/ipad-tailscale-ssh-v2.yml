@@ -1,0 +1,177 @@
+name: Stable iPad Tailscale SSH Bridge
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - remote/ipad-command-v2.sh
+
+permissions:
+  contents: write
+
+environment: TAILSCALE_AUTHKEY-
+
+concurrency:
+  group: stable-ipad-tailscale-ssh
+  cancel-in-progress: true
+
+jobs:
+  run-command:
+    name: Run command on iPad
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate secrets and command
+        id: validate
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$TAILSCALE_AUTHKEY"
+          test -n "$IPAD_PASSWORD"
+          test -s remote/ipad-command-v2.sh
+
+      - name: Install Tailscale and SSH
+        id: install
+        run: |
+          set -euo pipefail
+          sudo install -d -m 0755 /usr/share/keyrings
+          curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg \
+            | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
+          curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list \
+            | sudo tee /etc/apt/sources.list.d/tailscale.list >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends tailscale openssh-client sshpass
+          sudo systemctl enable --now tailscaled
+
+      - name: Join tailnet and verify iPad node
+        id: tailscale
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+          IPAD_HOST: 100.116.117.65
+        run: |
+          set -euo pipefail
+          : > ipad-output-v2.txt
+          sudo tailscale logout >/dev/null 2>&1 || true
+          sudo systemctl restart tailscaled
+          sleep 3
+          sudo tailscale up \
+            --auth-key="$TAILSCALE_AUTHKEY" \
+            --hostname="github-ipad-bridge" \
+            --accept-dns=false \
+            --accept-routes=false \
+            --reset 2>&1 | tee -a ipad-output-v2.txt
+          sudo tailscale status > tailscale-status.txt
+          cat tailscale-status.txt | tee -a ipad-output-v2.txt
+          grep -F "$IPAD_HOST" tailscale-status.txt >/dev/null
+          echo 'tailscale_ipad_node_visible=success' | tee -a ipad-output-v2.txt
+
+      - name: Run command on iPad as root
+        id: ssh
+        env:
+          IPAD_HOST: 100.116.117.65
+          IPAD_PORT: '22'
+          IPAD_USER: mobile
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          touch ipad-output-v2.txt
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          ready=0
+          for attempt in $(seq 1 18); do
+            echo "SSH port attempt $attempt/18" | tee -a ipad-output-v2.txt
+            rm -f "$HOME/.ssh/known_hosts"
+            if ssh-keyscan -T 10 -H -p "$IPAD_PORT" "$IPAD_HOST" > "$HOME/.ssh/known_hosts" 2>>ipad-output-v2.txt && [ -s "$HOME/.ssh/known_hosts" ]; then
+              ready=1
+              break
+            fi
+            sudo tailscale ping --timeout=5s --c 1 "$IPAD_HOST" >>ipad-output-v2.txt 2>&1 || true
+            sleep 8
+          done
+          if [ "$ready" != 1 ]; then
+            echo 'ipad_ssh_port_ready=failure' | tee -a ipad-output-v2.txt
+            exit 1
+          fi
+          chmod 600 "$HOME/.ssh/known_hosts"
+          echo 'ipad_ssh_port_ready=success' | tee -a ipad-output-v2.txt
+
+          set +e
+          {
+            printf '%s\n' "$IPAD_PASSWORD"
+            cat remote/ipad-command-v2.sh
+          } | sshpass -e ssh \
+                -p "$IPAD_PORT" \
+                -o BatchMode=no \
+                -o ConnectTimeout=20 \
+                -o ConnectionAttempts=2 \
+                -o ServerAliveInterval=15 \
+                -o ServerAliveCountMax=3 \
+                -o StrictHostKeyChecking=yes \
+                -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+                "$IPAD_USER@$IPAD_HOST" \
+                'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
+                2>&1 | tee -a ipad-output-v2.txt
+          ssh_status=${PIPESTATUS[1]}
+          set -e
+          echo "ssh_exit_code=$ssh_status" | tee -a ipad-output-v2.txt
+          exit "$ssh_status"
+
+      - name: Logout bridge node
+        if: always()
+        run: sudo tailscale logout >/dev/null 2>&1 || true
+
+      - name: Upload output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipad-stable-ssh-output-${{ github.run_id }}
+          path: ipad-output-v2.txt
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Publish stable bridge status
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          VALIDATE_OUTCOME: ${{ steps.validate.outcome }}
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          TAILSCALE_OUTCOME: ${{ steps.tailscale.outcome }}
+          SSH_OUTCOME: ${{ steps.ssh.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          lines = [
+              'Stable iPad Tailscale SSH Bridge',
+              f"run_id={os.environ.get('GITHUB_RUN_ID', '')}",
+              f"run_url=https://github.com/{os.environ.get('GITHUB_REPOSITORY', '')}/actions/runs/{os.environ.get('GITHUB_RUN_ID', '')}",
+              f"commit={os.environ.get('GITHUB_SHA', '')}",
+              f"validate={os.environ.get('VALIDATE_OUTCOME', '')}",
+              f"install={os.environ.get('INSTALL_OUTCOME', '')}",
+              f"tailscale={os.environ.get('TAILSCALE_OUTCOME', '')}",
+              f"ssh={os.environ.get('SSH_OUTCOME', '')}",
+              '',
+              '--- sanitized output ---',
+          ]
+          output = Path('ipad-output-v2.txt')
+          text = output.read_text(errors='replace') if output.exists() else 'No output file.'
+          password = os.environ.get('IPAD_PASSWORD', '')
+          if password:
+              text = text.replace(password, '***REDACTED***')
+          lines.extend(text.splitlines()[-220:])
+          Path('remote/ipad-bridge-status-v2.txt').write_text('\n'.join(lines) + '\n')
+          PY
+          git add remote/ipad-bridge-status-v2.txt
+          git commit -m 'Record stable iPad SSH bridge status [skip ci]' || exit 0
+          git push origin HEAD:main
