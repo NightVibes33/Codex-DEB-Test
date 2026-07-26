@@ -1,14 +1,14 @@
 Stable iPad Tailscale SSH Bridge
-run_id=30216578317
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30216578317
-commit=d56e218d2f815b68d4719bf1a872fb9954a46660
+run_id=30217265421
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30217265421
+commit=f0e4be187c86840561540850c2455c82381b1f69
 validate=success
 install=success
 tailscale=success
 ssh=success
 
 --- sanitized output ---
-100.115.59.36   github-ipad-bridge  NightVibes33@  linux    -                          
+100.78.120.59   github-ipad-bridge  NightVibes33@  linux    -                          
 100.116.117.65  bobbys-ipad         NightVibes33@  iOS      -                          
 100.127.94.70   desktop-o56xs       NightVibes33@  windows  offline, last seen 1d ago  
 100.79.177.16   iphone173           NightVibes33@  iOS      offline, last seen 4h ago  
@@ -20,39 +20,38 @@ SSH port attempt 1/18
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 ipad_ssh_port_ready=success
-=== Install Gif2Ani 3.6.0 and verify pre-download animated gallery cards ===
-started_at_utc=2026-07-26T19:19:15Z
+=== Install Gif2Ani 3.6.1 and verify color-faithful pre-download previews ===
+started_at_utc=2026-07-26T19:38:52Z
 identity=uid=0(root) gid=0(wheel) groups=0(wheel)
 model=J71tAP
-version_before=3.5.9
-release_effective_url=https://raw.githubusercontent.com/NightVibes33/Dark-Boot/485cd0bad1b0459170fc950765c56921a3e9461d/release-packages/Gif2Ani-3.6.0-animated-gallery-cards.deb
-release_sha256=228df90cc9d308de706c4df55fadbb16d537d39ff0da12008b7eb33c6ebb0f33
+version_before=3.6.0
+release_effective_url=https://raw.githubusercontent.com/NightVibes33/Dark-Boot/215387f6d256bc389845a25e6852fe5311525a97/release-packages/Gif2Ani-3.6.1-color-faithful-previews.deb
+release_sha256=4ebea83c86820fd776dd9abfbfd70bf57658d51c0709809031b87f9cc8672044
 release_package_metadata=passed
 dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
  missing 'Maintainer' field
 (Reading database ... 20015 files and directories currently installed.)
-Preparing to unpack .../Gif2Ani-3.6.0-animated-gallery-cards.deb ...
-Unpacking com.nightvibes33.gif2ani (3.6.0) over (3.5.9) ...
-Setting up com.nightvibes33.gif2ani (3.6.0) ...
+Preparing to unpack .../Gif2Ani-3.6.1-color-faithful-previews.deb ...
+Unpacking com.nightvibes33.gif2ani (3.6.1) over (3.6.0) ...
+Setting up com.nightvibes33.gif2ani (3.6.1) ...
 Processing triggers for org.coolstar.sileo (2.5.1) ...
-version_immediate=3.6.0
 dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
  missing 'Maintainer' field
-installed_360_card_runtime_markers=passed
-installed_card_preview_inventory=262|bytes=3290738|minimum_frames=2|maximum_frames=10
-pre_download_card_sample=Gameboy Advance|identifier=io.github.virenmohindra.gameboy-advance|frames=10|bytes=18280
-pre_download_card_sample=9 Hand Tap|identifier=snowboard.beta-hende-megapack.9-hand-tap|frames=10|bytes=11521
-pre_download_card_sample=CheckRa1n|identifier=snowboard.com-thwlfu-cakrespring.checkra1n|frames=9|bytes=10775
-pre_download_animated_card_samples=passed
+version_immediate=3.6.1
+installed_361_runtime_markers=passed
+installed_color_preview_inventory=262|bytes=6787715|palette_colors=256
+installed_worst_mean=snowboard.com-rkycyku-allin1-respring.manchester-city|1.9641
+installed_worst_frame=io.github.virenmohindra.tesseract|2.433
+installed_stranger_things=frames=10|bytes=24190|mean_error=0.0828|max_error=0.0901
+installed_color_fidelity_gate=passed
 dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
  missing 'Maintainer' field
-version_after_8s=3.6.0
-visible_label=GIF2ANI 3.6.0
+version_after_8s=3.6.1
+visible_label=GIF2ANI 3.6.1
 gallery_label=274-THEME ANIMATION GALLERY
 gif2ani_gallery_reopened=true
-gif2ani_360_install=success
-gif2ani_360_visible_cards_animate_before_download=success
-gif2ani_360_all_262_card_previews=success
-gif2ani_360_offscreen_cleanup_and_bounded_cache=compiled
-gif2ani_360_gallery_total_274=success
+gif2ani_361_install=success
+gif2ani_361_all_262_color_faithful_previews=success
+gif2ani_361_stranger_things_color_fidelity=success
+gif2ani_361_gallery_total_274=success
 ssh_exit_code=0
