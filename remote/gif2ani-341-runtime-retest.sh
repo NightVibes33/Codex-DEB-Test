@@ -18,31 +18,15 @@ sha_file() {
   if [ -f "$1" ]; then sha256sum "$1" | awk '{print $1}'; else printf 'MISSING'; fi
 }
 
-find_backboard_pid() {
-  pid=''
-  if command -v pgrep >/dev/null 2>&1; then
-    pid="$(pgrep -x backboardd 2>/dev/null | head -n1 || true)"
-  fi
-  if [ -z "$pid" ] && command -v pidof >/dev/null 2>&1; then
-    pid="$(pidof backboardd 2>/dev/null | awk '{print $1}' || true)"
-  fi
-  if [ -z "$pid" ] && command -v ps >/dev/null 2>&1; then
-    pid="$(ps -A -o pid=,comm= 2>/dev/null | awk '$2 == "backboardd" {print $1; exit}' || true)"
-  fi
-  if [ -z "$pid" ] && command -v launchctl >/dev/null 2>&1; then
-    pid="$(launchctl print system/com.apple.backboardd 2>/dev/null | awk '/pid =/ {print $3; exit}' || true)"
-  fi
-  printf '%s' "$pid"
-}
-
 restore_state() {
   echo 'rollback=starting'
   if [ -f "$BACKUP/had-active" ]; then cp -p "$BACKUP/Active.gif" "$ACTIVE"; else rm -f "$ACTIVE"; fi
   if [ -f "$BACKUP/had-prefs" ]; then cp -p "$BACKUP/preferences.plist" "$PREFS"; else rm -f "$PREFS"; fi
+  if [ -f "$BACKUP/had-runtime" ]; then cp -p "$BACKUP/runtime-status.plist" "$RUNTIME"; else rm -f "$RUNTIME"; fi
   rm -f "$SENTINEL" "$REJECTED"
-  chown 501:501 "$ACTIVE" "$PREFS" 2>/dev/null || true
-  chmod 0644 "$ACTIVE" "$PREFS" 2>/dev/null || true
-  killall -9 backboardd 2>/dev/null || true
+  chown 501:501 "$ACTIVE" "$PREFS" "$RUNTIME" 2>/dev/null || true
+  chmod 0644 "$ACTIVE" "$PREFS" "$RUNTIME" 2>/dev/null || true
+  killall -9 backboardd 2>/dev/null || launchctl kickstart -k system/com.apple.backboardd 2>/dev/null || true
   sleep 7
   echo 'rollback=complete'
 }
@@ -61,10 +45,11 @@ rm -rf "$BACKUP"
 mkdir -p "$BACKUP"
 if [ -f "$ACTIVE" ]; then touch "$BACKUP/had-active"; cp -p "$ACTIVE" "$BACKUP/Active.gif"; fi
 if [ -f "$PREFS" ]; then touch "$BACKUP/had-prefs"; cp -p "$PREFS" "$BACKUP/preferences.plist"; fi
+if [ -f "$RUNTIME" ]; then touch "$BACKUP/had-runtime"; cp -p "$RUNTIME" "$BACKUP/runtime-status.plist"; fi
 ORIGINAL_ACTIVE_SHA="$(sha_file "$ACTIVE")"
 ORIGINAL_PREFS_SHA="$(sha_file "$PREFS")"
 
-echo '=== Gif2Ani 3.4.1 verbose runtime retest ==='
+echo '=== Gif2Ani 3.4.1 runtime-status retest ==='
 printf 'started_at_utc='; date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || true
 printf 'identity='; id
 printf 'model='; sysctl -n hw.model 2>/dev/null || true
@@ -108,19 +93,13 @@ PY
   chmod 0644 "$PREFS"
 }
 
-wait_new_backboard() {
-  old="$1"
-  i=0
-  while [ "$i" -lt 45 ]; do
-    current="$(find_backboard_pid)"
-    if [ -n "$current" ] && { [ -z "$old" ] || [ "$current" != "$old" ]; }; then
-      printf '%s' "$current"
-      return 0
-    fi
-    i=$((i+1))
-    sleep 1
-  done
-  return 1
+runtime_event() {
+  python3 - "$RUNTIME" <<'PY'
+import plistlib,sys
+try:
+    with open(sys.argv[1],'rb') as f: print(plistlib.load(f).get('event','missing'))
+except Exception: print('unreadable')
+PY
 }
 
 print_runtime_status() {
@@ -134,6 +113,46 @@ except Exception as e:
     print('runtime_plist_error='+repr(e))
     print('runtime_event=unreadable')
 PY
+}
+
+wait_for_runtime_success() {
+  i=0
+  last='missing'
+  while [ "$i" -lt 35 ]; do
+    last="$(runtime_event)"
+    printf 'runtime_poll_%s=%s\n' "$i" "$last"
+    case "$last" in
+      custom-animation-stable) return 0 ;;
+      gif-auto-disabled|decode-exception|no-active-gif) return 1 ;;
+    esac
+    if [ -e "$REJECTED" ]; then echo 'runtime_failure=rejected_gif_created'; return 1; fi
+    i=$((i+1))
+    sleep 1
+  done
+  echo "runtime_failure=timeout_last_event:$last"
+  return 1
+}
+
+restart_backboard_for_test() {
+  echo '=== backboard_restart_diagnostics ==='
+  printf 'pgrep_before=%s\n' "$(pgrep -x backboardd 2>/dev/null | tr '\n' ',' || true)"
+  printf 'pidof_before=%s\n' "$(pidof backboardd 2>/dev/null | tr '\n' ',' || true)"
+  ps -A 2>/dev/null | grep -i '[b]ackboard' || true
+  launchctl print system/com.apple.backboardd 2>/dev/null | head -n 20 || true
+
+  restart_method='none'
+  if killall -9 backboardd 2>/dev/null; then
+    restart_method='killall'
+  elif launchctl kickstart -k system/com.apple.backboardd 2>/dev/null; then
+    restart_method='launchctl-kickstart'
+  elif [ -x /var/jb/usr/bin/sbreload ]; then
+    /var/jb/usr/bin/sbreload 2>/dev/null || true
+    restart_method='sbreload'
+  else
+    echo 'runtime_failure=no_backboard_restart_method'
+    return 1
+  fi
+  printf 'restart_method=%s\n' "$restart_method"
 }
 
 run_theme_test() {
@@ -159,22 +178,10 @@ run_theme_test() {
   write_test_preferences "$name"
   rm -f "$RUNTIME" "$REJECTED" "$SENTINEL"
   sync 2>/dev/null || true
-  old_pid="$(find_backboard_pid)"
-  printf 'backboard_pid_before=%s\n' "$old_pid"
-  killall -9 backboardd 2>/dev/null || true
-  new_pid="$(wait_new_backboard "$old_pid")"
-  printf 'backboard_pid_after=%s\n' "$new_pid"
-  test -n "$new_pid"
-  sleep 10
+  restart_backboard_for_test
+  wait_for_runtime_success
   print_runtime_status
-  event="$(python3 - "$RUNTIME" <<'PY'
-import plistlib,sys
-try:
-    with open(sys.argv[1],'rb') as f: print(plistlib.load(f).get('event','missing'))
-except Exception: print('unreadable')
-PY
-)"
-  test "$event" = 'custom-animation-stable'
+  test "$(runtime_event)" = 'custom-animation-stable'
   test ! -e "$REJECTED"
   test ! -e "$SENTINEL"
   printf 'theme_test=%s:passed\n' "$name"
