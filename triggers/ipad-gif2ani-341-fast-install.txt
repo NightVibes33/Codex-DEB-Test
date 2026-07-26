@@ -1,4 +1,4 @@
-requested_at_utc=2026-07-26T01:14:00Z
+requested_at_utc=2026-07-26T01:20:00Z
 version=3.4.1
 runtime_theme_tests=3
-mode=verbose-rootless-shell-retest
+mode=robust-backboard-pid-and-restore
