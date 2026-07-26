@@ -1,4 +1,5 @@
 #!/bin/sh
+# bridge-retrigger=2026-07-26T04:33:00Z
 set -eu
 export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
 export HOME=/var/mobile
@@ -74,10 +75,7 @@ assert (root/'io.github.virenmohindra.a-wave.png').is_file()
 print('all_bundled_previews_png_220x220=passed')
 PY
 
-# Exercise the exact curl/effective-URL path now used by the Settings UI.
 CC0_URL='https://raw.githubusercontent.com/NightVibes33/Codex-DEB-Test/b5d5eda04359409865772038895e660d709deb18/gif2ani-themes/v1/magenta-pulse-rings.gif'
-CC0_SHA='bf3a04c90991ac2b17c0e6c4b6eebd746312de6bab49eb338fe07b563b163aad'
-# Read the pinned value from the installed manifest to avoid trusting this smoke-test constant if the catalog changed.
 python3 - "$BUNDLE/ThemeCatalog.json" "$WORK/cc0-meta" <<'PY'
 import json, pathlib, sys
 m=json.loads(pathlib.Path(sys.argv[1]).read_text())
