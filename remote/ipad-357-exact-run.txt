@@ -1,0 +1,3 @@
+Gif2Ani 3.5.7 Exact iPad Run
+target_sha=4c7d4ea4217eb1dd62e77bf808d6beb9eca36f5d
+run=not_found
