@@ -26,8 +26,8 @@ jobs:
 
       - name: Download and verify exact green artifact
         env:
-          ARTIFACT_ZIP_URL: 'https://sdmntprcentralus.oaiusercontent.com/files/00000000-6614-81f5-a677-301e76530831/raw?se=2026-07-26T00%3A55%3A01Z&sp=r&sv=2026-02-06&sr=b&scid=3b009001-676e-5a91-bd66-ef523c6f906a&skoid=2d2fbb03-9efb-4ad0-a91c-1db2f5a47997&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-07-25T13%3A11%3A03Z&ske=2026-07-27T13%3A11%3A03Z&sks=b&skv=2026-02-06&sig=8uPkmhGvh%2By%2BbrnCF3eQgyYyTvh0LS4iTgU4begAe04%3D'
-          EXPECTED_SHA256: aa4691278f17938d77eb0f086e61e580115d3602c5686566f378ac4fa2b435eb
+          ARTIFACT_ZIP_URL: 'https://sdmntprwestus3.oaiusercontent.com/files/00000000-64a8-81fd-81c7-884ef22928e1/raw?se=2026-07-26T01%3A51%3A42Z&sp=r&sv=2026-02-06&sr=b&scid=6da07e63-6a89-5567-b9c7-9fc1e440cec9&skoid=2d2fbb03-9efb-4ad0-a91c-1db2f5a47997&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-07-25T13%3A11%3A14Z&ske=2026-07-27T13%3A11%3A14Z&sks=b&skv=2026-02-06&sig=DmbWAa9FUtqgAIkhgfAiuSNb6FySqEa7TK5gTp5CgE8%3D'
+          EXPECTED_SHA256: 07e8e0cd8c51d18b3d2f3ba61617972717d04837e2bf22b5637018e99574ae8f
         run: |
           set -euo pipefail
           rm -rf payload-work
@@ -41,6 +41,22 @@ jobs:
           test "$(dpkg-deb -f "$DEB" Package)" = 'com.nightvibes33.gif2ani'
           test "$(dpkg-deb -f "$DEB" Version)" = '3.4.1'
           test "$(dpkg-deb -f "$DEB" Architecture)" = 'iphoneos-arm64'
+          rm -rf payload-work/package-root
+          dpkg-deb -x "$DEB" payload-work/package-root
+          BUNDLE='payload-work/package-root/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle'
+          test -s "$BUNDLE/OpenThemeCatalog.json"
+          python3 - "$BUNDLE/OpenThemeCatalog.json" <<'PY'
+          import json,sys
+          data=json.load(open(sys.argv[1]))
+          assert data['count']==len(data['themes'])==48
+          assert data['liveSnapshotCount']==48
+          assert data['repositoryIndexMismatchCount']==47
+          assert data['missingPagesPayloadFallbackCount']==1
+          swish=[item for item in data['themes'] if item['package']=='io.github.virenmohindra.swish']
+          assert len(swish)==1
+          assert swish[0]['downloadURL'].startswith('https://raw.githubusercontent.com/VirenMohindra/CydiaRepo/c507a391f193c2bb362ff77fc1c1673c0da2dcae/debs/')
+          print('artifact_verified_springy_snapshot=48')
+          PY
           cp "$DEB" remote/payloads/Gif2Ani-3.4.1-rootless.deb
           sha256sum remote/payloads/Gif2Ani-3.4.1-rootless.deb > remote/payloads/Gif2Ani-3.4.1-rootless.sha256
 
@@ -51,6 +67,6 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -f remote/payloads/Gif2Ani-3.4.1-rootless.deb
           git add remote/payloads/Gif2Ani-3.4.1-rootless.sha256
-          git commit -m 'Mirror verified Gif2Ani 3.4.1 bridge payload [skip ci]' || exit 0
+          git commit -m 'Mirror final verified 48-pack Gif2Ani 3.4.1 payload [skip ci]' || exit 0
           git pull --rebase origin main
           git push origin HEAD:main
