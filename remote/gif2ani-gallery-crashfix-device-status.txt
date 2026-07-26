@@ -1,0 +1,10 @@
+Gif2Ani 3.4.1 Gallery Crash-Fix Device Test
+run_id=30184099025
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30184099025
+source_commit=b1409d51e1852483402115b73d91e964c8832038
+deb_sha256=a8395150766bf7bf0921b0e0a43639b421d0301742ace38abe9f2ba5cddc4ace
+job_status=failure
+device=skipped
+
+--- sanitized device output ---
+No device output was created.
