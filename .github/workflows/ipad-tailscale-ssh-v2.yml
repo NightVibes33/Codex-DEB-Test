@@ -10,8 +10,6 @@ on:
 permissions:
   contents: write
 
-environment: TAILSCALE_AUTHKEY-
-
 concurrency:
   group: stable-ipad-tailscale-ssh
   cancel-in-progress: true
@@ -21,6 +19,8 @@ jobs:
     name: Run command on iPad
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    environment:
+      name: TAILSCALE_AUTHKEY-
     steps:
       - uses: actions/checkout@v4
 
