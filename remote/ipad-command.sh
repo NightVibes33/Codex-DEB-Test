@@ -1,156 +1,152 @@
 #!/bin/sh
-# bridge-retrigger=2026-07-26T10:47:00-05:00
+# bridge-retrigger=2026-07-26T11:02:00-05:00
 set -eu
 export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
 export HOME=/var/mobile
+WORK='/tmp/gif2ani-snowboard-inventory'
+rm -rf "$WORK"
+mkdir -p "$WORK"
+trap 'rm -rf "$WORK"' EXIT INT TERM
 
-RELEASE_COMMIT='fa5f035abf2e419c3075f439f9f853daa2ba56b1'
-URL="https://raw.githubusercontent.com/NightVibes33/Dark-Boot/$RELEASE_COMMIT/release-packages/Gif2Ani-3.5.5-exact-pack-names.deb"
-EXPECTED_SHA='cf394b66554b8a8085dfc1d60789031ea38cc18d74df39dab66ab6ce9214e74b'
-TMP='/tmp/Gif2Ani-3.5.5-exact-pack-names.deb'
-BUNDLE='/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle'
-ROOT_PLIST="$BUNDLE/Root.plist"
-PREFS_BIN="$BUNDLE/Gif2AniPrefs"
-TWEAK_BIN='/var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib'
-PREVIEWS="$BUNDLE/ThemePreviews"
-OPEN_CATALOG="$BUNDLE/OpenThemeCatalog.json"
-MEDIA_ROOT='/var/mobile/Library/Application Support/Gif2Ani'
-SPRINGY_CACHE="$MEDIA_ROOT/OpenThemeLibrary"
-WORK='/tmp/gif2ani-355-all-pack-audit'
-
-printf '%s\n' '=== Install Gif2Ani 3.5.5 and audit all 48 exact pack names on iPad ==='
+printf '%s\n' '=== Inventory SnowBoard Respring packs from configured iPad repositories ==='
 printf 'started_at_utc='; date -u '+%Y-%m-%dT%H:%M:%SZ'
 printf 'identity='; id
 printf 'model='; sysctl -n hw.model 2>/dev/null || true
-printf 'version_before='; dpkg-query -W -f='${Version}\n' com.nightvibes33.gif2ani 2>/dev/null || echo absent
+printf 'gif2ani_version='; dpkg-query -W -f='${Version}\n' com.nightvibes33.gif2ani 2>/dev/null || echo absent
+printf 'snowboard_version='; dpkg-query -W -f='${Version}\n' com.spark.snowboard 2>/dev/null || echo absent
+printf 'respring_extension_version='; dpkg-query -W -f='${Version}\n' com.spark.snowboard.respringextension 2>/dev/null || echo absent
 
-rm -rf "$WORK"
-mkdir -p "$WORK"
-rm -f "$TMP"
-trap 'rm -rf "$WORK"; rm -f "$TMP"' EXIT INT TERM
+echo '--- configured_sources ---'
+for f in /var/jb/etc/apt/sources.list /var/jb/etc/apt/sources.list.d/*.list /etc/apt/sources.list /etc/apt/sources.list.d/*.list; do
+  [ -f "$f" ] || continue
+  sed -e 's/[[:space:]]*#.*$//' -e '/^[[:space:]]*$/d' "$f" | while IFS= read -r line; do printf 'source=%s|%s\n' "$f" "$line"; done
+done
 
-EFFECTIVE="$(curl --fail --location --silent --show-error --retry 3 --connect-timeout 20 --max-time 300 --output "$TMP" --write-out '%{url_effective}' "$URL")"
-printf 'release_effective_url=%s\n' "$EFFECTIVE"
-test "$EFFECTIVE" = "$URL"
-ACTUAL_SHA="$(sha256sum "$TMP" | awk '{print $1}')"
-printf 'release_sha256=%s\n' "$ACTUAL_SHA"
-test "$ACTUAL_SHA" = "$EXPECTED_SHA"
-test "$(dpkg-deb -f "$TMP" Package)" = 'com.nightvibes33.gif2ani'
-test "$(dpkg-deb -f "$TMP" Version)" = '3.5.5'
-test "$(dpkg-deb -f "$TMP" Architecture)" = 'iphoneos-arm64'
-echo 'release_package_metadata=passed'
-
-dpkg -i "$TMP"
-VERSION_NOW="$(dpkg-query -W -f='${Version}' com.nightvibes33.gif2ani)"
-printf 'version_immediate=%s\n' "$VERSION_NOW"
-test "$VERSION_NOW" = '3.5.5'
-
-test -s "$PREFS_BIN"
-test -s "$TWEAK_BIN"
-test -s "$OPEN_CATALOG"
-test -s "$ROOT_PLIST"
-grep -Fq 'GIF2ANI 3.5.5' "$ROOT_PLIST"
-! grep -Fq 'GIF2ANI 3.4.1' "$ROOT_PLIST"
-! grep -Fq 'GIF2ANI 3.5.4' "$ROOT_PLIST"
-strings "$PREFS_BIN" | grep -Fq 'raw.githubusercontent.com/VirenMohindra/CydiaRepo/'
-echo 'installed_version_and_code=passed'
-
-python3 - "$PREVIEWS" "$OPEN_CATALOG" "$WORK/packs.tsv" <<'PY'
-import json, pathlib, re, struct, sys
-previews = pathlib.Path(sys.argv[1])
-catalog_path = pathlib.Path(sys.argv[2])
-out = pathlib.Path(sys.argv[3])
-files = sorted(previews.glob('*.png'))
-assert len(files) == 102, len(files)
-for path in files:
-    data = path.read_bytes()[:24]
-    assert data[:8] == b'\x89PNG\r\n\x1a\n', path
-    assert data[12:16] == b'IHDR', path
-    assert struct.unpack('>II', data[16:24]) == (220, 220), path
-catalog = json.loads(catalog_path.read_text())
-themes = catalog['themes']
-assert catalog['count'] == len(themes) == 48
-assert catalog.get('namesDerivedFromDEBMetadata') is True
-assert catalog.get('immutableCatalogVerifiedAtUTC', '').endswith('Z')
-assert len({x['identifier'] for x in themes}) == 48
-rows = []
-for index, pack in enumerate(themes, 1):
-    assert pack['identifier'] == pack['package']
-    assert re.fullmatch(r'[0-9a-f]{40}', pack['sourceCommit'])
-    assert re.fullmatch(r'[0-9a-f]{64}', pack['sha256'])
-    assert isinstance(pack['name'], str) and pack['name'].strip()
-    assert isinstance(pack['sourcePackageName'], str) and pack['sourcePackageName'].strip()
-    expected_url = f"https://raw.githubusercontent.com/VirenMohindra/CydiaRepo/{pack['sourceCommit']}/{pack['filename'][2:]}"
-    assert pack['downloadURL'] == expected_url
-    assert int(pack['immutableVerifiedMediaFiles']) >= 2
-    assert (previews / f"{pack['identifier']}.png").is_file()
-    fields = [str(index), pack['identifier'], pack['package'], pack['name'].strip(), pack['sourcePackageName'].strip(), str(pack['bytes']), pack['sha256'], pack['downloadURL']]
-    assert all('\t' not in value and '\n' not in value for value in fields)
-    rows.append('\t'.join(fields))
-stranger = next(x for x in themes if x['identifier'] == 'io.github.virenmohindra.stranger-things')
-assert stranger['name'] == 'Stranger Things (DankerThings)'
-out.write_text('\n'.join(rows) + '\n')
-print('bundled_preview_count=102')
-print('all_bundled_previews_png_220x220=passed')
-print('immutable_catalog_count=48')
-print('catalog_preview_identity_mapping=passed')
-print('stranger_things_dankerthings_name=passed')
+echo '--- repository_candidates ---'
+apt-cache dumpavail > "$WORK/dumpavail.txt"
+python3 - "$WORK/dumpavail.txt" "$WORK/candidates.tsv" <<'PY'
+import pathlib, re, sys
+text = pathlib.Path(sys.argv[1]).read_text(errors='replace')
+records = []
+for stanza in re.split(r'\n\s*\n', text):
+    fields = {}
+    current = None
+    for raw in stanza.splitlines():
+        if raw.startswith((' ', '\t')) and current:
+            fields[current] = fields.get(current, '') + ' ' + raw.strip()
+            continue
+        if ':' not in raw:
+            continue
+        key, value = raw.split(':', 1)
+        current = key.strip()
+        fields[current] = value.strip()
+    package = fields.get('Package', '')
+    if not package:
+        continue
+    joined = ' '.join(fields.get(k, '') for k in ('Package','Name','Description','Depends','Section')).lower()
+    depends = fields.get('Depends', '').lower()
+    is_candidate = (
+        'com.spark.snowboard.respringextension' in depends
+        or ('snowboard' in joined and 'respring' in joined)
+        or ('respring' in joined and 'com.spark.snowboard' in depends)
+    )
+    if not is_candidate:
+        continue
+    records.append(fields)
+records.sort(key=lambda x: (x.get('Name') or x.get('Package','')).lower())
+out = []
+for f in records:
+    values = [
+        f.get('Package',''), f.get('Name',''), f.get('Version',''), f.get('Architecture',''),
+        f.get('Filename',''), f.get('Size',''), f.get('SHA256',''), f.get('Depends',''),
+        f.get('Section',''), f.get('Description',''), f.get('Homepage',''), f.get('Depiction','')
+    ]
+    values = [re.sub(r'[\t\r\n]+', ' ', v).strip() for v in values]
+    out.append('\t'.join(values))
+pathlib.Path(sys.argv[2]).write_text('\n'.join(out) + ('\n' if out else ''))
+print(f'repository_candidate_count={len(records)}')
+for i, f in enumerate(records, 1):
+    print('repo_pack_%03d=%s|%s|%s|%s|%s|%s' % (
+        i, f.get('Package',''), f.get('Name',''), f.get('Version',''),
+        f.get('Filename',''), f.get('Size',''), f.get('SHA256','')))
 PY
 
-rm -rf "$SPRINGY_CACHE"
-mkdir -p "$SPRINGY_CACHE"
-echo 'stale_springy_cache_cleared=true'
+echo '--- installed_theme_directories ---'
+python3 - <<'PY'
+from pathlib import Path
+import os, re, subprocess
+roots = [Path('/var/jb/Library/Themes'), Path('/Library/Themes')]
+seen = set(); rows=[]
+image_ext={'.png','.jpg','.jpeg','.gif','.webp'}
+for root in roots:
+    if not root.is_dir():
+        continue
+    for theme in sorted(root.iterdir(), key=lambda p:p.name.lower()):
+        if not theme.is_dir() or theme.name.startswith('.'):
+            continue
+        files=[]
+        try:
+            for p in theme.rglob('*'):
+                try:
+                    if p.is_file() and p.suffix.lower() in image_ext:
+                        files.append(p)
+                except OSError:
+                    pass
+        except OSError:
+            continue
+        lower=(' '.join([theme.name] + [str(p.relative_to(theme)) for p in files[:200]])).lower()
+        likely=('respring' in lower or 'bootlogo' in lower or any('respring' in p.name.lower() for p in files))
+        if not likely or not files:
+            continue
+        canonical=str(theme.resolve())
+        if canonical in seen: continue
+        seen.add(canonical)
+        owner=''
+        try:
+            sample=str(files[0])
+            owner=subprocess.check_output(['dpkg-query','-S',sample], text=True, stderr=subprocess.DEVNULL).split(':',1)[0].strip()
+        except Exception:
+            pass
+        rows.append((theme.name, canonical, owner, len(files), min(len(p.read_bytes()) for p in files[:20]) if files else 0))
+print(f'installed_respring_theme_count={len(rows)}')
+for i,(name,path,owner,count,_dummy) in enumerate(rows,1):
+    clean=lambda s: re.sub(r'[|\r\n]+',' ',s).strip()
+    print(f'installed_theme_{i:03d}={clean(name)}|{clean(owner)}|{count}|{clean(path)}')
+PY
 
-PASSED=0
+echo '--- candidate_downloadability ---'
 TAB="$(printf '\t')"
-while IFS="$TAB" read -r INDEX IDENT PACKAGE DISPLAY_NAME SOURCE_NAME EXPECTED_BYTES EXPECTED_PACK_SHA PACK_URL; do
-  PACK_DEB="$WORK/pack.deb"
-  rm -f "$PACK_DEB"
-  PACK_EFFECTIVE="$(curl --fail --location --silent --show-error --retry 3 --connect-timeout 20 --max-time 300 --output "$PACK_DEB" --write-out '%{url_effective}' "$PACK_URL")"
-  test "$PACK_EFFECTIVE" = "$PACK_URL"
-  ACTUAL_BYTES="$(wc -c < "$PACK_DEB" | tr -d ' ')"
-  ACTUAL_PACK_SHA="$(sha256sum "$PACK_DEB" | awk '{print $1}')"
-  ACTUAL_PACKAGE="$(dpkg-deb -f "$PACK_DEB" Package | tr -d '\r\n')"
-  ACTUAL_SOURCE_NAME="$(dpkg-deb -f "$PACK_DEB" Name | tr -d '\r\n')"
-  ACTUAL_DISPLAY_NAME="$(python3 - "$ACTUAL_SOURCE_NAME" <<'PY'
-import re, sys
-value = re.sub(r'\s*-\s*Springy BootLogo\b', '', sys.argv[1], flags=re.I)
-value = re.sub(r'\s+', ' ', value).strip()
-print(value)
-PY
-)"
-  test "$ACTUAL_BYTES" = "$EXPECTED_BYTES"
-  test "$ACTUAL_PACK_SHA" = "$EXPECTED_PACK_SHA"
-  test "$ACTUAL_PACKAGE" = "$PACKAGE"
-  test "$ACTUAL_SOURCE_NAME" = "$SOURCE_NAME"
-  test "$ACTUAL_DISPLAY_NAME" = "$DISPLAY_NAME"
-  PASSED=$((PASSED + 1))
-  printf 'pack_%02d=passed|%s|%s\n' "$INDEX" "$IDENT" "$DISPLAY_NAME"
-  rm -f "$PACK_DEB"
-done < "$WORK/packs.tsv"
-
-test "$PASSED" = '48'
-printf 'on_device_pack_downloads_passed=%s\n' "$PASSED"
-echo 'all_48_exact_names_match_deb_metadata=passed'
-
-killall -9 Preferences 2>/dev/null || true
-killall -9 cfprefsd 2>/dev/null || true
-uicache -a >/dev/null 2>&1 || true
-sync
-sleep 5
-VERSION_DELAYED="$(dpkg-query -W -f='${Version}' com.nightvibes33.gif2ani)"
-printf 'version_after_5s=%s\n' "$VERSION_DELAYED"
-test "$VERSION_DELAYED" = '3.5.5'
-printf 'visible_label='; grep -o 'GIF2ANI [0-9.]*' "$ROOT_PLIST" | head -n 1
-
-if command -v uiopen >/dev/null 2>&1; then
-  uiopen 'prefs:root=Gif2Ani' >/dev/null 2>&1 || true
-  sleep 2
-  echo 'gif2ani_settings_reopened=true'
-fi
-
-printf 'tweak_binary_sha256='; sha256sum "$TWEAK_BIN" | awk '{print $1}'
-printf 'prefs_binary_sha256='; sha256sum "$PREFS_BIN" | awk '{print $1}'
-echo 'gif2ani_355_install=success'
-echo 'gif2ani_355_all_48_downloads=success'
-echo 'gif2ani_355_exact_names_and_previews=success'
+COUNT=0
+DOWNLOADABLE=0
+while IFS="$TAB" read -r PACKAGE NAME VERSION ARCH FILENAME SIZE SHA DEPENDS SECTION DESCRIPTION HOMEPAGE DEPICTION; do
+  [ -n "$PACKAGE" ] || continue
+  COUNT=$((COUNT + 1))
+  mkdir -p "$WORK/download-$COUNT"
+  cd "$WORK/download-$COUNT"
+  set +e
+  apt download "$PACKAGE=$VERSION" >download.log 2>&1
+  STATUS=$?
+  set -e
+  DEB="$(find . -maxdepth 1 -type f -name '*.deb' -print -quit)"
+  if [ "$STATUS" -eq 0 ] && [ -n "$DEB" ] && [ -s "$DEB" ]; then
+    ACTUAL_PACKAGE="$(dpkg-deb -f "$DEB" Package 2>/dev/null | tr -d '\r\n')"
+    ACTUAL_NAME="$(dpkg-deb -f "$DEB" Name 2>/dev/null | tr -d '\r\n')"
+    ACTUAL_VERSION="$(dpkg-deb -f "$DEB" Version 2>/dev/null | tr -d '\r\n')"
+    ACTUAL_SIZE="$(wc -c < "$DEB" | tr -d ' ')"
+    ACTUAL_SHA="$(sha256sum "$DEB" | awk '{print $1}')"
+    THEME_FILES="$(dpkg-deb -c "$DEB" 2>/dev/null | grep -E '/Library/Themes/.*(Respring|respring|BootLogo|bootlogo)|/Library/Themes/.*\.(png|gif|jpg|jpeg|webp)$' | wc -l | tr -d ' ')"
+    if [ "$ACTUAL_PACKAGE" = "$PACKAGE" ] && [ "$ACTUAL_VERSION" = "$VERSION" ] && [ "$THEME_FILES" -gt 0 ]; then
+      DOWNLOADABLE=$((DOWNLOADABLE + 1))
+      printf 'downloadable_%03d=passed|%s|%s|%s|%s|%s|theme_files=%s\n' "$DOWNLOADABLE" "$ACTUAL_PACKAGE" "$ACTUAL_NAME" "$ACTUAL_VERSION" "$ACTUAL_SIZE" "$ACTUAL_SHA" "$THEME_FILES"
+    else
+      printf 'candidate_%03d=metadata_or_payload_mismatch|%s|actual=%s|version=%s|theme_files=%s\n' "$COUNT" "$PACKAGE" "$ACTUAL_PACKAGE" "$ACTUAL_VERSION" "$THEME_FILES"
+    fi
+  else
+    REASON="$(tail -n 1 download.log 2>/dev/null | tr '|\r\n' '   ')"
+    printf 'candidate_%03d=not_directly_downloadable|%s|%s\n' "$COUNT" "$PACKAGE" "$REASON"
+  fi
+  cd "$WORK"
+done < "$WORK/candidates.tsv"
+printf 'candidate_download_attempts=%s\n' "$COUNT"
+printf 'verified_direct_download_count=%s\n' "$DOWNLOADABLE"
+echo 'snowboard_inventory_complete=success'
