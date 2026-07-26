@@ -32,8 +32,8 @@ jobs:
           test -n "$TAILSCALE_AUTHKEY"
           test -n "$IPAD_PASSWORD"
           test -s remote/ipad-command-v2.sh
-          grep -Fq "Version)' com.nightvibes33.gif2ani" remote/ipad-command-v2.sh
-          grep -Fq '3.5.8' remote/ipad-command-v2.sh
+          grep -Fq "RELEASE_SHA='0d2953840e63191e221ac0bf9bd682c001ac77c064a40cf41c7808504b3a2d44'" remote/ipad-command-v2.sh
+          grep -Fq "test \"\$VERSION_NOW\" = '3.5.8'" remote/ipad-command-v2.sh
 
       - name: Install Tailscale and SSH client
         run: |
