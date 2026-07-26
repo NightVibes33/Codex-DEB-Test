@@ -3,78 +3,78 @@ set -eu
 export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
 export HOME=/var/mobile
 
-URL='https://raw.githubusercontent.com/NightVibes33/Dark-Boot/main/release-packages/Gif2Ani-3.4.1-gallery-crash-hotfix.deb'
-EXPECTED_SHA='722709acc93a489f5f7f6239338d01a3d1d3d203ba98ae9eb7b435714b747883'
-DEB='/var/mobile/Library/Caches/Gif2Ani-3.4.1-gallery-crash-hotfix.deb'
-BUNDLE='/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle'
-ROOT_PLIST="$BUNDLE/Root.plist"
 CRASH_DIR='/var/mobile/Library/Logs/CrashReporter'
-MARKER='/var/mobile/Library/Caches/gif2ani-gallery-hotfix-test.marker'
+BUNDLE='/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle'
 
-echo '=== Install Gif2Ani gallery crash hotfix ==='
-printf 'started_at_utc='; date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || true
-printf 'identity='; id
+echo '=== Exact newest Gif2Ani Browse crash parser ==='
+printf 'collected_at_utc='; date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || true
 printf 'model='; sysctl -n hw.model 2>/dev/null || true
+printf 'installed_version='; dpkg-query -W -f='${Version}\n' com.nightvibes33.gif2ani 2>/dev/null || true
+printf 'bundle_sha256='; sha256sum "$BUNDLE/Gif2AniPrefs" 2>/dev/null | awk '{print $1}' || true
 
-rm -f "$DEB"
-curl -fL --retry 4 --retry-delay 2 --connect-timeout 20 --max-time 180 "$URL" -o "$DEB"
-ACTUAL_SHA="$(sha256sum "$DEB" | awk '{print $1}')"
-printf 'downloaded_sha256=%s\n' "$ACTUAL_SHA"
-test "$ACTUAL_SHA" = "$EXPECTED_SHA"
-test "$(dpkg-deb -f "$DEB" Package)" = 'com.nightvibes33.gif2ani'
-test "$(dpkg-deb -f "$DEB" Version)" = '3.4.1'
-test "$(dpkg-deb -f "$DEB" Architecture)" = 'iphoneos-arm64'
+NEWEST="$(find "$CRASH_DIR" -maxdepth 1 -type f \( -name 'Preferences-*.ips' -o -name 'Preferences_*.ips' -o -name 'Preferences*.ips' \) -print 2>/dev/null | while IFS= read -r f; do stat -f '%m|%N' "$f" 2>/dev/null || stat -c '%Y|%n' "$f" 2>/dev/null || true; done | sort -t '|' -k1,1nr | head -n 1 | cut -d'|' -f2-)"
 
-dpkg -i "$DEB"
-test "$(dpkg-query -W -f='${Version}' com.nightvibes33.gif2ani)" = '3.4.1'
-test -s "$BUNDLE/Gif2AniPrefs"
-test -f "$ROOT_PLIST"
+test -n "$NEWEST"
+test -f "$NEWEST"
+printf 'newest_crash=%s\n' "$NEWEST"
+printf 'crash_bytes='; wc -c < "$NEWEST"
 
-python3 - "$ROOT_PLIST" <<'PY'
-import plistlib,sys
-with open(sys.argv[1],'rb') as f:
-    root=plistlib.load(f)
-rows=[x for x in root.get('items',[]) if isinstance(x,dict) and x.get('label')=='Browse and Preview Animations']
-assert len(rows)==1, rows
-row=rows[0]
-assert row.get('cell')=='PSButtonCell', row
-assert row.get('action')=='openAnimationGallery', row
-assert 'detail' not in row, row
-assert row.get('id')=='G2ThemeGallery', row
-print('browse_row_cell='+row['cell'])
-print('browse_row_action='+row['action'])
-print('legacy_detail_removed=true')
+python3 - "$NEWEST" <<'PY'
+import json, pathlib, sys
+p=pathlib.Path(sys.argv[1])
+text=p.read_text(errors='replace')
+lines=text.splitlines()
+objs=[]
+for candidate in (lines[0] if lines else '', '\n'.join(lines[1:]) if len(lines)>1 else '', text):
+    try:
+        value=json.loads(candidate)
+    except Exception:
+        continue
+    if isinstance(value,dict): objs.append(value)
+header=objs[0] if objs else {}
+body=objs[1] if len(objs)>1 else (objs[-1] if objs else {})
+print('incident_id='+str(header.get('incident_id') or body.get('incident') or 'unknown'))
+print('timestamp='+str(header.get('timestamp') or body.get('captureTime') or 'unknown'))
+print('process='+str(body.get('procName') or header.get('app_name') or 'unknown'))
+print('pid='+str(body.get('pid') or 'unknown'))
+print('exception='+json.dumps(body.get('exception') or {},sort_keys=True))
+print('termination='+json.dumps(body.get('termination') or {},sort_keys=True))
+for key in ('asi','applicationSpecificInformation','exceptionReason','reason','diagnosticMessage','coalitionName'):
+    if key in body:
+        print(key+'='+json.dumps(body[key],sort_keys=True,default=str))
+print('body_keys='+','.join(sorted(body.keys())))
+images=body.get('usedImages') or []
+for i,img in enumerate(images):
+    if 'Gif2Ani' in str(img.get('name','')) or 'Gif2Ani' in str(img.get('path','')):
+        print('gif2ani_image_index='+str(i))
+        print('gif2ani_image='+json.dumps(img,sort_keys=True))
+fault=body.get('faultingThread')
+threads=body.get('threads') or []
+if isinstance(fault,int) and 0 <= fault < len(threads):
+    t=threads[fault]
+    print('faulting_thread_name='+str(t.get('name') or t.get('queue') or 'unknown'))
+    for n,frame in enumerate((t.get('frames') or [])[:60]):
+        idx=frame.get('imageIndex')
+        image=''
+        if isinstance(idx,int) and 0 <= idx < len(images): image=str(images[idx].get('name') or '')
+        print('frame_%02d=image:%s|symbol:%s|symbolOffset:%s|imageOffset:%s' % (n,image,frame.get('symbol') or '',frame.get('symbolLocation'),frame.get('imageOffset')))
+print('last_exception_backtrace='+json.dumps(body.get('lastExceptionBacktrace') or [],sort_keys=True))
+
+def walk(value,path='root'):
+    if isinstance(value,dict):
+        for k,v in value.items():
+            yield from walk(v,path+'.'+str(k))
+    elif isinstance(value,list):
+        for i,v in enumerate(value):
+            yield from walk(v,path+'['+str(i)+']')
+    elif isinstance(value,str):
+        low=value.lower()
+        needles=('selector','unrecognized','exception','reason','gif2ani','g2theme','controllerforspecifier','doesnotrecognize')
+        if any(x in low for x in needles):
+            yield path+'='+value[:1500].replace('\n','\\n')
+for i,item in enumerate(walk(body)):
+    print('recursive_clue_%02d=%s' % (i,item))
+    if i>=79: break
 PY
 
-if command -v strings >/dev/null 2>&1; then
-  strings "$BUNDLE/Gif2AniPrefs" | grep -Fq 'openAnimationGallery'
-  strings "$BUNDLE/Gif2AniPrefs" | grep -Fq 'G2ThemeGalleryController'
-  echo 'compiled_navigation_selectors=passed'
-else
-  echo 'compiled_navigation_selectors=strings_unavailable'
-fi
-
-rm -f "$MARKER"
-touch "$MARKER"
-killall -9 Preferences 2>/dev/null || true
-sleep 2
-if command -v uiopen >/dev/null 2>&1; then
-  su mobile -c "uiopen 'prefs:root=Gif2Ani'" >/dev/null 2>&1 || true
-fi
-sleep 6
-printf 'preferences_after_root_open='; ps -A 2>/dev/null | grep '[P]references' | head -n1 || true
-
-if command -v uiopen >/dev/null 2>&1; then
-  su mobile -c "uiopen 'prefs:root=Gif2Ani&G2ThemeGallery'" >/dev/null 2>&1 || true
-fi
-sleep 6
-printf 'preferences_after_gallery_deeplink='; ps -A 2>/dev/null | grep '[P]references' | head -n1 || true
-
-NEW_CRASHES="$(find "$CRASH_DIR" -maxdepth 1 -type f \( -name 'Preferences-*.ips' -o -name 'Preferences_*.ips' -o -name 'Preferences*.ips' \) -newer "$MARKER" -print 2>/dev/null | wc -l | tr -d ' ')"
-printf 'new_preferences_crashes=%s\n' "$NEW_CRASHES"
-test "$NEW_CRASHES" = '0'
-
-echo 'gallery_crash_hotfix_install=success'
-echo 'settings_launch_test=success'
-echo 'browse_preview_navigation_fix=installed'
-printf 'completed_at_utc='; date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || true
+echo 'exact_crash_parse=complete'
