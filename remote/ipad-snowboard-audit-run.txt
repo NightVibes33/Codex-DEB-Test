@@ -1,0 +1,21 @@
+Gif2Ani 3.5.6 All-Seven iPad Audit
+target_sha=8c13a02fa29e13beaa490112f94bbbe13d5fe7df
+id=30211836154
+head_sha=8c13a02fa29e13beaa490112f94bbbe13d5fe7df
+status=completed
+conclusion=success
+created_at=2026-07-26T17:05:11Z
+updated_at=2026-07-26T17:06:23Z
+html_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30211836154
+job=89819264225|Run command on iPad|completed|success
+step=1|Set up job|completed|success
+step=2|Run actions/checkout@v4|completed|success
+step=3|Validate secrets and command|completed|success
+step=4|Install Tailscale and SSH|completed|success
+step=5|Join tailnet and verify iPad node|completed|success
+step=6|Run command on iPad as root|completed|success
+step=7|Logout bridge node|completed|success
+step=8|Upload output|completed|success
+step=9|Publish stable bridge status|completed|success
+step=18|Post Run actions/checkout@v4|completed|success
+step=19|Complete job|completed|success
