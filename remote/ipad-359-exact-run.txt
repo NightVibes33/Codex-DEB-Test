@@ -1,0 +1,20 @@
+Gif2Ani 3.5.9 Exact iPad Install
+target_sha=2da64e16bdcdd78945d4fec01953d0c8dc20eb5a
+id=30215095070
+head_sha=2da64e16bdcdd78945d4fec01953d0c8dc20eb5a
+status=in_progress
+conclusion=None
+created_at=2026-07-26T18:37:00Z
+updated_at=2026-07-26T18:37:04Z
+html_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30215095070
+job=89827852051|Run command on iPad|in_progress|None
+step=1|Set up job|completed|success
+step=2|Run actions/checkout@v4|completed|success
+step=3|Validate secrets and command|completed|success
+step=4|Install Tailscale and SSH|completed|success
+step=5|Join tailnet and verify iPad node|completed|success
+step=6|Run command on iPad as root|in_progress|None
+step=7|Logout bridge node|pending|None
+step=8|Upload output|pending|None
+step=9|Publish stable bridge status|pending|None
+step=18|Post Run actions/checkout@v4|pending|None
