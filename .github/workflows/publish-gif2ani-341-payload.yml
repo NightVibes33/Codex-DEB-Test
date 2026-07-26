@@ -1,0 +1,56 @@
+name: Publish Gif2Ani 3.4.1 Bridge Payload
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/publish-gif2ani-341-payload.yml
+      - triggers/publish-gif2ani-341-payload.txt
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-gif2ani-341-payload
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download and verify exact green artifact
+        env:
+          ARTIFACT_ZIP_URL: 'https://sdmntprcentralus.oaiusercontent.com/files/00000000-6614-81f5-a677-301e76530831/raw?se=2026-07-26T00%3A55%3A01Z&sp=r&sv=2026-02-06&sr=b&scid=3b009001-676e-5a91-bd66-ef523c6f906a&skoid=2d2fbb03-9efb-4ad0-a91c-1db2f5a47997&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-07-25T13%3A11%3A03Z&ske=2026-07-27T13%3A11%3A03Z&sks=b&skv=2026-02-06&sig=8uPkmhGvh%2By%2BbrnCF3eQgyYyTvh0LS4iTgU4begAe04%3D'
+          EXPECTED_SHA256: aa4691278f17938d77eb0f086e61e580115d3602c5686566f378ac4fa2b435eb
+        run: |
+          set -euo pipefail
+          rm -rf payload-work
+          mkdir -p payload-work remote/payloads
+          curl -fL --retry 4 --retry-delay 2 --connect-timeout 20 --max-time 180 \
+            "$ARTIFACT_ZIP_URL" -o payload-work/Gif2Ani-3.4.1.zip
+          unzip -q payload-work/Gif2Ani-3.4.1.zip -d payload-work/unpacked
+          DEB="$(find payload-work/unpacked -maxdepth 1 -type f -name 'com.nightvibes33.gif2ani_3.4.1_iphoneos-arm64.deb' -print -quit)"
+          test -s "$DEB"
+          echo "$EXPECTED_SHA256  $DEB" | sha256sum -c -
+          test "$(dpkg-deb -f "$DEB" Package)" = 'com.nightvibes33.gif2ani'
+          test "$(dpkg-deb -f "$DEB" Version)" = '3.4.1'
+          test "$(dpkg-deb -f "$DEB" Architecture)" = 'iphoneos-arm64'
+          cp "$DEB" remote/payloads/Gif2Ani-3.4.1-rootless.deb
+          sha256sum remote/payloads/Gif2Ani-3.4.1-rootless.deb > remote/payloads/Gif2Ani-3.4.1-rootless.sha256
+
+      - name: Commit stable bridge payload
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f remote/payloads/Gif2Ani-3.4.1-rootless.deb
+          git add remote/payloads/Gif2Ani-3.4.1-rootless.sha256
+          git commit -m 'Mirror verified Gif2Ani 3.4.1 bridge payload [skip ci]' || exit 0
+          git pull --rebase origin main
+          git push origin HEAD:main
