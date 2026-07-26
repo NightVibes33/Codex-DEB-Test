@@ -1,3 +1,3 @@
-requested_at_utc=2026-07-26T17:45:00Z
-target_sha=2229b8bdb919effb7546667a0fd9121da452eca6
-purpose=report the exact stable iPad bridge run for Gif2Ani 3.5.8
+requested_at_utc=2026-07-26T17:47:00Z
+target_sha=6d48c39cb87d7749716a5cf96bb3ec6badbe3b42
+purpose=report the exact stable iPad bridge retry for Gif2Ani 3.5.8 while the iPad is awake
