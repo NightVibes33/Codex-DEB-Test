@@ -1,2 +1,2 @@
-requested_at_utc=2026-07-26T17:50:00Z
-purpose=report latest corrected Gif2Ani 3.5.8 dedicated iPad installer run
+requested_at_utc=2026-07-26T17:52:00Z
+purpose=poll latest corrected Gif2Ani 3.5.8 dedicated iPad installer after SSH wait
