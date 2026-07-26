@@ -1,0 +1,168 @@
+name: Collect Exact Gif2Ani Browse Crash
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/collect-gif2ani-browse-crash.yml
+      - triggers/collect-gif2ani-browse-crash.txt
+
+permissions:
+  contents: write
+
+concurrency:
+  group: collect-exact-gif2ani-browse-crash
+  cancel-in-progress: false
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: '18728387881'
+        run: |
+          set -euo pipefail
+          curl -fsSL -H 'Accept: application/vnd.github+json' -H "Authorization: Bearer $GH_TOKEN" -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" -o envs.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1]); data=json.load(open('envs.json'))
+          for item in data.get('environments',[]):
+              if int(item.get('id',-1))==target:
+                  print('environment_name='+item['name']); raise SystemExit
+          raise SystemExit(1)
+          PY
+
+  collect:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate secrets
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          test -n "$TAILSCALE_AUTHKEY"
+          test -n "$IPAD_PASSWORD"
+
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Install SSH client
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends openssh-client sshpass
+
+      - name: Parse newest Preferences crash
+        id: device
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_HOST: '100.116.117.65'
+        run: |
+          set -uo pipefail
+          : > exact-browse-crash.txt
+          mkdir -p "$HOME/.ssh"
+          ssh-keyscan -T 15 -H -p 22 "$IPAD_HOST" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+          {
+            printf '%s\n' "$IPAD_PASSWORD"
+            cat <<'REMOTE'
+          set -eu
+          export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
+          CRASH_DIR='/var/mobile/Library/Logs/CrashReporter'
+          BUNDLE='/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle'
+          echo '=== Exact newest Gif2Ani Browse crash ==='
+          printf 'collected_at_utc='; date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || true
+          printf 'model='; sysctl -n hw.model 2>/dev/null || true
+          printf 'installed_version='; dpkg-query -W -f='${Version}\n' com.nightvibes33.gif2ani 2>/dev/null || true
+          printf 'bundle_sha256='; sha256sum "$BUNDLE/Gif2AniPrefs" 2>/dev/null | awk '{print $1}' || true
+          NEWEST="$(find "$CRASH_DIR" -maxdepth 1 -type f \( -name 'Preferences-*.ips' -o -name 'Preferences_*.ips' -o -name 'Preferences*.ips' \) -print 2>/dev/null | while IFS= read -r f; do stat -f '%m|%N' "$f" 2>/dev/null || stat -c '%Y|%n' "$f" 2>/dev/null || true; done | sort -t '|' -k1,1nr | head -n1 | cut -d'|' -f2-)"
+          test -n "$NEWEST"; test -f "$NEWEST"
+          printf 'newest_crash=%s\n' "$NEWEST"
+          python3 - "$NEWEST" <<'PY'
+          import json,pathlib,sys
+          text=pathlib.Path(sys.argv[1]).read_text(errors='replace'); lines=text.splitlines(); objs=[]
+          for candidate in (lines[0] if lines else '', '\n'.join(lines[1:]) if len(lines)>1 else '', text):
+              try: value=json.loads(candidate)
+              except Exception: continue
+              if isinstance(value,dict): objs.append(value)
+          h=objs[0] if objs else {}; b=objs[1] if len(objs)>1 else (objs[-1] if objs else {})
+          print('incident_id='+str(h.get('incident_id') or b.get('incident') or 'unknown'))
+          print('timestamp='+str(h.get('timestamp') or b.get('captureTime') or 'unknown'))
+          print('process='+str(b.get('procName') or h.get('app_name') or 'unknown'))
+          print('exception='+json.dumps(b.get('exception') or {},sort_keys=True))
+          print('termination='+json.dumps(b.get('termination') or {},sort_keys=True))
+          for k in ('asi','applicationSpecificInformation','exceptionReason','reason','diagnosticMessage'):
+              if k in b: print(k+'='+json.dumps(b[k],sort_keys=True,default=str))
+          print('body_keys='+','.join(sorted(b.keys())))
+          images=b.get('usedImages') or []
+          for i,img in enumerate(images):
+              if 'Gif2Ani' in str(img.get('name','')) or 'Gif2Ani' in str(img.get('path','')):
+                  print('gif2ani_image_index='+str(i)); print('gif2ani_image='+json.dumps(img,sort_keys=True))
+          print('last_exception_backtrace='+json.dumps(b.get('lastExceptionBacktrace') or [],sort_keys=True))
+          fault=b.get('faultingThread'); threads=b.get('threads') or []
+          if isinstance(fault,int) and 0<=fault<len(threads):
+              for n,frame in enumerate((threads[fault].get('frames') or [])[:60]):
+                  idx=frame.get('imageIndex'); image=''
+                  if isinstance(idx,int) and 0<=idx<len(images): image=str(images[idx].get('name') or '')
+                  print('frame_%02d=image:%s|symbol:%s|symbolOffset:%s|imageOffset:%s'%(n,image,frame.get('symbol') or '',frame.get('symbolLocation'),frame.get('imageOffset')))
+          def walk(v,p='root'):
+              if isinstance(v,dict):
+                  for k,x in v.items(): yield from walk(x,p+'.'+str(k))
+              elif isinstance(v,list):
+                  for i,x in enumerate(v): yield from walk(x,p+'['+str(i)+']')
+              elif isinstance(v,str) and any(n in v.lower() for n in ('selector','unrecognized','exception','reason','gif2ani','g2theme','controllerforspecifier','doesnotrecognize')):
+                  yield p+'='+v[:1200].replace('\n','\\n')
+          for i,x in enumerate(walk(b)):
+              print('recursive_clue_%02d=%s'%(i,x))
+              if i>=79: break
+          PY
+          echo 'exact_browse_crash_collection=success'
+          REMOTE
+          } | sshpass -e ssh -p 22 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" -o ConnectTimeout=20 mobile@"$IPAD_HOST" 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/usr/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' 2>&1 | tee exact-browse-crash.txt
+          exit ${PIPESTATUS[1]}
+
+      - name: Upload crash diagnosis
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exact-gif2ani-browse-crash-${{ github.run_id }}
+          path: exact-browse-crash.txt
+          if-no-files-found: warn
+
+      - name: Publish sanitized diagnosis
+        if: always()
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          DEVICE_OUTCOME: ${{ steps.device.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          p=Path('exact-browse-crash.txt'); text=p.read_text(errors='replace') if p.exists() else 'No output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          lines=['Exact Gif2Ani Browse Crash Diagnosis','run_id='+os.environ.get('GITHUB_RUN_ID',''),'device='+os.environ.get('DEVICE_OUTCOME',''),'','--- sanitized output ---']
+          lines.extend(text.splitlines()[-500:])
+          Path('remote/gif2ani-exact-browse-crash.txt').write_text('\n'.join(lines)+'\n')
+          PY
+          git add remote/gif2ani-exact-browse-crash.txt
+          git commit -m 'Record exact Gif2Ani Browse crash [skip ci]' || exit 0
+          git push origin HEAD:main
