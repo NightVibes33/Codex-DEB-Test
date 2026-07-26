@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30186029600
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30186029600
-commit=1b9b836727f19805f9048c845e22e73e5c32a382
+run_id=30187027801
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30187027801
+commit=b0e9a9418ec22e30ddba689af8e83a69791586e4
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -16,33 +16,52 @@ Checking SSH host key over Tailscale...
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-=== Install and validate Gif2Ani 3.5.0 modernization ===
-started_at_utc=2026-07-26T03:21:47Z
+=== Gif2Ani 3.5.0 device management and runtime audit ===
+started_at_utc=2026-07-26T03:59:28Z
 model=J71tAP
-previous_version=3.4.2
-preserved_files_before=182
-download_sha256=75168e3ce66aaf041c41ba16eded7994e2d4670c44e0b7c94623666fc3b718b0
-package_metadata=passed
-dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
- missing 'Maintainer' field
-(Reading database ... 19750 files and directories currently installed.)
-Preparing to unpack .../Gif2Ani-3.5.0-modern-gallery.deb ...
-Unpacking com.nightvibes33.gif2ani (3.5.0) over (3.4.2) ...
-Setting up com.nightvibes33.gif2ani (3.5.0) ...
-Processing triggers for org.coolstar.sileo (2.5.1) ...
-installed_version=dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
- missing 'Maintainer' field
-3.5.0
+installed_version=3.5.0
 dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
  missing 'Maintainer' field
-browse_navigation_contract=passed
-modern_gallery_markers=passed
-backboard_reliability_markers=passed
-preserved_files_after=182
-downloaded_theme_data_preserved=true
-settings_links_opened=true
+cc0_catalog_count=54
+cc0_catalog_integrity=passed
+favorites_preferences_roundtrip=passed
+recent_preferences_roundtrip=passed
+original_enabled=true
+original_pending_ready=false
+original_last_applied_theme=none
+catalog_files=0
+catalog_bytes=0
+springy_files=162
+springy_bytes=4792927
+imported_files=0
+imported_bytes=0
+rollbacks_files=0
+rollbacks_bytes=0
+rollback_slots=0
+rollback_retention_limit=passed
+cc0_cached_valid=0
+cc0_cached_stale=0
+cc0_cache_integrity=passed
+springy_cached_valid=2
+springy_cached_stale=0
+springy_cache_metadata=passed
+active_gif_exists=true
+active_gif_bytes=600246
+pending_gif_exists=false
+rejected_gif_exists=false
+runtime-status_plist_exists=true
+runtime-status_plist_bytes=1681
+pending-metadata_plist_exists=false
+runtime_event=custom-animation-stable
+runtime_frame_count=6
+runtime_animation_pending=false
+runtime_decoded_frames=6
+runtime_estimated_decoded_bytes=4124160
+device_data_audit=passed
+preferences_restored=true
+settings_gallery_links_opened=true
 new_preferences_crashes=0
-gif2ani_350_install=success
-gif2ani_350_static_feature_validation=success
-gif2ani_350_settings_launch_test=success
+gif2ani_350_management_audit=success
+gif2ani_350_cache_audit=success
+gif2ani_350_runtime_audit=success
 ssh_exit_code=0
