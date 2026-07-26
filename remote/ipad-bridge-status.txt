@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30208225970
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30208225970
-commit=a22eeccd6edd961e26357a444a69c5566400a341
+run_id=30208463875
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30208463875
+commit=c2953a93539953e3706ad68aa7652336c03b9bde
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -18,21 +18,52 @@ SSH port attempt 1/18
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 ipad_ssh_port_ready=success
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-=== Repair Gif2Ani version shown in Settings ===
-started_at_utc=2026-07-26T15:27:48Z
+=== Install and physical-test final Gif2Ani 3.5.4 ===
+started_at_utc=2026-07-26T15:34:29Z
 identity=uid=0(root) gid=0(wheel) groups=0(wheel)
-package_version=3.5.3
-matched_plists=2
-matched=/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/Root.plist
-matched=/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/Info.plist
-patched_plists=1
-patched=/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/Root.plist
-rootless_has_353_label=true
-rootless_has_stale_341_label=false
-package_version_after=3.5.3
+model=J71tAP
+version_before=3.5.3
+user_media_files_before=189
+release_effective_url=https://raw.githubusercontent.com/NightVibes33/Dark-Boot/e0017ea96de60af7927c0acfea557ee070115fa2/release-packages/Gif2Ani-3.5.4-verified-immutable-springy.deb
+release_sha256=3dbfd641411d98cdb766d059a01da55c2c03cfe8e7b70fd7551e942ba3492bb2
+release_package_metadata=passed
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+(Reading database ... 19853 files and directories currently installed.)
+Preparing to unpack .../Gif2Ani-3.5.4-verified-immutable-springy.deb ...
+Unpacking com.nightvibes33.gif2ani (3.5.4) over (3.5.3) ...
+Setting up com.nightvibes33.gif2ani (3.5.4) ...
+Processing triggers for org.coolstar.sileo (2.5.1) ...
 dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
  missing 'Maintainer' field
-visible_label_after=GIF2ANI 3.5.3
+version_immediate=3.5.4
+version_label_and_immutable_code=passed
+bundled_preview_count=102
+all_bundled_previews_png_220x220=passed
+immutable_catalog_count=48
+all_immutable_catalog_records=passed
+springy_package=io.github.virenmohindra.alone
+springy_source_commit=c507a391f193c2bb362ff77fc1c1673c0da2dcae
+springy_filename=./debs/io.github.virenmohindra.alone_1.0_iphoneos-arm.deb
+springy_url=https://raw.githubusercontent.com/VirenMohindra/CydiaRepo/c507a391f193c2bb362ff77fc1c1673c0da2dcae/debs/io.github.virenmohindra.alone_1.0_iphoneos-arm.deb
+springy_effective_url=https://raw.githubusercontent.com/VirenMohindra/CydiaRepo/c507a391f193c2bb362ff77fc1c1673c0da2dcae/debs/io.github.virenmohindra.alone_1.0_iphoneos-arm.deb
+springy_actual_bytes=2427982
+springy_expected_bytes=2427982
+springy_actual_sha256=226c158022947c6d430726e24300277293cb9841da69e98950fb48947dcc43d1
+springy_expected_sha256=226c158022947c6d430726e24300277293cb9841da69e98950fb48947dcc43d1
+springy_extracted_media_count=66
+springy_manifest_media_count=66
+immutable_springy_physical_download=passed
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+version_after_5s=3.5.4
+visible_label=GIF2ANI 3.5.4
+user_media_files_after=189
 gif2ani_settings_reopened=true
-gif2ani_visible_version_fix=success
+tweak_binary_sha256=23ce0cd13044d90f67b4d46ae3e39bf21dbd49bfcbe8f80aeba6ddb9a18529b5
+prefs_binary_sha256=22bc692d49397b11a3ef20679a79eec54cdc00744f493bb97e1e5f190a6fd243
+gif2ani_354_install=success
+gif2ani_354_48_download_records=success
+gif2ani_354_102_real_previews=success
+gif2ani_354_physical_springy_download=success
 ssh_exit_code=0
