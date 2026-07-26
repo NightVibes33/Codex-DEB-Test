@@ -1,52 +1,12 @@
 iPad Tailscale SSH Bridge
-run_id=30187288321
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30187288321
-commit=d8402a0ba9824f175207082b9451d0bb53121c56
+run_id=30187899243
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30187899243
+commit=55c27190aaa94b873cde5fb3ce9fe423f0a56f44
 environment=TAILSCALE_AUTHKEY-
 validate=success
-tailscale=success
-install_ssh=success
-ssh=success
+tailscale=failure
+install_ssh=skipped
+ssh=skipped
 
 --- sanitized SSH output ---
-Checking SSH host key over Tailscale...
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-=== Install and validate Gif2Ani 3.5.1 gallery polish ===
-started_at_utc=2026-07-26T04:08:33Z
-model=J71tAP
-previous_version=3.5.0
-preserved_files_before=183
-preserved_kib_before=7536
-cc0_before=1975aa569fb5ee0002856a7cff3b60bbcde04126514386fbd52b89d9f5349a46
-springy_before=present
-download_sha256=f57a43519841453ec81251a117673e12dacbd8440c1ebdc6844091c6cb7b5d0f
-package_metadata=passed
-dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
- missing 'Maintainer' field
-(Reading database ... 19750 files and directories currently installed.)
-Preparing to unpack .../Gif2Ani-3.5.1-gallery-polish.deb ...
-Unpacking com.nightvibes33.gif2ani (3.5.1) over (3.5.0) ...
-Setting up com.nightvibes33.gif2ani (3.5.1) ...
-Processing triggers for org.coolstar.sileo (2.5.1) ...
-installed_version=dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
- missing 'Maintainer' field
-3.5.1
-dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
- missing 'Maintainer' field
-gallery_351_markers=passed
-backboard_markers_preserved=passed
-preserved_files_after=183
-preserved_kib_after=7536
-cc0_cache_preserved=true
-springy_cache_preserved=true
-settings_gallery_links_opened=true
-new_preferences_crashes=0
-gif2ani_351_install=success
-gif2ani_351_upgrade_preservation=success
-gif2ani_351_settings_launch=success
-ssh_exit_code=0
+No SSH output file was created; failure occurred before the SSH step.
