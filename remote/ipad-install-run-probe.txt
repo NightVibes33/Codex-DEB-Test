@@ -1,0 +1,76 @@
+Gif2Ani live install run probe
+probed_at_utc=2026-07-26T00:57:53Z
+
+[ipad_tailscale_bridge]
+run_id=30181965231
+name=iPad Tailscale SSH Bridge
+event=push
+head_sha=36e0faeef32d96da0fde29d293f1fd864646686f
+status=in_progress
+conclusion=None
+created_at=2026-07-26T00:54:20Z
+updated_at=2026-07-26T00:54:29Z
+url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30181965231
+---
+run_id=30181126510
+name=iPad Tailscale SSH Bridge
+event=push
+head_sha=434313410cb9a296affdbe570981b7d791dded16
+status=completed
+conclusion=failure
+created_at=2026-07-26T00:25:16Z
+updated_at=2026-07-26T00:26:10Z
+url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30181126510
+---
+run_id=30159693755
+name=iPad Tailscale SSH Bridge
+event=push
+head_sha=3436d54c34a7d4f5c0fc603f5a650f531be1ed6c
+status=completed
+conclusion=success
+created_at=2026-07-25T13:25:14Z
+updated_at=2026-07-25T13:26:13Z
+url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30159693755
+---
+run_id=30158653369
+name=iPad Tailscale SSH Bridge
+event=push
+head_sha=960ec666a3e1aa3237951c046fca8926262e797f
+status=completed
+conclusion=success
+created_at=2026-07-25T12:50:55Z
+updated_at=2026-07-25T12:51:49Z
+url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30158653369
+---
+run_id=30158436954
+name=iPad Tailscale SSH Bridge
+event=push
+head_sha=bbce2f6c148a52b36c6d47627188dfb2b2e03481
+status=completed
+conclusion=success
+created_at=2026-07-25T12:43:29Z
+updated_at=2026-07-25T12:44:13Z
+url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30158436954
+---
+
+[compact_final_v2]
+run_id=30182015281
+name=Build Install Gif2Ani 3.4.1 Final V2
+event=push
+head_sha=1f3333adbf73c266da5cf43ca7c25305bcc45852
+status=completed
+conclusion=failure
+created_at=2026-07-26T00:56:01Z
+updated_at=2026-07-26T00:57:14Z
+url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30182015281
+---
+run_id=30181933799
+name=Build Install Gif2Ani 3.4.1 Final V2
+event=push
+head_sha=e1d9c5b3b3ffaac97bf5c204854063e365de570f
+status=completed
+conclusion=failure
+created_at=2026-07-26T00:53:11Z
+updated_at=2026-07-26T00:54:29Z
+url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30181933799
+---
