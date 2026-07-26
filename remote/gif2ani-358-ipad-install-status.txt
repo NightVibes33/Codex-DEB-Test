@@ -1,0 +1,8 @@
+Gif2Ani 3.5.8 Dedicated iPad Installer
+run_id=30213310451
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30213310451
+commit=e556c35a37ba486d553572b1c8be405fbafa69b7
+status=failure
+
+--- sanitized output ---
+No output file.
