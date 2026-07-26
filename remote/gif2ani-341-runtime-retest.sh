@@ -14,6 +14,27 @@ WORK='/var/mobile/Library/Caches/Gif2Ani341RuntimeRetest'
 BACKUP="$MEDIA/RemoteRuntimeRetestBackup"
 SUCCESS=0
 
+sha_file() {
+  if [ -f "$1" ]; then sha256sum "$1" | awk '{print $1}'; else printf 'MISSING'; fi
+}
+
+find_backboard_pid() {
+  pid=''
+  if command -v pgrep >/dev/null 2>&1; then
+    pid="$(pgrep -x backboardd 2>/dev/null | head -n1 || true)"
+  fi
+  if [ -z "$pid" ] && command -v pidof >/dev/null 2>&1; then
+    pid="$(pidof backboardd 2>/dev/null | awk '{print $1}' || true)"
+  fi
+  if [ -z "$pid" ] && command -v ps >/dev/null 2>&1; then
+    pid="$(ps -A -o pid=,comm= 2>/dev/null | awk '$2 == "backboardd" {print $1; exit}' || true)"
+  fi
+  if [ -z "$pid" ] && command -v launchctl >/dev/null 2>&1; then
+    pid="$(launchctl print system/com.apple.backboardd 2>/dev/null | awk '/pid =/ {print $3; exit}' || true)"
+  fi
+  printf '%s' "$pid"
+}
+
 restore_state() {
   echo 'rollback=starting'
   if [ -f "$BACKUP/had-active" ]; then cp -p "$BACKUP/Active.gif" "$ACTIVE"; else rm -f "$ACTIVE"; fi
@@ -22,14 +43,14 @@ restore_state() {
   chown 501:501 "$ACTIVE" "$PREFS" 2>/dev/null || true
   chmod 0644 "$ACTIVE" "$PREFS" 2>/dev/null || true
   killall -9 backboardd 2>/dev/null || true
-  sleep 5
+  sleep 7
   echo 'rollback=complete'
 }
 
 finish() {
   code=$?
   trap - EXIT INT TERM
-  if [ "$code" -ne 0 ] && [ "$SUCCESS" -ne 1 ]; then restore_state || true; fi
+  if [ "$SUCCESS" -ne 1 ]; then restore_state || true; fi
   rm -rf "$WORK" 2>/dev/null || true
   exit "$code"
 }
@@ -40,6 +61,8 @@ rm -rf "$BACKUP"
 mkdir -p "$BACKUP"
 if [ -f "$ACTIVE" ]; then touch "$BACKUP/had-active"; cp -p "$ACTIVE" "$BACKUP/Active.gif"; fi
 if [ -f "$PREFS" ]; then touch "$BACKUP/had-prefs"; cp -p "$PREFS" "$BACKUP/preferences.plist"; fi
+ORIGINAL_ACTIVE_SHA="$(sha_file "$ACTIVE")"
+ORIGINAL_PREFS_SHA="$(sha_file "$PREFS")"
 
 echo '=== Gif2Ani 3.4.1 verbose runtime retest ==='
 printf 'started_at_utc='; date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || true
@@ -50,7 +73,8 @@ printf 'installed_version=%s\n' "$INSTALLED_VERSION"
 test "$INSTALLED_VERSION" = '3.4.1'
 test -s /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib
 test -s /var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/Gif2AniPrefs
-printf 'original_active_sha256=%s\n' "$(sha256sum "$ACTIVE" 2>/dev/null | awk '{print $1}' || printf MISSING)"
+printf 'original_active_sha256=%s\n' "$ORIGINAL_ACTIVE_SHA"
+printf 'original_preferences_sha256=%s\n' "$ORIGINAL_PREFS_SHA"
 printf 'rollback_backup=%s\n' "$BACKUP"
 touch "$WORK/crash-marker"
 
@@ -88,8 +112,11 @@ wait_new_backboard() {
   old="$1"
   i=0
   while [ "$i" -lt 45 ]; do
-    current="$(pgrep -x backboardd 2>/dev/null | head -n1 || true)"
-    if [ -n "$current" ] && [ "$current" != "$old" ]; then printf '%s' "$current"; return 0; fi
+    current="$(find_backboard_pid)"
+    if [ -n "$current" ] && { [ -z "$old" ] || [ "$current" != "$old" ]; }; then
+      printf '%s' "$current"
+      return 0
+    fi
     i=$((i+1))
     sleep 1
   done
@@ -132,10 +159,9 @@ run_theme_test() {
   write_test_preferences "$name"
   rm -f "$RUNTIME" "$REJECTED" "$SENTINEL"
   sync 2>/dev/null || true
-  old_pid="$(pgrep -x backboardd 2>/dev/null | head -n1 || true)"
+  old_pid="$(find_backboard_pid)"
   printf 'backboard_pid_before=%s\n' "$old_pid"
-  test -n "$old_pid"
-  killall -9 backboardd
+  killall -9 backboardd 2>/dev/null || true
   new_pid="$(wait_new_backboard "$old_pid")"
   printf 'backboard_pid_after=%s\n' "$new_pid"
   test -n "$new_pid"
@@ -182,6 +208,14 @@ crashes="$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -n
 printf 'new_relevant_crash_reports=%s\n' "$crashes"
 test "$crashes" = '0'
 
+restore_state
+RESTORED_ACTIVE_SHA="$(sha_file "$ACTIVE")"
+RESTORED_PREFS_SHA="$(sha_file "$PREFS")"
+printf 'restored_active_sha256=%s\n' "$RESTORED_ACTIVE_SHA"
+printf 'restored_preferences_sha256=%s\n' "$RESTORED_PREFS_SHA"
+test "$RESTORED_ACTIVE_SHA" = "$ORIGINAL_ACTIVE_SHA"
+test "$RESTORED_PREFS_SHA" = "$ORIGINAL_PREFS_SHA"
+
 killall -9 Preferences 2>/dev/null || true
 if command -v uiopen >/dev/null 2>&1; then su mobile -c "uiopen 'prefs:root=Gif2Ani'" >/dev/null 2>&1 || true; fi
 sleep 4
@@ -191,7 +225,6 @@ SUCCESS=1
 echo 'runtime_retest=success'
 echo 'runtime_themes_passed=3'
 echo 'springy_pipeline_passed=1'
-echo 'active_theme=Cyan Energy Wave'
-echo 'active_theme_left_enabled=true'
+echo 'active_state_restored=true'
 echo "rollback_backup=$BACKUP"
 printf 'completed_at_utc='; date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || true
