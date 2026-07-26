@@ -1,12 +1,12 @@
 iPad Tailscale SSH Bridge
-run_id=30208066276
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30208066276
-commit=ac13efb7fd853649e12c37caa7590dff8e8729aa
+run_id=30208094973
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30208094973
+commit=a2534455a8cafdefd0461aa150f29300b3eee4f4
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
 install_ssh=success
-ssh=cancelled
+ssh=failure
 
 --- sanitized SSH output ---
 Waking and checking iPad SSH port over Tailscale...
@@ -19,7 +19,7 @@ SSH port attempt 1/18
 ipad_ssh_port_ready=success
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
 === Install and physical-test Gif2Ani 3.5.3 ===
-started_at_utc=2026-07-26T15:23:27Z
+started_at_utc=2026-07-26T15:24:14Z
 identity=uid=0(root) gid=0(wheel) groups=0(wheel)
 model=J71tAP
 version_before=3.5.3
@@ -33,9 +33,9 @@ Preparing to unpack .../Gif2Ani-3.5.3-immutable-springy-fix.deb ...
 Unpacking com.nightvibes33.gif2ani (3.5.3) over (3.5.3) ...
 Setting up com.nightvibes33.gif2ani (3.5.3) ...
 Processing triggers for org.coolstar.sileo (2.5.1) ...
-version_immediate=3.5.3
 dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
  missing 'Maintainer' field
+version_immediate=3.5.3
 installed_bundle_and_previews=passed
 springy_package=io.github.virenmohindra.alone
 springy_source_commit=c507a391f193c2bb362ff77fc1c1673c0da2dcae
