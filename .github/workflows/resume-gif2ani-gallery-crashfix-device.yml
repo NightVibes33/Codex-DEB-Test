@@ -1,0 +1,261 @@
+name: Resume Gif2Ani Gallery Crash-Fix Device Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/resume-gif2ani-gallery-crashfix-device.yml
+      - triggers/resume-gif2ani-gallery-crashfix-device.txt
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: resume-gif2ani-gallery-crashfix-device
+  cancel-in-progress: true
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - name: Resolve secret environment
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: '18728387881'
+        run: |
+          set -euo pipefail
+          curl -fsSL \
+            -H 'Accept: application/vnd.github+json' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" \
+            -o environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1])
+          data=json.load(open('environments.json'))
+          for item in data.get('environments',[]):
+              if int(item.get('id',-1))==target:
+                  print('environment_name='+item['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment not found')
+          PY
+
+  install-test:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout bridge
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download successful crash-fix build artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: '8626491019'
+        run: |
+          set -euo pipefail
+          mkdir -p payload
+          curl -fL \
+            -H 'Accept: application/vnd.github+json' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" \
+            -o payload.zip
+          unzip -q payload.zip -d payload
+          chmod 0755 payload/gallery-runtime-probe
+          test -s payload/Gif2Ani-3.4.1-gallery-crashfix.deb
+          test -x payload/gallery-runtime-probe
+          test "$(sha256sum payload/Gif2Ani-3.4.1-gallery-crashfix.deb | awk '{print $1}')" = 'a8395150766bf7bf0921b0e0a43639b421d0301742ace38abe9f2ba5cddc4ace'
+
+      - name: Validate SSH secrets
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$TAILSCALE_AUTHKEY"
+          test -n "$IPAD_PASSWORD"
+
+      - name: Join tailnet
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Install SSH tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends openssh-client sshpass
+
+      - name: Copy package and runtime probe to iPad
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_HOST: '100.116.117.65'
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"
+          ssh-keyscan -T 15 -H -p 22 "$IPAD_HOST" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+          sshpass -e scp -P 22 \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            payload/Gif2Ani-3.4.1-gallery-crashfix.deb \
+            payload/gallery-runtime-probe \
+            mobile@"$IPAD_HOST":/var/mobile/Library/Caches/
+
+      - name: Install and test gallery fix over SSH
+        id: device
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_HOST: '100.116.117.65'
+        run: |
+          set -uo pipefail
+          : > gallery-crashfix-device-output.txt
+          {
+            printf '%s\n' "$IPAD_PASSWORD"
+            cat <<'REMOTE'
+          set -eu
+          export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
+          DEB='/var/mobile/Library/Caches/Gif2Ani-3.4.1-gallery-crashfix.deb'
+          PROBE='/var/mobile/Library/Caches/gallery-runtime-probe'
+          BUNDLE='/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle'
+          MEDIA='/var/mobile/Library/Application Support/Gif2Ani'
+          BACKUP='/var/mobile/Library/Caches/Gif2AniGalleryCrashFixBackup'
+          MARKER='/var/mobile/Library/Caches/Gif2AniGalleryCrashFixMarker'
+          SUCCESS=0
+
+          restore_files() {
+            echo 'rollback=starting'
+            [ ! -d "$BACKUP/bundle" ] || { rm -rf "$BUNDLE"; cp -a "$BACKUP/bundle" "$BUNDLE"; }
+            [ ! -f "$BACKUP/Gif2Ani.dylib" ] || cp -p "$BACKUP/Gif2Ani.dylib" /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib
+            [ ! -f "$BACKUP/Gif2Ani.plist" ] || cp -p "$BACKUP/Gif2Ani.plist" /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist
+            killall -9 Preferences 2>/dev/null || true
+            echo 'rollback=complete'
+          }
+          finish() {
+            code=$?
+            trap - EXIT INT TERM
+            [ "$SUCCESS" -eq 1 ] || restore_files || true
+            rm -f "$DEB" "$PROBE"
+            exit "$code"
+          }
+          trap finish EXIT INT TERM
+
+          echo '=== Gif2Ani 3.4.1 gallery crash-fix device proof ==='
+          printf 'started_at_utc='; date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || true
+          printf 'identity='; id
+          printf 'model='; sysctl -n hw.model 2>/dev/null || true
+          test "$(sha256sum "$DEB" | awk '{print $1}')" = 'a8395150766bf7bf0921b0e0a43639b421d0301742ace38abe9f2ba5cddc4ace'
+          test "$(dpkg-deb -f "$DEB" Package)" = 'com.nightvibes33.gif2ani'
+          test "$(dpkg-deb -f "$DEB" Version)" = '3.4.1'
+
+          rm -rf "$BACKUP"
+          mkdir -p "$BACKUP"
+          cp -a "$BUNDLE" "$BACKUP/bundle"
+          cp -p /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib "$BACKUP/Gif2Ani.dylib"
+          cp -p /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist "$BACKUP/Gif2Ani.plist"
+
+          dpkg -i "$DEB"
+          test "$(dpkg-query -W -f='${Version}' com.nightvibes33.gif2ani)" = '3.4.1'
+          grep -Fq '<string>PSButtonCell</string>' "$BUNDLE/Root.plist"
+          grep -Fq '<string>openAnimationGallery</string>' "$BUNDLE/Root.plist"
+          echo 'package_install=passed'
+
+          chmod 0755 "$PROBE"
+          "$PROBE"
+
+          killall -9 Preferences 2>/dev/null || true
+          rm -f "$MARKER"
+          touch "$MARKER"
+          if command -v uiopen >/dev/null 2>&1; then
+            su mobile -c "uiopen 'prefs:root=Gif2Ani'" >/dev/null 2>&1 || true
+            sleep 5
+            su mobile -c "uiopen 'prefs:root=Gif2Ani&path=G2ThemeGallery'" >/dev/null 2>&1 || true
+          fi
+          sleep 12
+
+          crashes="$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f -name 'Preferences-*.ips' -newer "$MARKER" -print 2>/dev/null | wc -l | tr -d ' ')"
+          printf 'new_preferences_crashes=%s\n' "$crashes"
+          test "$crashes" = '0'
+          test -d "$MEDIA/OpenThemeLibrary/io.github.virenmohindra.a-wave"
+          test -d "$MEDIA/OpenThemeLibrary/io.github.virenmohindra.swish"
+          echo 'catalog_cache=passed'
+
+          SUCCESS=1
+          rm -rf "$BACKUP"
+          echo 'gallery_crashfix_device_test=success'
+          echo 'gallery_runtime_contract=passed'
+          echo 'settings_new_crash=false'
+          printf 'completed_at_utc='; date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || true
+          REMOTE
+          } | sshpass -e ssh \
+                -p 22 \
+                -o StrictHostKeyChecking=yes \
+                -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+                -o ConnectTimeout=20 \
+                -o ServerAliveInterval=15 \
+                -o ServerAliveCountMax=3 \
+                mobile@"$IPAD_HOST" \
+                'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/usr/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
+                2>&1 | tee gallery-crashfix-device-output.txt
+          status=${PIPESTATUS[1]}
+          exit "$status"
+
+      - name: Upload device proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gif2ani-gallery-crashfix-resume-proof-${{ github.run_id }}
+          path: gallery-crashfix-device-output.txt
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Publish sanitized status
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          DEVICE_OUTCOME: ${{ steps.device.outcome }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          source=Path('gallery-crashfix-device-output.txt')
+          text=source.read_text(errors='replace') if source.exists() else 'No device output was created.'
+          password=os.environ.get('IPAD_PASSWORD','')
+          if password:
+              text=text.replace(password,'***REDACTED***')
+          lines=[
+              'Gif2Ani 3.4.1 Gallery Crash-Fix Resume Test',
+              'run_id='+os.environ.get('GITHUB_RUN_ID',''),
+              'run_url=https://github.com/'+os.environ.get('GITHUB_REPOSITORY','')+'/actions/runs/'+os.environ.get('GITHUB_RUN_ID',''),
+              'source_commit=b1409d51e1852483402115b73d91e964c8832038',
+              'deb_sha256=a8395150766bf7bf0921b0e0a43639b421d0301742ace38abe9f2ba5cddc4ace',
+              'job_status='+os.environ.get('JOB_STATUS',''),
+              'device='+os.environ.get('DEVICE_OUTCOME',''),
+              '',
+              '--- sanitized device output ---',
+          ]
+          lines.extend(text.splitlines()[-400:])
+          Path('remote/gif2ani-gallery-crashfix-device-status.txt').write_text('\n'.join(lines)+'\n')
+          PY
+          git add remote/gif2ani-gallery-crashfix-device-status.txt
+          git commit -m 'Record resumed Gif2Ani gallery crash-fix device test [skip ci]' || exit 0
+          git push origin HEAD:main
