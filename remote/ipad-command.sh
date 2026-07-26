@@ -1,4 +1,5 @@
 #!/bin/sh
+# bridge-retrigger=2026-07-26T10:25:00-05:00
 set -eu
 export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
 export HOME=/var/mobile
