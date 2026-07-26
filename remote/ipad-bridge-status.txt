@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30188437631
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30188437631
-commit=8b68c97b2370eef4fefed500e17ce2ff81291c2a
+run_id=30205578663
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30205578663
+commit=84c4f28a2320fef7d5c7a12faea35f439f2d1bc9
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -11,62 +11,35 @@ ssh=failure
 --- sanitized SSH output ---
 Waking and checking iPad SSH port over Tailscale...
 SSH port attempt 1/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 2/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 3/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 4/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 5/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 6/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 7/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 8/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 9/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 10/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 11/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 12/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 13/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 14/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 15/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 16/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 17/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 18/18
-ping "100.116.117.65" timed out
-no reply
-Could not reach iPad TCP port 22 after wake and retry attempts.
-100.90.22.79    github-ipad-30188437631-1  NightVibes33@  linux    -                                   
-100.116.117.65  bobbys-ipad                NightVibes33@  iOS      active; relay "ord", tx 12480 rx 0  
-100.127.94.70   desktop-o56xs              NightVibes33@  windows  offline, last seen 1d ago           
-100.113.122.97  github-ipad-30205578663-1  NightVibes33@  linux    -                                   
-100.79.177.16   iphone173                  NightVibes33@  iOS      offline, last seen 11h ago          
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+ipad_ssh_port_ready=success
+Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
+=== Install and validate Gif2Ani 3.5.2 download and preview fix ===
+started_at_utc=2026-07-26T15:09:08Z
+model=J71tAP
+previous_version=3.5.1
+preserved_files_before=189
+preserved_kib_before=7788
+download_sha256=ad97f541cdc273bd7db68436c3555cb0a8c3d71b2c590d73649adbb739169234
+package_metadata=passed
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+(Reading database ... 19750 files and directories currently installed.)
+Preparing to unpack .../Gif2Ani-3.5.2-download-previews-fix.deb ...
+Unpacking com.nightvibes33.gif2ani (3.5.2) over (3.5.1) ...
+Setting up com.nightvibes33.gif2ani (3.5.2) ...
+Processing triggers for org.coolstar.sileo (2.5.1) ...
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+installed_version=3.5.2
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+gallery_352_markers=passed
+bundled_preview_count=102
+all_bundled_previews_png_220x220=passed
+ui_curl_cc0_download_path=passed
+ssh_exit_code=1
