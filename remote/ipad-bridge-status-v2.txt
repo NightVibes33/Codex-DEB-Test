@@ -1,17 +1,17 @@
 Stable iPad Tailscale SSH Bridge
-run_id=30213015194
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30213015194
-commit=5f4de39b288ee481c60c9ab015fb36ee3e6c219a
+run_id=30213161981
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30213161981
+commit=2229b8bdb919effb7546667a0fd9121da452eca6
 validate=success
 install=success
 tailscale=success
 ssh=cancelled
 
 --- sanitized output ---
-100.99.15.108   github-ipad-bridge         NightVibes33@  linux    -                           
-100.116.117.65  bobbys-ipad                NightVibes33@  iOS      offline, last seen 9m ago   
+100.77.111.99   github-ipad-bridge         NightVibes33@  linux    -                           
+100.116.117.65  bobbys-ipad                NightVibes33@  iOS      offline, last seen 13m ago  
 100.127.94.70   desktop-o56xs              NightVibes33@  windows  offline, last seen 1d ago   
-100.88.177.49   github-ipad-30212336840-1  NightVibes33@  linux    offline, last seen 18m ago  
+100.88.177.49   github-ipad-30212336840-1  NightVibes33@  linux    offline, last seen 23m ago  
 100.79.177.16   iphone173                  NightVibes33@  iOS      offline, last seen 2h ago   
 tailscale_ipad_node_visible=success
 SSH port attempt 1/18
@@ -21,26 +21,5 @@ SSH port attempt 2/18
 ping "100.116.117.65" timed out
 no reply
 SSH port attempt 3/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 4/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 5/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 6/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 7/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 8/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 9/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 10/18
 ping "100.116.117.65" timed out
 no reply
