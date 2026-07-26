@@ -1,4 +1,4 @@
-name: Report Exact Gif2Ani 3.5.7 iPad Run
+name: Report Exact Gif2Ani 3.5.8 iPad Run
 
 on:
   workflow_dispatch:
@@ -29,10 +29,10 @@ jobs:
             "https://api.github.com/repos/${REPO}/actions/workflows/ipad-tailscale-ssh-v2.yml/runs?per_page=30" > runs.json
           python3 - <<'PY'
           import json, os, pathlib, urllib.request
-          target='91d873034392262a87020fb7931a476ad941a51c'
+          target='2229b8bdb919effb7546667a0fd9121da452eca6'
           runs=json.loads(pathlib.Path('runs.json').read_text()).get('workflow_runs',[])
           run=next((r for r in runs if r.get('head_sha')==target),None)
-          lines=['Gif2Ani 3.5.7 Exact iPad Run',f'target_sha={target}']
+          lines=['Gif2Ani 3.5.8 Exact iPad Run',f'target_sha={target}']
           if run is None:
               lines.append('run=not_found')
           else:
@@ -41,7 +41,7 @@ jobs:
               req=urllib.request.Request(run['jobs_url']+'?per_page=100',headers={
                   'Authorization':f"Bearer {os.environ['GH_TOKEN']}",
                   'Accept':'application/vnd.github+json',
-                  'User-Agent':'Gif2Ani-357-exact-reporter',
+                  'User-Agent':'Gif2Ani-358-exact-reporter',
               })
               jobs=json.load(urllib.request.urlopen(req)).get('jobs',[])
               for job in jobs:
@@ -57,5 +57,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git pull --rebase origin main
           git add remote/ipad-357-exact-run.txt
-          git commit -m 'Report exact Gif2Ani 3.5.7 iPad run [skip ci]' || exit 0
+          git commit -m 'Report exact Gif2Ani 3.5.8 iPad run [skip ci]' || exit 0
           git push origin HEAD:main
