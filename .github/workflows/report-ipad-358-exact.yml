@@ -29,10 +29,10 @@ jobs:
             "https://api.github.com/repos/${REPO}/actions/workflows/ipad-tailscale-ssh-v2.yml/runs?per_page=50" > runs.json
           python3 - <<'PY'
           import json, os, pathlib, urllib.request
-          target='6d48c39cb87d7749716a5cf96bb3ec6badbe3b42'
+          target='321e2c2d8e1f2deb0c927e693a1eb0f5874c0cd5'
           runs=json.loads(pathlib.Path('runs.json').read_text()).get('workflow_runs',[])
           run=next((r for r in runs if r.get('head_sha')==target),None)
-          lines=['Gif2Ani 3.5.8 Exact iPad Retry',f'target_sha={target}']
+          lines=['Gif2Ani 3.5.8 Exact Sample Diagnostic',f'target_sha={target}']
           if run is None:
               lines.append('run=not_found')
           else:
@@ -53,5 +53,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git pull --rebase origin main
           git add remote/ipad-358-exact-run.txt
-          git commit -m 'Report exact Gif2Ani 3.5.8 retry [skip ci]' || exit 0
+          git commit -m 'Report exact Gif2Ani 3.5.8 diagnostic [skip ci]' || exit 0
           git push origin HEAD:main
