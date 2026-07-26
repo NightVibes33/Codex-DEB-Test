@@ -31,7 +31,7 @@ else
   su mobile -c "printf mobile-write-ok > '$TEST_FILE'"
 fi
 test "$(cat "$TEST_FILE")" = 'mobile-write-ok'
-OWNER_UID="$(stat -f '%u' "$TEST_FILE" 2>/dev/null || stat -c '%u' "$TEST_FILE")"
+OWNER_UID="$(ls -dn "$TEST_FILE" | awk '{print $3}')"
 printf 'mobile_write_test_uid=%s\n' "$OWNER_UID"
 test "$OWNER_UID" = '501'
 rm -f "$TEST_FILE"
