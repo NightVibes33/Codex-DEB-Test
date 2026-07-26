@@ -1,8 +1,64 @@
 Gif2Ani 3.5.8 Dedicated iPad Installer
-run_id=30213318346
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30213318346
-commit=e076ececf9521b0b1cecc336b975997741e6d3ee
+run_id=30213374020
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30213374020
+commit=7cb6b16e4580e3b8c4989b85c0d6f6c49d42577c
 status=failure
 
 --- sanitized output ---
-No output file.
+100.79.14.27    github-gif2ani-358-installer  NightVibes33@  linux    -                           
+100.116.117.65  bobbys-ipad                   NightVibes33@  iOS      offline, last seen 19m ago  
+100.127.94.70   desktop-o56xs                 NightVibes33@  windows  offline, last seen 1d ago   
+100.88.177.49   github-ipad-30212336840-1     NightVibes33@  linux    offline, last seen 28m ago  
+100.77.101.58   github-ipad-bridge            NightVibes33@  linux    -                           
+100.79.177.16   iphone173                     NightVibes33@  iOS      offline, last seen 2h ago   
+Waiting for iPad SSH 1/45
+ping "100.116.117.65" timed out
+no reply
+Waiting for iPad SSH 2/45
+ping "100.116.117.65" timed out
+no reply
+Waiting for iPad SSH 3/45
+ping "100.116.117.65" timed out
+no reply
+Waiting for iPad SSH 4/45
+ping "100.116.117.65" timed out
+no reply
+Waiting for iPad SSH 5/45
+ping "100.116.117.65" timed out
+no reply
+Waiting for iPad SSH 6/45
+ping "100.116.117.65" timed out
+no reply
+Waiting for iPad SSH 7/45
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+ipad_ssh_port_ready=success
+=== Install and verify Gif2Ani 3.5.8 on iPad ===
+started_at_utc=2026-07-26T17:52:54Z
+identity=uid=0(root) gid=0(wheel) groups=0(wheel)
+model=J71tAP
+version_before=3.5.7
+release_effective_url=https://raw.githubusercontent.com/NightVibes33/Dark-Boot/52f1cf4f8d0082569e8dab9dfeac8a1123960a32/release-packages/Gif2Ani-3.5.8-sha-bound-identity.deb
+release_sha256=0d2953840e63191e221ac0bf9bd682c001ac77c064a40cf41c7808504b3a2d44
+release_package_metadata=passed
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+(Reading database ... 19751 files and directories currently installed.)
+Preparing to unpack .../Gif2Ani-3.5.8-sha-bound-identity.deb ...
+Unpacking com.nightvibes33.gif2ani (3.5.8) over (3.5.7) ...
+Setting up com.nightvibes33.gif2ani (3.5.8) ...
+Processing triggers for org.coolstar.sileo (2.5.1) ...
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+version_immediate=3.5.8
+installed_358_binary_and_ui=passed
+installed_springy_themes=48
+installed_snowboard_packages=7
+installed_snowboard_themes=160
+installed_gallery_total=274
+settings_download_cache_permission=passed
+springy_effective_url=https://raw.githubusercontent.com/VirenMohindra/CydiaRepo/c507a391f193c2bb362ff77fc1c1673c0da2dcae/debs/io.github.virenmohindra.gameboy-advance_2.0_iphoneos-arm.deb
+ssh_exit_code=1
