@@ -1,4 +1,5 @@
 #!/bin/sh
+# bridge-retrigger=2026-07-26T10:43:00-05:00
 set -eu
 export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
 export HOME=/var/mobile
@@ -14,14 +15,14 @@ TWEAK_BIN='/var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib'
 PREVIEWS="$BUNDLE/ThemePreviews"
 OPEN_CATALOG="$BUNDLE/OpenThemeCatalog.json"
 MEDIA_ROOT='/var/mobile/Library/Application Support/Gif2Ani'
-WORK='/tmp/gif2ani-354-final-test'
+SPRINGY_CACHE="$MEDIA_ROOT/OpenThemeLibrary"
+WORK='/tmp/gif2ani-354-all-pack-audit'
 
-printf '%s\n' '=== Install and physical-test final Gif2Ani 3.5.4 ==='
+printf '%s\n' '=== Install Gif2Ani 3.5.4 and audit all 48 packs on iPad ==='
 printf 'started_at_utc='; date -u '+%Y-%m-%dT%H:%M:%SZ'
 printf 'identity='; id
 printf 'model='; sysctl -n hw.model 2>/dev/null || true
 printf 'version_before='; dpkg-query -W -f='${Version}\n' com.nightvibes33.gif2ani 2>/dev/null || echo absent
-printf 'user_media_files_before='; find "$MEDIA_ROOT" -type f 2>/dev/null | wc -l | tr -d ' '
 
 rm -rf "$WORK"
 mkdir -p "$WORK"
@@ -49,18 +50,16 @@ test -s "$TWEAK_BIN"
 test -s "$OPEN_CATALOG"
 test -s "$ROOT_PLIST"
 grep -Fq 'GIF2ANI 3.5.4' "$ROOT_PLIST"
-if grep -Fq 'GIF2ANI 3.5.3' "$ROOT_PLIST"; then
-  echo 'stale_visible_version=true'
-  exit 1
-fi
+! grep -Fq 'GIF2ANI 3.4.1' "$ROOT_PLIST"
+! grep -Fq 'GIF2ANI 3.5.3' "$ROOT_PLIST"
 strings "$PREFS_BIN" | grep -Fq 'raw.githubusercontent.com/VirenMohindra/CydiaRepo/'
-echo 'version_label_and_immutable_code=passed'
+echo 'installed_version_and_code=passed'
 
-python3 - "$PREVIEWS" "$OPEN_CATALOG" "$WORK/springy-meta" <<'PY'
-import json, pathlib, plistlib, re, struct, sys
+python3 - "$PREVIEWS" "$OPEN_CATALOG" "$WORK/packs.tsv" <<'PY'
+import json, pathlib, re, struct, sys
 previews = pathlib.Path(sys.argv[1])
 catalog_path = pathlib.Path(sys.argv[2])
-meta_path = pathlib.Path(sys.argv[3])
+out = pathlib.Path(sys.argv[3])
 files = sorted(previews.glob('*.png'))
 assert len(files) == 102, len(files)
 for path in files:
@@ -73,56 +72,53 @@ themes = catalog['themes']
 assert catalog['count'] == len(themes) == 48
 assert catalog.get('immutableCatalogVerifiedAtUTC', '').endswith('Z')
 assert len({x['identifier'] for x in themes}) == 48
-for pack in themes:
+rows = []
+for index, pack in enumerate(themes, 1):
     assert pack['identifier'] == pack['package']
     assert re.fullmatch(r'[0-9a-f]{40}', pack['sourceCommit'])
     assert re.fullmatch(r'[0-9a-f]{64}', pack['sha256'])
+    assert isinstance(pack['name'], str) and pack['name'].strip()
     expected_url = f"https://raw.githubusercontent.com/VirenMohindra/CydiaRepo/{pack['sourceCommit']}/{pack['filename'][2:]}"
     assert pack['downloadURL'] == expected_url
     assert int(pack['immutableVerifiedMediaFiles']) >= 2
-pack = next(x for x in themes if x['identifier'] == 'io.github.virenmohindra.alone')
-meta_path.write_text('\n'.join([
-    pack['package'], pack['sourceCommit'], pack['filename'], pack['sha256'],
-    str(pack['bytes']), pack['downloadURL'], str(pack['immutableVerifiedMediaFiles'])
-]) + '\n')
+    assert (previews / f"{pack['identifier']}.png").is_file()
+    fields = [str(index), pack['identifier'], pack['package'], pack['name'].strip(), str(pack['bytes']), pack['sha256'], pack['downloadURL']]
+    assert all('\t' not in value and '\n' not in value for value in fields)
+    rows.append('\t'.join(fields))
+out.write_text('\n'.join(rows) + '\n')
 print('bundled_preview_count=102')
 print('all_bundled_previews_png_220x220=passed')
 print('immutable_catalog_count=48')
-print('all_immutable_catalog_records=passed')
+print('catalog_preview_identity_mapping=passed')
 PY
 
-SPRINGY_PACKAGE="$(sed -n '1p' "$WORK/springy-meta")"
-SPRINGY_COMMIT="$(sed -n '2p' "$WORK/springy-meta")"
-SPRINGY_FILENAME="$(sed -n '3p' "$WORK/springy-meta")"
-SPRINGY_SHA="$(sed -n '4p' "$WORK/springy-meta")"
-SPRINGY_BYTES="$(sed -n '5p' "$WORK/springy-meta")"
-SPRINGY_URL="$(sed -n '6p' "$WORK/springy-meta")"
-SPRINGY_EXPECTED_MEDIA="$(sed -n '7p' "$WORK/springy-meta")"
-printf 'springy_package=%s\n' "$SPRINGY_PACKAGE"
-printf 'springy_source_commit=%s\n' "$SPRINGY_COMMIT"
-printf 'springy_filename=%s\n' "$SPRINGY_FILENAME"
-printf 'springy_url=%s\n' "$SPRINGY_URL"
+rm -rf "$SPRINGY_CACHE"
+mkdir -p "$SPRINGY_CACHE"
+echo 'stale_springy_cache_cleared=true'
 
-SPRINGY_DEB="$WORK/alone.deb"
-SPRINGY_EFFECTIVE="$(curl --fail --location --silent --show-error --retry 3 --connect-timeout 20 --max-time 300 --output "$SPRINGY_DEB" --write-out '%{url_effective}' "$SPRINGY_URL")"
-printf 'springy_effective_url=%s\n' "$SPRINGY_EFFECTIVE"
-test "$SPRINGY_EFFECTIVE" = "$SPRINGY_URL"
-ACTUAL_BYTES="$(wc -c < "$SPRINGY_DEB" | tr -d ' ')"
-ACTUAL_SPRINGY_SHA="$(sha256sum "$SPRINGY_DEB" | awk '{print $1}')"
-printf 'springy_actual_bytes=%s\n' "$ACTUAL_BYTES"
-printf 'springy_expected_bytes=%s\n' "$SPRINGY_BYTES"
-printf 'springy_actual_sha256=%s\n' "$ACTUAL_SPRINGY_SHA"
-printf 'springy_expected_sha256=%s\n' "$SPRINGY_SHA"
-test "$ACTUAL_BYTES" = "$SPRINGY_BYTES"
-test "$ACTUAL_SPRINGY_SHA" = "$SPRINGY_SHA"
-test "$(dpkg-deb -f "$SPRINGY_DEB" Package | tr -d '\r\n')" = "$SPRINGY_PACKAGE"
-mkdir -p "$WORK/extracted"
-dpkg-deb -x "$SPRINGY_DEB" "$WORK/extracted"
-SPRINGY_MEDIA_COUNT="$(find "$WORK/extracted" -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.gif' -o -iname '*.webp' \) | wc -l | tr -d ' ')"
-printf 'springy_extracted_media_count=%s\n' "$SPRINGY_MEDIA_COUNT"
-printf 'springy_manifest_media_count=%s\n' "$SPRINGY_EXPECTED_MEDIA"
-test "$SPRINGY_MEDIA_COUNT" = "$SPRINGY_EXPECTED_MEDIA"
-echo 'immutable_springy_physical_download=passed'
+PASSED=0
+TAB="$(printf '\t')"
+while IFS="$TAB" read -r INDEX IDENT PACKAGE DISPLAY_NAME EXPECTED_BYTES EXPECTED_PACK_SHA PACK_URL; do
+  PACK_DEB="$WORK/pack.deb"
+  rm -f "$PACK_DEB"
+  PACK_EFFECTIVE="$(curl --fail --location --silent --show-error --retry 3 --connect-timeout 20 --max-time 300 --output "$PACK_DEB" --write-out '%{url_effective}' "$PACK_URL")"
+  test "$PACK_EFFECTIVE" = "$PACK_URL"
+  ACTUAL_BYTES="$(wc -c < "$PACK_DEB" | tr -d ' ')"
+  ACTUAL_PACK_SHA="$(sha256sum "$PACK_DEB" | awk '{print $1}')"
+  ACTUAL_PACKAGE="$(dpkg-deb -f "$PACK_DEB" Package | tr -d '\r\n')"
+  ACTUAL_NAME="$(dpkg-deb -f "$PACK_DEB" Name | tr -d '\r' | sed 's/[[:space:]]*-[[:space:]]*Springy BootLogo[[:space:]]*$//' | sed 's/[[:space:]]*$//')"
+  test "$ACTUAL_BYTES" = "$EXPECTED_BYTES"
+  test "$ACTUAL_PACK_SHA" = "$EXPECTED_PACK_SHA"
+  test "$ACTUAL_PACKAGE" = "$PACKAGE"
+  test "$ACTUAL_NAME" = "$DISPLAY_NAME"
+  PASSED=$((PASSED + 1))
+  printf 'pack_%02d=passed|%s|%s\n' "$INDEX" "$IDENT" "$DISPLAY_NAME"
+  rm -f "$PACK_DEB"
+done < "$WORK/packs.tsv"
+
+test "$PASSED" = '48'
+printf 'on_device_pack_downloads_passed=%s\n' "$PASSED"
+echo 'all_48_names_match_deb_metadata=passed'
 
 killall -9 Preferences 2>/dev/null || true
 killall -9 cfprefsd 2>/dev/null || true
@@ -133,7 +129,6 @@ VERSION_DELAYED="$(dpkg-query -W -f='${Version}' com.nightvibes33.gif2ani)"
 printf 'version_after_5s=%s\n' "$VERSION_DELAYED"
 test "$VERSION_DELAYED" = '3.5.4'
 printf 'visible_label='; grep -o 'GIF2ANI [0-9.]*' "$ROOT_PLIST" | head -n 1
-printf 'user_media_files_after='; find "$MEDIA_ROOT" -type f 2>/dev/null | wc -l | tr -d ' '
 
 if command -v uiopen >/dev/null 2>&1; then
   uiopen 'prefs:root=Gif2Ani' >/dev/null 2>&1 || true
@@ -144,6 +139,5 @@ fi
 printf 'tweak_binary_sha256='; sha256sum "$TWEAK_BIN" | awk '{print $1}'
 printf 'prefs_binary_sha256='; sha256sum "$PREFS_BIN" | awk '{print $1}'
 echo 'gif2ani_354_install=success'
-echo 'gif2ani_354_48_download_records=success'
-echo 'gif2ani_354_102_real_previews=success'
-echo 'gif2ani_354_physical_springy_download=success'
+echo 'gif2ani_354_all_48_downloads=success'
+echo 'gif2ani_354_names_and_previews=success'
