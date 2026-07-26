@@ -29,7 +29,7 @@ jobs:
             "https://api.github.com/repos/${REPO}/actions/workflows/ipad-tailscale-ssh-v2.yml/runs?per_page=30" > runs.json
           python3 - <<'PY'
           import json, os, pathlib, urllib.request
-          target='4c7d4ea4217eb1dd62e77bf808d6beb9eca36f5d'
+          target='91d873034392262a87020fb7931a476ad941a51c'
           runs=json.loads(pathlib.Path('runs.json').read_text()).get('workflow_runs',[])
           run=next((r for r in runs if r.get('head_sha')==target),None)
           lines=['Gif2Ani 3.5.7 Exact iPad Run',f'target_sha={target}']
