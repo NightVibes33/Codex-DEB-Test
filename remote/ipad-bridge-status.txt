@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30182400007
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30182400007
-commit=231dca0cda0ab3ad109c4f0efd9ecc58774a9955
+run_id=30183304023
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30183304023
+commit=fea2c6f7279544c11c0bb89ad25f461a9a17bb02
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -16,11 +16,83 @@ Checking SSH host key over Tailscale...
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
+rootless_shell=/var/jb/usr/bin/sh
+=== Download verified green Gif2Ani 3.4.1 artifact ===
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
 
   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-100  8211  100  8211    0     0  14010      0 --:--:-- --:--:-- --:--:-- 14011
-/var/jb/usr/bin/sh: 12: exec: /bin/sh: not found
-ssh_exit_code=127
+100 87259  100 87259    0     0   331k      0 --:--:-- --:--:-- --:--:--  331k
+artifact_zip_sha256=9c1f8635b8d9c6e127274f3b6c85c6d9bb8585d3eb08e31c43f59b0772c8846e
+artifact_deb_entry=com.nightvibes33.gif2ani_3.4.1_iphoneos-arm64.deb
+artifact_deb_sha256=54877fb227693bc6e5d6733cc77a5cba722479d5ee2c3f1806840d5b1415b982
+=== Install Gif2Ani 3.4.1 ===
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+(Reading database ... 19750 files and directories currently installed.)
+Preparing to unpack .../com.nightvibes33.gif2ani_3.4.1_iphoneos-arm64.deb ...
+Unpacking com.nightvibes33.gif2ani (3.4.1) over (3.4.1) ...
+Setting up com.nightvibes33.gif2ani (3.4.1) ...
+Processing triggers for org.coolstar.sileo (2.5.1) ...
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+installed_version_after_dpkg=3.4.1
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100  9836  100  9836    0     0  27750      0 --:--:-- --:--:-- --:--:-- 27785
+install_phase=success
+runtime_test_phase=starting
+=== Gif2Ani 3.4.1 runtime-status retest ===
+started_at_utc=2026-07-26T01:41:57Z
+identity=uid=0(root) gid=0(wheel) groups=0(wheel)
+model=J71tAP
+installed_version=3.4.1
+original_active_sha256=2a6358c670f3f3d495a59fc952b0498d0cfec84d4c9a21a91e2d3d76195517ba
+original_preferences_sha256=169f087ff18af4c7a0f22611e05e9b75d14bc92f6429c57fa2972c78ac670b1d
+rollback_backup=/var/mobile/Library/Application Support/Gif2Ani/RemoteRuntimeRetestBackup
+=== theme_begin=Cyan Pulse Rings ===
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100  127k  100  127k    0     0   337k      0 --:--:-- --:--:-- --:--:--  338k
+download_file=cyan-pulse-rings.gif
+actual_bytes=130275
+expected_bytes=130275
+actual_sha256=1975aa569fb5ee0002856a7cff3b60bbcde04126514386fbd52b89d9f5349a46
+expected_sha256=1975aa569fb5ee0002856a7cff3b60bbcde04126514386fbd52b89d9f5349a46
+gif_signature=GIF89a
+active_sha256=1975aa569fb5ee0002856a7cff3b60bbcde04126514386fbd52b89d9f5349a46
+prefs_isEnabled=true
+prefs_theme=Cyan Pulse Rings
+=== backboard_restart_diagnostics ===
+pgrep_before=
+pidof_before=
+15054 ??         0:00.00 /usr/libexec/backboardd
+user/501/com.apple.backboardd = {
+	active count = 18
+	path = /System/Library/LaunchDaemons/com.apple.backboardd.plist
+	type = LaunchDaemon
+	state = running
+
+	program = /usr/libexec/backboardd
+	arguments = {
+		/usr/libexec/backboardd
+	}
+
+	default environment = {
+		PATH => /usr/bin:/bin:/usr/sbin:/sbin
+	}
+
+	environment = {
+		XPC_SERVICE_NAME => com.apple.backboardd
+	}
+
+	domain = user/501
+restart_method=killall
+runtime_poll_0=unreadable
+Timeout, server 100.116.117.65 not responding.
+ssh_exit_code=255
