@@ -1,0 +1,5 @@
+requested_at_utc=2026-07-26T18:02:00Z
+package_version=3.5.8
+release_commit=52f1cf4f8d0082569e8dab9dfeac8a1123960a32
+sha256=0d2953840e63191e221ac0bf9bd682c001ac77c064a40cf41c7808504b3a2d44
+purpose=wait up to 15 minutes for the iPad to come online, install Gif2Ani 3.5.8, verify Springy and SnowBoard source identities, and reopen the 274-theme gallery
