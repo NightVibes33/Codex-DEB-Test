@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30183506318
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30183506318
-commit=b8b096a0fc04f2c64939ed3a2ebf86c60c6a5f3f
+run_id=30183581311
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30183581311
+commit=58d823d718b7ee8f2d529ed3ce6b78450bbaa3b4
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -9,103 +9,103 @@ install_ssh=success
 ssh=success
 
 --- sanitized SSH output ---
-interrupted_test_recovery=starting
-interrupted_test_recovery=complete
-=== Gif2Ani 3.4.1 detached three-theme proof ===
-started_at_utc=2026-07-26T01:47:20Z
-identity=uid=0(root) gid=0(wheel) groups=0(wheel)
-model=J71tAP
-installed_version=3.4.1
-original_active_sha256=2a6358c670f3f3d495a59fc952b0498d0cfec84d4c9a21a91e2d3d76195517ba
-original_preferences_sha256=169f087ff18af4c7a0f22611e05e9b75d14bc92f6429c57fa2972c78ac670b1d
-=== theme_begin=Cyan Pulse Rings ===
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-100  127k  100  127k    0     0   323k      0 --:--:-- --:--:-- --:--:--  324k
-actual_bytes=130275
-expected_bytes=130275
-actual_sha256=1975aa569fb5ee0002856a7cff3b60bbcde04126514386fbd52b89d9f5349a46
-expected_sha256=1975aa569fb5ee0002856a7cff3b60bbcde04126514386fbd52b89d9f5349a46
-gif_signature=GIF89a
-prefs_isEnabled=true
-prefs_theme=Cyan Pulse Rings
-restart_method=killall
-runtime_poll_0=unreadable
-runtime_poll_1=custom-animation-started
-runtime_poll_2=custom-animation-started
-runtime_poll_3=custom-animation-stable
-runtime_plist={"BKDisplayRenderOverlaySpinny": true, "animationPending": false, "appleLoaderHidden": true, "attachmentPoint": "dedicated-overlay-layer", "contentsGravity": "resizeAspect", "duration": 2.0, "event": "custom-animation-stable", "frameCount": 24, "gifExists": true, "media": {"decodedFrames": 24, "decodedHeight": 360, "decodedWidth": 360, "estimatedDecodedBytes": 12441600, "inputBytes": 130275, "sourceFrames": 24, "sourceHeight": 360, "sourceWidth": 360}, "overlayHeight": 2048.0, "overlayWidth": 1536.0, "process": "backboardd", "repeatCount": Infinity, "safetyLimits": {"maximumDecodedFrames": 24, "maximumEstimatedDecodedBytes": 50331648, "maximumInputBytes": 26214400, "maximumPixelDimension": 640, "maximumSourceFrames": 240}, "timestamp": 1785030445.969691}
-theme_test=Cyan Pulse Rings:passed
-=== theme_begin=Cyan Halo Spinner ===
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0
-100 49717  100 49717    0     0  21145      0  0:00:02  0:00:02 --:--:-- 21156
-actual_bytes=49717
-expected_bytes=49717
-actual_sha256=f0447aeece060d4e0ae563ad1e18c7055e8055a976d70b61c8d69f04db4c14cb
-expected_sha256=f0447aeece060d4e0ae563ad1e18c7055e8055a976d70b61c8d69f04db4c14cb
-gif_signature=GIF89a
-prefs_isEnabled=true
-prefs_theme=Cyan Halo Spinner
-restart_method=killall
-runtime_poll_0=unreadable
-runtime_poll_1=unreadable
-runtime_poll_2=custom-animation-started
-runtime_poll_3=custom-animation-started
-runtime_poll_4=custom-animation-stable
-runtime_plist={"BKDisplayRenderOverlaySpinny": true, "animationPending": false, "appleLoaderHidden": true, "attachmentPoint": "dedicated-overlay-layer", "contentsGravity": "resizeAspect", "duration": 2.0, "event": "custom-animation-stable", "frameCount": 24, "gifExists": true, "media": {"decodedFrames": 24, "decodedHeight": 360, "decodedWidth": 360, "estimatedDecodedBytes": 12441600, "inputBytes": 49717, "sourceFrames": 24, "sourceHeight": 360, "sourceWidth": 360}, "overlayHeight": 2048.0, "overlayWidth": 1536.0, "process": "backboardd", "repeatCount": Infinity, "safetyLimits": {"maximumDecodedFrames": 24, "maximumEstimatedDecodedBytes": 50331648, "maximumInputBytes": 26214400, "maximumPixelDimension": 640, "maximumSourceFrames": 240}, "timestamp": 1785030456.648683}
-theme_test=Cyan Halo Spinner:passed
-=== theme_begin=Cyan Energy Wave ===
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-100 52155  100 52155    0     0  56692      0 --:--:-- --:--:-- --:--:-- 56690
-actual_bytes=52155
-expected_bytes=52155
-actual_sha256=74d773db3f6b8f98daad1234266f3b594698cca200a0858f3c39494154b2c337
-expected_sha256=74d773db3f6b8f98daad1234266f3b594698cca200a0858f3c39494154b2c337
-gif_signature=GIF89a
-prefs_isEnabled=true
-prefs_theme=Cyan Energy Wave
-restart_method=killall
-runtime_poll_0=unreadable
-runtime_poll_1=unreadable
-runtime_poll_2=custom-animation-started
-runtime_poll_3=custom-animation-started
-runtime_poll_4=custom-animation-stable
-runtime_plist={"BKDisplayRenderOverlaySpinny": true, "animationPending": false, "appleLoaderHidden": true, "attachmentPoint": "dedicated-overlay-layer", "contentsGravity": "resizeAspect", "duration": 2.0, "event": "custom-animation-stable", "frameCount": 24, "gifExists": true, "media": {"decodedFrames": 24, "decodedHeight": 360, "decodedWidth": 360, "estimatedDecodedBytes": 12441600, "inputBytes": 52155, "sourceFrames": 24, "sourceHeight": 360, "sourceWidth": 360}, "overlayHeight": 2048.0, "overlayWidth": 1536.0, "process": "backboardd", "repeatCount": Infinity, "safetyLimits": {"maximumDecodedFrames": 24, "maximumEstimatedDecodedBytes": 50331648, "maximumInputBytes": 26214400, "maximumPixelDimension": 640, "maximumSourceFrames": 240}, "timestamp": 1785030467.43757}
-theme_test=Cyan Energy Wave:passed
-=== springy_integrity_rejection_test ===
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-100   162  100   162    0     0    466      0 --:--:-- --:--:-- --:--:--   468
-
-100   167    0   167    0     0    345      0 --:--:-- --:--:-- --:--:--   345
-
-100  276k    0  276k    0     0   300k      0 --:--:-- --:--:-- --:--:--  300k
-100 2902k    0 2902k    0     0  2137k      0 --:--:--  0:00:01 --:--:-- 6048k
-springy_live_bytes=2971658
-springy_live_sha256=853d01e5a41092561d47dc6ccfc87b9e547dd926b7ba1daa9980fe148e276279
-springy_package=io.github.virenmohindra.a-wave
-springy_changed_upstream_safely_rejected=true
-new_relevant_crash_reports=0
-restore_original=starting
-restart_method=killall
-restore_original=complete
-restored_active_sha256=2a6358c670f3f3d495a59fc952b0498d0cfec84d4c9a21a91e2d3d76195517ba
-restored_preferences_sha256=169f087ff18af4c7a0f22611e05e9b75d14bc92f6429c57fa2972c78ac670b1d
-detached_theme_test=success
-runtime_themes_passed=3
-active_state_restored=true
-completed_at_utc=2026-07-26T01:48:02Z
-detached_proof_reader=success
+    "size" : 81920,
+    "uuid" : "9a32fd2a-1d0c-3de6-ac49-d0897d66d86a",
+    "path" : "\/private\/preboot\/8579078043F0FC7B23462C6FC23605D3A3BB1E07\/jb-TbZKok0K\/procursus\/Library\/Frameworks\/Cephei.framework\/Cephei",
+    "name" : "Cephei"
+  },
+  {
+    "source" : "P",
+    "arch" : "arm64",
+    "base" : 4336189440,
+    "size" : 81920,
+    "uuid" : "56c75298-c9f9-35ec-b9a6-615fecfc17fd",
+    "path" : "\/private\/preboot\/8579078043F0FC7B23462C6FC23605D3A3BB1E07\/jb-TbZKok0K\/procursus\/usr\/lib\/TweakInject\/CCSupport.dylib",
+    "name" : "CCSupport.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "arm64",
+    "base" : 4336320512,
+    "size" : 196608,
+    "uuid" : "9a444b41-5030-3ad5-a5b4-4d1999d0dc0f",
+    "path" : "\/private\/preboot\/8579078043F0FC7B23462C6FC23605D3A3BB1E07\/jb-TbZKok0K\/procursus\/usr\/lib\/TweakInject\/Flex.dylib",
+    "name" : "Flex.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "arm64",
+    "base" : 4336779264,
+    "size" : 32768,
+    "uuid" : "fd6aa23f-fe3e-334e-8950-173681a52dc9",
+    "path" : "\/private\/preboot\/8579078043F0FC7B23462C6FC23605D3A3BB1E07\/jb-TbZKok0K\/procursus\/usr\/lib\/TweakInject\/LimneosCrack.dylib",
+    "name" : "LimneosCrack.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "arm64",
+    "base" : 4336861184,
+    "size" : 32768,
+    "uuid" : "c67c682a-2e4a-4a21-8d71-6ffb57f2bd46",
+    "path" : "\/private\/preboot\/8579078043F0FC7B23462C6FC23605D3A3BB1E07\/jb-TbZKok0K\/procursus\/usr\/lib\/TweakInject\/PreferenceLoader.dylib",
+    "name" : "PreferenceLoader.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "arm64",
+    "base" : 4336943104,
+    "size" : 49152,
+    "uuid" : "6c031602-6c9b-4f1e-b796-c1be15f7f01c",
+    "path" : "\/private\/preboot\/8579078043F0FC7B23462C6FC23605D3A3BB1E07\/jb-TbZKok0K\/procursus\/usr\/lib\/libprefs.dylib",
+    "name" : "libprefs.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "arm64",
+    "base" : 4337041408,
+    "size" : 196608,
+    "uuid" : "257015ed-007b-3107-8e02-e7027f521c61",
+    "path" : "\/private\/preboot\/8579078043F0FC7B23462C6FC23605D3A3BB1E07\/jb-TbZKok0K\/procursus\/usr\/lib\/TweakInject\/SystemInfo.dylib",
+    "name" : "SystemInfo.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "arm64",
+    "base" : 4339056640,
+    "size" : 360448,
+    "uuid" : "e233e57d-9fd1-3aff-bcf9-52e7e9db27a0",
+    "path" : "\/private\/preboot\/Cryptexes\/OS\/usr\/lib\/libstdc++.6.0.9.dylib",
+    "name" : "libstdc++.6.0.9.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "arm64",
+    "base" : 4337303552,
+    "size" : 32768,
+    "uuid" : "274eb0f0-6379-3e7b-a22b-89b3ab98e025",
+    "path" : "\/private\/preboot\/8579078043F0FC7B23462C6FC23605D3A3BB1E07\/jb-TbZKok0K\/procursus\/usr\/lib\/TweakInject\/ZZ_EvilScheme.dylib",
+    "name" : "ZZ_EvilScheme.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "arm64",
+    "base" : 4337385472,
+    "size" : 49152,
+--- end crash_file_2 ---
+--- crash_file_3=Total: 50836751   Free: 50678760 ---
+mtime=bytes=--- key crash lines ---
+/var/jb/usr/bin/sh: 37: cannot open Total: 50836751   Free: 50678760: No such file
+--- crash head ---
+--- end crash_file_3 ---
+--- crash_file_4=Total: 50836751   Free: 50678760 ---
+mtime=bytes=--- key crash lines ---
+/var/jb/usr/bin/sh: 37: cannot open Total: 50836751   Free: 50678760: No such file
+--- crash head ---
+--- end crash_file_4 ---
+--- crash_file_5=Total: 7808393    Free: 1266969    Available: 1266969 ---
+mtime=bytes=--- key crash lines ---
+/var/jb/usr/bin/sh: 37: cannot open Total: 7808393    Free: 1266969    Available: 1266969: No such file
+--- crash head ---
+--- end crash_file_5 ---
+crash_collection=complete
 ssh_exit_code=0
