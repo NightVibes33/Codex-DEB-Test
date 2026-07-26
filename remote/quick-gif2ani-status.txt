@@ -1,5 +1,5 @@
 Quick Gif2Ani Status
-run_id=30171765943
+run_id=30217525568
 collect=success
 
 --- sanitized output ---
@@ -13,29 +13,74 @@ BuildVersion:   20H360
 === PACKAGE STATUS ===
 dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
  missing 'Maintainer' field
-com.nightvibes33.gif2ani	3.1.1	install ok installed
+com.nightvibes33.gif2ani	3.6.1	install ok installed
 ellekit	1.1.3	install ok installed
 === SAFE MODE GATES ===
 _MSSafeMode=_SafeMode=safemode_file=absent
 === PROCESSES ===
-11432   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
-11433   ??  ?s     0:00.00 /usr/libexec/backboardd
+22348   ??  ?s     0:00.00 /usr/libexec/backboardd
+22350   ??  ?s     0:00.00 /System/Library/CoreServices/SpringBoard.app/SpringBoard
 === GIF2ANI FILES ===
-total 4
-drwxr-xr-x  3 mobile mobile  96 Jul 25 14:31 .
-drwxr-xr-x 28 mobile mobile 896 Jul 25 11:49 ..
--rw-r--r--  1 mobile wheel  776 Jul 25 14:31 runtime-status.plist
+total 608
+drwxr-xr-x 15 mobile mobile    480 Jul 26 14:33 .
+drwxr-xr-x 28 mobile mobile    896 Jul 25 11:49 ..
+-rw-r--r--  1 mobile mobile 600246 Jul 26 14:33 Active.gif
+drwxr-xr-x 56 mobile mobile   1792 Jul 26 13:08 Catalog
+drwxr-xr-x  8 mobile mobile    256 Jul 25 20:47 DetachedThemeTestBackup
+-rw-r--r--  1 mobile mobile    824 Jul 26 14:29 LastPackageVerification.plist
+drwxr-xr-x 15 mobile mobile    480 Jul 26 14:29 OpenThemeLibrary
+drwxr-xr-x  2 mobile mobile     64 Jul 25 21:29 Packs
+drwxr-xr-x  8 mobile mobile    256 Jul 25 20:43 RemoteRuntimeRetestBackup
+drwxr-xr-x  6 mobile mobile    192 Jul 25 20:07 RemoteTestBackup
+drwxr-xr-x  2 mobile mobile     64 Jul 26 10:57 RemoteThemes
+drwxr-xr-x 12 mobile mobile    384 Jul 26 14:31 Rollbacks
+-rw-r--r--  1 mobile mobile   6660 Jul 25 20:48 detached-theme-test-status.txt
+-rw-r--r--  1 mobile mobile      6 Jul 25 20:47 detached-theme-test.pid
+-rw-r--r--  1 mobile mobile   1358 Jul 26 14:33 runtime-status.plist
 === PREFERENCES ===
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-  <key>isEnabled</key><false/>
-  <key>pendingReady</key><false/>
-  <key>imageTransformation</key><string>resizeAspect</string>
-  <key>customLoop</key><real>-1</real>
-  <key>customDuration</key><real>-1</real>
-  <key>backgroundColor</key><string>#000000</string>
-</dict></plist>
+<plist version="1.0">
+<dict>
+	<key>backgroundColor</key>
+	<string>#000000:1.000</string>
+	<key>customDuration</key>
+	<real>-1</real>
+	<key>customLoop</key>
+	<real>1</real>
+	<key>galleryFavorites</key>
+	<array/>
+	<key>galleryRecent</key>
+	<array>
+		<string>io.github.virenmohindra.gamecube-logo</string>
+		<string>io.github.virenmohindra.black-hole</string>
+		<string>io.github.virenmohindra.alone</string>
+		<string>snowboard.respring-hende-razerlogo.razer-logo-chroma</string>
+		<string>snowboard.respring-hende-razerlogo.razer-logo-black-green</string>
+		<string>snowboard.com-rkycyku-allin1-respring.tesla</string>
+		<string>snowboard.com-rkycyku-allin1-respring.nike</string>
+		<string>snowboard.respring-hende-megapack.morphing-blob</string>
+		<string>snowboard.com-rkycyku-allin1-respring.microsoft</string>
+		<string>snowboard.com-rkycyku-allin1-respring.mickey-mouse</string>
+		<string>snowboard.com-shadows-respringmix.eevee-evolves</string>
+		<string>snowboard.com-rkycyku-allin1-respring.checkra1n</string>
+	</array>
+	<key>imageTransformation</key>
+	<string>resizeAspectFill</string>
+	<key>isEnabled</key>
+	<true/>
+	<key>lastAppliedAt</key>
+	<real>1785094397.8591919</real>
+	<key>lastAppliedTheme</key>
+	<string>io.github.virenmohindra.gamecube-logo</string>
+	<key>lastSelectedTheme</key>
+	<string>io.github.virenmohindra.gamecube-logo</string>
+	<key>lastSelectedThemeAt</key>
+	<real>1785094273.6992989</real>
+	<key>pendingReady</key>
+	<false/>
+</dict>
+</plist>
 === RUNTIME MARKER ===
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -43,14 +88,32 @@ drwxr-xr-x 28 mobile mobile 896 Jul 25 11:49 ..
 <dict>
 	<key>BKDisplayRenderOverlaySpinny</key>
 	<true/>
+	<key>animationPending</key>
+	<false/>
+	<key>appleLoaderHidden</key>
+	<true/>
+	<key>attachmentPoint</key>
+	<string>dedicated-overlay-layer</string>
+	<key>contentsGravity</key>
+	<string>unknown</string>
+	<key>decodeMilliseconds</key>
+	<real>353.13606262207031</real>
+	<key>duration</key>
+	<real>0.21000000000000002</real>
 	<key>event</key>
-	<string>tweak-loaded-no-media-decode</string>
+	<string>custom-animation-stable</string>
 	<key>frameCount</key>
 	<integer>0</integer>
 	<key>gifExists</key>
-	<false/>
+	<true/>
+	<key>maximumTotalDuration</key>
+	<real>30</real>
+	<key>peakDecodedBytes</key>
+	<integer>4124160</integer>
 	<key>process</key>
 	<string>backboardd</string>
+	<key>repeatCount</key>
+	<real>1</real>
 	<key>safetyLimits</key>
 	<dict>
 		<key>maximumDecodedFrames</key>
@@ -61,14 +124,18 @@ drwxr-xr-x 28 mobile mobile 896 Jul 25 11:49 ..
 		<integer>26214400</integer>
 		<key>maximumPixelDimension</key>
 		<integer>640</integer>
+		<key>maximumSourceFrames</key>
+		<integer>240</integer>
+		<key>maximumTotalAnimationDuration</key>
+		<real>30</real>
 	</dict>
 	<key>timestamp</key>
-	<real>1785007882.327544</real>
+	<real>1785094400.2318611</real>
 </dict>
 </plist>
 === DYLIB / FILTER ===
--rwxr-xr-x 1 root wheel 89104 Jul 25 14:30 /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib
--rw-r--r-- 1 root wheel   313 Jul 25 14:30 /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist
+-rwxr-xr-x 1 root wheel 91184 Jul 26 14:34 /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib
+-rw-r--r-- 1 root wheel   313 Jul 26 14:34 /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
