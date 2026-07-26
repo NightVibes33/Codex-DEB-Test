@@ -1,0 +1,57 @@
+name: Report Exact Gif2Ani 3.5.9 iPad Install
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/report-ipad-359-exact.yml
+      - remote/report-ipad-359-exact-trigger.txt
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Read exact stable bridge run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/${REPO}/actions/workflows/ipad-tailscale-ssh-v2.yml/runs?per_page=50" > runs.json
+          python3 - <<'PY'
+          import json,os,pathlib,urllib.request
+          target='2da64e16bdcdd78945d4fec01953d0c8dc20eb5a'
+          runs=json.loads(pathlib.Path('runs.json').read_text()).get('workflow_runs',[])
+          run=next((item for item in runs if item.get('head_sha')==target),None)
+          lines=['Gif2Ani 3.5.9 Exact iPad Install',f'target_sha={target}']
+          if run is None:
+              lines.append('run=not_found')
+          else:
+              for key in ('id','head_sha','status','conclusion','created_at','updated_at','html_url'):
+                  lines.append(f"{key}={run.get(key)}")
+              request=urllib.request.Request(run['jobs_url']+'?per_page=100',headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json','User-Agent':'Gif2Ani-359-ipad-reporter'})
+              jobs=json.load(urllib.request.urlopen(request)).get('jobs',[])
+              for job in jobs:
+                  lines.append(f"job={job.get('id')}|{job.get('name')}|{job.get('status')}|{job.get('conclusion')}")
+                  for step in job.get('steps',[]):
+                      lines.append(f"step={step.get('number')}|{step.get('name')}|{step.get('status')}|{step.get('conclusion')}")
+          pathlib.Path('remote/ipad-359-exact-run.txt').write_text('\n'.join(lines)+'\n')
+          PY
+      - name: Publish report
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin main
+          git add remote/ipad-359-exact-run.txt
+          git commit -m 'Report exact Gif2Ani 3.5.9 iPad install [skip ci]' || exit 0
+          git push origin HEAD:main
