@@ -1,21 +1,23 @@
 Gif2Ani 3.4.1 Fast iPad Install
-run_id=30182407368
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30182407368
-commit=df528beabf5ad5ae614a15aae6948cbbffe24745
+run_id=30182454548
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30182454548
+commit=848eecfa0ff88dc693f8b4683a3bb72b46467983
 job_status=failure
 tailscale=success
 device=failure
 
 --- sanitized device output ---
 === tailnet status ===
-100.74.72.77    github-runnervmvrwv9  NightVibes33@  linux    -                           
-100.116.117.65  bobbys-ipad           NightVibes33@  iOS      -                           
-100.127.94.70   desktop-o56xs         NightVibes33@  windows  offline, last seen 18h ago  
-100.79.177.16   iphone173             NightVibes33@  iOS      -                           
+100.111.62.29   github-runnervmvrwv9-1  NightVibes33@  linux    -                           
+100.116.117.65  bobbys-ipad             NightVibes33@  iOS      -                           
+100.127.94.70   desktop-o56xs           NightVibes33@  windows  offline, last seen 18h ago  
+100.94.200.0    github-runnervmvrwv9    NightVibes33@  linux    -                           
+100.79.177.16   iphone173               NightVibes33@  iOS      -                           
 === direct target ping ===
-pong from bobbys-ipad (100.116.117.65) via DERP(dfw) in 1.022s
-pong from bobbys-ipad (100.116.117.65) via DERP(dfw) in 61ms
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.65:41641 in 72ms
+pong from bobbys-ipad (100.116.117.65) via DERP(dfw) in 467ms
+pong from bobbys-ipad (100.116.117.65) via DERP(dfw) in 57ms
+pong from bobbys-ipad (100.116.117.65) via DERP(dfw) in 60ms
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.65:41641 in 450ms
 === SSH host key ===
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
@@ -25,7 +27,32 @@ pong from bobbys-ipad (100.116.117.65) via 67.60.72.65:41641 in 72ms
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
 
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0=== Gif2Ani 3.4.1 verbose runtime retest ===
+started_at_utc=2026-07-26T01:11:29Z
+identity=uid=0(root) gid=0(wheel) groups=0(wheel)
+model=J71tAP
+installed_version=3.4.1
+original_active_sha256=2a6358c670f3f3d495a59fc952b0498d0cfec84d4c9a21a91e2d3d76195517ba
+rollback_backup=/var/mobile/Library/Application Support/Gif2Ani/RemoteRuntimeRetestBackup
+=== theme_begin=Cyan Pulse Rings ===
+
   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-100  8211  100  8211    0     0  44100      0 --:--:-- --:--:-- --:--:-- 44383
-/var/jb/usr/bin/sh: 12: exec: /bin/sh: not found
-ssh_exit_code=127
+100  8211  100  8211    0     0  18001      0 --:--:-- --:--:-- --:--:-- 18006
+download_file=cyan-pulse-rings.gif
+actual_bytes=130275
+expected_bytes=130275
+actual_sha256=1975aa569fb5ee0002856a7cff3b60bbcde04126514386fbd52b89d9f5349a46
+expected_sha256=1975aa569fb5ee0002856a7cff3b60bbcde04126514386fbd52b89d9f5349a46
+gif_signature=GIF89a
+active_sha256=1975aa569fb5ee0002856a7cff3b60bbcde04126514386fbd52b89d9f5349a46
+prefs_isEnabled=true
+prefs_theme=Cyan Pulse Rings
+backboard_pid_before=
+rollback=starting
+rollback=complete
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100  127k  100  127k    0     0   400k      0 --:--:-- --:--:-- --:--:--  401k
+ssh_exit_code=1
