@@ -1,75 +1,31 @@
 Gif2Ani 3.4.1 Fast iPad Install
-run_id=30182191674
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30182191674
-commit=8fac8cf6e7fd93df9bb9152592261c0114b8143b
+run_id=30182407368
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30182407368
+commit=df528beabf5ad5ae614a15aae6948cbbffe24745
 job_status=failure
 tailscale=success
 device=failure
 
 --- sanitized device output ---
 === tailnet status ===
-100.95.219.16   github-runnervmvrwv9  NightVibes33@  linux    -                           
+100.74.72.77    github-runnervmvrwv9  NightVibes33@  linux    -                           
 100.116.117.65  bobbys-ipad           NightVibes33@  iOS      -                           
 100.127.94.70   desktop-o56xs         NightVibes33@  windows  offline, last seen 18h ago  
 100.79.177.16   iphone173             NightVibes33@  iOS      -                           
 === direct target ping ===
-ping "100.116.117.65" timed out
-ping "100.116.117.65" timed out
-ping "100.116.117.65" timed out
-ping "100.116.117.65" timed out
-ping "100.116.117.65" timed out
-ping "100.116.117.65" timed out
-ping "100.116.117.65" timed out
-ping "100.116.117.65" timed out
-ping "100.116.117.65" timed out
-ping "100.116.117.65" timed out
-no reply
+pong from bobbys-ipad (100.116.117.65) via DERP(dfw) in 1.022s
+pong from bobbys-ipad (100.116.117.65) via DERP(dfw) in 61ms
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.65:41641 in 72ms
 === SSH host key ===
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-=== Gif2Ani 3.4.1 install and multi-theme device test ===
-started_at_utc=2026-07-26T01:04:28Z
-identity=uid=0(root) gid=0(wheel) groups=0(wheel)
-model=J71tAP
-ios_version=original_active_sha256=2a6358c670f3f3d495a59fc952b0498d0cfec84d4c9a21a91e2d3d76195517ba
-rollback_backup=/var/mobile/Library/Application Support/Gif2Ani/RemoteTestBackup
-=== Download and verify green DEB ===
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
 
   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
- 40 85996   40 34423    0     0  35762      0  0:00:02 --:--:--  0:00:02 35745
-100 85996  100 85996    0     0  76935      0  0:00:01  0:00:01 --:--:-- 76988
-deb_sha256=aa4691278f17938d77eb0f086e61e580115d3602c5686566f378ac4fa2b435eb
-dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
- missing 'Maintainer' field
-(Reading database ... 19748 files and directories currently installed.)
-Preparing to unpack .../Gif2Ani-3.4.1-rootless.deb ...
-Unpacking com.nightvibes33.gif2ani (3.4.1) over (3.4.0) ...
-Setting up com.nightvibes33.gif2ani (3.4.1) ...
-Processing triggers for org.coolstar.sileo (2.5.1) ...
-dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
- missing 'Maintainer' field
-package_install=passed
-installed_file=/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/Gif2AniPrefs
-installed_file=/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/Root.plist
-installed_file=/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/ThemeCatalog.json
-installed_file=/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle/OpenThemeCatalog.json
-installed_file=/var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib
-installed_file=/var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist
-installed_offline_themes=12
-installed_cc0_downloadable_themes=54
-installed_springy_downloadable_themes=48
-installed_first_class_themes=114
-=== Runtime theme test: Cyan Pulse Rings ===
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-100  127k  100  127k    0     0   385k      0 --:--:-- --:--:-- --:--:--  386k
-rollback=starting
-rollback=complete
-ssh_exit_code=1
+100  8211  100  8211    0     0  44100      0 --:--:-- --:--:-- --:--:-- 44383
+/var/jb/usr/bin/sh: 12: exec: /bin/sh: not found
+ssh_exit_code=127
