@@ -1,0 +1,43 @@
+name: Report Gif2Ani 3.4.2 Run
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/report-gif2ani-342-run.yml
+      - triggers/report-gif2ani-342-run.txt
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Query target workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fsSL -H 'Accept: application/vnd.github+json' -H "Authorization: Bearer $GH_TOKEN" -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/build-install-test-gif2ani-342.yml/runs?per_page=5" -o runs.json
+          python3 - <<'PY' > remote/gif2ani-342-run-status.txt
+          import json
+          d=json.load(open('runs.json'))
+          print('Gif2Ani 3.4.2 workflow runs')
+          for r in d.get('workflow_runs',[]):
+              print('run_id=%s status=%s conclusion=%s head_sha=%s created_at=%s updated_at=%s' % (r.get('id'),r.get('status'),r.get('conclusion'),r.get('head_sha'),r.get('created_at'),r.get('updated_at')))
+          PY
+      - name: Publish report
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin main
+          git add remote/gif2ani-342-run-status.txt
+          git commit -m 'Record Gif2Ani 3.4.2 workflow state [skip ci]' || exit 0
+          git push origin HEAD:main
