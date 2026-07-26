@@ -1,23 +1,24 @@
 Gif2Ani 3.4.1 Fast iPad Install
-run_id=30182454548
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30182454548
-commit=848eecfa0ff88dc693f8b4683a3bb72b46467983
-job_status=failure
+run_id=30182558493
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30182558493
+commit=77ff0ddb3dd02034196b67abc25714c346096bbc
+job_status=cancelled
 tailscale=success
-device=failure
+device=cancelled
 
 --- sanitized device output ---
 === tailnet status ===
-100.111.62.29   github-runnervmvrwv9-1  NightVibes33@  linux    -                           
-100.116.117.65  bobbys-ipad             NightVibes33@  iOS      -                           
-100.127.94.70   desktop-o56xs           NightVibes33@  windows  offline, last seen 18h ago  
-100.94.200.0    github-runnervmvrwv9    NightVibes33@  linux    -                           
-100.79.177.16   iphone173               NightVibes33@  iOS      -                           
+100.117.101.122  github-runnervmvrwv9  NightVibes33@  linux    -                           
+100.116.117.65   bobbys-ipad           NightVibes33@  iOS      -                           
+100.127.94.70    desktop-o56xs         NightVibes33@  windows  offline, last seen 19h ago  
+100.79.177.16    iphone173             NightVibes33@  iOS      -                           
 === direct target ping ===
-pong from bobbys-ipad (100.116.117.65) via DERP(dfw) in 467ms
-pong from bobbys-ipad (100.116.117.65) via DERP(dfw) in 57ms
-pong from bobbys-ipad (100.116.117.65) via DERP(dfw) in 60ms
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.65:41641 in 450ms
+pong from bobbys-ipad (100.116.117.65) via DERP(dfw) in 422ms
+pong from bobbys-ipad (100.116.117.65) via DERP(dfw) in 44ms
+pong from bobbys-ipad (100.116.117.65) via DERP(dfw) in 47ms
+pong from bobbys-ipad (100.116.117.65) via DERP(dfw) in 994ms
+pong from bobbys-ipad (100.116.117.65) via DERP(dfw) in 43ms
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.65:41641 in 49ms
 === SSH host key ===
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
@@ -27,17 +28,22 @@ pong from bobbys-ipad (100.116.117.65) via 67.60.72.65:41641 in 450ms
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
 
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0=== Gif2Ani 3.4.1 verbose runtime retest ===
-started_at_utc=2026-07-26T01:11:29Z
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100  9292  100  9292    0     0  34824      0 --:--:-- --:--:-- --:--:-- 34932
+=== Gif2Ani 3.4.1 verbose runtime retest ===
+started_at_utc=2026-07-26T01:15:14Z
 identity=uid=0(root) gid=0(wheel) groups=0(wheel)
 model=J71tAP
 installed_version=3.4.1
 original_active_sha256=2a6358c670f3f3d495a59fc952b0498d0cfec84d4c9a21a91e2d3d76195517ba
+original_preferences_sha256=169f087ff18af4c7a0f22611e05e9b75d14bc92f6429c57fa2972c78ac670b1d
 rollback_backup=/var/mobile/Library/Application Support/Gif2Ani/RemoteRuntimeRetestBackup
 === theme_begin=Cyan Pulse Rings ===
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
 
   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-100  8211  100  8211    0     0  18001      0 --:--:-- --:--:-- --:--:-- 18006
+100  127k  100  127k    0     0   587k      0 --:--:-- --:--:-- --:--:--  588k
 download_file=cyan-pulse-rings.gif
 actual_bytes=130275
 expected_bytes=130275
@@ -47,12 +53,66 @@ gif_signature=GIF89a
 active_sha256=1975aa569fb5ee0002856a7cff3b60bbcde04126514386fbd52b89d9f5349a46
 prefs_isEnabled=true
 prefs_theme=Cyan Pulse Rings
-backboard_pid_before=
+backboard_pid_before=14619
+backboard_pid_after=14694
+runtime_plist={"BKDisplayRenderOverlaySpinny": true, "animationPending": false, "appleLoaderHidden": true, "attachmentPoint": "dedicated-overlay-layer", "contentsGravity": "resizeAspect", "duration": 2.0, "event": "custom-animation-stable", "frameCount": 24, "gifExists": true, "media": {"decodedFrames": 24, "decodedHeight": 360, "decodedWidth": 360, "estimatedDecodedBytes": 12441600, "inputBytes": 130275, "sourceFrames": 24, "sourceHeight": 360, "sourceWidth": 360}, "overlayHeight": 2048.0, "overlayWidth": 1536.0, "process": "backboardd", "repeatCount": Infinity, "safetyLimits": {"maximumDecodedFrames": 24, "maximumEstimatedDecodedBytes": 50331648, "maximumInputBytes": 26214400, "maximumPixelDimension": 640, "maximumSourceFrames": 240}, "timestamp": 1785028521.516622}
+runtime_event=custom-animation-stable
+theme_test=Cyan Pulse Rings:passed
+=== theme_begin=Cyan Halo Spinner ===
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100 49717  100 49717    0     0   164k      0 --:--:-- --:--:-- --:--:--  164k
+download_file=cyan-halo-spinner.gif
+actual_bytes=49717
+expected_bytes=49717
+actual_sha256=f0447aeece060d4e0ae563ad1e18c7055e8055a976d70b61c8d69f04db4c14cb
+expected_sha256=f0447aeece060d4e0ae563ad1e18c7055e8055a976d70b61c8d69f04db4c14cb
+gif_signature=GIF89a
+active_sha256=f0447aeece060d4e0ae563ad1e18c7055e8055a976d70b61c8d69f04db4c14cb
+prefs_isEnabled=true
+prefs_theme=Cyan Halo Spinner
+backboard_pid_before=14694
+backboard_pid_after=14746
+runtime_plist={"BKDisplayRenderOverlaySpinny": true, "animationPending": false, "appleLoaderHidden": true, "attachmentPoint": "dedicated-overlay-layer", "contentsGravity": "resizeAspect", "duration": 2.0, "event": "custom-animation-stable", "frameCount": 24, "gifExists": true, "media": {"decodedFrames": 24, "decodedHeight": 360, "decodedWidth": 360, "estimatedDecodedBytes": 12441600, "inputBytes": 49717, "sourceFrames": 24, "sourceHeight": 360, "sourceWidth": 360}, "overlayHeight": 2048.0, "overlayWidth": 1536.0, "process": "backboardd", "repeatCount": Infinity, "safetyLimits": {"maximumDecodedFrames": 24, "maximumEstimatedDecodedBytes": 50331648, "maximumInputBytes": 26214400, "maximumPixelDimension": 640, "maximumSourceFrames": 240}, "timestamp": 1785028534.299882}
+runtime_event=custom-animation-stable
+theme_test=Cyan Halo Spinner:passed
+=== theme_begin=Cyan Energy Wave ===
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+             download_file=cyan-energy-wave.gif
+actual_bytes=52155
+expected_bytes=52155
+actual_sha256=74d773db3f6b8f98daad1234266f3b594698cca200a0858f3c39494154b2c337
+expected_sha256=74d773db3f6b8f98daad1234266f3b594698cca200a0858f3c39494154b2c337
+gif_signature=GIF89a
+active_sha256=74d773db3f6b8f98daad1234266f3b594698cca200a0858f3c39494154b2c337
+prefs_isEnabled=true
+prefs_theme=Cyan Energy Wave
+backboard_pid_before=14746
+backboard_pid_after=14798
+runtime_plist={"BKDisplayRenderOverlaySpinny": true, "animationPending": false, "appleLoaderHidden": true, "attachmentPoint": "dedicated-overlay-layer", "contentsGravity": "resizeAspect", "duration": 2.0, "event": "custom-animation-stable", "frameCount": 24, "gifExists": true, "media": {"decodedFrames": 24, "decodedHeight": 360, "decodedWidth": 360, "estimatedDecodedBytes": 12441600, "inputBytes": 52155, "sourceFrames": 24, "sourceHeight": 360, "sourceWidth": 360}, "overlayHeight": 2048.0, "overlayWidth": 1536.0, "process": "backboardd", "repeatCount": Infinity, "safetyLimits": {"maximumDecodedFrames": 24, "maximumEstimatedDecodedBytes": 50331648, "maximumInputBytes": 26214400, "maximumPixelDimension": 640, "maximumSourceFrames": 240}, "timestamp": 1785028546.9251552}
+runtime_event=custom-animation-stable
+theme_test=Cyan Energy Wave:passed
+=== original_springy_pack_test ===
+                    Dload  Upload   Total   Spent    Left  Speed
+
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100 52155  100 52155    0     0    97k      0 --:--:-- --:--:-- --:--:--   97k
+springy_bytes=2971658
+springy_sha256=853d01e5a41092561d47dc6ccfc87b9e547dd926b7ba1daa9980fe148e276279
+springy_package=io.github.virenmohindra.a-wave
 rollback=starting
 rollback=complete
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
 
   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-100  127k  100  127k    0     0   400k      0 --:--:-- --:--:-- --:--:--  401k
+100   162  100   162    0     0    694      0 --:--:-- --:--:-- --:--:--   698
+
+100   167    0   167    0     0    477      0 --:--:-- --:--:-- --:--:--   477
+
+100 32693    0 32693    0     0  44977      0 --:--:-- --:--:-- --:--:-- 44977
+100 2902k    0 2902k    0     0  2238k      0 --:--:--  0:00:01 --:--:-- 5044k
 ssh_exit_code=1
