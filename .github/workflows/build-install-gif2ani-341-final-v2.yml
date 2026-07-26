@@ -1,0 +1,126 @@
+name: Build Install Gif2Ani 3.4.1 Final V2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - triggers/build-install-gif2ani-341-final-v2.txt
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: "100.116.117.65"
+
+concurrency:
+  group: gif2ani-final-device-install-v2
+  cancel-in-progress: false
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve environment name
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsSL -H 'Accept: application/vnd.github+json' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" \
+            -o environments.json
+          python3 scripts/resolve-github-environment.py environments.json "$TARGET_ENVIRONMENT_ID" >> "$GITHUB_OUTPUT"
+
+  build-install:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: bridge
+
+      - uses: actions/checkout@v4
+        with:
+          repository: NightVibes33/Dark-Boot
+          ref: main
+          path: darkboot
+
+      - name: Install dependencies and Theos
+        env:
+          THEOS: /opt/theos
+          CI: "1"
+          SHELL: /bin/bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            bash curl sudo build-essential fakeroot rsync perl git \
+            libxml2 dpkg-dev unzip xz-utils ca-certificates python3 file \
+            openssh-client sshpass
+          sudo rm -rf /opt/theos
+          sudo mkdir -p /opt
+          sudo chown "$USER:$USER" /opt
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          test -x /opt/theos/toolchain/linux/iphone/bin/clang
+
+      - name: Build and validate Gif2Ani 3.4.1
+        env:
+          THEOS: /opt/theos
+        run: |
+          set -euo pipefail
+          chmod +x bridge/scripts/build-gif2ani-341-final.sh
+          bridge/scripts/build-gif2ani-341-final.sh "$GITHUB_WORKSPACE/darkboot" "$GITHUB_WORKSPACE"
+
+      - name: Upload verified DEB
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gif2Ani-3.4.1-final-rootless-deb
+          path: Gif2Ani-3.4.1-final.deb
+          if-no-files-found: error
+          retention-days: 30
+
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Install and prove on iPad
+        id: device
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          chmod +x bridge/scripts/run-gif2ani-341-device-proof.sh
+          bridge/scripts/run-gif2ani-341-device-proof.sh \
+            "$IPAD_HOST" \
+            "$GITHUB_WORKSPACE/Gif2Ani-3.4.1-final.deb" \
+            "$GITHUB_WORKSPACE/bridge/scripts/prove-gif2ani-341-device.sh" \
+            "$GITHUB_WORKSPACE/gif2ani-341-device-proof.txt"
+
+      - name: Publish final proof
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          DEVICE_OUTCOME: ${{ steps.device.outcome }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          python3 bridge/scripts/publish-gif2ani-341-proof.py "$GITHUB_WORKSPACE" "$GITHUB_WORKSPACE/bridge"
+          cd bridge
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin main
+          git add remote/gif2ani-341-final-proof.txt
+          git commit -m 'Record Gif2Ani 3.4.1 final device proof [skip ci]' || exit 0
+          git push origin HEAD:main
