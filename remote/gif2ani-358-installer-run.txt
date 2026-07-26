@@ -1,0 +1,19 @@
+Gif2Ani 3.5.8 Installer Reporter
+id=30213386903
+head_sha=d3188f63a9e52dfd6d9de61de368f197a907fbe8
+status=in_progress
+conclusion=None
+created_at=2026-07-26T17:49:22Z
+updated_at=2026-07-26T17:49:25Z
+html_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30213386903
+job=89823288985|Wait for iPad and install 3.5.8|in_progress|None
+step=1|Set up job|completed|success
+step=2|Run actions/checkout@v4|completed|success
+step=3|Validate secrets and command|completed|success
+step=4|Install Tailscale and SSH client|completed|success
+step=5|Join tailnet|completed|success
+step=6|Wait for SSH and install|in_progress|None
+step=7|Logout installer node|pending|None
+step=8|Upload output|pending|None
+step=9|Publish install status|pending|None
+step=18|Post Run actions/checkout@v4|pending|None
