@@ -1,17 +1,17 @@
 Stable iPad Tailscale SSH Bridge
-run_id=30213161981
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30213161981
-commit=2229b8bdb919effb7546667a0fd9121da452eca6
+run_id=30213228005
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30213228005
+commit=6d48c39cb87d7749716a5cf96bb3ec6badbe3b42
 validate=success
 install=success
 tailscale=success
-ssh=cancelled
+ssh=failure
 
 --- sanitized output ---
-100.77.111.99   github-ipad-bridge         NightVibes33@  linux    -                           
-100.116.117.65  bobbys-ipad                NightVibes33@  iOS      offline, last seen 13m ago  
+100.77.101.58   github-ipad-bridge         NightVibes33@  linux    -                           
+100.116.117.65  bobbys-ipad                NightVibes33@  iOS      offline, last seen 15m ago  
 100.127.94.70   desktop-o56xs              NightVibes33@  windows  offline, last seen 1d ago   
-100.88.177.49   github-ipad-30212336840-1  NightVibes33@  linux    offline, last seen 23m ago  
+100.88.177.49   github-ipad-30212336840-1  NightVibes33@  linux    offline, last seen 24m ago  
 100.79.177.16   iphone173                  NightVibes33@  iOS      offline, last seen 2h ago   
 tailscale_ipad_node_visible=success
 SSH port attempt 1/18
@@ -23,3 +23,49 @@ no reply
 SSH port attempt 3/18
 ping "100.116.117.65" timed out
 no reply
+SSH port attempt 4/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 5/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 6/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 7/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 8/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 9/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 10/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 11/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 12/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 13/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 14/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 15/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 16/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 17/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 18/18
+ping "100.116.117.65" timed out
+no reply
+ipad_ssh_port_ready=failure
