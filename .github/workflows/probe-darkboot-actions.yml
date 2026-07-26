@@ -25,26 +25,19 @@ jobs:
             -H 'Accept: application/vnd.github+json' \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H 'X-GitHub-Api-Version: 2022-11-28' \
-            'https://api.github.com/repos/NightVibes33/Dark-Boot/actions/runs?per_page=40' > runs.json
+            'https://api.github.com/repos/NightVibes33/Dark-Boot/actions/runs?per_page=50' > runs.json
           python3 - <<'PY'
           import json
           from pathlib import Path
           data=json.load(open('runs.json'))
-          wanted={
-            'Build Gif2Ani 3.4.1 Gallery',
-            'Finalize Gif2Ani Runtime Timing',
-            'Fix Gif2Ani 3.4.1 Open Library Build Validation',
-          }
-          out=['Dark-Boot Actions Probe']
-          selected=[]
-          for run in data.get('workflow_runs',[]):
-              if run.get('name') in wanted:
-                  selected.append(run)
-          selected.sort(key=lambda x:x.get('created_at',''), reverse=True)
-          for run in selected[:20]:
+          out=['Dark-Boot Actions Probe',f"total_count={data.get('total_count',0)}"]
+          runs=list(data.get('workflow_runs',[]))
+          runs.sort(key=lambda x:x.get('created_at',''), reverse=True)
+          for run in runs[:35]:
               out += [
                 '',
                 f"name={run.get('name')}",
+                f"path={run.get('path')}",
                 f"run_id={run.get('id')}",
                 f"status={run.get('status')}",
                 f"conclusion={run.get('conclusion')}",
@@ -55,8 +48,8 @@ jobs:
                 f"attempt={run.get('run_attempt')}",
                 f"url={run.get('html_url')}",
               ]
-          if not selected:
-              out.append('no_matching_runs=true')
+          if not runs:
+              out.append('no_runs_visible=true')
           Path('remote/darkboot-actions-probe.txt').write_text('\n'.join(out)+'\n')
           print('\n'.join(out))
           PY
