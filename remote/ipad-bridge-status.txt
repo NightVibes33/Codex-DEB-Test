@@ -1,12 +1,12 @@
 iPad Tailscale SSH Bridge
-run_id=30208525032
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30208525032
-commit=0ee5433742d18d41f25bdd8c28df81bf21bc46f5
+run_id=30208821648
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30208821648
+commit=8344d83d39f8cb5d7ecf816b1d09ed8e1078f136
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
 install_ssh=success
-ssh=failure
+ssh=success
 
 --- sanitized SSH output ---
 Waking and checking iPad SSH port over Tailscale...
@@ -18,29 +18,30 @@ SSH port attempt 1/18
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 ipad_ssh_port_ready=success
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-=== Install Gif2Ani 3.5.4 and audit all 48 packs on iPad ===
-started_at_utc=2026-07-26T15:36:01Z
+=== Install Gif2Ani 3.5.5 and audit all 48 exact pack names on iPad ===
+started_at_utc=2026-07-26T15:44:25Z
 identity=uid=0(root) gid=0(wheel) groups=0(wheel)
 model=J71tAP
 version_before=3.5.4
-release_effective_url=https://raw.githubusercontent.com/NightVibes33/Dark-Boot/e0017ea96de60af7927c0acfea557ee070115fa2/release-packages/Gif2Ani-3.5.4-verified-immutable-springy.deb
-release_sha256=3dbfd641411d98cdb766d059a01da55c2c03cfe8e7b70fd7551e942ba3492bb2
+release_effective_url=https://raw.githubusercontent.com/NightVibes33/Dark-Boot/fa5f035abf2e419c3075f439f9f853daa2ba56b1/release-packages/Gif2Ani-3.5.5-exact-pack-names.deb
+release_sha256=cf394b66554b8a8085dfc1d60789031ea38cc18d74df39dab66ab6ce9214e74b
 release_package_metadata=passed
 dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
  missing 'Maintainer' field
 (Reading database ... 19853 files and directories currently installed.)
-Preparing to unpack .../Gif2Ani-3.5.4-verified-immutable-springy.deb ...
-Unpacking com.nightvibes33.gif2ani (3.5.4) over (3.5.4) ...
-Setting up com.nightvibes33.gif2ani (3.5.4) ...
+Preparing to unpack .../Gif2Ani-3.5.5-exact-pack-names.deb ...
+Unpacking com.nightvibes33.gif2ani (3.5.5) over (3.5.4) ...
+Setting up com.nightvibes33.gif2ani (3.5.5) ...
 Processing triggers for org.coolstar.sileo (2.5.1) ...
-version_immediate=3.5.4
 dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
  missing 'Maintainer' field
+version_immediate=3.5.5
 installed_version_and_code=passed
 bundled_preview_count=102
 all_bundled_previews_png_220x220=passed
 immutable_catalog_count=48
 catalog_preview_identity_mapping=passed
+stranger_things_dankerthings_name=passed
 stale_springy_cache_cleared=true
 pack_01=passed|io.github.virenmohindra.a-wave|A Wave
 pack_02=passed|io.github.virenmohindra.alone|Alone
@@ -78,4 +79,28 @@ pack_33=passed|io.github.virenmohindra.soup|Soup
 pack_34=passed|io.github.virenmohindra.spikey|Spikey
 pack_35=passed|io.github.virenmohindra.sploosh|Sploosh
 pack_36=passed|io.github.virenmohindra.stay-in-lane|Stay In Lane
-ssh_exit_code=1
+pack_37=passed|io.github.virenmohindra.stranger-things|Stranger Things (DankerThings)
+pack_38=passed|io.github.virenmohindra.super-mario|Super Mario
+pack_39=passed|io.github.virenmohindra.swimmer|Swimmer
+pack_40=passed|io.github.virenmohindra.swish|Swish
+pack_41=passed|io.github.virenmohindra.tesseract|Tesseract
+pack_42=passed|io.github.virenmohindra.three-waves|Three Waves
+pack_43=passed|io.github.virenmohindra.time-and-money|Time And Money
+pack_44=passed|io.github.virenmohindra.twisting-cubes|Twisting Cubes
+pack_45=passed|io.github.virenmohindra.upload|Upload
+pack_46=passed|io.github.virenmohindra.waiting|Waiting
+pack_47=passed|io.github.virenmohindra.world-swap|World Swap
+pack_48=passed|io.github.virenmohindra.yin-and-yang|Yin And Yang
+on_device_pack_downloads_passed=48
+all_48_exact_names_match_deb_metadata=passed
+version_after_5s=3.5.5
+visible_label=dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+GIF2ANI 3.5.5
+gif2ani_settings_reopened=true
+tweak_binary_sha256=23ce0cd13044d90f67b4d46ae3e39bf21dbd49bfcbe8f80aeba6ddb9a18529b5
+prefs_binary_sha256=22bc692d49397b11a3ef20679a79eec54cdc00744f493bb97e1e5f190a6fd243
+gif2ani_355_install=success
+gif2ani_355_all_48_downloads=success
+gif2ani_355_exact_names_and_previews=success
+ssh_exit_code=0
