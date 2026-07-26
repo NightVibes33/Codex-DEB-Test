@@ -1,18 +1,17 @@
 Stable iPad Tailscale SSH Bridge
-run_id=30213747886
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30213747886
-commit=e70690eb145a5ff464a323fbbd0a14099269d07e
+run_id=30215095070
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30215095070
+commit=2da64e16bdcdd78945d4fec01953d0c8dc20eb5a
 validate=success
 install=success
 tailscale=success
 ssh=success
 
 --- sanitized output ---
-100.113.104.116  github-ipad-bridge         NightVibes33@  linux    -                           
-100.116.117.65   bobbys-ipad                NightVibes33@  iOS      -                           
-100.127.94.70    desktop-o56xs              NightVibes33@  windows  offline, last seen 1d ago   
-100.88.177.49    github-ipad-30212336840-1  NightVibes33@  linux    offline, last seen 39m ago  
-100.79.177.16    iphone173                  NightVibes33@  iOS      offline, last seen 2h ago   
+100.117.176.108  github-ipad-bridge  NightVibes33@  linux    -                          
+100.116.117.65   bobbys-ipad         NightVibes33@  iOS      -                          
+100.127.94.70    desktop-o56xs       NightVibes33@  windows  offline, last seen 1d ago  
+100.79.177.16    iphone173           NightVibes33@  iOS      offline, last seen 3h ago  
 tailscale_ipad_node_visible=success
 SSH port attempt 1/18
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
@@ -21,65 +20,59 @@ SSH port attempt 1/18
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 ipad_ssh_port_ready=success
-=== Gif2Ani 3.5.8 corrected Springy and SnowBoard sample audit ===
-started_at_utc=2026-07-26T18:00:20Z
+=== Install Gif2Ani 3.5.9 and verify real Settings download runtime ===
+started_at_utc=2026-07-26T18:37:43Z
 identity=uid=0(root) gid=0(wheel) groups=0(wheel)
 model=J71tAP
-installed_version=3.5.8
-catalog_springy_name=Gameboy Advance
-catalog_springy_package=io.github.virenmohindra.gameboy-advance
-catalog_springy_bytes=3313038
-catalog_springy_sha256=6cb23ec7a5087de45fc2ce1be01b8bd1e14ae5ca0c5cc72cb6c11e4b0bae6a18
-catalog_springy_archive_subpath=
-catalog_snowboard_name=CheckRa1n
-catalog_snowboard_package=com.thwlfu.cakrespring
-catalog_snowboard_bytes=134520
-catalog_snowboard_sha256=5f631f11600fba9f9fa95ee6e6b525ba504d0756841b5f9d3f36626a62af77dc
-catalog_snowboard_archive_subpath=Library/Themes/CheckRa1n.theme
+version_before=3.5.8
+release_effective_url=https://raw.githubusercontent.com/NightVibes33/Dark-Boot/38c32c781735875dcf154b09c9531dd7427bf7a8/release-packages/Gif2Ani-3.5.9-archive-animated-previews.deb
+release_sha256=fa8b3c766684b5d6e22056611590e24b695175f020a845180092c45fa951e583
+release_package_metadata=passed
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+(Reading database ... 19751 files and directories currently installed.)
+Preparing to unpack .../Gif2Ani-3.5.9-archive-animated-previews.deb ...
+Unpacking com.nightvibes33.gif2ani (3.5.9) over (3.5.8) ...
+Setting up com.nightvibes33.gif2ani (3.5.9) ...
+Processing triggers for org.coolstar.sileo (2.5.1) ...
+version_immediate=3.5.9
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+installed_359_runtime_markers=passed
+installed_animated_previews=262|bytes=3290738|minimum_frames=2|maximum_frames=10
+sample_preview=io.github.virenmohindra.gameboy-advance|frames=10|bytes=18280
+sample_preview=snowboard.com-thwlfu-cakrespring.checkra1n|frames=9|bytes=10775
 springy_test_name=Gameboy Advance
-springy_archive_subpath_value=<empty>
-springy_curl_status=0
 springy_effective_url=https://raw.githubusercontent.com/VirenMohindra/CydiaRepo/c507a391f193c2bb362ff77fc1c1673c0da2dcae/debs/io.github.virenmohindra.gameboy-advance_2.0_iphoneos-arm.deb
-springy_expected_bytes=3313038
-springy_actual_bytes=3313038
-springy_bytes_match=true
-springy_expected_sha256=6cb23ec7a5087de45fc2ce1be01b8bd1e14ae5ca0c5cc72cb6c11e4b0bae6a18
-springy_actual_sha256=6cb23ec7a5087de45fc2ce1be01b8bd1e14ae5ca0c5cc72cb6c11e4b0bae6a18
-springy_sha256_match=true
+springy_old_restricted_environment_status=2
+springy_preferences_environment_preflight_status=0
 springy_expected_package=io.github.virenmohindra.gameboy-advance
 springy_actual_package=io.github.virenmohindra.gameboy-advance
-springy_package_match=true
-springy_dpkg_deb_status=0
-springy_owner_uid=501
-springy_dpkg_deb_stderr=(empty)
-springy_extract_status=0
-springy_archive_subpath_present=not_required
+springy_preferences_environment_extract_status=0
+springy_archive_subpath=package_root
 springy_media_count=63
-springy_direct_media_directory=Library/Springy/Gameboy Advance|files=63
-springy_full_sample_match=true
+springy_preview=io.github.virenmohindra.gameboy-advance|frames=10|bytes=18280|sha256=10855f49fed523d51b45bcc1c1d5d30d5b2105a411b0081dbab86d71e5a81898
+springy_settings_archive_runtime=passed
 snowboard_test_name=CheckRa1n
-snowboard_archive_subpath_value=Library/Themes/CheckRa1n.theme
-snowboard_curl_status=0
 snowboard_effective_url=https://repo.packix.com/debs/com.thwlfu.cakrespring_1.1.deb
-snowboard_expected_bytes=134520
-snowboard_actual_bytes=134520
-snowboard_bytes_match=true
-snowboard_expected_sha256=5f631f11600fba9f9fa95ee6e6b525ba504d0756841b5f9d3f36626a62af77dc
-snowboard_actual_sha256=5f631f11600fba9f9fa95ee6e6b525ba504d0756841b5f9d3f36626a62af77dc
-snowboard_sha256_match=true
+snowboard_old_restricted_environment_status=2
+snowboard_preferences_environment_preflight_status=0
 snowboard_expected_package=com.thwlfu.cakrespring
 snowboard_actual_package=com.thwlfu.cakrespring
-snowboard_package_match=true
-snowboard_dpkg_deb_status=0
-snowboard_owner_uid=501
-snowboard_dpkg_deb_stderr=(empty)
-snowboard_extract_status=0
-snowboard_archive_subpath_present=true
+snowboard_preferences_environment_extract_status=0
+snowboard_archive_subpath=Library/Themes/CheckRa1n.theme
 snowboard_media_count=26
-snowboard_full_sample_match=true
-sample_count=2
-last_package_verification=absent
+snowboard_preview=snowboard.com-thwlfu-cakrespring.checkra1n|frames=9|bytes=10775|sha256=b43a18c0045d4613aacd288ec39ee8e913f5f615131e4ed86874ffc1843e8a8b
+snowboard_settings_archive_runtime=passed
+version_after_8s=3.5.9
+visible_label=dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+GIF2ANI 3.5.9
+gallery_label=274-THEME ANIMATION GALLERY
 gif2ani_gallery_reopened=true
-diagnostic_failures=0
-gif2ani_358_springy_and_snowboard_samples=success
+gif2ani_359_install=success
+gif2ani_359_all_262_animated_previews=success
+gif2ani_359_checkra1n_settings_archive_runtime=success
+gif2ani_359_gameboy_advance_settings_archive_runtime=success
+gif2ani_359_gallery_total_274=success
 ssh_exit_code=0
