@@ -74,7 +74,7 @@ jobs:
     environment:
       name: ${{ needs.resolve-environment.outputs.environment_name }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -98,20 +98,56 @@ jobs:
             exit 1
           fi
 
-      - name: Join the Tailscale network
-        id: tailscale
-        uses: tailscale/github-action@v4
-        with:
-          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
-          ping: 100.116.117.65
-          version: latest
-
-      - name: Install SSH client
+      - name: Install Tailscale and SSH clients
         id: install_ssh
         run: |
           set -euo pipefail
+          sudo install -d -m 0755 /usr/share/keyrings
+          curl --fail --silent --show-error --retry 3 --connect-timeout 20 \
+            https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg \
+            | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
+          curl --fail --silent --show-error --retry 3 --connect-timeout 20 \
+            https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list \
+            | sudo tee /etc/apt/sources.list.d/tailscale.list >/dev/null
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends openssh-client sshpass
+          sudo apt-get install -y --no-install-recommends tailscale openssh-client sshpass
+          sudo systemctl enable --now tailscaled
+          tailscale version
+
+      - name: Join the Tailscale network with retries
+        id: tailscale
+        shell: bash
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+          IPAD_HOST: 100.116.117.65
+        run: |
+          set -euo pipefail
+          : > ipad-output.txt
+          connected=0
+          for attempt in 1 2 3; do
+            echo "Tailscale connection attempt $attempt/3" | tee -a ipad-output.txt
+            sudo tailscale logout >/dev/null 2>&1 || true
+            sudo systemctl restart tailscaled
+            sleep 3
+            if sudo tailscale up \
+              --auth-key="$TAILSCALE_AUTHKEY" \
+              --hostname="github-ipad-${GITHUB_RUN_ID}-${attempt}" \
+              --accept-dns=false \
+              --accept-routes=false \
+              --reset 2>&1 | tee -a ipad-output.txt; then
+              if sudo tailscale ping --timeout=20s --c 3 "$IPAD_HOST" 2>&1 | tee -a ipad-output.txt; then
+                connected=1
+                break
+              fi
+            fi
+            sleep $((attempt * 8))
+          done
+          if [ "$connected" != 1 ]; then
+            echo "Tailscale could not reach the iPad after three clean login attempts." | tee -a ipad-output.txt >&2
+            sudo tailscale status 2>&1 | tee -a ipad-output.txt || true
+            exit 1
+          fi
+          echo 'tailscale_ipad_ping=success' | tee -a ipad-output.txt
 
       - name: Run command file on iPad as root
         id: ssh
@@ -216,7 +252,7 @@ jobs:
               password = os.environ.get("IPAD_PASSWORD", "")
               if password:
                   text = text.replace(password, "***REDACTED***")
-              lines.extend(text.splitlines()[-100:])
+              lines.extend(text.splitlines()[-140:])
           else:
               lines.append("No SSH output file was created; failure occurred before the SSH step.")
 
