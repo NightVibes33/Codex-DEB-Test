@@ -1,0 +1,3 @@
+run=2026-07-26T01:01:00-05:00
+command=remote/ipad-command.sh
+mode=no-ping-direct-ssh
