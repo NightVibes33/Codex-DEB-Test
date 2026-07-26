@@ -1,4 +1,7 @@
-requested_at_utc=2026-07-26T01:22:00Z
+requested_at_utc=2026-07-26T01:34:00Z
 version=3.4.1
+artifact_run=30182726351
+artifact_id=8626062011
+deb_sha256=54877fb227693bc6e5d6733cc77a5cba722479d5ee2c3f1806840d5b1415b982
 runtime_theme_tests=3
-mode=runtime-status-proof-and-restore
+mode=verified-artifact-reinstall-runtime-status-proof-and-restore
