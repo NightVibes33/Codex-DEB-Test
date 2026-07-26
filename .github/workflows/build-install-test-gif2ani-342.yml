@@ -1,0 +1,294 @@
+name: Build Install Test Gif2Ani 3.4.2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/build-install-test-gif2ani-342.yml
+      - triggers/build-install-test-gif2ani-342.txt
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gif2ani-342-gallery-device-test
+  cancel-in-progress: false
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: '18728387881'
+        run: |
+          set -euo pipefail
+          curl -fsSL -H 'Accept: application/vnd.github+json' -H "Authorization: Bearer $GH_TOKEN" -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" -o envs.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json,sys
+          target=int(sys.argv[1]); data=json.load(open('envs.json'))
+          for item in data.get('environments',[]):
+              if int(item.get('id',-1))==target:
+                  print('environment_name='+item['name']); raise SystemExit
+          raise SystemExit(1)
+          PY
+
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      deb_sha256: ${{ steps.metadata.outputs.deb_sha256 }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone exact fixed source
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/NightVibes33/Dark-Boot.git source
+          cd source
+          git checkout e0ae7f2449cf292ccf6411684af20de691d7afc8
+          test "$(git rev-parse HEAD)" = 'e0ae7f2449cf292ccf6411684af20de691d7afc8'
+          grep -Fq 'G2ThemeGalleryController : UITableViewController' gif2aniprefs/G2ThemeGalleryController.h
+          ! grep -Fq 'PSListController' gif2aniprefs/G2ThemeGalleryController.h
+          grep -Fq 'initWithStyle:UITableViewStyleInsetGrouped' gif2aniprefs/G2ThemeGalleryController.m
+          grep -Fq '<string>PSButtonCell</string>' gif2aniprefs/Resources/Root.plist
+          grep -Fq '<string>openAnimationGallery</string>' gif2aniprefs/Resources/Root.plist
+          if grep -A10 -F 'Browse and Preview Animations' gif2aniprefs/Resources/Root.plist | grep -Fq '<key>detail</key>'; then exit 41; fi
+          test "$(awk '/^Version:/{print $2}' control)" = '3.4.2'
+
+      - name: Install Theos
+        env:
+          THEOS: /opt/theos
+          CI: '1'
+          SHELL: /bin/bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends bash curl sudo build-essential fakeroot rsync perl git libxml2 dpkg-dev unzip xz-utils ca-certificates python3 file
+          sudo rm -rf /opt/theos
+          sudo mkdir -p /opt
+          sudo chown "$USER:$USER" /opt
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          test -x /opt/theos/toolchain/linux/iphone/bin/clang
+
+      - name: Build rootless package
+        working-directory: source
+        env:
+          THEOS: /opt/theos
+        run: |
+          set -euo pipefail
+          make clean package FINALPACKAGE=1 2>&1 | tee ../gif2ani-342-build.log
+          DEB='packages/com.nightvibes33.gif2ani_3.4.2_iphoneos-arm64.deb'
+          test -s "$DEB"
+          test "$(dpkg-deb -f "$DEB" Package)" = 'com.nightvibes33.gif2ani'
+          test "$(dpkg-deb -f "$DEB" Version)" = '3.4.2'
+          test "$(dpkg-deb -f "$DEB" Architecture)" = 'iphoneos-arm64'
+          rm -rf ../package-root
+          dpkg-deb -x "$DEB" ../package-root
+          BUNDLE='../package-root/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle'
+          test -s "$BUNDLE/Gif2AniPrefs"
+          strings "$BUNDLE/Gif2AniPrefs" | grep -Fq 'openAnimationGallery'
+          strings "$BUNDLE/Gif2AniPrefs" | grep -Fq 'initWithStyle:'
+          test -s "$BUNDLE/ThemeCatalog.json"
+          test -s "$BUNDLE/OpenThemeCatalog.json"
+          cp "$DEB" ../Gif2Ani-3.4.2-gallery-fix.deb
+
+      - name: Publish metadata
+        id: metadata
+        run: |
+          set -euo pipefail
+          SHA="$(sha256sum Gif2Ani-3.4.2-gallery-fix.deb | awk '{print $1}')"
+          echo "deb_sha256=$SHA" >> "$GITHUB_OUTPUT"
+          printf 'source_commit=e0ae7f2449cf292ccf6411684af20de691d7afc8\ndeb_sha256=%s\n' "$SHA" > gif2ani-342-metadata.txt
+          cat gif2ani-342-metadata.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Gif2Ani-3.4.2-gallery-fix
+          path: |
+            Gif2Ani-3.4.2-gallery-fix.deb
+            gif2ani-342-metadata.txt
+            gif2ani-342-build.log
+          if-no-files-found: error
+          retention-days: 30
+
+  install-test:
+    needs: [resolve-environment, build]
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: Gif2Ani-3.4.2-gallery-fix
+          path: payload
+
+      - name: Verify exact build
+        env:
+          EXPECTED_SHA: ${{ needs.build.outputs.deb_sha256 }}
+        run: |
+          set -euo pipefail
+          test -s payload/Gif2Ani-3.4.2-gallery-fix.deb
+          test "$(sha256sum payload/Gif2Ani-3.4.2-gallery-fix.deb | awk '{print $1}')" = "$EXPECTED_SHA"
+          test "$(dpkg-deb -f payload/Gif2Ani-3.4.2-gallery-fix.deb Version)" = '3.4.2'
+
+      - name: Validate secrets
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          test -n "$TAILSCALE_AUTHKEY"
+          test -n "$IPAD_PASSWORD"
+
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Install SSH tools
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends openssh-client sshpass
+
+      - name: Copy package to iPad
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_HOST: '100.116.117.65'
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"
+          ssh-keyscan -T 15 -H -p 22 "$IPAD_HOST" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" payload/Gif2Ani-3.4.2-gallery-fix.deb mobile@"$IPAD_HOST":/var/mobile/Library/Caches/
+
+      - name: Install and exercise exact crashing route
+        id: device
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_HOST: '100.116.117.65'
+          EXPECTED_SHA: ${{ needs.build.outputs.deb_sha256 }}
+        run: |
+          set -uo pipefail
+          : > gif2ani-342-device-output.txt
+          {
+            printf '%s\n' "$IPAD_PASSWORD"
+            cat <<'REMOTE'
+          set -eu
+          export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
+          DEB='/var/mobile/Library/Caches/Gif2Ani-3.4.2-gallery-fix.deb'
+          BUNDLE='/var/jb/Library/PreferenceBundles/Gif2AniPrefs.bundle'
+          MEDIA='/var/mobile/Library/Application Support/Gif2Ani'
+          BACKUP='/var/mobile/Library/Caches/Gif2Ani342Backup'
+          MARKER='/var/mobile/Library/Caches/Gif2Ani342CrashMarker'
+          EXPECTED_SHA='__EXPECTED_SHA__'
+          SUCCESS=0
+          restore_previous() {
+            echo 'rollback=starting'
+            [ ! -d "$BACKUP/bundle" ] || { rm -rf "$BUNDLE"; cp -a "$BACKUP/bundle" "$BUNDLE"; }
+            [ ! -f "$BACKUP/Gif2Ani.dylib" ] || cp -p "$BACKUP/Gif2Ani.dylib" /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib
+            [ ! -f "$BACKUP/Gif2Ani.plist" ] || cp -p "$BACKUP/Gif2Ani.plist" /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist
+            killall -9 Preferences 2>/dev/null || true
+            echo 'rollback=complete'
+          }
+          finish() { code=$?; trap - EXIT INT TERM; [ "$SUCCESS" -eq 1 ] || restore_previous || true; rm -f "$DEB"; exit "$code"; }
+          trap finish EXIT INT TERM
+
+          echo '=== Gif2Ani 3.4.2 exact gallery route test ==='
+          printf 'started_at_utc='; date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || true
+          printf 'identity='; id
+          printf 'model='; sysctl -n hw.model 2>/dev/null || true
+          test "$(sha256sum "$DEB" | awk '{print $1}')" = "$EXPECTED_SHA"
+          test "$(dpkg-deb -f "$DEB" Version)" = '3.4.2'
+
+          rm -rf "$BACKUP"; mkdir -p "$BACKUP"
+          cp -a "$BUNDLE" "$BACKUP/bundle"
+          cp -p /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.dylib "$BACKUP/Gif2Ani.dylib"
+          cp -p /var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist "$BACKUP/Gif2Ani.plist"
+
+          dpkg -i "$DEB"
+          test "$(dpkg-query -W -f='${Version}' com.nightvibes33.gif2ani)" = '3.4.2'
+          test -s "$BUNDLE/Gif2AniPrefs"
+          python3 - "$BUNDLE/Root.plist" <<'PY'
+          import plistlib,sys
+          root=plistlib.load(open(sys.argv[1],'rb'))
+          rows=[x for x in root.get('items',[]) if isinstance(x,dict) and x.get('label')=='Browse and Preview Animations']
+          assert len(rows)==1
+          row=rows[0]
+          assert row.get('cell')=='PSButtonCell'
+          assert row.get('action')=='openAnimationGallery'
+          assert 'detail' not in row
+          print('navigation_contract=passed')
+          PY
+          strings "$BUNDLE/Gif2AniPrefs" | grep -Fq 'initWithStyle:'
+          echo 'package_install=passed'
+
+          killall -9 Preferences 2>/dev/null || true
+          rm -f "$MARKER"; touch "$MARKER"
+          if command -v uiopen >/dev/null 2>&1; then
+            su mobile -c "uiopen 'prefs:root=Gif2Ani'" >/dev/null 2>&1 || true
+            sleep 6
+            su mobile -c "uiopen 'prefs:root=Gif2Ani&path=G2ThemeGallery'" >/dev/null 2>&1 || true
+          fi
+          sleep 18
+          crashes="$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'Preferences-*.ips' -o -name 'Preferences_*.ips' -o -name 'Preferences*.ips' \) -newer "$MARKER" -print 2>/dev/null | wc -l | tr -d ' ')"
+          printf 'new_preferences_crashes=%s\n' "$crashes"
+          test "$crashes" = '0'
+          test -s "$BUNDLE/ThemeCatalog.json"
+          test -s "$BUNDLE/OpenThemeCatalog.json"
+          test -d "$MEDIA/OpenThemeLibrary/io.github.virenmohindra.a-wave"
+          test -d "$MEDIA/OpenThemeLibrary/io.github.virenmohindra.swish"
+          echo 'gallery_catalogs=present'
+
+          SUCCESS=1
+          rm -rf "$BACKUP"
+          echo 'gif2ani_342_device_test=success'
+          echo 'browse_preview_crash=false'
+          echo 'fixed_package_left_installed=true'
+          printf 'completed_at_utc='; date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || true
+          REMOTE
+          } | sed "s/__EXPECTED_SHA__/$EXPECTED_SHA/g" | sshpass -e ssh -p 22 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=3 mobile@"$IPAD_HOST" 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/usr/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' 2>&1 | tee gif2ani-342-device-output.txt
+          exit ${PIPESTATUS[1]}
+
+      - name: Upload device proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gif2ani-342-device-proof-${{ github.run_id }}
+          path: gif2ani-342-device-output.txt
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Publish sanitized final status
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          DEVICE_OUTCOME: ${{ steps.device.outcome }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          DEB_SHA: ${{ needs.build.outputs.deb_sha256 }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin main
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          p=Path('gif2ani-342-device-output.txt'); text=p.read_text(errors='replace') if p.exists() else 'No device output.'
+          pw=os.environ.get('IPAD_PASSWORD','')
+          if pw: text=text.replace(pw,'***REDACTED***')
+          lines=['Gif2Ani 3.4.2 Gallery Device Test','run_id='+os.environ.get('GITHUB_RUN_ID',''),'source_commit=e0ae7f2449cf292ccf6411684af20de691d7afc8','deb_sha256='+os.environ.get('DEB_SHA',''),'job_status='+os.environ.get('JOB_STATUS',''),'device='+os.environ.get('DEVICE_OUTCOME',''),'','--- sanitized output ---']
+          lines.extend(text.splitlines()[-500:])
+          Path('remote/gif2ani-342-device-status.txt').write_text('\n'.join(lines)+'\n')
+          PY
+          git add remote/gif2ani-342-device-status.txt
+          git commit -m 'Record Gif2Ani 3.4.2 device test [skip ci]' || exit 0
+          git push origin HEAD:main
