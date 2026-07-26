@@ -1,10 +1,26 @@
-Gif2Ani 3.4.1 Gallery Crash-Fix Device Test
-run_id=30184099025
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30184099025
+Gif2Ani 3.4.1 Gallery Crash-Fix Resume Test
+run_id=30184259094
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30184259094
 source_commit=b1409d51e1852483402115b73d91e964c8832038
 deb_sha256=a8395150766bf7bf0921b0e0a43639b421d0301742ace38abe9f2ba5cddc4ace
 job_status=failure
-device=skipped
+device=failure
 
 --- sanitized device output ---
-No device output was created.
+=== Gif2Ani 3.4.1 gallery crash-fix device proof ===
+started_at_utc=2026-07-26T02:15:53Z
+identity=uid=0(root) gid=0(wheel) groups=0(wheel)
+model=J71tAP
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+(Reading database ... 19750 files and directories currently installed.)
+Preparing to unpack .../Gif2Ani-3.4.1-gallery-crashfix.deb ...
+Unpacking com.nightvibes33.gif2ani (3.4.1) over (3.4.1) ...
+Setting up com.nightvibes33.gif2ani (3.4.1) ...
+Processing triggers for org.coolstar.sileo (2.5.1) ...
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+package_install=passed
+Killed: 9
+rollback=starting
+rollback=complete
