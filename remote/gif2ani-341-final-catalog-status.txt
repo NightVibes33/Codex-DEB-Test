@@ -1,0 +1,114 @@
+Gif2Ani 3.4.1 Final Catalog iPad Test
+run_id=30183590091
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30183590091
+commit=fd33216bbb10c8e495b48ef7033c0f74cb1a0b75
+job_status=success
+tailscale=success
+device=success
+
+--- sanitized device output ---
+=== tailnet status ===
+100.122.197.25  github-runnervmvrwv9  NightVibes33@  linux    -                           
+100.116.117.65  bobbys-ipad           NightVibes33@  iOS      -                           
+100.127.94.70   desktop-o56xs         NightVibes33@  windows  offline, last seen 19h ago  
+100.79.177.16   iphone173             NightVibes33@  iOS      -                           
+=== direct iPad ping ===
+pong from bobbys-ipad (100.116.117.65) via DERP(dfw) in 466ms
+pong from bobbys-ipad (100.116.117.65) via DERP(dfw) in 232ms
+pong from bobbys-ipad (100.116.117.65) via DERP(dfw) in 250ms
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.65:31777 in 204ms
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+=== Gif2Ani 3.4.1 final catalog install/test ===
+started_at_utc=2026-07-26T01:54:19Z
+identity=uid=0(root) gid=0(wheel) groups=0(wheel)
+model=J71tAP
+original_active_sha256=2a6358c670f3f3d495a59fc952b0498d0cfec84d4c9a21a91e2d3d76195517ba
+original_preferences_sha256=169f087ff18af4c7a0f22611e05e9b75d14bc92f6429c57fa2972c78ac670b1d
+=== Download and reinstall final verified DEB ===
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100 89632  100 89632    0     0   159k      0 --:--:-- --:--:-- --:--:--  160k
+downloaded_deb_sha256=07e8e0cd8c51d18b3d2f3ba61617972717d04837e2bf22b5637018e99574ae8f
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+(Reading database ... 19750 files and directories currently installed.)
+Preparing to unpack .../Gif2Ani-3.4.1-rootless.deb ...
+Unpacking com.nightvibes33.gif2ani (3.4.1) over (3.4.1) ...
+Setting up com.nightvibes33.gif2ani (3.4.1) ...
+Processing triggers for org.coolstar.sileo (2.5.1) ...
+dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+final_package_install=passed
+installed_verified_springy_catalog=48
+selected_source_pack_tests=2
+=== source_pack_begin=io.github.virenmohindra.a-wave ===
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100   162  100   162    0     0   1108      0 --:--:-- --:--:-- --:--:--  1117
+
+100   167    0   167    0     0    510      0 --:--:-- --:--:-- --:--:--   510
+
+100  129k    0  129k    0     0   180k      0 --:--:-- --:--:-- --:--:--  180k
+100 2902k    0 2902k    0     0  2385k      0 --:--:--  0:00:01 --:--:-- 5545k
+source_pack=io.github.virenmohindra.a-wave
+actual_bytes=2971658
+expected_bytes=2971658
+actual_sha256=853d01e5a41092561d47dc6ccfc87b9e547dd926b7ba1daa9980fe148e276279
+expected_sha256=853d01e5a41092561d47dc6ccfc87b9e547dd926b7ba1daa9980fe148e276279
+actual_package=io.github.virenmohindra.a-wave
+archive_preflight=passed
+extracted_file_count=96
+previewable_media_count=96
+selected_kind=frames
+selected_source_path=Library/Springy/A Wave
+normalized_media_count=96
+normalized_cache=/var/mobile/Library/Application Support/Gif2Ani/OpenThemeLibrary/io.github.virenmohindra.a-wave
+gallery_cache_metadata=passed
+gallery_cached_kind=frames
+gallery_cached_path=/private/var/mobile/Library/Application Support/Gif2Ani/OpenThemeLibrary/io.github.virenmohindra.a-wave/Frames
+source_pack_test=io.github.virenmohindra.a-wave:passed
+=== source_pack_begin=io.github.virenmohindra.swish ===
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100  964k  100  964k    0     0  1068k      0 --:--:-- --:--:-- --:--:-- 1068k
+source_pack=io.github.virenmohindra.swish
+actual_bytes=988034
+expected_bytes=988034
+actual_sha256=9222d95626886b0b1c81e06077f3d25a0a2e57e46302d19d088a45206439b8b5
+expected_sha256=9222d95626886b0b1c81e06077f3d25a0a2e57e46302d19d088a45206439b8b5
+actual_package=io.github.virenmohindra.swish
+archive_preflight=passed
+extracted_file_count=65
+previewable_media_count=64
+selected_kind=frames
+selected_source_path=Library/Springy/Swish
+normalized_media_count=64
+normalized_cache=/var/mobile/Library/Application Support/Gif2Ani/OpenThemeLibrary/io.github.virenmohindra.swish
+gallery_cache_metadata=passed
+gallery_cached_kind=frames
+gallery_cached_path=/private/var/mobile/Library/Application Support/Gif2Ani/OpenThemeLibrary/io.github.virenmohindra.swish/Frames
+source_pack_test=io.github.virenmohindra.swish:passed
+final_active_sha256=2a6358c670f3f3d495a59fc952b0498d0cfec84d4c9a21a91e2d3d76195517ba
+final_preferences_sha256=169f087ff18af4c7a0f22611e05e9b75d14bc92f6429c57fa2972c78ac670b1d
+final_catalog_device_test=success
+final_deb_installed=true
+verified_springy_catalog=48
+source_packs_downloaded_and_cached=2
+a_wave_cache_ready=true
+swish_cache_ready=true
+active_animation_unchanged=true
+preferences_unchanged=true
+completed_at_utc=2026-07-26T01:54:31Z
+ssh_exit_code=0
