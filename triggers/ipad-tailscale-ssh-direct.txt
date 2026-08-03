@@ -1,4 +1,4 @@
-run=2026-07-26T01:06:00-05:00
+run=2026-08-03T10:03:00-05:00
 command=remote/ipad-command.sh
 mode=no-ping-direct-ssh
-retry=workflow-registered
+retry=current-connectivity-test
