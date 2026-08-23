@@ -9,7 +9,7 @@ on:
       - '.github/workflows/hidden-build-install.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   IPAD_HOST: '100.116.117.65'
@@ -66,6 +66,7 @@ jobs:
           test -x /opt/theos/toolchain/linux/iphone/bin/clang
 
       - name: Build rootless package
+        id: build
         env:
           THEOS: /opt/theos
         run: |
@@ -95,6 +96,7 @@ jobs:
           sha256sum Hidden-0.1.0-rootless.deb | tee hidden-deb-sha256.txt
 
       - uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: Hidden-0.1.0-rootless
           path: |
@@ -104,11 +106,14 @@ jobs:
           if-no-files-found: error
 
       - uses: tailscale/github-action@v4
+        if: success()
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
           version: latest
 
       - name: Install and prove on iPad
+        id: device
+        if: success()
         env:
           SSHPASS: ${{ secrets.IPAD_PASSWORD }}
           IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
@@ -167,3 +172,36 @@ jobs:
             hidden-device-proof.txt
             hidden-build.log
           if-no-files-found: ignore
+
+      - name: Publish branch status
+        if: always()
+        env:
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          DEVICE_OUTCOME: ${{ steps.device.outcome }}
+        run: |
+          set -euo pipefail
+          {
+            echo '# Hidden Build / Device Status'
+            echo
+            echo "- Run: ${GITHUB_RUN_ID}"
+            echo "- Commit: ${GITHUB_SHA}"
+            echo "- Build step: ${BUILD_OUTCOME}"
+            echo "- Device step: ${DEVICE_OUTCOME}"
+            echo
+            echo '## Device proof'
+            echo '```text'
+            cat hidden-device-proof.txt 2>/dev/null || echo 'No device proof produced.'
+            echo '```'
+            echo
+            echo '## Build log tail'
+            echo '```text'
+            tail -n 220 hidden-build.log 2>/dev/null || echo 'No build log produced.'
+            echo '```'
+          } > Hidden/DEVICE_STATUS.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Hidden/DEVICE_STATUS.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record Hidden build and iPad proof [skip ci]'
+            git push origin HEAD:hidden-system-v1
+          fi
