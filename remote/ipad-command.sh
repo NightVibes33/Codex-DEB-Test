@@ -4,80 +4,78 @@ export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/local/bin:/usr/bin:/usr/sbin:
 export HOME=/var/mobile
 APP=/var/jb/Applications/Zebra.app
 BIN="$APP/Zebra"
-CR=/var/mobile/Library/Logs/CrashReporter
 
-echo '=== Zebra tweak-injection + entitlement diagnostic ==='
-printf 'started='; date -u '+%Y-%m-%dT%H:%M:%SZ'
+echo '=== Zebra focused launch-hang profile ==='
+printf 'started='; date '+%Y-%m-%d %H:%M:%S %z'
 printf 'identity='; id
 printf 'ios='; sw_vers -productVersion 2>/dev/null || true
 printf 'model='; sysctl -n hw.model 2>/dev/null || true
 
-echo '--- Dopamine / jbctl ---'
-for p in /var/jb/basebin/jbctl /var/jb/basebin/jbinfo /var/jb/basebin/jailbreakd; do [ -e "$p" ] && ls -l "$p"; done
-/var/jb/basebin/jbctl version 2>&1 || /var/jb/basebin/jbctl info 2>&1 || true
-cat /var/jb/.installed_dopamine 2>/dev/null || true
+echo '--- installed package ---'
+dpkg-query -W -f='status=${Status}\npackage=${Package}\nversion=${Version}\narch=${Architecture}\n' xyz.willy.zebra 2>/dev/null || true
+apt-cache policy xyz.willy.zebra 2>/dev/null | head -n 30 || true
 
-echo '--- Zebra package ---'
-dpkg-query -W -f='${Status} | ${Package} | ${Version} | ${Architecture}\n' xyz.willy.zebra 2>/dev/null || true
-apt-cache policy xyz.willy.zebra 2>/dev/null || true
+echo '--- installed files / hashes ---'
+ls -l "$BIN" "$APP/Info.plist" 2>/dev/null || true
+if command -v sha256sum >/dev/null 2>&1; then sha256sum "$BIN" 2>/dev/null || true; fi
+if command -v shasum >/dev/null 2>&1; then shasum -a 256 "$BIN" 2>/dev/null || true; fi
 
-echo '--- Zebra entitlements ---'
+echo '--- executable metadata ---'
+file "$BIN" 2>/dev/null || true
+if command -v otool >/dev/null 2>&1; then otool -hv "$BIN" 2>/dev/null | head -n 20 || true; fi
+
+echo '--- entitlements ---'
 if command -v ldid >/dev/null 2>&1; then
   ldid -e "$BIN" 2>&1 || true
 else
   echo 'ldid=missing'
 fi
 
-echo '--- Zebra Info.plist relevant keys ---'
+echo '--- plist version ---'
 if command -v plutil >/dev/null 2>&1; then
-  plutil -p "$APP/Info.plist" 2>/dev/null | grep -Ei 'BundleIdentifier|Executable|MinimumOS|UIApplication|LSApplication|UIRequired|CFBundleVersion|CFBundleShort' || true
-else
-  strings "$APP/Info.plist" 2>/dev/null | grep -Ei 'xyz.willy|Zebra|MinimumOS' | head -n 40 || true
+  plutil -p "$APP/Info.plist" 2>/dev/null | grep -Ei 'CFBundleIdentifier|CFBundleVersion|CFBundleShortVersionString|MinimumOSVersion|CFBundleExecutable' || true
 fi
 
-echo '--- tweak loaders / injection ---'
-dpkg-query -W -f='${Package} ${Version} ${Architecture}\n' 2>/dev/null | grep -Ei 'ellekit|choicy|substitute|libhooker|substrate' || true
-ls -la /var/jb/usr/lib/TweakInject 2>/dev/null | head -n 100 || true
-ls -la /var/jb/Library/MobileSubstrate/DynamicLibraries 2>/dev/null | head -n 100 || true
-
-echo '--- recent reports mentioning Zebra before safe test ---'
-find "$CR" -type f -mmin -15 -print 2>/dev/null | while IFS= read -r f; do grep -Il 'Zebra\|xyz.willy.Zebra' "$f" 2>/dev/null; done | head -n 30
-
-echo '--- safe-mode launch test ---'
+echo '--- launch Zebra with injection suppressed ---'
 killall -9 Zebra 2>/dev/null || true
-# Dopamine systemhook honors DISABLE_TWEAKS=1 for child app launches when inherited.
-launchctl setenv DISABLE_TWEAKS 1 2>&1 || true
-launchctl setenv _MSSafeMode 1 2>&1 || true
-launchctl setenv _SafeMode 1 2>&1 || true
-sudo -u mobile launchctl setenv DISABLE_TWEAKS 1 2>&1 || true
-sudo -u mobile launchctl setenv _MSSafeMode 1 2>&1 || true
-sudo -u mobile launchctl setenv _SafeMode 1 2>&1 || true
-sleep 1
-sudo -u mobile uiopen 'zbra://' >/tmp/zebra-safe-open.txt 2>&1
-echo "safe_uiopen_rc=$?"
-cat /tmp/zebra-safe-open.txt 2>/dev/null || true
-sleep 5
-echo 'safe_t=5'; ps aux 2>/dev/null | grep -i '[Z]ebra' || echo absent
-sleep 20
-echo 'safe_t=25'; ps aux 2>/dev/null | grep -i '[Z]ebra' || echo absent
-sleep 25
-echo 'safe_t=50'; ps aux 2>/dev/null | grep -i '[Z]ebra' || echo absent
-
-# Remove inherited safe-mode vars after the test.
-launchctl unsetenv DISABLE_TWEAKS 2>&1 || true
-launchctl unsetenv _MSSafeMode 2>&1 || true
-launchctl unsetenv _SafeMode 2>&1 || true
-sudo -u mobile launchctl unsetenv DISABLE_TWEAKS 2>&1 || true
-sudo -u mobile launchctl unsetenv _MSSafeMode 2>&1 || true
-sudo -u mobile launchctl unsetenv _SafeMode 2>&1 || true
-
-echo '--- reports mentioning Zebra after safe test ---'
-find "$CR" -type f -mmin -10 -print 2>/dev/null | while IFS= read -r f; do
-  if grep -Iql 'Zebra\|xyz.willy.Zebra' "$f" 2>/dev/null; then
-    echo "REPORT=$f"
-    grep -Ei 'bug_type|procName|procPath|Exception Type|Termination Reason|watchdog|scene-update|jetsam|reason|code|namespace|culprit|memoryStatus' "$f" 2>/dev/null | head -n 120 || true
+launchctl setenv DISABLE_TWEAKS 1 2>/dev/null || true
+launchctl setenv _MSSafeMode 1 2>/dev/null || true
+sudo -u mobile launchctl setenv DISABLE_TWEAKS 1 2>/dev/null || true
+sudo -u mobile launchctl setenv _MSSafeMode 1 2>/dev/null || true
+sudo -u mobile uiopen 'zbra://' >/tmp/zebra-focus-open.txt 2>&1 || true
+cat /tmp/zebra-focus-open.txt 2>/dev/null || true
+sleep 4
+PID="$(ps ax 2>/dev/null | awk '/[Z]ebra.app\/Zebra/{print $1; exit}')"
+echo "pid_t4=${PID:-absent}"
+if [ -n "$PID" ]; then
+  ps -p "$PID" -o pid,ppid,state,%cpu,%mem,time,command 2>/dev/null || true
+  echo '--- live sample ---'
+  if command -v sample >/dev/null 2>&1; then
+    sample "$PID" 3 1 2>&1 | head -n 260 || true
+  else
+    echo 'sample=missing'
   fi
-done | head -n 300
+fi
+sleep 10
+PID2="$(ps ax 2>/dev/null | awk '/[Z]ebra.app\/Zebra/{print $1; exit}')"
+echo "pid_t14=${PID2:-absent}"
+if [ -n "$PID2" ]; then ps -p "$PID2" -o pid,ppid,state,%cpu,%mem,time,command 2>/dev/null || true; fi
+sleep 12
+PID3="$(ps ax 2>/dev/null | awk '/[Z]ebra.app\/Zebra/{print $1; exit}')"
+echo "pid_t26=${PID3:-absent}"
 
-echo 'zebra_safe_mode_diagnostic_complete=true'
+echo '--- newest Zebra watchdog summary ---'
+CR=/var/mobile/Library/Logs/CrashReporter
+LATEST="$(find "$CR" -maxdepth 1 -type f -iname 'Zebra-*.ips' -print 2>/dev/null | while IFS= read -r f; do printf '%s %s\n' "$(stat -f '%m' "$f" 2>/dev/null || echo 0)" "$f"; done | sort -nr | head -n1 | cut -d' ' -f2-)"
+echo "report=${LATEST:-none}"
+if [ -n "$LATEST" ] && [ -f "$LATEST" ]; then
+  grep -E 'timestamp|procName|procPath|termination|Watchdog|Elapsed application CPU|process-launch' "$LATEST" 2>/dev/null | head -n 35 || true
+fi
+
+launchctl unsetenv DISABLE_TWEAKS 2>/dev/null || true
+launchctl unsetenv _MSSafeMode 2>/dev/null || true
+sudo -u mobile launchctl unsetenv DISABLE_TWEAKS 2>/dev/null || true
+sudo -u mobile launchctl unsetenv _MSSafeMode 2>/dev/null || true
+
+echo 'zebra_focused_profile_complete=true'
 exit 0
