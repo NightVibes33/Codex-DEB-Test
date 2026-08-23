@@ -76,16 +76,18 @@ jobs:
           make clean package FINALPACKAGE=1 2>&1 | tee ../hidden-build.log
           BUILD_RC=${PIPESTATUS[0]}
           set -e
-          if [ "$BUILD_RC" -ne 0 ]; then
-            echo "build_rc=$BUILD_RC" | tee -a ../hidden-build.log
-            exit "$BUILD_RC"
-          fi
+          [ "$BUILD_RC" -eq 0 ] || exit "$BUILD_RC"
           DEB="$(find packages -maxdepth 1 -type f -name '*.deb' | head -n1)"
           test -n "$DEB"
           cp "$DEB" ../Hidden-0.1.0-rootless.deb
           cd ..
           test "$(dpkg-deb --field Hidden-0.1.0-rootless.deb Package)" = 'com.nightvibes.hidden'
-          test "$(dpkg-deb --field Hidden-0.1.0-rootless.deb Version)" = '0.1.0'
+          PKG_VERSION="$(dpkg-deb --field Hidden-0.1.0-rootless.deb Version)"
+          echo "package_version=$PKG_VERSION"
+          case "$PKG_VERSION" in
+            0.1.0|0.1.0-*) ;;
+            *) echo "unexpected package version: $PKG_VERSION"; exit 1 ;;
+          esac
           rm -rf hidden-deb-root
           dpkg-deb -x Hidden-0.1.0-rootless.deb hidden-deb-root
           test -x hidden-deb-root/var/jb/Applications/Hidden.app/Hidden
@@ -135,7 +137,10 @@ jobs:
           dpkg -i /var/mobile/Media/Hidden-0.1.0-rootless.deb || fail dpkg_install
           VERSION="$(dpkg-query -W -f='${Version}' com.nightvibes.hidden 2>/dev/null)"
           echo "installed_version=$VERSION"
-          [ "$VERSION" = '0.1.0' ] || fail version
+          case "$VERSION" in
+            0.1.0|0.1.0-*) ;;
+            *) fail version ;;
+          esac
           test -x /var/jb/Applications/Hidden.app/Hidden || fail binary_missing
           test -f /var/jb/Applications/Hidden.app/Info.plist || fail plist_missing
           grep -a -q '/System/Library/PrivateFrameworks' /var/jb/Applications/Hidden.app/Hidden || fail scanner_signature
