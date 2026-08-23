@@ -1,17 +1,40 @@
 # TweakMedic Device Status
 
-- Run: 32670880841
-- Commit: 406522c24daa15929d275a4a7cdc78a480907f04
-- Device step: failure
+- Run: 32671127646
+- Commit: 8d941bfeda344645bf50663e3683697e473694b3
+- Device step: success
 
 ## Device proof
 ```text
 Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
-(Reading database ... 25603 files and directories currently installed.)
+checkpoint=dpkg_install
+(Reading database ... 25604 files and directories currently installed.)
 Preparing to unpack .../TweakMedic-1.0.0-rootless.deb ...
 Unpacking com.nightvibes33.tweakmedic (1.0.0) over (1.0.0) ...
 Setting up com.nightvibes33.tweakmedic (1.0.0) ...
 Processing triggers for uikittools (2.1.8) ...
+installed_version=1.0.0
+present=/var/jb/Applications/TweakMedic.app/TweakMedic
+present=/var/jb/Applications/TweakMedic.app/Info.plist
+present=/var/jb/usr/libexec/tweakmedicd
+present=/var/jb/usr/bin/tweakmedicctl
+present=/var/jb/Library/PreferenceBundles/TweakMedicPrefs.bundle/Root.plist
+present=/var/jb/Library/PreferenceBundles/TweakMedicPrefs.bundle/Info.plist
+present=/var/jb/Library/PreferenceLoader/Preferences/TweakMedicPrefs.plist
+present=/var/jb/Library/LaunchDaemons/com.nightvibes33.tweakmedicd.plist
+payload=pass
+daemon_socket=pass
+{
+  "daemon" : "tweakmedicd",
+  "ok" : true,
+  "pid" : 5364,
+  "version" : "1.0.0"
+}
+daemon_ping=pass
+snapshot=pass
+homescreen_launch=pass
+settings_bundle=pass
+device_proof=success
 ```
 
 ## Build log tail
