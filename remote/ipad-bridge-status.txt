@@ -1,12 +1,12 @@
 iPad Tailscale SSH Bridge
-run_id=32668875561
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/32668875561
-commit=6092929ec9a6925cc5aebac8a603bc7172769ee7
+run_id=32668969190
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/32668969190
+commit=708a4c9a4279eff5010dcc13ef0f152ae18c4b10
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
 install_ssh=success
-ssh=success
+ssh=cancelled
 
 --- sanitized SSH output ---
 Waking and checking iPad SSH port over Tailscale...
@@ -18,138 +18,26 @@ SSH port attempt 1/18
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 ipad_ssh_port_ready=success
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-=== Compact tweak filters relevant to Zebra ===
-started=2026-08-23 16:53:41 -0500
-/var/jb/usr/lib/TweakInject
---- all filters one line ---
-0nazuna|bplist00�VFilter�WBundles�_com.apple.springboard_com.apple.Preferences
-
- 8P
-82Hack|bplist00�VFilter�WBundles�_com.apple.UIKit
-
-1
-AAASnowBoardStub|bplist00�VFilter�WBundles�_com.apple.springboard
-
-7
-AppData|bplist00�VFilter�WBundles�_com.apple.springboard
-
-7
-AppList|bplist00�VFilter�WBundles�_com.apple.springboard
-
-7
-AppSyncUnified-FrontBoard|<?xml version="1.0" encoding="UTF-8"?> <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"> <plist version="1.0"> <dict> <key>Filter</key> <dict> <key>Bundles</key> <array> <string>com.apple.FrontBoard</string> <string>com.apple.FrontBoardServices</string> </array> </dict> </dict> </plist> 
-AppSyncUnified-installd|<?xml version="1.0" encoding="UTF-8"?> <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"> <plist version="1.0"> <dict> <key>Filter</key> <dict> <key>Executables</key> <array> <string>installd</string> </array> </dict> </dict> </plist> 
-AutoRevenueCat|bplist00�VFilter�WBundles�_com.apple.UIKit
-
-1
-Battery|bplist00�VFilter�WBundles�_com.apple.springboard
-
-7
-CCSupport|bplist00�VFilter�WBundles�_com.apple.springboard_com.apple.Preferences
-
- 8P
-CepheiSpringBoard|bplist00�VFilter�WBundles�_com.apple.FrontBoard
-
-6
-FLEXList|bplist00�VFilter�WBundles�_com.apple.UIKit
-
-1
-FLEXing|bplist00�VFilter�WBundles�_com.apple.UIKit
-
-1
-FilzaCrack|bplist00�VFilter�WBundles�_com.tigisoftware.Filza_com.tigisoftware.ADManager
-
- 9V
-FilzaEnhanced|bplist00�VFilter�WBundles�_com.tigisoftware.Filza
-
-8
-FilzaThemeManager|{ Filter = { Bundles = ( "com.tigisoftware.Filza", "com.tigisoftware.Filzakalaka" ); }; }
-Flex|{ Filter = { Bundles = ( "com.apple.UIKit", "com.apple.springboard", "com.johncoates.Flex" ); }; }
-Gif2Ani|<?xml version="1.0" encoding="UTF-8"?> <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"> <plist version="1.0"> <dict> <key>Filter</key> <dict> <key>Executables</key> <array> <string>backboardd</string> </array> </dict> </dict> </plist> 
-Hades-iSecureOS|<?xml version="1.0" encoding="UTF-8"?> <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"> <plist version="1.0"> <dict> <key>Filter</key> <dict> <key>Bundles</key> <array> <string>com.apple.springboard</string> </array> </dict> </dict> </plist> 
-Hyperixa|<?xml version="1.0" encoding="UTF-8"?> <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"> <plist version="1.0"> <dict> <key>Filter</key> <dict> <key>Bundles</key> <array> <string>com.apple.springboard</string> <string>com.hyperixa.Hyperixa</string> </array> </dict> </dict> </plist> 
-HyperixaKit|<?xml version="1.0" encoding="UTF-8"?> <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"> <plist version="1.0"> <dict> <key>Filter</key> <dict> <key>Bundles</key> <array> <string>com.apple.springboard</string> </array> </dict> </dict> </plist> 
-LimneosCrack|bplist00�VFilter�WBundles�_com.apple.UIKit
-
-1
-Lynx|bplist00�VFilter�WBundles�_com.apple.UIKit^com.apple.tccd_#com.apple.ScreenshotServicesService
-
-!3Bh
-LynxCarPlay|bplist00�VFilter�WBundles�_com.apple.CarPlayApp_com.apple.CarPlaySettings
-
- 7S
-Nazuna|bplist00�VFilter�WBundles�_com.apple.springboard
-
-7
-No2Theft|bplist00�VFilter[Executables�WBundles�_com.apple.springboard_com.atebits.Tweetie2� \mediaserverd
- #+.F]_ l
-OCD|{ Filter = { Bundles = ( "com.apple.springboard" ); }; } 
-PlampyUIPro|{ Filter = { Bundles = ( "com.apple.springboard" ); }; } 
-PreferenceLoader|Filter = { Bundles = ( "com.apple.Preferences" ); };
-RocketBootstrap|bplist00�VFilter� WBundles_CoreFoundationVersion[Executables�_com.apple.springboard� #@��
-_MobileGestaltHelper
-!9EG_ajl
-�
-Satella|bplist00�VFilter�WBundles�_com.apple.StoreKit
-
-4
-SettingsRevamp|bplist00�VFilter�WBundles�_com.apple.Preferences
-
-7
-SimPlus|bplist00�VFilter�
-WBundlesTMode� _com.apple.InCallService_com.apple.springboard_com.apple.MobileSMS_com.apple.mobilesms.compose_1com.apple.MobileSMS.MessagesNotificationExtensionSAny
-$*D\r��
-�
-SmartBattery|bplist00�VFilter�WBundles�_com.apple.springboard
-
-7
-SnowBoardRespringExtensionSB|bplist00�VFilter�WBundles�_com.apple.backboardd_com.apple.springboard
-
- 7O
-Snowboard|bplist00�VFilter�WBundles[Executables�_com.apple.UIKit� 
-
-
-WCarPlay_AppPredictionWidgetYSpotlightWShareUI_WeatherAppTodayWidgetXsharingd
-+-?FNdnv��
-Speedy|bplist00�VFilter�WBundles�_com.apple.springboard_com.apple.UIKit
-
- 8J
-SpeedyUninstall|<?xml version="1.0" encoding="UTF-8"?> <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"> <plist version="1.0"> <dict> <key>Filter</key> <dict> <key>Bundles</key> <array> <string>com.apple.springboard</string> </array> </dict> </dict> </plist> 
-TweakHub|bplist00�VFilter�WBundles�_com.apple.springboard
-
-7
-XXCracker|bplist00�VFilter�WBundles[Executables�_ch.xxtou.XXTExplorer� Slua[XXTExplorerZngserviced
-+-DHLX
-c
-XXTouchLiteLoader|bplist00�VFilter�WBundles�_com.apple.springboard
-
-7
-Xinam1ne|bplist00�VFilter�WBundles�_com.apple.springboard
-
-7
-afc2dService|bplist00�VFilter�_CoreFoundationVersion[Executables�#@�@�Ylockdownd
-/;=FH R
-iConnect|<?xml version="1.0" encoding="UTF-8"?> <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"> <plist version="1.0"> <dict> <key>Filter</key> <dict> <key>Bundles</key> <array> <string>com.apple.MobileSMS</string> <string>com.apple.ChatKit</string> <string>com.apple.springboard</string> <string>com.apple.InCallService</string> </array> <key>Executables</key> <array> <string>imagent</string> </array> </dict> </dict> </plist> 
-iDevices|<?xml version="1.0" encoding="UTF-8"?> <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"> <plist version="1.0"> <dict> <key>Filter</key> <dict> <key>Bundles</key> <array> <string>com.apple.springboard</string> <string>com.apple.Preferences</string> </array> </dict> </dict> </plist> 
-iarrays_hack_|bplist00�VFilter�WBundles�_com.apple.UIKit
-
-1
-libFLEX|bplist00�VFilter�WBundles�
-
-
-
-mediaserverdhooks|bplist00�VFilter�[Executables�\mediaserverd
-!#0
---- direct textual Zebra/UIKit matches ---
-MATCH|82Hack|bplist00 VFilter WBundles com.apple.UIKit 
-MATCH|AutoRevenueCat|bplist00 VFilter WBundles com.apple.UIKit 
-MATCH|FLEXList|bplist00 VFilter WBundles com.apple.UIKit 
-MATCH|FLEXing|bplist00 VFilter WBundles com.apple.UIKit 
-MATCH|Flex| Filter = { Bundles = ( "com.apple.UIKit", "com.apple.springboard", "com.johncoates.Flex" ); }; 
-MATCH|LimneosCrack|bplist00 VFilter WBundles com.apple.UIKit 
-MATCH|Lynx|bplist00 VFilter WBundles com.apple.UIKit^com.apple.tccd_ #com.apple.ScreenshotServicesService 
-MATCH|Snowboard|bplist00 VFilter WBundles[Executables com.apple.UIKit WCarPlay_ AppPredictionWidgetYSpotlightWShareUI_ WeatherAppTodayWidgetXsharingd +-?FNdnv 
-MATCH|Speedy|bplist00 VFilter WBundles com.apple.springboard_ com.apple.UIKit 
-MATCH|iarrays_hack_|bplist00 VFilter WBundles com.apple.UIKit 
-zebra_compact_filters_complete=true
-ssh_exit_code=0
+=== Zebra per-tweak isolation ===
+started=2026-08-23 16:55:36 -0500
+candidates=82Hack AutoRevenueCat FLEXList FLEXing Flex LimneosCrack Lynx Snowboard Speedy iarrays_hack_
+staged=82Hack
+staged=AutoRevenueCat
+staged=FLEXList
+staged=FLEXing
+staged=Flex
+staged=LimneosCrack
+staged=Lynx
+staged=Snowboard
+staged=Speedy
+staged=iarrays_hack_
+RESULT|ALL_10_DISABLED|SURVIVED|pid=3664
+testing_only=82Hack
+RESULT|82Hack|SURVIVED|pid=3681
+testing_only=AutoRevenueCat
+RESULT|AutoRevenueCat|SURVIVED|pid=3699
+testing_only=FLEXList
+RESULT|FLEXList|SURVIVED|pid=3717
+testing_only=FLEXing
+RESULT|FLEXing|SURVIVED|pid=3735
+testing_only=Flex
