@@ -94,6 +94,7 @@ jobs:
           test -f deb-root/var/jb/Library/LaunchDaemons/com.nightvibes33.tweakmedicd.plist
           test -f deb-root/var/jb/Library/PreferenceBundles/TweakMedicPrefs.bundle/TweakMedicPrefs
           test -f deb-root/var/jb/Library/PreferenceBundles/TweakMedicPrefs.bundle/Root.plist
+          test -f deb-root/var/jb/Library/PreferenceBundles/TweakMedicPrefs.bundle/Info.plist
           test -f deb-root/var/jb/Library/PreferenceLoader/Preferences/TweakMedicPrefs.plist
           grep -a -F -q 'single_tweak_confirmed' deb-root/var/jb/usr/libexec/tweakmedicd
           grep -a -F -q 'culprit-disabled' deb-root/var/jb/usr/libexec/tweakmedicd
@@ -130,39 +131,74 @@ jobs:
           sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null TweakMedic-1.0.0-rootless.deb mobile@"$IPAD_HOST":/var/mobile/Media/TweakMedic-1.0.0-rootless.deb
           cat > /tmp/install-tweakmedic.sh <<'SH'
           #!/bin/sh
-          set -eu
+          set -u
           export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
-          dpkg -i /var/mobile/Media/TweakMedic-1.0.0-rootless.deb
-          test "$(dpkg-query -W -f='${Version}' com.nightvibes33.tweakmedic)" = '1.0.0'
-          test -x /var/jb/Applications/TweakMedic.app/TweakMedic
-          test -x /var/jb/usr/libexec/tweakmedicd
-          test -x /var/jb/usr/bin/tweakmedicctl
-          test -f /var/jb/Library/PreferenceBundles/TweakMedicPrefs.bundle/Root.plist
-          test -f /var/jb/Library/PreferenceLoader/Preferences/TweakMedicPrefs.plist
-          test -f /var/jb/Library/LaunchDaemons/com.nightvibes33.tweakmedicd.plist
-          launchctl kickstart -k system/com.nightvibes33.tweakmedicd 2>/dev/null || true
-          sleep 2
-          test -S /var/run/tweakmedicd.sock
-          /var/jb/usr/bin/tweakmedicctl ping
-          /var/jb/usr/bin/tweakmedicctl restore
-          /var/jb/usr/bin/tweakmedicctl snapshot > /var/mobile/Media/tweakmedic-snapshot.json
-          grep -F -q '"ok" : true' /var/mobile/Media/tweakmedic-snapshot.json
-          /var/jb/usr/bin/uicache -p /var/jb/Applications/TweakMedic.app 2>/dev/null || /var/jb/usr/bin/uicache -a
+          fail() { echo "DEVICE_PROOF_FAIL=$1"; exit 1; }
+          require_file() { [ -e "$1" ] || [ -L "$1" ] || fail "missing:$1"; echo "present=$1"; }
+
+          echo 'checkpoint=dpkg_install'
+          dpkg -i /var/mobile/Media/TweakMedic-1.0.0-rootless.deb || fail dpkg_install
+          VERSION="$(dpkg-query -W -f='${Version}' com.nightvibes33.tweakmedic 2>/dev/null)"
+          echo "installed_version=$VERSION"
+          [ "$VERSION" = '1.0.0' ] || fail version
+
+          require_file /var/jb/Applications/TweakMedic.app/TweakMedic
+          require_file /var/jb/Applications/TweakMedic.app/Info.plist
+          require_file /var/jb/usr/libexec/tweakmedicd
+          require_file /var/jb/usr/bin/tweakmedicctl
+          require_file /var/jb/Library/PreferenceBundles/TweakMedicPrefs.bundle/Root.plist
+          require_file /var/jb/Library/PreferenceBundles/TweakMedicPrefs.bundle/Info.plist
+          require_file /var/jb/Library/PreferenceLoader/Preferences/TweakMedicPrefs.plist
+          require_file /var/jb/Library/LaunchDaemons/com.nightvibes33.tweakmedicd.plist
+          echo 'payload=pass'
+
+          launchctl bootstrap system /var/jb/Library/LaunchDaemons/com.nightvibes33.tweakmedicd.plist >/dev/null 2>&1 || true
+          launchctl kickstart -k system/com.nightvibes33.tweakmedicd >/dev/null 2>&1 || true
+          socket_ready=0
+          i=0
+          while [ "$i" -lt 15 ]; do
+            if [ -S /var/run/tweakmedicd.sock ]; then socket_ready=1; break; fi
+            i=$((i + 1)); sleep 1
+          done
+          if [ "$socket_ready" -ne 1 ]; then
+            tail -n 80 /var/mobile/Library/TweakMedic/daemon.log 2>/dev/null || true
+            launchctl print system/com.nightvibes33.tweakmedicd 2>&1 | tail -n 80 || true
+            fail daemon_socket
+          fi
+          echo 'daemon_socket=pass'
+
+          /var/jb/usr/bin/tweakmedicctl ping | tee /var/mobile/Media/tweakmedic-ping.json || fail daemon_ping
+          grep -q '"ok"' /var/mobile/Media/tweakmedic-ping.json || fail daemon_ping_json
+          grep -q 'true' /var/mobile/Media/tweakmedic-ping.json || fail daemon_ping_false
+          echo 'daemon_ping=pass'
+
+          /var/jb/usr/bin/tweakmedicctl restore >/var/mobile/Media/tweakmedic-restore.json 2>&1 || fail restore
+          /var/jb/usr/bin/tweakmedicctl snapshot >/var/mobile/Media/tweakmedic-snapshot.json 2>&1 || fail snapshot
+          grep -q '"apps"' /var/mobile/Media/tweakmedic-snapshot.json || fail snapshot_apps
+          grep -q '"ok"' /var/mobile/Media/tweakmedic-snapshot.json || fail snapshot_ok
+          echo 'snapshot=pass'
+
+          /var/jb/usr/bin/uicache -p /var/jb/Applications/TweakMedic.app >/dev/null 2>&1 || /var/jb/usr/bin/uicache -a >/dev/null 2>&1 || fail uicache
           killall -9 Preferences 2>/dev/null || true
           sudo -u mobile uiopen 'tweakmedic://' >/dev/null 2>&1 || true
-          sleep 5
-          ps ax | grep '[T]weakMedic.app/TweakMedic' >/dev/null
-          echo 'installed_version=1.0.0'
-          echo 'daemon_socket=pass'
-          echo 'daemon_ping=pass'
-          echo 'snapshot=pass'
-          echo 'settings_bundle=pass'
+          app_ready=0
+          i=0
+          while [ "$i" -lt 12 ]; do
+            if ps ax 2>/dev/null | grep '[T]weakMedic.app/TweakMedic' >/dev/null; then app_ready=1; break; fi
+            i=$((i + 1)); sleep 1
+          done
+          [ "$app_ready" -eq 1 ] || fail homescreen_launch
           echo 'homescreen_launch=pass'
+          echo 'settings_bundle=pass'
           echo 'device_proof=success'
           SH
           chmod +x /tmp/install-tweakmedic.sh
           sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null /tmp/install-tweakmedic.sh mobile@"$IPAD_HOST":/var/mobile/Media/install-tweakmedic.sh
+          set +e
           printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=60 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/install-tweakmedic.sh' 2>&1 | tee tweakmedic-device-proof.txt
+          DEVICE_RC=${PIPESTATUS[1]}
+          set -e
+          exit "$DEVICE_RC"
 
       - name: Publish device status
         if: always()
