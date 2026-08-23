@@ -1,4 +1,4 @@
-run=2026-08-03T10:06:00-05:00
+run=2026-08-23T16:16:00-05:00
 command=remote/ipad-command.sh
 mode=no-ping-direct-ssh
-retry=current-connectivity-test-2
+purpose=zebra-diagnostics-ios-16.7.11
