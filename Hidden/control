@@ -1,0 +1,9 @@
+Package: com.nightvibes.hidden
+Name: Hidden
+Version: 0.1.0
+Architecture: iphoneos-arm64
+Description: Discover hidden, experimental, diagnostic, and capability-gated functionality shipped inside Apple system apps and private frameworks.
+Maintainer: NightVibes33
+Author: NightVibes33
+Section: Utilities
+Depends: firmware (>= 15.0)
