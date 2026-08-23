@@ -1,0 +1,106 @@
+name: iPad Zebra Diagnose
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - triggers/ipad-zebra-diagnose.txt
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ipad-zebra-diagnose
+  cancel-in-progress: true
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve environment
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsSL -H 'Accept: application/vnd.github+json' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" \
+            -o environments.json
+          python3 scripts/resolve-github-environment.py environments.json "$TARGET_ENVIRONMENT_ID" >> "$GITHUB_OUTPUT"
+
+  diagnose-zebra:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Install SSH client
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends openssh-client sshpass
+
+      - name: Run Zebra diagnostics on iPad
+        id: ssh
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/run-ipad-command-over-tailscale.sh
+          scripts/run-ipad-command-over-tailscale.sh \
+            100.116.117.65 \
+            remote/ipad-zebra-diagnose.sh \
+            ipad-zebra-output.txt
+
+      - name: Upload SSH output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipad-zebra-diagnostics-${{ github.run_id }}
+          path: ipad-zebra-output.txt
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Publish Zebra diagnostic status
+        if: always()
+        env:
+          SSH_OUTCOME: ${{ steps.ssh.outcome }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin main
+          mkdir -p remote
+          {
+            echo 'iPad Zebra Diagnostics'
+            echo "run_id=${GITHUB_RUN_ID}"
+            echo "commit=${GITHUB_SHA}"
+            echo "ssh=${SSH_OUTCOME}"
+            echo
+            echo '--- sanitized SSH output ---'
+            if [ -f ipad-zebra-output.txt ]; then
+              sed "s/${IPAD_PASSWORD}/***REDACTED***/g" ipad-zebra-output.txt | tail -n 900
+            else
+              echo 'No SSH output was created.'
+            fi
+          } > remote/ipad-zebra-diagnose-status.txt
+          git add remote/ipad-zebra-diagnose-status.txt
+          git commit -m 'Record iPad Zebra diagnostics [skip ci]' || exit 0
+          git push origin HEAD:main
