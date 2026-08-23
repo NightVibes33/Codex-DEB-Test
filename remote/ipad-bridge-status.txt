@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=32668458723
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/32668458723
-commit=2382111277a91bf60e7c5ca1519e896594baea0a
+run_id=32668561135
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/32668561135
+commit=a64f58ad733bffcbfbe1b27d5ae4e0139c98550e
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -18,119 +18,43 @@ SSH port attempt 1/18
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 ipad_ssh_port_ready=success
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-=== Zebra focused launch-hang profile ===
-started=2026-08-23 16:45:38 -0500
-identity=uid=0(root) gid=0(wheel) groups=0(wheel)
-ios=16.7.11
-model=J71tAP
---- installed package ---
-status=install ok installed
-package=xyz.willy.zebra
-version=1.1.37
-arch=iphoneos-arm64
-xyz.willy.zebra:
-  Installed: 1.1.37
-  Candidate: 1.1.36
-  Version table:
- *** 1.1.37 100
-        100 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Library/dpkg/status
-     1.1.36 1001
-       1001 https://apt.procurs.us 1900/main iphoneos-arm64 Packages
---- installed files / hashes ---
--rw-r--r-- 1 root wheel    3681 Aug  7 13:29 /var/jb/Applications/Zebra.app/Info.plist
--rwxr-xr-x 1 root wheel 3734896 Aug  7 13:29 /var/jb/Applications/Zebra.app/Zebra
-17d470bdfaf19f1b92bdb8fded2aba666060681530f78ac0df6c49e1a6463b04  /var/jb/Applications/Zebra.app/Zebra
---- executable metadata ---
-/var/jb/Applications/Zebra.app/Zebra: Mach-O 64-bit arm64 executable, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|WEAK_DEFINES|BINDS_TO_WEAK|PIE>
-/var/jb/Applications/Zebra.app/Zebra:
-Mach header
-      magic  cputype cpusubtype  caps    filetype ncmds sizeofcmds      flags
-MH_MAGIC_64    ARM64        ALL  0x00     EXECUTE    48       6232   NOUNDEFS DYLDLINK TWOLEVEL WEAK_DEFINES BINDS_TO_WEAK PIE
---- entitlements ---
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key>com.apple.CommCenter.fine-grained</key>
-	<array>
-		<string>spi</string>
-	</array>
-	<key>com.apple.private.security.container-required</key>
-	<false/>
-	<key>com.apple.private.security.no-container</key>
-	<true/>
-	<key>com.apple.private.security.no-sandbox</key>
-	<true/>
-	<key>com.apple.private.security.system-application</key>
-	<true/>
-	<key>com.apple.private.security.disk-device-access</key>
-	<true/>
-	<key>com.apple.private.security.storage.universalaccess</key>
-	<true/>
-	<key>com.apple.private.security.storage.containers</key>
-	<true/>
-	<key>com.apple.private.security.storage.AppBundles</key>
-	<true/>
-	<key>com.apple.private.security.storage.AppDataContainers</key>
-	<true/>
-	<key>com.apple.accessibility.AccessibilityUIServer</key>
-	<true/>
-	<key>com.apple.private.tcc.allow</key>
-	<array>
-		<string>kTCCServiceFaceID</string>
-	</array>
-	<key>com.apple.security.exception.mach-lookup.global-name</key>
-	<array>
-		<string>com.apple.accessibility.AXSpringBoardServer</string>
-	</array>
-	<key>platform-application</key>
-	<true/>
-	<key>keychain-access-groups</key>
-	<array>
-		<string>xyz.willy.Zebra</string>
-	</array>
-	<key>com.apple.security.iokit-user-client-class</key>
-	<array>
-		<string>IOUserClient</string>
-	</array>
-	<key>com.apple.private.amfi.can-allow-non-platform</key>
-	<true/>
-	<key>com.apple.private.MobileGestalt.AllowedProtectedKeys</key>
-	<array>
-		<string>UniqueDeviceID</string>
-	</array>
-	<key>com.apple.private.persona-mgmt</key>
-	<true/>
-	<key>com.apple.private.spawn-subsystem-root</key>
-	<true/>
-	<key>com.apple.private.xpc.launchd.reboot</key>
-	<true/>
-	<key>com.apple.private.xpc.launchd.userspace-reboot</key>
-	<true/>
-	<key>com.apple.private.xpc.persona-creator</key>
-	<true/>
-	<key>com.apple.private.xpc.persona-manager</key>
-	<true/>
-	<key>com.apple.webkit-client</key>
-	<true/>
-	<key>com.apple.private.set-exception-port</key>
-	<true/>
-	<key>com.apple.private.thread-set-state</key>
-	<true/>
-</dict>
-</plist>
---- plist version ---
---- launch Zebra with injection suppressed ---
-pid_t4=2381
+=== Zebra 70-second A/B launch test ===
+started=2026-08-23 16:47:36 -0500
+version=1.1.37 arch=iphoneos-arm64
+--- A: launch with safe-mode environment requested ---
+safe_t5_pid=2470
   PID  PPID STAT  %CPU %MEM      TIME COMMAND
- 2381     1 ?s     0.0  0.0   0:00.00 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/Zebra.app/Zebra
---- live sample ---
-sample=missing
-pid_t14=2381
+ 2470     1 ?s     0.0  0.0   0:00.00 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/Zebra.app/Zebra
+safe_t20_pid=2470
   PID  PPID STAT  %CPU %MEM      TIME COMMAND
- 2381     1 ?s     0.0  0.0   0:00.00 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/Zebra.app/Zebra
-pid_t26=2381
---- newest Zebra watchdog summary ---
-report=Total: 24703752   Free: 24533960
-zebra_focused_profile_complete=true
+ 2470     1 ?s     0.0  0.0   0:00.00 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/Zebra.app/Zebra
+safe_t35_pid=2470
+  PID  PPID STAT  %CPU %MEM      TIME COMMAND
+ 2470     1 ?s     0.0  0.0   0:00.00 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/Zebra.app/Zebra
+safe_t50_pid=2470
+  PID  PPID STAT  %CPU %MEM      TIME COMMAND
+ 2470     1 ?s     0.0  0.0   0:00.00 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/Zebra.app/Zebra
+safe_t70_pid=2470
+  PID  PPID STAT  %CPU %MEM      TIME COMMAND
+ 2470     1 ?s     0.0  0.0   0:00.00 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/Zebra.app/Zebra
+--- B: normal launch ---
+normal_t5_pid=2513
+  PID  PPID STAT  %CPU %MEM      TIME COMMAND
+ 2513     1 ?s     0.0  0.0   0:00.00 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/Zebra.app/Zebra
+normal_t20_pid=2513
+  PID  PPID STAT  %CPU %MEM      TIME COMMAND
+ 2513     1 ?s     0.0  0.0   0:00.00 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/Zebra.app/Zebra
+normal_t35_pid=absent
+normal_t50_pid=absent
+normal_t70_pid=absent
+--- newest Zebra reports (names only) ---
+/var/mobile/Library/Logs/CrashReporter/Zebra-2026-08-23-162620.ips
+/var/mobile/Library/Logs/CrashReporter/Zebra-2026-08-23-163138.ips
+/var/mobile/Library/Logs/CrashReporter/Zebra-2026-08-23-162943.ips
+/var/mobile/Library/Logs/CrashReporter/Zebra-2026-08-23-161320.ips
+/var/mobile/Library/Logs/CrashReporter/Zebra-2026-08-23-161232.ips
+/var/mobile/Library/Logs/CrashReporter/Zebra-2026-08-23-161352.ips
+/var/mobile/Library/Logs/CrashReporter/Zebra-2026-08-23-162844.ips
+/var/mobile/Library/Logs/CrashReporter/Zebra-2026-08-23-162515.ips
+zebra_ab_test_complete=true
 ssh_exit_code=0
