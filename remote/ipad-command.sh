@@ -3,120 +3,81 @@ set +e
 export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
 export HOME=/var/mobile
 APP=/var/jb/Applications/Zebra.app
-BUNDLE=xyz.willy.Zebra
-CRASH=/var/mobile/Library/Logs/CrashReporter
-STAMP="$(date -u '+%Y%m%dT%H%M%SZ')"
-BACKUP="/var/mobile/ZebraRepairBackup-$STAMP"
+BIN="$APP/Zebra"
+CR=/var/mobile/Library/Logs/CrashReporter
 
-echo '=== Zebra black-screen diagnosis + state repair ==='
-printf 'started_at_utc='; date -u '+%Y-%m-%dT%H:%M:%SZ'
+echo '=== Zebra tweak-injection + entitlement diagnostic ==='
+printf 'started='; date -u '+%Y-%m-%dT%H:%M:%SZ'
 printf 'identity='; id
-printf 'model='; sysctl -n hw.model 2>/dev/null || true
 printf 'ios='; sw_vers -productVersion 2>/dev/null || true
+printf 'model='; sysctl -n hw.model 2>/dev/null || true
 
-echo '--- package ---'
+echo '--- Dopamine / jbctl ---'
+for p in /var/jb/basebin/jbctl /var/jb/basebin/jbinfo /var/jb/basebin/jailbreakd; do [ -e "$p" ] && ls -l "$p"; done
+/var/jb/basebin/jbctl version 2>&1 || /var/jb/basebin/jbctl info 2>&1 || true
+cat /var/jb/.installed_dopamine 2>/dev/null || true
+
+echo '--- Zebra package ---'
 dpkg-query -W -f='${Status} | ${Package} | ${Version} | ${Architecture}\n' xyz.willy.zebra 2>/dev/null || true
+apt-cache policy xyz.willy.zebra 2>/dev/null || true
 
-echo '--- data before ---'
-for p in \
- '/var/mobile/Library/Application Support/Zebra' \
- '/var/mobile/Library/Application Support/xyz.willy.Zebra' \
- '/var/mobile/Library/Caches/xyz.willy.Zebra' \
- '/var/mobile/Library/Preferences/xyz.willy.Zebra.plist' \
- '/var/mobile/Library/Preferences/xyz.willy.zebra.plist'; do
-  [ -e "$p" ] && { echo "FOUND $p"; du -sh "$p" 2>/dev/null || ls -ld "$p"; }
-done
-
-echo '--- first launch: reproduce black screen ---'
-killall -9 Zebra 2>/dev/null || true
-BEFORE_COUNT="$(find "$CRASH" -maxdepth 1 -type f 2>/dev/null | wc -l | tr -d ' ')"
-if command -v uiopen >/dev/null 2>&1; then
-  sudo -u mobile uiopen 'zbra://' >/tmp/zebra-launch1.txt 2>&1
-  echo "launch1_rc=$?"
-  cat /tmp/zebra-launch1.txt 2>/dev/null || true
-fi
-for s in 5 20 45 70; do
-  sleep "$([ "$s" = 5 ] && echo 5 || [ "$s" = 20 ] && echo 15 || [ "$s" = 45 ] && echo 25 || echo 25)"
-  echo "--- t=${s}s ---"
-  ps aux 2>/dev/null | grep -i '[Z]ebra' || echo 'zebra_process=absent'
-  PID="$(ps ax 2>/dev/null | awk '/[Z]ebra.app\/Zebra/{print $1; exit}')"
-  if [ -n "$PID" ]; then
-    echo "zebra_pid=$PID"
-    if command -v sample >/dev/null 2>&1 && [ "$s" = 20 ]; then
-      sample "$PID" 1 1 2>/dev/null | head -n 120 || true
-    fi
-  fi
-done
-
-echo '--- reports after reproduced hang ---'
-find "$CRASH" -maxdepth 1 -type f \( -iname '*Zebra*' -o -iname 'JetsamEvent*' -o -iname '*watchdog*' \) -print 2>/dev/null | while IFS= read -r f; do
-  printf '%s %s\n' "$(stat -f '%m' "$f" 2>/dev/null || echo 0)" "$f"
-done | sort -nr | head -n 20
-LATEST_Z="$(find "$CRASH" -maxdepth 1 -type f -iname '*Zebra*' -print 2>/dev/null | while IFS= read -r f; do printf '%s %s\n' "$(stat -f '%m' "$f" 2>/dev/null || echo 0)" "$f"; done | sort -nr | head -n1 | cut -d' ' -f2-)"
-if [ -n "$LATEST_Z" ] && [ -f "$LATEST_Z" ]; then
- echo "latest_zebra_report=$LATEST_Z"
- grep -Ei 'Exception Type|Termination Reason|watchdog|scene-update|hang|jetsam|reason|Library not loaded|dyld|coalition|procRole' "$LATEST_Z" 2>/dev/null | head -n 100 || true
-fi
-
-if command -v log >/dev/null 2>&1; then
-  echo '--- recent unified log ---'
-  log show --last 3m --style compact --predicate 'process == "Zebra" OR eventMessage CONTAINS[c] "xyz.willy.Zebra" OR eventMessage CONTAINS[c] "Zebra"' 2>/dev/null | tail -n 180 || true
-fi
-
-echo '--- backup Zebra state ---'
-mkdir -p "$BACKUP"
-for p in \
- '/var/mobile/Library/Application Support/Zebra' \
- '/var/mobile/Library/Application Support/xyz.willy.Zebra' \
- '/var/mobile/Library/Caches/xyz.willy.Zebra' \
- '/var/mobile/Library/Preferences/xyz.willy.Zebra.plist' \
- '/var/mobile/Library/Preferences/xyz.willy.zebra.plist'; do
-  if [ -e "$p" ]; then
-    name="$(echo "$p" | sed 's#^/##; s#/#__#g')"
-    cp -a "$p" "$BACKUP/$name" 2>/dev/null || cp -R "$p" "$BACKUP/$name" 2>/dev/null || true
-  fi
-done
-chown -R mobile:mobile "$BACKUP" 2>/dev/null || true
-echo "backup_path=$BACKUP"
-
-echo '--- reset Zebra user state ---'
-killall -9 Zebra 2>/dev/null || true
-rm -rf '/var/mobile/Library/Application Support/Zebra' 2>/dev/null || true
-rm -rf '/var/mobile/Library/Application Support/xyz.willy.Zebra' 2>/dev/null || true
-rm -rf '/var/mobile/Library/Caches/xyz.willy.Zebra' 2>/dev/null || true
-rm -rf '/var/mobile/Library/Caches/xyz.willy.zebra' 2>/dev/null || true
-rm -f '/var/mobile/Library/Preferences/xyz.willy.Zebra.plist' 2>/dev/null || true
-rm -f '/var/mobile/Library/Preferences/xyz.willy.zebra.plist' 2>/dev/null || true
-killall -9 cfprefsd 2>/dev/null || true
-if [ -d "$APP" ]; then
-  chown -R root:wheel "$APP" 2>/dev/null || true
-  chmod 0755 "$APP/Zebra" 2>/dev/null || true
-  uicache -p "$APP" 2>&1 || true
-fi
-uicache -a 2>&1 || true
-sync
-sleep 3
-
-echo '--- second launch after clean state ---'
-if command -v uiopen >/dev/null 2>&1; then
-  sudo -u mobile uiopen 'zbra://' >/tmp/zebra-launch2.txt 2>&1
-  echo "launch2_rc=$?"
-  cat /tmp/zebra-launch2.txt 2>/dev/null || true
-fi
-for s in 5 15 35; do
-  sleep "$([ "$s" = 5 ] && echo 5 || [ "$s" = 15 ] && echo 10 || echo 20)"
-  echo "--- clean t=${s}s ---"
-  ps aux 2>/dev/null | grep -i '[Z]ebra' || echo 'zebra_process=absent'
-done
-
-echo '--- newest Zebra report after clean launch ---'
-NEWZ="$(find "$CRASH" -maxdepth 1 -type f -iname '*Zebra*' -print 2>/dev/null | while IFS= read -r f; do printf '%s %s\n' "$(stat -f '%m' "$f" 2>/dev/null || echo 0)" "$f"; done | sort -nr | head -n1 | cut -d' ' -f2-)"
-if [ -n "$NEWZ" ] && [ -f "$NEWZ" ]; then
- echo "newest_zebra_report=$NEWZ"
- grep -Ei 'Exception Type|Termination Reason|watchdog|scene-update|hang|jetsam|reason|Library not loaded|dyld' "$NEWZ" 2>/dev/null | head -n 100 || true
+echo '--- Zebra entitlements ---'
+if command -v ldid >/dev/null 2>&1; then
+  ldid -e "$BIN" 2>&1 || true
 else
- echo 'newest_zebra_report=none'
+  echo 'ldid=missing'
 fi
 
-echo 'zebra_black_screen_repair_complete=true'
+echo '--- Zebra Info.plist relevant keys ---'
+if command -v plutil >/dev/null 2>&1; then
+  plutil -p "$APP/Info.plist" 2>/dev/null | grep -Ei 'BundleIdentifier|Executable|MinimumOS|UIApplication|LSApplication|UIRequired|CFBundleVersion|CFBundleShort' || true
+else
+  strings "$APP/Info.plist" 2>/dev/null | grep -Ei 'xyz.willy|Zebra|MinimumOS' | head -n 40 || true
+fi
+
+echo '--- tweak loaders / injection ---'
+dpkg-query -W -f='${Package} ${Version} ${Architecture}\n' 2>/dev/null | grep -Ei 'ellekit|choicy|substitute|libhooker|substrate' || true
+ls -la /var/jb/usr/lib/TweakInject 2>/dev/null | head -n 100 || true
+ls -la /var/jb/Library/MobileSubstrate/DynamicLibraries 2>/dev/null | head -n 100 || true
+
+echo '--- recent reports mentioning Zebra before safe test ---'
+find "$CR" -type f -mmin -15 -print 2>/dev/null | while IFS= read -r f; do grep -Il 'Zebra\|xyz.willy.Zebra' "$f" 2>/dev/null; done | head -n 30
+
+echo '--- safe-mode launch test ---'
+killall -9 Zebra 2>/dev/null || true
+# Dopamine systemhook honors DISABLE_TWEAKS=1 for child app launches when inherited.
+launchctl setenv DISABLE_TWEAKS 1 2>&1 || true
+launchctl setenv _MSSafeMode 1 2>&1 || true
+launchctl setenv _SafeMode 1 2>&1 || true
+sudo -u mobile launchctl setenv DISABLE_TWEAKS 1 2>&1 || true
+sudo -u mobile launchctl setenv _MSSafeMode 1 2>&1 || true
+sudo -u mobile launchctl setenv _SafeMode 1 2>&1 || true
+sleep 1
+sudo -u mobile uiopen 'zbra://' >/tmp/zebra-safe-open.txt 2>&1
+echo "safe_uiopen_rc=$?"
+cat /tmp/zebra-safe-open.txt 2>/dev/null || true
+sleep 5
+echo 'safe_t=5'; ps aux 2>/dev/null | grep -i '[Z]ebra' || echo absent
+sleep 20
+echo 'safe_t=25'; ps aux 2>/dev/null | grep -i '[Z]ebra' || echo absent
+sleep 25
+echo 'safe_t=50'; ps aux 2>/dev/null | grep -i '[Z]ebra' || echo absent
+
+# Remove inherited safe-mode vars after the test.
+launchctl unsetenv DISABLE_TWEAKS 2>&1 || true
+launchctl unsetenv _MSSafeMode 2>&1 || true
+launchctl unsetenv _SafeMode 2>&1 || true
+sudo -u mobile launchctl unsetenv DISABLE_TWEAKS 2>&1 || true
+sudo -u mobile launchctl unsetenv _MSSafeMode 2>&1 || true
+sudo -u mobile launchctl unsetenv _SafeMode 2>&1 || true
+
+echo '--- reports mentioning Zebra after safe test ---'
+find "$CR" -type f -mmin -10 -print 2>/dev/null | while IFS= read -r f; do
+  if grep -Iql 'Zebra\|xyz.willy.Zebra' "$f" 2>/dev/null; then
+    echo "REPORT=$f"
+    grep -Ei 'bug_type|procName|procPath|Exception Type|Termination Reason|watchdog|scene-update|jetsam|reason|code|namespace|culprit|memoryStatus' "$f" 2>/dev/null | head -n 120 || true
+  fi
+done | head -n 300
+
+echo 'zebra_safe_mode_diagnostic_complete=true'
 exit 0
