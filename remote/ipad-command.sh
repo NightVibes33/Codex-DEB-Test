@@ -1,94 +1,74 @@
 #!/bin/sh
 set +e
 export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
-D=/var/jb/usr/lib/TweakInject
 
-echo '=== REMOVE LYNX + RESTORE NORMAL TWEAK INJECTION ==='
+echo '=== TWEAKMEDIC INSTALLED DEVICE DIAGNOSTIC ==='
 printf 'started='; date '+%Y-%m-%d %H:%M:%S %z'
 
-# Ensure no previous bisect left tweak filters staged outside TweakInject.
-for B in /var/mobile/.zebra-tweak-bisect-* /var/mobile/.zebra-fast-bisect-* /var/mobile/.zebra-quick-*; do
-  [ -d "$B" ] || continue
-  for p in "$B"/*.plist; do
-    [ -f "$p" ] && mv -f "$p" "$D/$(basename "$p")" 2>/dev/null || true
-  done
-  rm -rf "$B" 2>/dev/null || true
-done
+echo '--- package ---'
+dpkg-query -W -f='package=${Package}\nversion=${Version}\nstatus=${Status}\narch=${Architecture}\n' com.nightvibes33.tweakmedic 2>&1
+DPKG_RC=$?
+echo "dpkg_query_rc=$DPKG_RC"
+dpkg -L com.nightvibes33.tweakmedic 2>/dev/null | sed -n '1,160p'
 
-# Identify the real dpkg package owning Lynx.
-OWNER=""
-for path in /usr/lib/TweakInject/Lynx.dylib /Library/MobileSubstrate/DynamicLibraries/Lynx.dylib /var/jb/usr/lib/TweakInject/Lynx.dylib; do
-  hit="$(dpkg-query -S "$path" 2>/dev/null | head -n1 | cut -d: -f1)"
-  [ -n "$hit" ] && { OWNER="$hit"; break; }
-done
-if [ -z "$OWNER" ]; then
-  for info in /var/jb/var/lib/dpkg/info/*.list /var/jb/Library/dpkg/info/*.list; do
-    [ -f "$info" ] || continue
-    if grep -Fq '/usr/lib/TweakInject/Lynx.dylib' "$info" 2>/dev/null || grep -Fq '/Library/MobileSubstrate/DynamicLibraries/Lynx.dylib' "$info" 2>/dev/null; then
-      OWNER="$(basename "$info" .list)"
-      break
-    fi
-  done
-fi
-
-echo "lynx_owner_package=${OWNER:-not-found}"
-echo '--- matching installed packages before removal ---'
-dpkg-query -W -f='${Package}\t${Version}\t${Status}\n' 2>/dev/null | grep -i lynx || true
-ls -l "$D/Lynx.plist" "$D/Lynx.dylib" "$D/LynxCarPlay.plist" "$D/LynxCarPlay.dylib" 2>/dev/null || true
-
-REMOVE_RC=0
-if [ -n "$OWNER" ]; then
-  echo "removing_package=$OWNER"
-  DEBIAN_FRONTEND=noninteractive apt-get remove -y "$OWNER"
-  REMOVE_RC=$?
-  echo "apt_remove_rc=$REMOVE_RC"
-  if [ "$REMOVE_RC" -ne 0 ]; then
-    dpkg --remove "$OWNER"
-    REMOVE_RC=$?
-    echo "dpkg_remove_rc=$REMOVE_RC"
+echo '--- expected payload ---'
+for p in \
+  /var/jb/Applications/TweakMedic.app/TweakMedic \
+  /var/jb/Applications/TweakMedic.app/Info.plist \
+  /var/jb/usr/libexec/tweakmedicd \
+  /var/jb/usr/bin/tweakmedicctl \
+  /var/jb/Library/LaunchDaemons/com.nightvibes33.tweakmedicd.plist \
+  /var/jb/Library/PreferenceBundles/TweakMedicPrefs.bundle/TweakMedicPrefs \
+  /var/jb/Library/PreferenceBundles/TweakMedicPrefs.bundle/Root.plist \
+  /var/jb/Library/PreferenceLoader/Preferences/TweakMedicPrefs.plist; do
+  if [ -e "$p" ] || [ -L "$p" ]; then
+    echo "PRESENT=$p"
+    ls -ld "$p" 2>/dev/null
+  else
+    echo "MISSING=$p"
   fi
-else
-  echo 'ERROR=Could not resolve Lynx owning package; refusing to fake an uninstall.'
-  exit 2
-fi
-
-# Finish any package configuration left pending by removal.
-dpkg --configure -a 2>&1 | tail -n 30 || true
-
-echo '--- Lynx verification after removal ---'
-dpkg-query -W -f='${Package}\t${Version}\t${Status}\n' 2>/dev/null | grep -i lynx || true
-for f in "$D/Lynx.plist" "$D/Lynx.dylib" "$D/LynxCarPlay.plist" "$D/LynxCarPlay.dylib"; do
-  if [ -e "$f" ] || [ -L "$f" ]; then echo "LYNX_FILE_REMAINS=$f"; else echo "lynx_file_absent=$f"; fi
 done
 
-# Re-enable normal ElleKit/tweak injection globally by clearing all test safe-mode vars.
-launchctl unsetenv DISABLE_TWEAKS 2>/dev/null || true
-launchctl unsetenv _MSSafeMode 2>/dev/null || true
-sudo -u mobile launchctl unsetenv DISABLE_TWEAKS 2>/dev/null || true
-sudo -u mobile launchctl unsetenv _MSSafeMode 2>/dev/null || true
-
-echo '--- injection environment ---'
-echo "root_DISABLE_TWEAKS=$(launchctl getenv DISABLE_TWEAKS 2>/dev/null)"
-echo "root_MSSafeMode=$(launchctl getenv _MSSafeMode 2>/dev/null)"
-echo "mobile_DISABLE_TWEAKS=$(sudo -u mobile launchctl getenv DISABLE_TWEAKS 2>/dev/null)"
-echo "mobile_MSSafeMode=$(sudo -u mobile launchctl getenv _MSSafeMode 2>/dev/null)"
-
-# Launch Zebra NORMALLY, with tweak injection enabled, and verify beyond the old watchdog window.
-killall -9 Zebra 2>/dev/null || true
+echo '--- launch daemon ---'
+launchctl print system/com.nightvibes33.tweakmedicd 2>&1 | sed -n '1,120p'
+PRINT_BEFORE=$?
+echo "launchctl_print_before_rc=$PRINT_BEFORE"
+launchctl bootstrap system /var/jb/Library/LaunchDaemons/com.nightvibes33.tweakmedicd.plist 2>&1
+BOOTSTRAP_RC=$?
+echo "bootstrap_rc=$BOOTSTRAP_RC"
+launchctl kickstart -k system/com.nightvibes33.tweakmedicd 2>&1
+KICK_RC=$?
+echo "kickstart_rc=$KICK_RC"
 sleep 2
-sudo -u mobile uiopen 'zbra://' >/tmp/zebra-normal-after-lynx.txt 2>&1 || true
-cat /tmp/zebra-normal-after-lynx.txt 2>/dev/null || true
-zpid(){ ps ax 2>/dev/null | awk '/[Z]ebra.app\/Zebra/{print $1; exit}'; }
-sleep 5; echo "zebra_t5_pid=$(zpid)"
-sleep 20; echo "zebra_t25_pid=$(zpid)"
-sleep 20; FINAL="$(zpid)"; echo "zebra_t45_pid=${FINAL:-absent}"
+launchctl print system/com.nightvibes33.tweakmedicd 2>&1 | sed -n '1,140p'
+echo '--- daemon process/socket/log ---'
+ps ax 2>/dev/null | grep '[t]weakmedicd' || true
+ls -l /var/run/tweakmedicd.sock 2>&1 || true
+tail -n 100 /var/mobile/Library/TweakMedic/daemon.log 2>&1 || true
 
-if [ -n "$FINAL" ]; then
-  echo 'NORMAL_INJECTION_ZEBRA_TEST=PASS'
-else
-  echo 'NORMAL_INJECTION_ZEBRA_TEST=FAIL'
-fi
+echo '--- CLI ---'
+/var/jb/usr/bin/tweakmedicctl ping 2>&1
+PING_RC=$?
+echo "ping_rc=$PING_RC"
+/var/jb/usr/bin/tweakmedicctl restore 2>&1
+echo "restore_rc=$?"
+/var/jb/usr/bin/tweakmedicctl snapshot 2>&1 | sed -n '1,120p'
+echo "snapshot_rc=${PIPESTATUS:-unknown}"
 
-echo "lynx_remove_rc=$REMOVE_RC"
-echo 'lynx_removal_and_injection_restore_complete=true'
-exit "$REMOVE_RC"
+echo '--- UI registration/launch ---'
+/var/jb/usr/bin/uicache -p /var/jb/Applications/TweakMedic.app 2>&1 || /var/jb/usr/bin/uicache -a 2>&1 || true
+sudo -u mobile uiopen 'tweakmedic://' 2>&1
+UIOPEN_RC=$?
+echo "uiopen_rc=$UIOPEN_RC"
+sleep 5
+ps ax 2>/dev/null | grep '[T]weakMedic.app/TweakMedic' || true
+APP_PID="$(ps ax 2>/dev/null | awk '/[T]weakMedic.app\/TweakMedic/{print $1; exit}')"
+echo "app_pid=${APP_PID:-absent}"
+
+echo '--- preferences registration ---'
+killall -9 Preferences 2>/dev/null || true
+ls -la /var/jb/Library/PreferenceBundles/TweakMedicPrefs.bundle 2>&1 || true
+ls -l /var/jb/Library/PreferenceLoader/Preferences/TweakMedicPrefs.plist 2>&1 || true
+
+echo "TWEAKMEDIC_DIAGNOSTIC_COMPLETE=true"
+exit 0
