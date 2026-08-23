@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=32669187149
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/32669187149
-commit=8e2c68a4b145feb0df17135485657ff307ec8cce
+run_id=32669586545
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/32669586545
+commit=b42b5849304b2173e8ec8bb9f2cc015b8b1d5e42
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -18,56 +18,43 @@ SSH port attempt 1/18
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 ipad_ssh_port_ready=success
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-=== RESTORE FIRST, THEN FAST ISOLATE ===
-started=2026-08-23 17:00:14 -0500
-RESTORED_TWEAK=82Hack
-RESTORED_TWEAK=AutoRevenueCat
-RESTORED_TWEAK=FLEXList
-RESTORED_TWEAK=FLEXing
-RESTORED_TWEAK=Flex
-RESTORED_TWEAK=LimneosCrack
-RESTORED_TWEAK=Lynx
-RESTORED_TWEAK=Snowboard
-RESTORED_TWEAK=Speedy
-RESTORED_TWEAK=iarrays_hack_
-BACKUP=/var/mobile/ZebraRepairBackup-20260823T212823Z
-RESTORED_SOURCE_STATE=xyz.willy.Zebra
-/var/mobile/Library/Application Support/xyz.willy.Zebra/sources.list
-/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/creaturecoding.com_repo_Release
-/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/www.postbox.news_Packages
-/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/www.postbox.news_Release
-/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/repo.iphonews.ro_Packages
-/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/apt.mootjeuh.com_Release
-/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/tigisoftware.com_cydia_Packages
-/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/s0mecoder.github.io_repo_Packages
-/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/junesiphone.com_supersecret_Packages
-/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/reddestdream.github.io_Packages
-/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/repo.twickd.com_Packages
-/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/opa334.github.io_Release
-/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/getzbra.com_repo_Packages
-/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/apt.mootjeuh.com_Packages
-/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/cydia.hiraku.tw_Release
-/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/apptapp.me_repo_Packages
-/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/repo.packix.com_Release
-/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/skylerk99.github.io_Release
-/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/tateu.net_repo_Release
-/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/skylerk99.github.io_Packages
-RESTORE_PHASE_COMPLETE=true
-TEST|Flex|SURVIVED
-TEST|group_Limneos_Lynx_Snowboard|DIED
-TEST|LimneosCrack|SURVIVED
-TEST|Lynx|DIED
-CULPRIT_RESULT=Lynx
-FINAL_TWEAK_PRESENT=82Hack
-FINAL_TWEAK_PRESENT=AutoRevenueCat
-FINAL_TWEAK_PRESENT=FLEXList
-FINAL_TWEAK_PRESENT=FLEXing
-FINAL_TWEAK_PRESENT=Flex
-FINAL_TWEAK_PRESENT=LimneosCrack
-FINAL_TWEAK_PRESENT=Lynx
-FINAL_TWEAK_PRESENT=Snowboard
-FINAL_TWEAK_PRESENT=Speedy
-FINAL_TWEAK_PRESENT=iarrays_hack_
-FINAL_ZEBRA_PID=3986
-zebra_done=true
+=== REMOVE LYNX + RESTORE NORMAL TWEAK INJECTION ===
+started=2026-08-23 17:07:30 -0500
+lynx_owner_package=xyz.cypwn.lynxtwo
+--- matching installed packages before removal ---
+xyz.cypwn.lynxtwo	2.5.4	install ok installed
+xyz.cypwn.lynxtwolocalizations	2.5	install ok installed
+-rwxr-xr-x 1 root wheel 1086624 Dec 31  2024 /var/jb/usr/lib/TweakInject/Lynx.dylib
+-rwxr-xr-x 1 root wheel     144 Dec 31  2024 /var/jb/usr/lib/TweakInject/Lynx.plist
+-rwxr-xr-x 1 root wheel  204656 Dec 31  2024 /var/jb/usr/lib/TweakInject/LynxCarPlay.dylib
+-rw-r--r-- 1 root wheel     122 Dec 31  2024 /var/jb/usr/lib/TweakInject/LynxCarPlay.plist
+removing_package=xyz.cypwn.lynxtwo
+Reading package lists...
+Building dependency tree...
+Reading state information...
+The following packages will be REMOVED:
+  xyz.cypwn.lynxtwo xyz.cypwn.lynxtwolocalizations
+0 upgraded, 0 newly installed, 2 to remove and 26 not upgraded.
+After this operation, 1090 kB disk space will be freed.
+(Reading database ... 25869 files and directories currently installed.)
+Removing xyz.cypwn.lynxtwolocalizations (2.5) ...
+Removing xyz.cypwn.lynxtwo (2.5.4) ...
+Processing triggers for org.coolstar.sileo (2.5.1) ...
+apt_remove_rc=0
+--- Lynx verification after removal ---
+lynx_file_absent=/var/jb/usr/lib/TweakInject/Lynx.plist
+lynx_file_absent=/var/jb/usr/lib/TweakInject/Lynx.dylib
+lynx_file_absent=/var/jb/usr/lib/TweakInject/LynxCarPlay.plist
+lynx_file_absent=/var/jb/usr/lib/TweakInject/LynxCarPlay.dylib
+--- injection environment ---
+root_DISABLE_TWEAKS=
+root_MSSafeMode=
+mobile_DISABLE_TWEAKS=
+mobile_MSSafeMode=
+zebra_t5_pid=4794
+zebra_t25_pid=4794
+zebra_t45_pid=4794
+NORMAL_INJECTION_ZEBRA_TEST=PASS
+lynx_remove_rc=0
+lynx_removal_and_injection_restore_complete=true
 ssh_exit_code=0
