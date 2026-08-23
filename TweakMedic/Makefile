@@ -16,7 +16,7 @@ TweakMedic_CODESIGN_FLAGS = -Sapp/Entitlements.plist
 TOOL_NAME = tweakmedicd tweakmedicctl
 tweakmedicd_FILES = daemon/main.m daemon/TMScanner.m
 tweakmedicd_FRAMEWORKS = Foundation CoreFoundation
-tweakmedicd_CFLAGS = -fobjc-arc -fblocks -Wall -Wextra
+tweakmedicd_CFLAGS = -fobjc-arc -fblocks -Wall -Wextra -Idaemon
 tweakmedicd_LDFLAGS = -ldl -lproc
 tweakmedicd_INSTALL_PATH = /usr/libexec
 
