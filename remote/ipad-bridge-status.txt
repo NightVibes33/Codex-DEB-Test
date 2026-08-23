@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=32669586545
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/32669586545
-commit=b42b5849304b2173e8ec8bb9f2cc015b8b1d5e42
+run_id=32670994199
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/32670994199
+commit=8035e1a6c1bebbc63f950fda5ff4109b489d6c1c
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -9,52 +9,183 @@ install_ssh=success
 ssh=success
 
 --- sanitized SSH output ---
-Waking and checking iPad SSH port over Tailscale...
-SSH port attempt 1/18
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-ipad_ssh_port_ready=success
-Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-=== REMOVE LYNX + RESTORE NORMAL TWEAK INJECTION ===
-started=2026-08-23 17:07:30 -0500
-lynx_owner_package=xyz.cypwn.lynxtwo
---- matching installed packages before removal ---
-xyz.cypwn.lynxtwo	2.5.4	install ok installed
-xyz.cypwn.lynxtwolocalizations	2.5	install ok installed
--rwxr-xr-x 1 root wheel 1086624 Dec 31  2024 /var/jb/usr/lib/TweakInject/Lynx.dylib
--rwxr-xr-x 1 root wheel     144 Dec 31  2024 /var/jb/usr/lib/TweakInject/Lynx.plist
--rwxr-xr-x 1 root wheel  204656 Dec 31  2024 /var/jb/usr/lib/TweakInject/LynxCarPlay.dylib
--rw-r--r-- 1 root wheel     122 Dec 31  2024 /var/jb/usr/lib/TweakInject/LynxCarPlay.plist
-removing_package=xyz.cypwn.lynxtwo
-Reading package lists...
-Building dependency tree...
-Reading state information...
-The following packages will be REMOVED:
-  xyz.cypwn.lynxtwo xyz.cypwn.lynxtwolocalizations
-0 upgraded, 0 newly installed, 2 to remove and 26 not upgraded.
-After this operation, 1090 kB disk space will be freed.
-(Reading database ... 25869 files and directories currently installed.)
-Removing xyz.cypwn.lynxtwolocalizations (2.5) ...
-Removing xyz.cypwn.lynxtwo (2.5.4) ...
-Processing triggers for org.coolstar.sileo (2.5.1) ...
-apt_remove_rc=0
---- Lynx verification after removal ---
-lynx_file_absent=/var/jb/usr/lib/TweakInject/Lynx.plist
-lynx_file_absent=/var/jb/usr/lib/TweakInject/Lynx.dylib
-lynx_file_absent=/var/jb/usr/lib/TweakInject/LynxCarPlay.plist
-lynx_file_absent=/var/jb/usr/lib/TweakInject/LynxCarPlay.dylib
---- injection environment ---
-root_DISABLE_TWEAKS=
-root_MSSafeMode=
-mobile_DISABLE_TWEAKS=
-mobile_MSSafeMode=
-zebra_t5_pid=4794
-zebra_t25_pid=4794
-zebra_t45_pid=4794
-NORMAL_INJECTION_ZEBRA_TEST=PASS
-lynx_remove_rc=0
-lynx_removal_and_injection_restore_complete=true
+	exit timeout = 3
+	runs = 3
+	pid = 5241
+	immediate reason = inefficient
+	forks = 0
+	execs = 1
+	initialized = 1
+	trampolined = 1
+	started suspended = 0
+	proxy started suspended = 0
+	uses proxy = 1
+	last terminating signal = Killed: 9
+
+	spawn type = adaptive (6)
+	jetsam priority = 40
+	jetsam memory limit (active, soft) = 6 MB
+	jetsam memory limit (inactive, hard) = 6 MB
+	jetsamproperties category = daemon
+	jetsam thread limit = 32
+	jetsam soft port limit = 32768
+	jetsam hard port limit = 65536
+	cpumon = default
+	job state = running
+	probabilistic guard malloc policy = {
+		activation rate = 1/1000
+		sample rate = 1/0
+	}
+
+	properties = keepalive | runatload | supports transactions | inferred program | exponential throttling | needs proxy
+}
+--- daemon process/socket/log ---
+ 5241   ??  ?s     0:00.00 /var/jb/usr/libexec/tweakmedicd
+srw-rw-rw- 1 root daemon 0 Aug 23 17:35 /var/run/tweakmedicd.sock
+--- CLI ---
+{
+  "daemon" : "tweakmedicd",
+  "ok" : true,
+  "pid" : 5241,
+  "version" : "1.0.0"
+}
+ping_rc=0
+{
+  "ok" : true,
+  "restored" : 0
+}
+restore_rc=0
+{
+  "apps" : [
+    {
+      "path" : "\/var\/containers\/Bundle\/Application\/928D4CCD-71A2-4165-B146-F881842D30D3\/BitLife.app",
+      "executable" : "BitLife",
+      "name" : "🕷️ BitLife - iOSGods.com",
+      "bundleID" : "com.wtfapps.apollo16"
+    },
+    {
+      "path" : "\/Applications\/AAUIViewService.app",
+      "executable" : "AAUIViewService",
+      "name" : "AAUIViewService",
+      "bundleID" : "com.apple.AAUIViewService"
+    },
+    {
+      "path" : "\/Applications\/AccountAuthenticationDialog.app",
+      "executable" : "AccountAuthenticationDialog",
+      "name" : "AccountAuthenticationDialog",
+      "bundleID" : "com.apple.AccountAuthenticationDialog"
+    },
+    {
+      "path" : "\/Applications\/AirDropUI.app",
+      "executable" : "AirDropUI",
+      "name" : "AirDropUI",
+      "bundleID" : "com.apple.Sharing.AirDropUI"
+    },
+    {
+      "path" : "\/Applications\/AirPlayReceiver.app",
+      "executable" : "AirPlayReceiver",
+      "name" : "AirPlayReceiver",
+      "bundleID" : "com.apple.airplayreceiver"
+    },
+    {
+      "path" : "\/Applications\/AMSEngagementViewService.app",
+      "executable" : "AMSEngagementViewService",
+      "name" : "AMSEngagementViewService",
+      "bundleID" : "com.apple.AMSEngagementViewService"
+    },
+    {
+      "path" : "\/Applications\/AppStore.app",
+      "executable" : "AppStore",
+      "name" : "App Store",
+      "bundleID" : "com.apple.AppStore"
+    },
+    {
+      "path" : "\/Applications\/Apple TV Remote.app",
+      "executable" : "Apple TV Remote",
+      "name" : "Apple TV Remote",
+      "bundleID" : "com.apple.TVRemoteUIService"
+    },
+    {
+      "path" : "\/Applications\/AppSSOUIService.app",
+      "executable" : "AppSSOUIService",
+      "name" : "AppSSOUIService",
+      "bundleID" : "com.apple.AppSSOUIService"
+    },
+    {
+      "path" : "\/var\/containers\/Bundle\/Application\/38839394-178B-4011-917A-F45B9DB70D3B\/AppStorePlus.app",
+      "executable" : "AppStorePlus",
+      "name" : "AppStore++",
+      "bundleID" : "com.cokepokes.AppStorePlus"
+    },
+    {
+      "path" : "\/Applications\/AskPermissionUI.app",
+      "executable" : "AskPermissionUI",
+      "name" : "AskPermissionUI",
+      "bundleID" : "com.apple.AskPermissionUI"
+    },
+    {
+      "path" : "\/Applications\/AuthenticationServicesUI.app",
+      "executable" : "AuthenticationServicesUI",
+      "name" : "AuthenticationServicesUI",
+      "bundleID" : "com.apple.AuthenticationServicesUI"
+    },
+    {
+      "path" : "\/Applications\/AuthKitUIService.app",
+      "executable" : "AuthKitUIService",
+      "name" : "AuthKitUIService",
+      "bundleID" : "com.apple.AuthKitUIService"
+    },
+    {
+      "path" : "\/Applications\/AXUIViewService.app",
+      "executable" : "AXUIViewService",
+      "name" : "AXUIViewService",
+      "bundleID" : "com.apple.AXUIViewService"
+    },
+    {
+      "path" : "\/Applications\/BacklinkIndicator.app",
+      "executable" : "BacklinkIndicator",
+      "name" : "BacklinkIndicator",
+      "bundleID" : "com.apple.BacklinkIndicator"
+    },
+    {
+      "path" : "\/Applications\/Batteries.app",
+      "executable" : "Batteries",
+      "name" : "Batteries",
+      "bundleID" : "com.apple.Batteries"
+    },
+    {
+      "path" : "\/var\/containers\/Bundle\/Application\/3F2DA0C6-5087-4C1E-94E7-514CA5845B10\/Bootstrap.app",
+      "executable" : "Bootstrap",
+      "name" : "Bootstrap",
+      "bundleID" : "com.roothide.Bootstrap"
+    },
+    {
+      "path" : "\/var\/containers\/Bundle\/Application\/2EB52688-E5B9-4CE1-B396-96DF7A2B4672\/BowlingCrew.app",
+      "executable" : "BowlingCrew",
+      "name" : "Bowling Crew",
+      "bundleID" : "com.lesta.bowling"
+    },
+    {
+      "path" : "\/Applications\/BusinessChatViewService.app",
+      "executable" : "BusinessChatViewService",
+      "name" : "BusinessChatViewService",
+      "bundleID" : "com.apple.BusinessChatViewService"
+    },
+    {
+      "path" : "\/Applications\/BusinessExtensionsWrapper.app",
+      "executable" : "BusinessExtensionsWrapper",
+      "name" : "BusinessExtensionsWrapper",
+snapshot_rc=unknown
+--- UI registration/launch ---
+uiopen_rc=0
+ 5177   ??  Ss     0:03.03 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/TweakMedic.app/TweakMedic
+app_pid=5177
+--- preferences registration ---
+total 72
+drwxr-xr-x  4 root wheel   128 Aug 23 17:33 .
+drwxr-xr-x 25 root wheel   800 Aug 23 17:31 ..
+-rw-r--r--  1 root wheel  1455 Aug 23 17:32 Root.plist
+-rwxr-xr-x  1 root wheel 67824 Aug 23 17:33 TweakMedicPrefs
+-rw-r--r-- 1 root wheel 385 Aug 23 17:33 /var/jb/Library/PreferenceLoader/Preferences/TweakMedicPrefs.plist
+TWEAKMEDIC_DIAGNOSTIC_COMPLETE=true
 ssh_exit_code=0
