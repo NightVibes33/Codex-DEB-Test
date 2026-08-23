@@ -11,6 +11,68 @@
 @implementation HIDFinding
 @end
 
+static NSString * const HIDReportDirectory = @"/var/mobile/Library/Hidden";
+static NSString * const HIDReportPath = @"/var/mobile/Library/Hidden/latest-scan.json";
+
+static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSError **error) {
+    NSFileManager *fm = NSFileManager.defaultManager;
+    if (![fm createDirectoryAtPath:HIDReportDirectory withIntermediateDirectories:YES attributes:nil error:error]) return NO;
+
+    NSMutableDictionary<NSString *, NSNumber *> *categoryCounts = [NSMutableDictionary dictionary];
+    NSMutableDictionary<NSString *, NSNumber *> *targetCounts = [NSMutableDictionary dictionary];
+    NSMutableArray<NSDictionary *> *rows = [NSMutableArray array];
+
+    NSUInteger limit = MIN(findings.count, (NSUInteger)750);
+    for (NSUInteger i = 0; i < findings.count; i++) {
+        HIDFinding *f = findings[i];
+        categoryCounts[f.category] = @([categoryCounts[f.category] unsignedIntegerValue] + 1);
+        targetCounts[f.target] = @([targetCounts[f.target] unsignedIntegerValue] + 1);
+        if (i < limit) {
+            [rows addObject:@{
+                @"target": f.target ?: @"System",
+                @"category": f.category ?: @"Unknown",
+                @"evidence": f.evidence ?: @"",
+                @"path": f.path ?: @"",
+                @"score": @(f.score)
+            }];
+        }
+    }
+
+    NSArray *sortedTargets = [targetCounts keysSortedByValueUsingComparator:^NSComparisonResult(NSNumber *a, NSNumber *b) {
+        if (a.unsignedIntegerValue > b.unsignedIntegerValue) return NSOrderedAscending;
+        if (a.unsignedIntegerValue < b.unsignedIntegerValue) return NSOrderedDescending;
+        return NSOrderedSame;
+    }];
+    if (sortedTargets.count > 50) sortedTargets = [sortedTargets subarrayWithRange:NSMakeRange(0, 50)];
+
+    NSDateFormatter *formatter = [NSDateFormatter new];
+    formatter.locale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
+    formatter.dateFormat = @"yyyy-MM-dd'T'HH:mm:ssZZZZZ";
+
+    NSDictionary *report = @{
+        @"schema": @1,
+        @"generatedAt": [formatter stringFromDate:NSDate.date],
+        @"os": NSProcessInfo.processInfo.operatingSystemVersionString ?: @"unknown",
+        @"totalFindings": @(findings.count),
+        @"reportedFindings": @(rows.count),
+        @"categoryCounts": categoryCounts,
+        @"topTargets": sortedTargets,
+        @"scopes": @[
+            @"/System/Applications",
+            @"/Applications",
+            @"/System/Library/CoreServices",
+            @"/System/Library/PrivateFrameworks",
+            @"/System/Library/PreferenceBundles",
+            @"/System/Library/PreferenceManifestsInternal"
+        ],
+        @"findings": rows
+    };
+
+    NSData *json = [NSJSONSerialization dataWithJSONObject:report options:NSJSONWritingPrettyPrinted error:error];
+    if (!json) return NO;
+    return [json writeToFile:HIDReportPath options:NSDataWritingAtomic error:error];
+}
+
 @interface HIDScanner : NSObject
 @property(nonatomic,strong) NSMutableSet<NSString *> *dedupe;
 @property(nonatomic,strong) NSMutableArray<HIDFinding *> *findings;
@@ -114,6 +176,22 @@
     if (obj) [self scanStructuredObject:obj target:target path:path prefix:@"" depth:0];
 }
 
+- (void)scanJSONAtPath:(NSString *)path target:(NSString *)target {
+    NSData *data = [NSData dataWithContentsOfFile:path options:NSDataReadingMappedIfSafe error:nil];
+    if (!data.length) return;
+    id obj = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+    if (obj) [self scanStructuredObject:obj target:target path:path prefix:@"" depth:0];
+}
+
+- (void)emitToken:(NSMutableData *)token target:(NSString *)target path:(NSString *)path emitted:(NSUInteger *)emitted {
+    if (token.length < 6 || *emitted >= 160) return;
+    NSString *s = [[NSString alloc] initWithData:token encoding:NSUTF8StringEncoding];
+    if (s && [self isInteresting:s]) {
+        [self addEvidence:s target:target path:path];
+        (*emitted)++;
+    }
+}
+
 - (void)scanTextAtPath:(NSString *)path target:(NSString *)target {
     NSDictionary *attrs = [[NSFileManager defaultManager] attributesOfItemAtPath:path error:nil];
     unsigned long long size = [attrs fileSize];
@@ -123,23 +201,17 @@
     const unsigned char *bytes = data.bytes;
     NSMutableData *token = [NSMutableData dataWithCapacity:128];
     NSUInteger emitted = 0;
-    for (NSUInteger i = 0; i < data.length; i++) {
+    for (NSUInteger i = 0; i < data.length && emitted < 160; i++) {
         unsigned char c = bytes[i];
         BOOL printable = (c >= 0x20 && c <= 0x7e);
         if (printable && token.length < 181) {
             [token appendBytes:&c length:1];
         } else {
-            if (token.length >= 6) {
-                NSString *s = [[NSString alloc] initWithData:token encoding:NSUTF8StringEncoding];
-                if (s && [self isInteresting:s]) {
-                    [self addEvidence:s target:target path:path];
-                    emitted++;
-                    if (emitted >= 160) break;
-                }
-            }
+            [self emitToken:token target:target path:path emitted:&emitted];
             [token setLength:0];
         }
     }
+    [self emitToken:token target:target path:path emitted:&emitted];
 }
 
 - (void)scanBundle:(NSString *)bundlePath target:(NSString *)target {
@@ -148,10 +220,15 @@
     if (info) [self scanStructuredObject:info target:target path:infoPath prefix:@"Info" depth:0];
 
     NSString *exe = info[@"CFBundleExecutable"];
+    NSString *exePath = nil;
     if (exe.length) {
-        NSString *exePath = [bundlePath stringByAppendingPathComponent:exe];
-        [self scanTextAtPath:exePath target:target];
+        exePath = [bundlePath stringByAppendingPathComponent:exe];
+    } else {
+        NSString *candidateName = bundlePath.lastPathComponent.stringByDeletingPathExtension;
+        NSString *candidate = [bundlePath stringByAppendingPathComponent:candidateName];
+        if ([[NSFileManager defaultManager] isReadableFileAtPath:candidate]) exePath = candidate;
     }
+    if (exePath.length) [self scanTextAtPath:exePath target:target];
 
     NSDirectoryEnumerator *en = [[NSFileManager defaultManager] enumeratorAtURL:[NSURL fileURLWithPath:bundlePath]
                                                      includingPropertiesForKeys:@[NSURLIsRegularFileKey]
@@ -160,11 +237,14 @@
     NSUInteger resourceCount = 0;
     for (NSURL *url in en) {
         NSString *ext = url.pathExtension.lowercaseString;
-        if ([ext isEqualToString:@"plist"] || [ext isEqualToString:@"strings"] || [ext isEqualToString:@"json"]) {
+        if ([ext isEqualToString:@"json"]) {
+            [self scanJSONAtPath:url.path target:target];
+            resourceCount++;
+        } else if ([ext isEqualToString:@"plist"] || [ext isEqualToString:@"strings"]) {
             [self scanPlistAtPath:url.path target:target];
             resourceCount++;
-            if (resourceCount > 120) break;
         }
+        if (resourceCount > 120) break;
     }
 }
 
@@ -207,6 +287,7 @@
             if (![fm fileExistsAtPath:path isDirectory:&isDir]) continue;
             if (isDir) [self scanBundle:path target:[NSString stringWithFormat:@"Settings/%@", name.stringByDeletingPathExtension]];
             else if ([name.pathExtension.lowercaseString isEqualToString:@"plist"]) [self scanPlistAtPath:path target:@"Settings"];
+            else if ([name.pathExtension.lowercaseString isEqualToString:@"json"]) [self scanJSONAtPath:path target:@"Settings"];
         }
     }
 
@@ -226,6 +307,7 @@
 @property(nonatomic,strong) UILabel *statusLabel;
 @property(nonatomic,strong) UIActivityIndicatorView *spinner;
 @property(nonatomic,strong) UISearchController *searchController;
+@property(nonatomic,assign) BOOL scanRunning;
 @end
 
 @implementation HIDViewController
@@ -249,16 +331,23 @@
     UIView *header = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 1, 74)];
     self.statusLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 10, 700, 48)];
     self.statusLabel.numberOfLines = 2;
-    self.statusLabel.text = @"Apple system discovery engine\nTap Scan to inspect system apps and private frameworks.";
+    self.statusLabel.text = @"Apple system discovery engine\nPreparing automatic system scan…";
     self.statusLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleSubheadline];
     [header addSubview:self.statusLabel];
     self.tableView.tableHeaderView = header;
 
     self.allFindings = @[];
     self.visibleFindings = @[];
+
+    __weak typeof(self) weakSelf = self;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.45 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [weakSelf runScan];
+    });
 }
 
 - (void)runScan {
+    if (self.scanRunning) return;
+    self.scanRunning = YES;
     self.navigationItem.rightBarButtonItem.enabled = NO;
     self.statusLabel.text = @"Starting system scan…";
     __weak typeof(self) weakSelf = self;
@@ -267,10 +356,14 @@
         NSArray *results = [scanner scanWithProgress:^(NSString *status) {
             dispatch_async(dispatch_get_main_queue(), ^{ weakSelf.statusLabel.text = status; });
         }];
+        NSError *reportError = nil;
+        BOOL reportSaved = HIDWriteReport(results, &reportError);
+        NSString *reportStatus = reportSaved ? @"Report saved for device verification." : [NSString stringWithFormat:@"Report error: %@", reportError.localizedDescription ?: @"unknown"];
         dispatch_async(dispatch_get_main_queue(), ^{
             weakSelf.allFindings = results;
             weakSelf.visibleFindings = results;
-            weakSelf.statusLabel.text = [NSString stringWithFormat:@"%lu discoveries ranked by confidence.\nTap any result for its exact source path and evidence.", (unsigned long)results.count];
+            weakSelf.statusLabel.text = [NSString stringWithFormat:@"%lu discoveries ranked by confidence.\n%@", (unsigned long)results.count, reportStatus];
+            weakSelf.scanRunning = NO;
             weakSelf.navigationItem.rightBarButtonItem.enabled = YES;
             [weakSelf.tableView reloadData];
         });
