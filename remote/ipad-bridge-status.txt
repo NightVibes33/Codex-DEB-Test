@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=32668561135
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/32668561135
-commit=a64f58ad733bffcbfbe1b27d5ae4e0139c98550e
+run_id=32668779916
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/32668779916
+commit=538461ced4a1b027bcd5466dfc99c88469ee39b0
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -9,52 +9,183 @@ install_ssh=success
 ssh=success
 
 --- sanitized SSH output ---
-Waking and checking iPad SSH port over Tailscale...
-SSH port attempt 1/18
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
-ipad_ssh_port_ready=success
-Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-=== Zebra 70-second A/B launch test ===
-started=2026-08-23 16:47:36 -0500
-version=1.1.37 arch=iphoneos-arm64
---- A: launch with safe-mode environment requested ---
-safe_t5_pid=2470
-  PID  PPID STAT  %CPU %MEM      TIME COMMAND
- 2470     1 ?s     0.0  0.0   0:00.00 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/Zebra.app/Zebra
-safe_t20_pid=2470
-  PID  PPID STAT  %CPU %MEM      TIME COMMAND
- 2470     1 ?s     0.0  0.0   0:00.00 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/Zebra.app/Zebra
-safe_t35_pid=2470
-  PID  PPID STAT  %CPU %MEM      TIME COMMAND
- 2470     1 ?s     0.0  0.0   0:00.00 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/Zebra.app/Zebra
-safe_t50_pid=2470
-  PID  PPID STAT  %CPU %MEM      TIME COMMAND
- 2470     1 ?s     0.0  0.0   0:00.00 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/Zebra.app/Zebra
-safe_t70_pid=2470
-  PID  PPID STAT  %CPU %MEM      TIME COMMAND
- 2470     1 ?s     0.0  0.0   0:00.00 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/Zebra.app/Zebra
---- B: normal launch ---
-normal_t5_pid=2513
-  PID  PPID STAT  %CPU %MEM      TIME COMMAND
- 2513     1 ?s     0.0  0.0   0:00.00 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/Zebra.app/Zebra
-normal_t20_pid=2513
-  PID  PPID STAT  %CPU %MEM      TIME COMMAND
- 2513     1 ?s     0.0  0.0   0:00.00 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/Zebra.app/Zebra
-normal_t35_pid=absent
-normal_t50_pid=absent
-normal_t70_pid=absent
---- newest Zebra reports (names only) ---
-/var/mobile/Library/Logs/CrashReporter/Zebra-2026-08-23-162620.ips
-/var/mobile/Library/Logs/CrashReporter/Zebra-2026-08-23-163138.ips
-/var/mobile/Library/Logs/CrashReporter/Zebra-2026-08-23-162943.ips
-/var/mobile/Library/Logs/CrashReporter/Zebra-2026-08-23-161320.ips
-/var/mobile/Library/Logs/CrashReporter/Zebra-2026-08-23-161232.ips
-/var/mobile/Library/Logs/CrashReporter/Zebra-2026-08-23-161352.ips
-/var/mobile/Library/Logs/CrashReporter/Zebra-2026-08-23-162844.ips
-/var/mobile/Library/Logs/CrashReporter/Zebra-2026-08-23-162515.ips
-zebra_ab_test_complete=true
+### /var/jb/usr/lib/TweakInject/LimneosCrack.plist
+owner=unknown
+-rwxr-xr-x 1 _installd _installd 162K Feb 13  2024 /var/jb/usr/lib/TweakInject/LimneosCrack.dylib
+### /var/jb/usr/lib/TweakInject/Lynx.plist
+owner=unknown
+-rwxr-xr-x 1 root wheel 1.1M Dec 31  2024 /var/jb/usr/lib/TweakInject/Lynx.dylib
+### /var/jb/usr/lib/TweakInject/LynxCarPlay.plist
+owner=unknown
+-rwxr-xr-x 1 root wheel 200K Dec 31  2024 /var/jb/usr/lib/TweakInject/LynxCarPlay.dylib
+### /var/jb/usr/lib/TweakInject/Nazuna.plist
+owner=unknown
+-rwxr-xr-x 1 root wheel 2.5M Jul 23  2025 /var/jb/usr/lib/TweakInject/Nazuna.dylib
+### /var/jb/usr/lib/TweakInject/No2Theft.plist
+owner=unknown
+-rwxr-xr-x 1 _installd _installd 630K Mar  5  2024 /var/jb/usr/lib/TweakInject/No2Theft.dylib
+### /var/jb/usr/lib/TweakInject/OCD.plist
+owner=unknown
+-rwxr-xr-x 1 root wheel 554K May 26  2024 /var/jb/usr/lib/TweakInject/OCD.dylib
+### /var/jb/usr/lib/TweakInject/PlampyUIPro.plist
+owner=unknown
+-rwxr-xr-x 1 root wheel 198K Sep  9  2024 /var/jb/usr/lib/TweakInject/PlampyUIPro.dylib
+### /var/jb/usr/lib/TweakInject/PreferenceLoader.plist
+owner=unknown
+-rwxr-xr-x 1 root wheel 167K Jul 22  2024 /var/jb/usr/lib/TweakInject/PreferenceLoader.dylib
+### /var/jb/usr/lib/TweakInject/RocketBootstrap.plist
+owner=unknown
+lrwxr-xr-x 1 root wheel 40 Jun 29  2023 /var/jb/usr/lib/TweakInject/RocketBootstrap.dylib -> /var/jb/usr/lib/librocketbootstrap.dylib
+### /var/jb/usr/lib/TweakInject/Satella.plist
+owner=unknown
+-rwxr-xr-x 1 _installd _installd 130K Aug 11  2023 /var/jb/usr/lib/TweakInject/Satella.dylib
+### /var/jb/usr/lib/TweakInject/SettingsRevamp.plist
+owner=unknown
+-rwxr-xr-x 1 root wheel 323K Nov 17  2024 /var/jb/usr/lib/TweakInject/SettingsRevamp.dylib
+### /var/jb/usr/lib/TweakInject/SimPlus.plist
+owner=unknown
+-rwxr-xr-x 1 root wheel 169K Feb 24  2024 /var/jb/usr/lib/TweakInject/SimPlus.dylib
+### /var/jb/usr/lib/TweakInject/SmartBattery.plist
+owner=unknown
+-rwxr-xr-x 1 _installd _installd 500K Mar 25  2024 /var/jb/usr/lib/TweakInject/SmartBattery.dylib
+### /var/jb/usr/lib/TweakInject/SnowBoardRespringExtensionSB.plist
+owner=unknown
+-rwxr-xr-x 1 root wheel 199K Aug  9  2024 /var/jb/usr/lib/TweakInject/SnowBoardRespringExtensionSB.dylib
+### /var/jb/usr/lib/TweakInject/Snowboard.plist
+owner=unknown
+-rwxr-xr-x 1 root wheel 163K Jul  8  2024 /var/jb/usr/lib/TweakInject/Snowboard.dylib
+### /var/jb/usr/lib/TweakInject/Speedy.plist
+owner=unknown
+-rwxr-xr-x 1 _installd _installd 163K May 19  2023 /var/jb/usr/lib/TweakInject/Speedy.dylib
+### /var/jb/usr/lib/TweakInject/SpeedyUninstall.plist
+owner=unknown
+-rwxr-xr-x 1 _installd _installd 231K Mar 26  2024 /var/jb/usr/lib/TweakInject/SpeedyUninstall.dylib
+### /var/jb/usr/lib/TweakInject/TweakHub.plist
+owner=unknown
+-rwxr-xr-x 1 root wheel 233K Jun 20  2023 /var/jb/usr/lib/TweakInject/TweakHub.dylib
+### /var/jb/usr/lib/TweakInject/XXCracker.plist
+owner=unknown
+-rwxr-xr-x 1 root wheel 12M Aug 13 10:59 /var/jb/usr/lib/TweakInject/XXCracker.dylib
+### /var/jb/usr/lib/TweakInject/XXTouchLiteLoader.plist
+owner=unknown
+-rwxr-xr-x 1 root wheel 232K Apr 24 10:10 /var/jb/usr/lib/TweakInject/XXTouchLiteLoader.dylib
+### /var/jb/usr/lib/TweakInject/Xinam1ne.plist
+owner=unknown
+-rwxr-xr-x 1 root wheel 135K Oct  2  2024 /var/jb/usr/lib/TweakInject/Xinam1ne.dylib
+### /var/jb/usr/lib/TweakInject/afc2dService.plist
+owner=unknown
+-rwxr-xr-x 1 _installd _installd 163K Feb 29  2024 /var/jb/usr/lib/TweakInject/afc2dService.dylib
+### /var/jb/usr/lib/TweakInject/iConnect.plist
+owner=unknown
+-rwxr-xr-x 1 _installd _installd 299K Jul 14  2023 /var/jb/usr/lib/TweakInject/iConnect.dylib
+### /var/jb/usr/lib/TweakInject/iDevices.plist
+owner=unknown
+-rwxr-xr-x 1 _installd _installd 776K Jul 14  2023 /var/jb/usr/lib/TweakInject/iDevices.dylib
+### /var/jb/usr/lib/TweakInject/iarrays_hack_.plist
+owner=unknown
+-rwxr-xr-x 1 _installd _installd 163K Feb  3  2024 /var/jb/usr/lib/TweakInject/iarrays_hack_.dylib
+### /var/jb/usr/lib/TweakInject/libFLEX.plist
+owner=unknown
+-rwxr-xr-x 1 root wheel 2.8M Apr 11  2024 /var/jb/usr/lib/TweakInject/libFLEX.dylib
+### /var/jb/usr/lib/TweakInject/mediaserverdhooks.plist
+owner=unknown
+-rwxr-xr-x 1 _installd _installd 162K Mar  5  2024 /var/jb/usr/lib/TweakInject/mediaserverdhooks.dylib
+--- filters mentioning Zebra or UIKit ---
+/var/jb/Library/MobileSubstrate/DynamicLibraries/0nazuna.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/82Hack.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/AAASnowBoardStub.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/AppData.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/AppList.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/AppSyncUnified-FrontBoard.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/AppSyncUnified-installd.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/AutoRevenueCat.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/Battery.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/CCSupport.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/CepheiSpringBoard.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/FLEXList.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/FLEXing.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/FilzaCrack.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/FilzaEnhanced.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/FilzaThemeManager.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/Flex.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/Gif2Ani.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/Hades-iSecureOS.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/Hyperixa.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/HyperixaKit.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/LimneosCrack.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/Lynx.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/LynxCarPlay.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/Nazuna.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/No2Theft.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/OCD.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/PlampyUIPro.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/PreferenceLoader.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/RocketBootstrap.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/Satella.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/SettingsRevamp.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/SimPlus.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/SmartBattery.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/SnowBoardRespringExtensionSB.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/Snowboard.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/Speedy.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/SpeedyUninstall.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/TweakHub.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/XXCracker.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/XXTouchLiteLoader.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/Xinam1ne.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/afc2dService.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/iConnect.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/iDevices.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/iarrays_hack_.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/libFLEX.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/mediaserverdhooks.plist
+/var/jb/usr/lib/TweakInject/0nazuna.plist
+/var/jb/usr/lib/TweakInject/82Hack.plist
+/var/jb/usr/lib/TweakInject/AAASnowBoardStub.plist
+/var/jb/usr/lib/TweakInject/AppData.plist
+/var/jb/usr/lib/TweakInject/AppList.plist
+/var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.plist
+/var/jb/usr/lib/TweakInject/AppSyncUnified-installd.plist
+/var/jb/usr/lib/TweakInject/AutoRevenueCat.plist
+/var/jb/usr/lib/TweakInject/Battery.plist
+/var/jb/usr/lib/TweakInject/CCSupport.plist
+/var/jb/usr/lib/TweakInject/CepheiSpringBoard.plist
+/var/jb/usr/lib/TweakInject/FLEXList.plist
+/var/jb/usr/lib/TweakInject/FLEXing.plist
+/var/jb/usr/lib/TweakInject/FilzaCrack.plist
+/var/jb/usr/lib/TweakInject/FilzaEnhanced.plist
+/var/jb/usr/lib/TweakInject/FilzaThemeManager.plist
+/var/jb/usr/lib/TweakInject/Flex.plist
+/var/jb/usr/lib/TweakInject/Gif2Ani.plist
+/var/jb/usr/lib/TweakInject/Hades-iSecureOS.plist
+/var/jb/usr/lib/TweakInject/Hyperixa.plist
+/var/jb/usr/lib/TweakInject/HyperixaKit.plist
+/var/jb/usr/lib/TweakInject/LimneosCrack.plist
+/var/jb/usr/lib/TweakInject/Lynx.plist
+/var/jb/usr/lib/TweakInject/LynxCarPlay.plist
+/var/jb/usr/lib/TweakInject/Nazuna.plist
+/var/jb/usr/lib/TweakInject/No2Theft.plist
+/var/jb/usr/lib/TweakInject/OCD.plist
+/var/jb/usr/lib/TweakInject/PlampyUIPro.plist
+/var/jb/usr/lib/TweakInject/PreferenceLoader.plist
+/var/jb/usr/lib/TweakInject/RocketBootstrap.plist
+/var/jb/usr/lib/TweakInject/Satella.plist
+/var/jb/usr/lib/TweakInject/SettingsRevamp.plist
+/var/jb/usr/lib/TweakInject/SimPlus.plist
+/var/jb/usr/lib/TweakInject/SmartBattery.plist
+/var/jb/usr/lib/TweakInject/SnowBoardRespringExtensionSB.plist
+/var/jb/usr/lib/TweakInject/Snowboard.plist
+/var/jb/usr/lib/TweakInject/Speedy.plist
+/var/jb/usr/lib/TweakInject/SpeedyUninstall.plist
+/var/jb/usr/lib/TweakInject/TweakHub.plist
+/var/jb/usr/lib/TweakInject/XXCracker.plist
+/var/jb/usr/lib/TweakInject/XXTouchLiteLoader.plist
+/var/jb/usr/lib/TweakInject/Xinam1ne.plist
+/var/jb/usr/lib/TweakInject/afc2dService.plist
+/var/jb/usr/lib/TweakInject/iConnect.plist
+/var/jb/usr/lib/TweakInject/iDevices.plist
+/var/jb/usr/lib/TweakInject/iarrays_hack_.plist
+/var/jb/usr/lib/TweakInject/libFLEX.plist
+/var/jb/usr/lib/TweakInject/mediaserverdhooks.plist
+zebra_tweak_inventory_complete=true
 ssh_exit_code=0
