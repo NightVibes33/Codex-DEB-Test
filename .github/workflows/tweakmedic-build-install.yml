@@ -1,0 +1,183 @@
+name: Build Install TweakMedic
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [tweakmedic-v1]
+    paths:
+      - 'TweakMedic/**'
+      - '.github/workflows/tweakmedic-build-install.yml'
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: '100.116.117.65'
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: '18728387881'
+        run: |
+          set -euo pipefail
+          curl -fsS \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json, sys
+          target = int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments', []):
+              if int(env.get('id', -1)) == target:
+                  print('environment_name=' + env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  build-install:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: tweakmedic-v1
+
+      - name: Install Theos
+        env:
+          THEOS: /opt/theos
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends bash curl sudo build-essential fakeroot rsync perl git libxml2 dpkg-dev unzip xz-utils ca-certificates python3 file openssh-client sshpass
+          sudo rm -rf /opt/theos
+          sudo mkdir -p /opt
+          sudo chown "$USER:$USER" /opt
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          test -x /opt/theos/toolchain/linux/iphone/bin/clang
+
+      - name: Build rootless package
+        env:
+          THEOS: /opt/theos
+        run: |
+          set -euo pipefail
+          cd TweakMedic
+          make clean package FINALPACKAGE=1 2>&1 | tee ../tweakmedic-build.log
+          DEB="$(find packages -maxdepth 1 -type f -name '*.deb' | head -n1)"
+          test -n "$DEB"
+          cp "$DEB" ../TweakMedic-1.0.0-rootless.deb
+          cd ..
+          test "$(dpkg-deb --field TweakMedic-1.0.0-rootless.deb Package)" = 'com.nightvibes33.tweakmedic'
+          test "$(dpkg-deb --field TweakMedic-1.0.0-rootless.deb Version)" = '1.0.0'
+          rm -rf deb-root
+          dpkg-deb -x TweakMedic-1.0.0-rootless.deb deb-root
+          test -x deb-root/var/jb/Applications/TweakMedic.app/TweakMedic
+          test -f deb-root/var/jb/Applications/TweakMedic.app/Info.plist
+          test -x deb-root/var/jb/usr/libexec/tweakmedicd
+          test -x deb-root/var/jb/usr/bin/tweakmedicctl
+          test -f deb-root/var/jb/Library/LaunchDaemons/com.nightvibes33.tweakmedicd.plist
+          test -f deb-root/var/jb/Library/PreferenceBundles/TweakMedicPrefs.bundle/TweakMedicPrefs
+          test -f deb-root/var/jb/Library/PreferenceBundles/TweakMedicPrefs.bundle/Root.plist
+          test -f deb-root/var/jb/Library/PreferenceLoader/Preferences/TweakMedicPrefs.plist
+          grep -a -F -q 'single_tweak_confirmed' deb-root/var/jb/usr/libexec/tweakmedicd
+          grep -a -F -q 'culprit-disabled' deb-root/var/jb/usr/libexec/tweakmedicd
+          grep -a -F -q 'TweakMedic' deb-root/var/jb/Applications/TweakMedic.app/TweakMedic
+          sha256sum TweakMedic-1.0.0-rootless.deb | tee tweakmedic-deb-sha256.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TweakMedic-1.0.0-rootless
+          path: |
+            TweakMedic-1.0.0-rootless.deb
+            tweakmedic-build.log
+            tweakmedic-deb-sha256.txt
+          if-no-files-found: error
+
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Install and prove on iPad
+        id: device
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 30); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 3
+          done
+          test "$connected" -eq 1
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null TweakMedic-1.0.0-rootless.deb mobile@"$IPAD_HOST":/var/mobile/Media/TweakMedic-1.0.0-rootless.deb
+          cat > /tmp/install-tweakmedic.sh <<'SH'
+          #!/bin/sh
+          set -eu
+          export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
+          dpkg -i /var/mobile/Media/TweakMedic-1.0.0-rootless.deb
+          test "$(dpkg-query -W -f='${Version}' com.nightvibes33.tweakmedic)" = '1.0.0'
+          test -x /var/jb/Applications/TweakMedic.app/TweakMedic
+          test -x /var/jb/usr/libexec/tweakmedicd
+          test -x /var/jb/usr/bin/tweakmedicctl
+          test -f /var/jb/Library/PreferenceBundles/TweakMedicPrefs.bundle/Root.plist
+          test -f /var/jb/Library/PreferenceLoader/Preferences/TweakMedicPrefs.plist
+          test -f /var/jb/Library/LaunchDaemons/com.nightvibes33.tweakmedicd.plist
+          launchctl kickstart -k system/com.nightvibes33.tweakmedicd 2>/dev/null || true
+          sleep 2
+          test -S /var/run/tweakmedicd.sock
+          /var/jb/usr/bin/tweakmedicctl ping
+          /var/jb/usr/bin/tweakmedicctl restore
+          /var/jb/usr/bin/tweakmedicctl snapshot > /var/mobile/Media/tweakmedic-snapshot.json
+          grep -F -q '"ok" : true' /var/mobile/Media/tweakmedic-snapshot.json
+          /var/jb/usr/bin/uicache -p /var/jb/Applications/TweakMedic.app 2>/dev/null || /var/jb/usr/bin/uicache -a
+          killall -9 Preferences 2>/dev/null || true
+          sudo -u mobile uiopen 'tweakmedic://' >/dev/null 2>&1 || true
+          sleep 5
+          ps ax | grep '[T]weakMedic.app/TweakMedic' >/dev/null
+          echo 'installed_version=1.0.0'
+          echo 'daemon_socket=pass'
+          echo 'daemon_ping=pass'
+          echo 'snapshot=pass'
+          echo 'settings_bundle=pass'
+          echo 'homescreen_launch=pass'
+          echo 'device_proof=success'
+          SH
+          chmod +x /tmp/install-tweakmedic.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null /tmp/install-tweakmedic.sh mobile@"$IPAD_HOST":/var/mobile/Media/install-tweakmedic.sh
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=60 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/install-tweakmedic.sh' 2>&1 | tee tweakmedic-device-proof.txt
+
+      - name: Publish device status
+        if: always()
+        env:
+          DEVICE_OUTCOME: ${{ steps.device.outcome }}
+        run: |
+          set -euo pipefail
+          {
+            echo '# TweakMedic Device Status'
+            echo
+            echo "- Run: ${GITHUB_RUN_ID}"
+            echo "- Commit: ${GITHUB_SHA}"
+            echo "- Device step: ${DEVICE_OUTCOME}"
+            echo
+            echo '```text'
+            cat tweakmedic-device-proof.txt 2>/dev/null || true
+            echo '```'
+          } > TweakMedic/DEVICE_STATUS.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add TweakMedic/DEVICE_STATUS.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record TweakMedic iPad device proof [skip ci]'
+            git push origin HEAD:tweakmedic-v1
+          fi

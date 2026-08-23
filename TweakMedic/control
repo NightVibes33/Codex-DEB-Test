@@ -1,0 +1,9 @@
+Package: com.nightvibes33.tweakmedic
+Name: TweakMedic
+Version: 1.0.0
+Architecture: iphoneos-arm64
+Description: Automated tweak crash isolation, binary-search diagnostics, recovery, and remediation for rootless jailbreaks.
+Maintainer: NightVibes33
+Author: NightVibes33
+Section: Utilities
+Depends: firmware (>= 15.0), preferenceloader

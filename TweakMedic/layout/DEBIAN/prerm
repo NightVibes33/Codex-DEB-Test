@@ -1,0 +1,6 @@
+#!/bin/sh
+set +e
+launchctl bootout system/com.nightvibes33.tweakmedicd 2>/dev/null || true
+launchctl bootout system /var/jb/Library/LaunchDaemons/com.nightvibes33.tweakmedicd.plist 2>/dev/null || true
+rm -f /var/run/tweakmedicd.sock 2>/dev/null || true
+exit 0
