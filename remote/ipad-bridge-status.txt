@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=30212336840
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/30212336840
-commit=4c7d4ea4217eb1dd62e77bf808d6beb9eca36f5d
+run_id=32667173344
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/32667173344
+commit=103967abef78dea0cd947fccb35d5be2eb1b9b86
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -19,30 +19,20 @@ SSH port attempt 1/18
 ipad_ssh_port_ready=success
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
 === Install Gif2Ani 3.5.7 and verify shared Springy/SnowBoard package-ID fix ===
-started_at_utc=2026-07-26T17:20:19Z
+started_at_utc=2026-08-23T21:20:31Z
 identity=uid=0(root) gid=0(wheel) groups=0(wheel)
 model=J71tAP
-version_before=3.5.6
+version_before=absent
 release_effective_url=https://raw.githubusercontent.com/NightVibes33/Dark-Boot/267cb8e16d9c2bb30968e889a94e6bfc921e76f9/release-packages/Gif2Ani-3.5.7-shared-verifier-fix.deb
 release_sha256=7b02279eb5a6146cd5a3835b723cf6bb2d4434b5327f4bb51af17cf46fd4b04f
 release_package_metadata=passed
-dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
- missing 'Maintainer' field
-(Reading database ... 19751 files and directories currently installed.)
+Selecting previously unselected package com.nightvibes33.gif2ani.
+(Reading database ... 25859 files and directories currently installed.)
 Preparing to unpack .../Gif2Ani-3.5.7-shared-verifier-fix.deb ...
-Unpacking com.nightvibes33.gif2ani (3.5.7) over (3.5.6) ...
+Unpacking com.nightvibes33.gif2ani (3.5.7) ...
 Setting up com.nightvibes33.gif2ani (3.5.7) ...
 Processing triggers for org.coolstar.sileo (2.5.1) ...
-dpkg-query: warning: parsing file '/var/jb/Library/dpkg/status' near line 161 package 'com.ivintagelover.solidglassrl':
- missing 'Maintainer' field
 version_immediate=3.5.7
 installed_357_binary_and_ui=passed
-installed_springy_themes=48
-installed_snowboard_themes=160
-installed_gallery_total=274
-springy_effective_url=https://raw.githubusercontent.com/VirenMohindra/CydiaRepo/c507a391f193c2bb362ff77fc1c1673c0da2dcae/debs/io.github.virenmohindra.gameboy-advance_2.0_iphoneos-arm.deb
-springy_expected_package=io.github.virenmohindra.gameboy-advance
-springy_clean_stdout_package=io.github.virenmohindra.gameboy-advance
-springy_stderr_bytes=0
-springy_old_merged_capture_would_fail=false
-ssh_exit_code=1
+/var/jb/usr/bin/sh: 56: python3: not found
+ssh_exit_code=127
