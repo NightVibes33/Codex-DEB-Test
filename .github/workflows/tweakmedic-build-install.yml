@@ -69,9 +69,16 @@ jobs:
         env:
           THEOS: /opt/theos
         run: |
-          set -euo pipefail
+          set -uo pipefail
           cd TweakMedic
+          set +e
           make clean package FINALPACKAGE=1 2>&1 | tee ../tweakmedic-build.log
+          BUILD_RC=${PIPESTATUS[0]}
+          set -e
+          if [ "$BUILD_RC" -ne 0 ]; then
+            echo "build_rc=$BUILD_RC" | tee -a ../tweakmedic-build.log
+            exit "$BUILD_RC"
+          fi
           DEB="$(find packages -maxdepth 1 -type f -name '*.deb' | head -n1)"
           test -n "$DEB"
           cp "$DEB" ../TweakMedic-1.0.0-rootless.deb
@@ -170,8 +177,14 @@ jobs:
             echo "- Commit: ${GITHUB_SHA}"
             echo "- Device step: ${DEVICE_OUTCOME}"
             echo
+            echo '## Device proof'
             echo '```text'
             cat tweakmedic-device-proof.txt 2>/dev/null || true
+            echo '```'
+            echo
+            echo '## Build log tail'
+            echo '```text'
+            tail -n 240 tweakmedic-build.log 2>/dev/null || echo 'No build log was produced.'
             echo '```'
           } > TweakMedic/DEVICE_STATUS.md
           git config user.name 'github-actions[bot]'
