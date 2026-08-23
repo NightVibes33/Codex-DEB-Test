@@ -1,64 +1,40 @@
 #!/bin/sh
 set +e
 export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
-export HOME=/var/mobile
 
-zpid() { ps ax 2>/dev/null | awk '/[Z]ebra.app\/Zebra/{print $1; exit}'; }
-probe() {
-  label="$1"
-  pid="$(zpid)"
-  echo "${label}_pid=${pid:-absent}"
-  if [ -n "$pid" ]; then
-    ps -p "$pid" -o pid,ppid,state,%cpu,%mem,time,command 2>/dev/null || true
-    if command -v top >/dev/null 2>&1; then top -l 1 -pid "$pid" 2>/dev/null | grep -E 'Zebra|CPU usage|Load Avg' | head -n 8 || true; fi
-  fi
-}
-watch_launch() {
-  prefix="$1"
-  sleep 5; probe "${prefix}_t5"
-  sleep 15; probe "${prefix}_t20"
-  sleep 15; probe "${prefix}_t35"
-  sleep 15; probe "${prefix}_t50"
-  sleep 20; probe "${prefix}_t70"
-}
-
-echo '=== Zebra 70-second A/B launch test ==='
+echo '=== Zebra tweak injection inventory ==='
 printf 'started='; date '+%Y-%m-%d %H:%M:%S %z'
-dpkg-query -W -f='version=${Version} arch=${Architecture}\n' xyz.willy.zebra 2>/dev/null || true
 
-# Clear leftovers first.
-killall -9 Zebra 2>/dev/null || true
-launchctl unsetenv DISABLE_TWEAKS 2>/dev/null || true
-launchctl unsetenv _MSSafeMode 2>/dev/null || true
-sudo -u mobile launchctl unsetenv DISABLE_TWEAKS 2>/dev/null || true
-sudo -u mobile launchctl unsetenv _MSSafeMode 2>/dev/null || true
-sleep 1
+echo '--- injector packages ---'
+dpkg-query -W -f='${Package} ${Version}\n' 2>/dev/null | grep -Ei 'ellekit|choicy|substrate|substitute|libhooker' || true
 
-echo '--- A: launch with safe-mode environment requested ---'
-launchctl setenv DISABLE_TWEAKS 1 2>/dev/null || true
-launchctl setenv _MSSafeMode 1 2>/dev/null || true
-sudo -u mobile launchctl setenv DISABLE_TWEAKS 1 2>/dev/null || true
-sudo -u mobile launchctl setenv _MSSafeMode 1 2>/dev/null || true
-sudo -u mobile uiopen 'zbra://' >/tmp/zebra-ab-a.txt 2>&1 || true
-cat /tmp/zebra-ab-a.txt 2>/dev/null || true
-watch_launch safe
+for D in /var/jb/Library/MobileSubstrate/DynamicLibraries /var/jb/usr/lib/TweakInject; do
+  echo "--- directory: $D ---"
+  [ -d "$D" ] || { echo missing; continue; }
+  find "$D" -maxdepth 1 -type f \( -name '*.plist' -o -name '*.dylib' \) -print 2>/dev/null | sort
+  echo "--- plist filters in $D ---"
+  for p in "$D"/*.plist; do
+    [ -f "$p" ] || continue
+    echo "### $p"
+    if command -v plutil >/dev/null 2>&1; then
+      plutil -p "$p" 2>/dev/null || cat "$p" 2>/dev/null || true
+    else
+      cat "$p" 2>/dev/null || true
+    fi
+    base="${p%.plist}"
+    if [ -f "$base.dylib" ]; then
+      owner="$(dpkg -S "$base.dylib" 2>/dev/null | head -n1)"
+      echo "owner=${owner:-unknown}"
+      ls -lh "$base.dylib" 2>/dev/null || true
+    fi
+  done
+ done
 
-killall -9 Zebra 2>/dev/null || true
-launchctl unsetenv DISABLE_TWEAKS 2>/dev/null || true
-launchctl unsetenv _MSSafeMode 2>/dev/null || true
-sudo -u mobile launchctl unsetenv DISABLE_TWEAKS 2>/dev/null || true
-sudo -u mobile launchctl unsetenv _MSSafeMode 2>/dev/null || true
-sleep 3
+echo '--- filters mentioning Zebra or UIKit ---'
+for D in /var/jb/Library/MobileSubstrate/DynamicLibraries /var/jb/usr/lib/TweakInject; do
+  [ -d "$D" ] || continue
+  grep -ilE 'xyz\.willy\.Zebra|com\.apple\.UIKit|UIKit|Bundles|Executables|Classes' "$D"/*.plist 2>/dev/null | sort -u || true
+done
 
-echo '--- B: normal launch ---'
-sudo -u mobile uiopen 'zbra://' >/tmp/zebra-ab-b.txt 2>&1 || true
-cat /tmp/zebra-ab-b.txt 2>/dev/null || true
-watch_launch normal
-
-killall -9 Zebra 2>/dev/null || true
-
-echo '--- newest Zebra reports (names only) ---'
-find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f -iname 'Zebra-*.ips' -print 2>/dev/null | tail -n 8 || true
-
-echo 'zebra_ab_test_complete=true'
+echo 'zebra_tweak_inventory_complete=true'
 exit 0
