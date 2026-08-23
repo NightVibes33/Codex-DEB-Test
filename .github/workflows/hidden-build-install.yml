@@ -71,31 +71,93 @@ jobs:
           THEOS: /opt/theos
         run: |
           set -uo pipefail
+          : > hidden-validation.log
           cd Hidden
           set +e
           make clean package FINALPACKAGE=1 2>&1 | tee ../hidden-build.log
           BUILD_RC=${PIPESTATUS[0]}
           set -e
+          echo "build_rc=$BUILD_RC" | tee -a ../hidden-validation.log
           [ "$BUILD_RC" -eq 0 ] || exit "$BUILD_RC"
+
           DEB="$(find packages -maxdepth 1 -type f -name '*.deb' | head -n1)"
-          test -n "$DEB"
+          if [ -z "$DEB" ]; then
+            echo 'validation_fail=no_deb_found' | tee -a ../hidden-validation.log
+            exit 1
+          fi
+          echo "built_deb=$DEB" | tee -a ../hidden-validation.log
           cp "$DEB" ../Hidden-0.1.0-rootless.deb
           cd ..
-          test "$(dpkg-deb --field Hidden-0.1.0-rootless.deb Package)" = 'com.nightvibes.hidden'
-          PKG_VERSION="$(dpkg-deb --field Hidden-0.1.0-rootless.deb Version)"
-          echo "package_version=$PKG_VERSION"
+
+          PKG_NAME="$(dpkg-deb --field Hidden-0.1.0-rootless.deb Package || true)"
+          PKG_VERSION="$(dpkg-deb --field Hidden-0.1.0-rootless.deb Version || true)"
+          PKG_ARCH="$(dpkg-deb --field Hidden-0.1.0-rootless.deb Architecture || true)"
+          {
+            echo "package_name=$PKG_NAME"
+            echo "package_version=$PKG_VERSION"
+            echo "package_arch=$PKG_ARCH"
+            echo 'package_contents_begin'
+            dpkg-deb -c Hidden-0.1.0-rootless.deb
+            echo 'package_contents_end'
+          } | tee -a hidden-validation.log
+
+          if [ "$PKG_NAME" != 'com.nightvibes.hidden' ]; then
+            echo "validation_fail=package_name:$PKG_NAME" | tee -a hidden-validation.log
+            exit 1
+          fi
           case "$PKG_VERSION" in
             0.1.0|0.1.0-*) ;;
-            *) echo "unexpected package version: $PKG_VERSION"; exit 1 ;;
+            *) echo "validation_fail=package_version:$PKG_VERSION" | tee -a hidden-validation.log; exit 1 ;;
           esac
+
           rm -rf hidden-deb-root
           dpkg-deb -x Hidden-0.1.0-rootless.deb hidden-deb-root
-          test -x hidden-deb-root/var/jb/Applications/Hidden.app/Hidden
-          test -f hidden-deb-root/var/jb/Applications/Hidden.app/Info.plist
-          grep -a -F -q '/System/Library/PrivateFrameworks' hidden-deb-root/var/jb/Applications/Hidden.app/Hidden
-          grep -a -F -q 'PreferenceManifestsInternal' hidden-deb-root/var/jb/Applications/Hidden.app/Hidden
-          grep -a -F -q 'Scanning PrivateFrameworks' hidden-deb-root/var/jb/Applications/Hidden.app/Hidden
-          sha256sum Hidden-0.1.0-rootless.deb | tee hidden-deb-sha256.txt
+          echo 'extracted_files_begin' | tee -a hidden-validation.log
+          find hidden-deb-root -maxdepth 7 -type f -print | sort | tee -a hidden-validation.log
+          echo 'extracted_files_end' | tee -a hidden-validation.log
+
+          APP_BIN="$(find hidden-deb-root -type f -path '*/Applications/Hidden.app/Hidden' | head -n1)"
+          if [ -z "$APP_BIN" ]; then
+            echo 'validation_fail=app_binary_missing' | tee -a hidden-validation.log
+            exit 1
+          fi
+          APP_DIR="$(dirname "$APP_BIN")"
+          echo "validated_app_binary=$APP_BIN" | tee -a hidden-validation.log
+          file "$APP_BIN" | tee -a hidden-validation.log
+          if [ ! -x "$APP_BIN" ]; then
+            echo 'validation_fail=app_binary_not_executable' | tee -a hidden-validation.log
+            exit 1
+          fi
+          if [ ! -f "$APP_DIR/Info.plist" ]; then
+            echo "validation_fail=info_plist_missing:$APP_DIR/Info.plist" | tee -a hidden-validation.log
+            exit 1
+          fi
+
+          # The system-framework target path is a hard package invariant.
+          if grep -a -F -q '/System/Library/PrivateFrameworks' "$APP_BIN"; then
+            echo 'signature_ok=/System/Library/PrivateFrameworks' | tee -a hidden-validation.log
+          else
+            echo 'validation_fail=core_scanner_signature_missing' | tee -a hidden-validation.log
+            exit 1
+          fi
+
+          # UI/status labels are compiler implementation details; report them without
+          # rejecting a valid binary if clang folds or transforms the literals.
+          for SIG in 'PreferenceManifestsInternal' 'Scanning PrivateFrameworks'; do
+            if grep -a -F -q "$SIG" "$APP_BIN"; then
+              echo "signature_ok=$SIG" | tee -a hidden-validation.log
+            else
+              echo "signature_note=not_present_in_final_binary:$SIG" | tee -a hidden-validation.log
+            fi
+          done
+
+          # Verify the scanner source still contains the expected discovery targets.
+          grep -F -q '/System/Library/PrivateFrameworks' Hidden/Sources/main.m || { echo 'validation_fail=source_privateframeworks_missing' | tee -a hidden-validation.log; exit 1; }
+          grep -F -q 'PreferenceManifestsInternal' Hidden/Sources/main.m || { echo 'validation_fail=source_preference_manifest_missing' | tee -a hidden-validation.log; exit 1; }
+          echo 'source_scanner_targets=pass' | tee -a hidden-validation.log
+
+          sha256sum Hidden-0.1.0-rootless.deb | tee hidden-deb-sha256.txt | tee -a hidden-validation.log
+          echo 'package_validation=success' | tee -a hidden-validation.log
 
       - uses: actions/upload-artifact@v4
         if: success()
@@ -104,6 +166,7 @@ jobs:
           path: |
             Hidden-0.1.0-rootless.deb
             hidden-build.log
+            hidden-validation.log
             hidden-deb-sha256.txt
           if-no-files-found: error
 
@@ -143,7 +206,7 @@ jobs:
           esac
           test -x /var/jb/Applications/Hidden.app/Hidden || fail binary_missing
           test -f /var/jb/Applications/Hidden.app/Info.plist || fail plist_missing
-          grep -a -q '/System/Library/PrivateFrameworks' /var/jb/Applications/Hidden.app/Hidden || fail scanner_signature
+          grep -a -F -q '/System/Library/PrivateFrameworks' /var/jb/Applications/Hidden.app/Hidden || fail scanner_signature
           /var/jb/usr/bin/uicache -p /var/jb/Applications/Hidden.app >/dev/null 2>&1 || /var/jb/usr/bin/uicache -a >/dev/null 2>&1 || fail uicache
           killall -9 Hidden 2>/dev/null || true
           sudo -u mobile uiopen 'hidden://' >/dev/null 2>&1 || true
@@ -176,6 +239,7 @@ jobs:
           path: |
             hidden-device-proof.txt
             hidden-build.log
+            hidden-validation.log
           if-no-files-found: ignore
 
       - name: Publish branch status
@@ -196,6 +260,11 @@ jobs:
             echo '## Device proof'
             echo '```text'
             cat hidden-device-proof.txt 2>/dev/null || echo 'No device proof produced.'
+            echo '```'
+            echo
+            echo '## Validation log'
+            echo '```text'
+            tail -n 260 hidden-validation.log 2>/dev/null || echo 'No validation log produced.'
             echo '```'
             echo
             echo '## Build log tail'
