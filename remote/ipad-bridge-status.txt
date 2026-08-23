@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=32668969190
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/32668969190
-commit=708a4c9a4279eff5010dcc13ef0f152ae18c4b10
+run_id=32669127608
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/32669127608
+commit=cb5cd32cc99c91262910251f8f5f0b564fa08022
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -18,26 +18,52 @@ SSH port attempt 1/18
 # 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
 ipad_ssh_port_ready=success
 Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
-=== Zebra per-tweak isolation ===
-started=2026-08-23 16:55:36 -0500
-candidates=82Hack AutoRevenueCat FLEXList FLEXing Flex LimneosCrack Lynx Snowboard Speedy iarrays_hack_
-staged=82Hack
-staged=AutoRevenueCat
-staged=FLEXList
-staged=FLEXing
-staged=Flex
-staged=LimneosCrack
-staged=Lynx
-staged=Snowboard
-staged=Speedy
-staged=iarrays_hack_
-RESULT|ALL_10_DISABLED|SURVIVED|pid=3664
-testing_only=82Hack
-RESULT|82Hack|SURVIVED|pid=3681
-testing_only=AutoRevenueCat
-RESULT|AutoRevenueCat|SURVIVED|pid=3699
-testing_only=FLEXList
-RESULT|FLEXList|SURVIVED|pid=3717
-testing_only=FLEXing
-RESULT|FLEXing|SURVIVED|pid=3735
-testing_only=Flex
+=== RESTORE ZEBRA TWEAKS + SOURCES FIRST ===
+started=2026-08-23 16:59:00 -0500
+tweak_filter_restored=82Hack
+tweak_filter_restored=AutoRevenueCat
+tweak_filter_restored=FLEXList
+tweak_filter_restored=FLEXing
+tweak_filter_restored=Flex
+tweak_filter_restored=LimneosCrack
+tweak_filter_restored=Lynx
+tweak_filter_restored=Snowboard
+tweak_filter_restored=Speedy
+tweak_filter_restored=iarrays_hack_
+latest_zebra_backup=/var/mobile/ZebraRepairBackup-20260823T212823Z
+restored_state=xyz.willy.Zebra
+--- source/state verification ---
+STATE=/var/mobile/Library/Application Support/xyz.willy.Zebra
+/var/mobile/Library/Application Support/xyz.willy.Zebra/sources.list
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/creaturecoding.com_repo_Release
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/www.postbox.news_Packages
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/www.postbox.news_Release
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/repo.iphonews.ro_Packages
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/apt.mootjeuh.com_Release
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/tigisoftware.com_cydia_Packages
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/s0mecoder.github.io_repo_Packages
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/junesiphone.com_supersecret_Packages
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/reddestdream.github.io_Packages
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/repo.twickd.com_Packages
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/opa334.github.io_Release
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/getzbra.com_repo_Packages
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/apt.mootjeuh.com_Packages
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/cydia.hiraku.tw_Release
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/apptapp.me_repo_Packages
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/repo.packix.com_Release
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/skylerk99.github.io_Release
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/tateu.net_repo_Release
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/skylerk99.github.io_Packages
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/halo-michael.github.io_repo_Release
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/cydia.dtathemes.com_repo_Release
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/hacx.org_repo_Packages
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/ryannair05.github.io_repo_Packages
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/apt.iarrays.com_Release
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/cokepokes.github.io_Packages
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/limneos.net_repo_Packages
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/exile90software.com_cydia_beta_Release
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/paisseon.github.io_Packages
+/var/mobile/Library/Application Support/xyz.willy.Zebra/lists/cydia.ichitaso.com_Release
+30M	/var/mobile/Library/Application Support/xyz.willy.Zebra
+restore_complete=true
+TEST|all10_disabled|SURVIVED
