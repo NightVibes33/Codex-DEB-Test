@@ -1,0 +1,169 @@
+name: Build Install Hidden
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [hidden-system-v1]
+    paths:
+      - 'Hidden/**'
+      - '.github/workflows/hidden-build-install.yml'
+
+permissions:
+  contents: read
+
+env:
+  IPAD_HOST: '100.116.117.65'
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: '18728387881'
+        run: |
+          set -euo pipefail
+          curl -fsS \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json, sys
+          target = int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments', []):
+              if int(env.get('id', -1)) == target:
+                  print('environment_name=' + env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  build-install:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hidden-system-v1
+
+      - name: Install Theos
+        env:
+          THEOS: /opt/theos
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends bash curl sudo build-essential fakeroot rsync perl git libxml2 dpkg-dev unzip xz-utils ca-certificates python3 file openssh-client sshpass
+          sudo rm -rf /opt/theos
+          sudo mkdir -p /opt
+          sudo chown "$USER:$USER" /opt
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          test -x /opt/theos/toolchain/linux/iphone/bin/clang
+
+      - name: Build rootless package
+        env:
+          THEOS: /opt/theos
+        run: |
+          set -uo pipefail
+          cd Hidden
+          set +e
+          make clean package FINALPACKAGE=1 2>&1 | tee ../hidden-build.log
+          BUILD_RC=${PIPESTATUS[0]}
+          set -e
+          if [ "$BUILD_RC" -ne 0 ]; then
+            echo "build_rc=$BUILD_RC" | tee -a ../hidden-build.log
+            exit "$BUILD_RC"
+          fi
+          DEB="$(find packages -maxdepth 1 -type f -name '*.deb' | head -n1)"
+          test -n "$DEB"
+          cp "$DEB" ../Hidden-0.1.0-rootless.deb
+          cd ..
+          test "$(dpkg-deb --field Hidden-0.1.0-rootless.deb Package)" = 'com.nightvibes.hidden'
+          test "$(dpkg-deb --field Hidden-0.1.0-rootless.deb Version)" = '0.1.0'
+          rm -rf hidden-deb-root
+          dpkg-deb -x Hidden-0.1.0-rootless.deb hidden-deb-root
+          test -x hidden-deb-root/var/jb/Applications/Hidden.app/Hidden
+          test -f hidden-deb-root/var/jb/Applications/Hidden.app/Info.plist
+          grep -a -F -q '/System/Library/PrivateFrameworks' hidden-deb-root/var/jb/Applications/Hidden.app/Hidden
+          grep -a -F -q 'PreferenceManifestsInternal' hidden-deb-root/var/jb/Applications/Hidden.app/Hidden
+          grep -a -F -q 'Scanning PrivateFrameworks' hidden-deb-root/var/jb/Applications/Hidden.app/Hidden
+          sha256sum Hidden-0.1.0-rootless.deb | tee hidden-deb-sha256.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Hidden-0.1.0-rootless
+          path: |
+            Hidden-0.1.0-rootless.deb
+            hidden-build.log
+            hidden-deb-sha256.txt
+          if-no-files-found: error
+
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Install and prove on iPad
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          connected=0
+          for attempt in $(seq 1 30); do
+            if sshpass -e ssh -p 22 -o ConnectTimeout=8 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" true >/dev/null 2>&1; then connected=1; break; fi
+            sleep 3
+          done
+          test "$connected" -eq 1
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null Hidden-0.1.0-rootless.deb mobile@"$IPAD_HOST":/var/mobile/Media/Hidden-0.1.0-rootless.deb
+          cat > /tmp/install-hidden.sh <<'SH'
+          #!/bin/sh
+          set -u
+          export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
+          fail() { echo "HIDDEN_DEVICE_FAIL=$1"; exit 1; }
+          echo 'checkpoint=dpkg_install'
+          dpkg -i /var/mobile/Media/Hidden-0.1.0-rootless.deb || fail dpkg_install
+          VERSION="$(dpkg-query -W -f='${Version}' com.nightvibes.hidden 2>/dev/null)"
+          echo "installed_version=$VERSION"
+          [ "$VERSION" = '0.1.0' ] || fail version
+          test -x /var/jb/Applications/Hidden.app/Hidden || fail binary_missing
+          test -f /var/jb/Applications/Hidden.app/Info.plist || fail plist_missing
+          grep -a -q '/System/Library/PrivateFrameworks' /var/jb/Applications/Hidden.app/Hidden || fail scanner_signature
+          /var/jb/usr/bin/uicache -p /var/jb/Applications/Hidden.app >/dev/null 2>&1 || /var/jb/usr/bin/uicache -a >/dev/null 2>&1 || fail uicache
+          killall -9 Hidden 2>/dev/null || true
+          sudo -u mobile uiopen 'hidden://' >/dev/null 2>&1 || true
+          app_ready=0
+          i=0
+          while [ "$i" -lt 15 ]; do
+            if ps ax 2>/dev/null | grep '[H]idden.app/Hidden' >/dev/null; then app_ready=1; break; fi
+            i=$((i + 1)); sleep 1
+          done
+          [ "$app_ready" -eq 1 ] || fail launch
+          PID="$(ps ax 2>/dev/null | awk '/[H]idden.app\/Hidden/{print $1; exit}')"
+          echo "hidden_pid=$PID"
+          echo 'package_payload=pass'
+          echo 'uicache=pass'
+          echo 'homescreen_launch=pass'
+          echo 'device_proof=success'
+          SH
+          chmod +x /tmp/install-hidden.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null /tmp/install-hidden.sh mobile@"$IPAD_HOST":/var/mobile/Media/install-hidden.sh
+          set +e
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=60 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/install-hidden.sh' 2>&1 | tee hidden-device-proof.txt
+          DEVICE_RC=${PIPESTATUS[1]}
+          set -e
+          exit "$DEVICE_RC"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Hidden-device-proof
+          path: |
+            hidden-device-proof.txt
+            hidden-build.log
+          if-no-files-found: ignore
