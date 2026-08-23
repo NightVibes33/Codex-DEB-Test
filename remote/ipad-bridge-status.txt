@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=32667346166
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/32667346166
-commit=8fb38561be022d06c688111a6f478baef88d99f9
+run_id=32667579428
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/32667579428
+commit=3ce1d41573411d1ec5e9799fea2f9f85e8814cf5
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -9,183 +9,76 @@ install_ssh=success
 ssh=success
 
 --- sanitized SSH output ---
- gsc.hearingaid-low-energy-audio virtual GraphicsServices dependency
- gsc.hide-non-default-apps virtual GraphicsServices dependency
- gsc.hidpi            virtual GraphicsServices dependency
- gsc.highest-supported-video-mode virtual GraphicsServices dependency
- gsc.homescreen-wallpaper virtual GraphicsServices dependency
- gsc.hw-encode-snapshots virtual GraphicsServices dependency
- gsc.i-a-p2-capability virtual GraphicsServices dependency
- gsc.i-d-a-m-capability virtual GraphicsServices dependency
- gsc.image4-supported virtual GraphicsServices dependency
- gsc.international-settings virtual GraphicsServices dependency
- gsc.io-surface-backed-images virtual GraphicsServices dependency
- gsc.ipad             this device has a very large screen
- gsc.is-u-i-build     virtual GraphicsServices dependency
- gsc.launch-time-limit-scale-supported virtual GraphicsServices dependency
- gsc.load-thumbnails-while-scrolling virtual GraphicsServices dependency
- gsc.location-services virtual GraphicsServices dependency
- gsc.magnetometer     virtual GraphicsServices dependency
- gsc.main-screen-class virtual GraphicsServices dependency
- gsc.main-screen-height virtual GraphicsServices dependency
- gsc.main-screen-pitch virtual GraphicsServices dependency
- gsc.main-screen-scale virtual GraphicsServices dependency
- gsc.main-screen-width virtual GraphicsServices dependency
- gsc.max-h264-playback-level virtual GraphicsServices dependency
- gsc.maximum-screen-scale virtual GraphicsServices dependency
- gsc.medusa-overlay-app-capability virtual GraphicsServices dependency
- gsc.medusa-p-i-p-capability virtual GraphicsServices dependency
- gsc.medusa-pinned-app-capability virtual GraphicsServices dependency
- gsc.metal            virtual GraphicsServices dependency
- gsc.microphone       virtual GraphicsServices dependency
- gsc.microphone-count virtual GraphicsServices dependency
- gsc.mix-and-match-prevention virtual GraphicsServices dependency
- gsc.mobile-device-minimum-version virtual GraphicsServices dependency
- gsc.multitasking     virtual GraphicsServices dependency
- gsc.multitasking-gestures virtual GraphicsServices dependency
- gsc.music-store      virtual GraphicsServices dependency
- gsc.navajo-fusing-state virtual GraphicsServices dependency
- gsc.not-green-tea    virtual GraphicsServices dependency
- gsc.offline-dictation-capability virtual GraphicsServices dependency
- gsc.open-g-l-e-s-version virtual GraphicsServices dependency
- gsc.opengles-1       virtual GraphicsServices dependency
- gsc.opengles-2       virtual GraphicsServices dependency
- gsc.opengles-3       virtual GraphicsServices dependency
- gsc.ota-activation   virtual GraphicsServices dependency
- gsc.panorama-camera-capability virtual GraphicsServices dependency
- gsc.peek-u-i-capability virtual GraphicsServices dependency
- gsc.peer-peer        virtual GraphicsServices dependency
- gsc.phosphorus-capability virtual GraphicsServices dependency
- gsc.photo-adjustments virtual GraphicsServices dependency
- gsc.photo-capability virtual GraphicsServices dependency
- gsc.photo-sharing-capability virtual GraphicsServices dependency
- gsc.photo-stream     virtual GraphicsServices dependency
- gsc.photos-post-effects-capability virtual GraphicsServices dependency
- gsc.pipelined-still-image-processing-capability virtual GraphicsServices depen
- gsc.ptp-large-files  virtual GraphicsServices dependency
- gsc.r-f-exposure-separation-distance virtual GraphicsServices dependency
- gsc.rear-camera-capability virtual GraphicsServices dependency
- gsc.rear-facing-camera virtual GraphicsServices dependency
- gsc.rear-facing-camera-burst-capability virtual GraphicsServices dependency
- gsc.rear-facing-camera-h-d-r-capability virtual GraphicsServices dependency
- gsc.rear-facing-camera-h-d-r-on-capability virtual GraphicsServices dependency
- gsc.rear-facing-camera-h-f-r-capability virtual GraphicsServices dependency
- gsc.rear-facing-camera-h-f-r-video-capture720p-max-f-p-s virtual GraphicsServi
- gsc.rear-facing-camera-max-video-zoom-factor virtual GraphicsServices dependen
- gsc.rear-facing-camera-still-duration-for-burst virtual GraphicsServices depen
- gsc.rear-facing-camera-video-capture1080p-max-f-p-s virtual GraphicsServices d
- gsc.rear-facing-camera-video-capture720p-max-f-p-s virtual GraphicsServices de
- gsc.regional-behavior-n-t-s-c virtual GraphicsServices dependency
- gsc.regional-behavior-valid virtual GraphicsServices dependency
- gsc.render-wide-gamut-images-at-display-time virtual GraphicsServices dependen
- gsc.screen-recorder-capability virtual GraphicsServices dependency
- gsc.secure-element   virtual GraphicsServices dependency
- gsc.signing-fuse     virtual GraphicsServices dependency
- gsc.siri-offline-capability virtual GraphicsServices dependency
- gsc.stand-alone-contacts virtual GraphicsServices dependency
- gsc.still-camera     virtual GraphicsServices dependency
- gsc.supports-e-d-u-m-u virtual GraphicsServices dependency
- gsc.supports-iris-capture virtual GraphicsServices dependency
- gsc.supports-low-power-mode virtual GraphicsServices dependency
- gsc.touch-id         virtual GraphicsServices dependency
- gsc.tv-out-crossfade virtual GraphicsServices dependency
- gsc.u-i-background-quality virtual GraphicsServices dependency
- gsc.u-i-parallax-capability virtual GraphicsServices dependency
- gsc.u-i-procedural-wallpaper-capability virtual GraphicsServices dependency
- gsc.venice           virtual GraphicsServices dependency
- gsc.video-camera     virtual GraphicsServices dependency
- gsc.voip             virtual GraphicsServices dependency
- gsc.volume-buttons   virtual GraphicsServices dependency
- gsc.w-a-graphic-quality virtual GraphicsServices dependency
- gsc.w-l-a-n-bkg-scan-cache virtual GraphicsServices dependency
- gsc.wi-fi            virtual GraphicsServices dependency
- gsc.wifi             virtual GraphicsServices dependency
- gsc.wifi-chipset     virtual GraphicsServices dependency
- gsc.wildcat          this device has a very large screen
- gsc.wireless-charging-capability virtual GraphicsServices dependency
-
-
---- BEFORE: latest Zebra crash summary ---
-latest_crash=none
-
---- REPAIR: complete interrupted package work ---
-Reading package lists...
-Building dependency tree...
-Reading state information...
-0 upgraded, 0 newly installed, 0 to remove and 26 not upgraded.
-
---- REPAIR: refresh repositories ---
-Ign:2 http://modmyi.saurik.com stable InRelease
-Ign:3 http://apt.thebigboss.org/repofiles/cydia stable InRelease
-Get:4 https://ellekit.space ./ InRelease [16.7 kB]
-Ign:5 https://repo.chariz.com ./ InRelease
-Ign:6 https://havoc.app ./ InRelease
-Get:7 https://apt.procurs.us 1900 InRelease [8310 B]
-Hit:8 https://repo.chariz.com ./ Release
-Hit:9 https://havoc.app ./ Release
-Get:10 http://modmyi.saurik.com stable Release [385 B]
-Get:11 https://repo.cypwn.xyz ./ InRelease [3384 B]
-Err:11 https://repo.cypwn.xyz ./ InRelease
-  Clearsigned file isn't valid, got 'NOSPLIT' (does the network require authentication?)
-Ign:1 https://cydia.zodttd.com/repo/cydia stable InRelease
-Get:12 http://modmyi.saurik.com stable Release.gpg [181 B]
-Hit:13 http://apt.thebigboss.org/repofiles/cydia stable Release
-Get:14 http://apt.thebigboss.org/repofiles/cydia stable Release.gpg [181 B]
-Ign:1 https://cydia.zodttd.com/repo/cydia stable InRelease
-Ign:1 https://cydia.zodttd.com/repo/cydia stable InRelease
-Err:4 https://ellekit.space ./ InRelease
-  The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 015D4A9B1D4A2370
-Err:1 https://cydia.zodttd.com/repo/cydia stable InRelease
-  Could not handshake: A TLS fatal alert has been received. [IP: 209.142.65.180 443]
-Ign:12 http://modmyi.saurik.com stable Release.gpg
-Ign:14 http://apt.thebigboss.org/repofiles/cydia stable Release.gpg
-Reading package lists...
-E: Failed to fetch https://repo.cypwn.xyz/./InRelease  Clearsigned file isn't valid, got 'NOSPLIT' (does the network require authentication?)
-E: The repository 'https://repo.cypwn.xyz ./ InRelease' is not signed.
-W: GPG error: https://ellekit.space ./ InRelease: The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 015D4A9B1D4A2370
-E: The repository 'https://ellekit.space ./ InRelease' is not signed.
-W: GPG error: http://modmyi.saurik.com stable Release: The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 87F92E166197E890
-E: The repository 'http://modmyi.saurik.com stable Release' is not signed.
-W: GPG error: http://apt.thebigboss.org/repofiles/cydia stable Release: The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 694D17D38764B4F4
-E: The repository 'http://apt.thebigboss.org/repofiles/cydia stable Release' is not signed.
-
---- REPAIR: reinstall Zebra ---
-selected_zebra_package=xyz.willy.zebra
-Reading package lists...
-Building dependency tree...
-Reading state information...
-The following packages will be DOWNGRADED:
-  xyz.willy.zebra
-0 upgraded, 0 newly installed, 1 downgraded, 0 to remove and 26 not upgraded.
-E: Packages were downgraded and -y was used without --allow-downgrades.
-zebra_reinstall_rc=100
-
---- REPAIR: permissions and disposable caches ---
-clearing_cache=/var/mobile/Library/Caches/xyz.willy.Zebra
-
---- REPAIR: app registration ---
-
---- AFTER: package state ---
+Waking and checking iPad SSH port over Tailscale...
+SSH port attempt 1/18
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+# 100.116.117.65:22 SSH-2.0-OpenSSH_9.7
+ipad_ssh_port_ready=success
+Running remote/ipad-command.sh on mobile@100.116.117.65:22 as root...
+=== Zebra black-screen diagnosis + state repair ===
+started_at_utc=2026-08-23T21:28:23Z
+identity=uid=0(root) gid=0(wheel) groups=0(wheel)
+model=J71tAP
+ios=16.7.11
+--- package ---
 install ok installed | xyz.willy.zebra | 1.1.37 | iphoneos-arm64
-drwxr-xr-x 66 root wheel 2112 Aug 23 16:12 /var/jb/Applications/Zebra.app
--rwxr-xr-x 1 root wheel 3734896 Aug  7 13:29 /var/jb/Applications/Zebra.app/Zebra
-
---- AFTER: registration ---
-com.withertech.filzatmapp : /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/FilzaTM.app
-com.netskao.dumpdecrypter : /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/DumpDecrypter.app
-com.hyperixa.Hyperixa : /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/Hyperixa.app
-com.apple.MobileStore : /private/var/containers/Bundle/Application/864E30A4-66A1-4522-AC03-FA5A7C760EA4/MobileStore.app
-xyz.willy.Zebra : /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/Zebra.app
-com.apple.tips : /private/var/containers/Bundle/Application/3BF3B67B-87BB-49E2-A361-6CD5E2DD0ABD/Tips.app
-com.openai.chat : /private/var/containers/Bundle/Application/6C6C2629-D224-4D98-82EA-AADA30735B25/ChatGPT.app
-com.kagi.kagiiOS : /private/var/containers/Bundle/Application/D2EF27C8-28F7-4EB1-954B-8700F7B22495/Orion.app
-com.apple.DocumentsApp : /private/var/containers/Bundle/Application/E74867AD-8833-44C9-9BC2-C99BB72FC093/Files.app
-
---- AFTER: launch attempt ---
-uiopen_zbra_rc=0
-mobile            2014   0.0  0.0        0      0   ??  ?s    4:24PM   0:00.00 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/Zebra.app/Zebra
-
---- AFTER: newest crash if launch still fails ---
-newest_crash=none
-zebra_repair_pass_complete=true
+--- data before ---
+FOUND /var/mobile/Library/Application Support/xyz.willy.Zebra
+31M	/var/mobile/Library/Application Support/xyz.willy.Zebra
+--- first launch: reproduce black screen ---
+launch1_rc=0
+sleep: invalid time interval ‘5\n15\n25’
+Try 'sleep --help' for more information.
+--- t=5s ---
+mobile            2071   0.0  0.0        0      0   ??  ?s    4:28PM   0:00.00 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/Zebra.app/Zebra
+zebra_pid=2071
+sleep: invalid time interval ‘15\n25’
+Try 'sleep --help' for more information.
+--- t=20s ---
+mobile            2071   0.0  0.0        0      0   ??  ?s    4:28PM   0:00.00 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/Zebra.app/Zebra
+zebra_pid=2071
+--- t=45s ---
+zebra_process=absent
+--- t=70s ---
+zebra_process=absent
+--- reports after reproduced hang ---
+Inodes: Total: 24661395   Free: 24491600
+Inodes: Total: 24661395   Free: 24491600
+Inodes: Total: 24661395   Free: 24491600
+Inodes: Total: 24661395   Free: 24491600
+Inodes: Total: 24661395   Free: 24491600
+Inodes: Total: 24661395   Free: 24491600
+Inodes: Total: 24661395   Free: 24491600
+Inodes: Total: 24661395   Free: 24491600
+Inodes: Total: 24661395   Free: 24491600
+Inodes: Total: 24661395   Free: 24491600
+Inodes: Total: 24661395   Free: 24491600
+Inodes: Total: 24661395   Free: 24491600
+Inodes: Total: 24661395   Free: 24491600
+Inodes: Total: 24661395   Free: 24491600
+Inodes: Total: 24661395   Free: 24491600
+Inodes: Total: 24661395   Free: 24491600
+Inodes: Total: 24661395   Free: 24491600
+Inodes: Total: 24661395   Free: 24491600
+Inodes: Total: 24661395   Free: 24491600
+Blocks: Total: 7808393    Free: 612290     Available: 612290
+--- backup Zebra state ---
+backup_path=/var/mobile/ZebraRepairBackup-20260823T212823Z
+--- reset Zebra user state ---
+--- second launch after clean state ---
+launch2_rc=0
+sleep: invalid time interval ‘5\n10’
+Try 'sleep --help' for more information.
+--- clean t=5s ---
+mobile            2194   0.0  0.0        0      0   ??  ?s    4:29PM   0:00.00 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/Zebra.app/Zebra
+--- clean t=15s ---
+mobile            2194   0.0  0.0        0      0   ??  ?s    4:29PM   0:00.00 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/Zebra.app/Zebra
+--- clean t=35s ---
+zebra_process=absent
+--- newest Zebra report after clean launch ---
+newest_zebra_report=none
+zebra_black_screen_repair_complete=true
 ssh_exit_code=0
