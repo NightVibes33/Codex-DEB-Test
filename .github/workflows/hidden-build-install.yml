@@ -133,7 +133,6 @@ jobs:
             exit 1
           fi
 
-          # The system-framework target path is a hard package invariant.
           if grep -a -F -q '/System/Library/PrivateFrameworks' "$APP_BIN"; then
             echo 'signature_ok=/System/Library/PrivateFrameworks' | tee -a hidden-validation.log
           else
@@ -141,8 +140,6 @@ jobs:
             exit 1
           fi
 
-          # UI/status labels are compiler implementation details; report them without
-          # rejecting a valid binary if clang folds or transforms the literals.
           for SIG in 'PreferenceManifestsInternal' 'Scanning PrivateFrameworks'; do
             if grep -a -F -q "$SIG" "$APP_BIN"; then
               echo "signature_ok=$SIG" | tee -a hidden-validation.log
@@ -151,9 +148,9 @@ jobs:
             fi
           done
 
-          # Verify the scanner source still contains the expected discovery targets.
           grep -F -q '/System/Library/PrivateFrameworks' Hidden/Sources/main.m || { echo 'validation_fail=source_privateframeworks_missing' | tee -a hidden-validation.log; exit 1; }
           grep -F -q 'PreferenceManifestsInternal' Hidden/Sources/main.m || { echo 'validation_fail=source_preference_manifest_missing' | tee -a hidden-validation.log; exit 1; }
+          grep -F -q 'latest-scan.json' Hidden/Sources/main.m || { echo 'validation_fail=source_report_missing' | tee -a hidden-validation.log; exit 1; }
           echo 'source_scanner_targets=pass' | tee -a hidden-validation.log
 
           sha256sum Hidden-0.1.0-rootless.deb | tee hidden-deb-sha256.txt | tee -a hidden-validation.log
@@ -176,7 +173,7 @@ jobs:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
           version: latest
 
-      - name: Install and prove on iPad
+      - name: Install, scan, and prove on iPad
         id: device
         if: success()
         env:
@@ -195,6 +192,7 @@ jobs:
           #!/bin/sh
           set -u
           export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
+          REPORT='/var/mobile/Library/Hidden/latest-scan.json'
           fail() { echo "HIDDEN_DEVICE_FAIL=$1"; exit 1; }
           echo 'checkpoint=dpkg_install'
           dpkg -i /var/mobile/Media/Hidden-0.1.0-rootless.deb || fail dpkg_install
@@ -208,28 +206,66 @@ jobs:
           test -f /var/jb/Applications/Hidden.app/Info.plist || fail plist_missing
           grep -a -F -q '/System/Library/PrivateFrameworks' /var/jb/Applications/Hidden.app/Hidden || fail scanner_signature
           /var/jb/usr/bin/uicache -p /var/jb/Applications/Hidden.app >/dev/null 2>&1 || /var/jb/usr/bin/uicache -a >/dev/null 2>&1 || fail uicache
+
           killall -9 Hidden 2>/dev/null || true
+          rm -f "$REPORT"
+          mkdir -p /var/mobile/Library/Hidden || fail report_directory
+          chown mobile:mobile /var/mobile/Library/Hidden 2>/dev/null || true
           sudo -u mobile uiopen 'hidden://' >/dev/null 2>&1 || true
+
           app_ready=0
           i=0
-          while [ "$i" -lt 15 ]; do
+          while [ "$i" -lt 20 ]; do
             if ps ax 2>/dev/null | grep '[H]idden.app/Hidden' >/dev/null; then app_ready=1; break; fi
             i=$((i + 1)); sleep 1
           done
           [ "$app_ready" -eq 1 ] || fail launch
           PID="$(ps ax 2>/dev/null | awk '/[H]idden.app\/Hidden/{print $1; exit}')"
           echo "hidden_pid=$PID"
+
+          scan_ready=0
+          i=0
+          while [ "$i" -lt 240 ]; do
+            if [ -s "$REPORT" ] && grep -q '"totalFindings"' "$REPORT" 2>/dev/null; then scan_ready=1; break; fi
+            if ! ps ax 2>/dev/null | grep '[H]idden.app/Hidden' >/dev/null; then fail scan_process_exited; fi
+            i=$((i + 1)); sleep 1
+          done
+          [ "$scan_ready" -eq 1 ] || fail scan_report_timeout
+          REPORT_BYTES="$(wc -c < "$REPORT" | tr -d ' ')"
+          echo "scan_report_bytes=$REPORT_BYTES"
           echo 'package_payload=pass'
           echo 'uicache=pass'
           echo 'homescreen_launch=pass'
+          echo 'system_scan_report=pass'
           echo 'device_proof=success'
           SH
           chmod +x /tmp/install-hidden.sh
           sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null /tmp/install-hidden.sh mobile@"$IPAD_HOST":/var/mobile/Media/install-hidden.sh
           set +e
-          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=60 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/install-hidden.sh' 2>&1 | tee hidden-device-proof.txt
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh -p 22 -o ConnectTimeout=300 -o ServerAliveInterval=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/install-hidden.sh' 2>&1 | tee hidden-device-proof.txt
           DEVICE_RC=${PIPESTATUS[1]}
           set -e
+
+          if [ "$DEVICE_RC" -eq 0 ]; then
+            sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST":/var/mobile/Library/Hidden/latest-scan.json hidden-device-scan.json
+            python3 - <<'PY' | tee -a hidden-device-proof.txt
+          import json
+          with open('hidden-device-scan.json', 'r', encoding='utf-8') as f:
+              report = json.load(f)
+          print('scan_total_findings=' + str(report.get('totalFindings', 0)))
+          print('scan_reported_findings=' + str(report.get('reportedFindings', 0)))
+          print('scan_os=' + str(report.get('os', 'unknown')).replace('\n', ' '))
+          cats = report.get('categoryCounts', {})
+          print('scan_category_counts=' + json.dumps(cats, sort_keys=True, separators=(',', ':')))
+          print('scan_top_targets=' + ', '.join(report.get('topTargets', [])[:15]))
+          for idx, item in enumerate(report.get('findings', [])[:20], 1):
+              def clean(v):
+                  return str(v).replace('\n', ' ').replace('\r', ' ').replace('|', '/').strip()[:240]
+              print('finding_%02d=score:%s | %s | %s | %s | %s' % (
+                  idx, clean(item.get('score', '')), clean(item.get('target', '')),
+                  clean(item.get('category', '')), clean(item.get('evidence', '')), clean(item.get('path', ''))))
+          PY
+          fi
           exit "$DEVICE_RC"
 
       - uses: actions/upload-artifact@v4
@@ -238,6 +274,7 @@ jobs:
           name: Hidden-device-proof
           path: |
             hidden-device-proof.txt
+            hidden-device-scan.json
             hidden-build.log
             hidden-validation.log
           if-no-files-found: ignore
@@ -257,7 +294,7 @@ jobs:
             echo "- Build step: ${BUILD_OUTCOME}"
             echo "- Device step: ${DEVICE_OUTCOME}"
             echo
-            echo '## Device proof'
+            echo '## Device proof and scan summary'
             echo '```text'
             cat hidden-device-proof.txt 2>/dev/null || echo 'No device proof produced.'
             echo '```'
