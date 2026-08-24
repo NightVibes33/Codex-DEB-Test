@@ -1,0 +1,129 @@
+name: Extract WallPics Fast
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/extract-wallpics-fast.yml'
+
+permissions:
+  contents: write
+
+env:
+  IPAD_HOST: '100.116.117.65'
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: '18728387881'
+        run: |
+          set -euo pipefail
+          curl -fsS \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json, sys
+          target = int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments', []):
+              if int(env.get('id', -1)) == target:
+                  print('environment_name=' + env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  extract:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: tailscale/github-action@v4
+        id: tailscale
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Run fast extractor
+        id: extract_app
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          SSH_OPTS='-p 22 -o ConnectTimeout=8 -o ServerAliveInterval=10 -o ServerAliveCountMax=2 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+          for attempt in $(seq 1 20); do
+            if sshpass -e ssh $SSH_OPTS mobile@"$IPAD_HOST" true >/dev/null 2>&1; then break; fi
+            [ "$attempt" -lt 20 ] || exit 1
+            sleep 3
+          done
+          {
+            printf '%s\n' "$IPAD_PASSWORD"
+            cat remote/extract-wallpics.sh
+          } | sshpass -e ssh $SSH_OPTS mobile@"$IPAD_HOST" 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' 2>&1 | tee wallpics-fast.log
+          grep -q 'WALLPICS_EXPORT=SUCCESS' wallpics-fast.log
+
+      - name: Copy ZIP
+        id: copy_zip
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          sshpass -e scp -P 22 -o ConnectTimeout=15 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST":/var/mobile/Media/WallPics-full-app.zip ./WallPics-full-app.zip
+          sshpass -e scp -P 22 -o ConnectTimeout=15 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null mobile@"$IPAD_HOST":/var/mobile/Media/WallPics-export-info.txt ./WallPics-export-info.txt
+          test -s WallPics-full-app.zip
+          sha256sum WallPics-full-app.zip > WallPics-full-app.sha256
+
+      - uses: actions/upload-artifact@v4
+        id: upload
+        with:
+          name: WallPics-full-app-fast
+          path: |
+            WallPics-full-app.zip
+            WallPics-export-info.txt
+            WallPics-full-app.sha256
+            wallpics-fast.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Publish fast status
+        if: always()
+        env:
+          TAILSCALE_OUTCOME: ${{ steps.tailscale.outcome }}
+          EXTRACT_OUTCOME: ${{ steps.extract_app.outcome }}
+          COPY_OUTCOME: ${{ steps.copy_zip.outcome }}
+          UPLOAD_OUTCOME: ${{ steps.upload.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin main
+          {
+            echo 'WallPics Fast Extraction Status'
+            echo "run_id=${GITHUB_RUN_ID}"
+            echo "commit=${GITHUB_SHA}"
+            echo "tailscale=${TAILSCALE_OUTCOME}"
+            echo "extract=${EXTRACT_OUTCOME}"
+            echo "copy=${COPY_OUTCOME}"
+            echo "upload=${UPLOAD_OUTCOME}"
+            [ -f WallPics-export-info.txt ] && cat WallPics-export-info.txt || true
+            [ -f WallPics-full-app.sha256 ] && cat WallPics-full-app.sha256 || true
+            echo '--- log tail ---'
+            tail -n 80 wallpics-fast.log 2>/dev/null || true
+          } > remote/wallpics-fast-status.txt
+          git add remote/wallpics-fast-status.txt
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record WallPics fast extraction status [skip ci]'
+            git push origin HEAD:main
+          fi
