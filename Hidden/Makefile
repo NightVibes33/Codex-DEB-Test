@@ -6,7 +6,7 @@ include $(THEOS)/makefiles/common.mk
 
 APPLICATION_NAME = Hidden
 
-Hidden_FILES = Sources/main.m
+Hidden_FILES = Sources/HiddenV2.m
 Hidden_FRAMEWORKS = UIKit Foundation
 Hidden_CFLAGS = -fobjc-arc -Wall -Wextra
 Hidden_CODESIGN_FLAGS = -SHidden.entitlements
