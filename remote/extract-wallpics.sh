@@ -1,5 +1,5 @@
 #!/bin/sh
-# extraction trigger 2026-08-23
+# fast extraction trigger 2026-08-23
 set -eu
 export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
 
@@ -41,6 +41,8 @@ done
 if [ -z "$APP" ]; then
   for root in /var/containers/Bundle/Application /private/var/containers/Bundle/Application; do
     [ -d "$root" ] || continue
+    direct="$(find "$root" -maxdepth 2 -type d -iname '*wall*pic*.app' 2>/dev/null | sed -n '1p')"
+    if [ -n "$direct" ]; then APP="$direct"; break; fi
     find "$root" -maxdepth 2 -type d -name '*.app' 2>/dev/null | while IFS= read -r candidate; do
       if match_app "$candidate"; then
         printf '%s\n' "$candidate"
@@ -55,6 +57,8 @@ fi
 if [ -z "$APP" ]; then
   for root in /var/jb/Applications /Applications /System/Applications; do
     [ -d "$root" ] || continue
+    direct="$(find "$root" -maxdepth 2 -type d -iname '*wall*pic*.app' 2>/dev/null | sed -n '1p')"
+    if [ -n "$direct" ]; then APP="$direct"; break; fi
     find "$root" -maxdepth 2 -type d -name '*.app' 2>/dev/null | while IFS= read -r candidate; do
       if match_app "$candidate"; then
         printf '%s\n' "$candidate"
@@ -68,8 +72,6 @@ fi
 
 if [ -z "$APP" ] || [ ! -d "$APP" ]; then
   echo 'WALLPICS_EXPORT_FAIL=app_not_found'
-  echo 'Candidate app names containing wall/pics:'
-  find /var/containers/Bundle/Application /private/var/containers/Bundle/Application /var/jb/Applications /Applications /System/Applications -maxdepth 3 -type d -name '*.app' 2>/dev/null | grep -Ei 'wall|pics' | sed -n '1,100p' || true
   exit 2
 fi
 
@@ -99,11 +101,12 @@ fi
 
 PARENT="$(dirname "$APP")"
 BASE="$(basename "$APP")"
+echo "WALLPICS_ZIP_START app=$APP"
 
 if command -v zip >/dev/null 2>&1; then
-  (cd "$PARENT" && zip -qry -y "$OUT_ZIP" "$BASE")
+  (cd "$PARENT" && zip -0 -qry -y "$OUT_ZIP" "$BASE")
 elif command -v bsdtar >/dev/null 2>&1; then
-  (cd "$PARENT" && bsdtar -a -cf "$OUT_ZIP" "$BASE")
+  (cd "$PARENT" && bsdtar -cf "$OUT_ZIP" --format zip "$BASE")
 else
   echo 'WALLPICS_EXPORT_FAIL=no_zip_tool'
   exit 3
