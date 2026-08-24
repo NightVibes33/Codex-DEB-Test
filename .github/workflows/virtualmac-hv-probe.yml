@@ -1,0 +1,208 @@
+name: VirtualMac Hypervisor Probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [virtualmac-hv-probe]
+    paths:
+      - 'VirtualMacProbe/**'
+      - '.github/workflows/virtualmac-hv-probe.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: virtualmac-hv-probe-device
+  cancel-in-progress: true
+
+env:
+  IPAD_HOST: '100.116.117.65'
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: '18728387881'
+        run: |
+          set -euo pipefail
+          curl -fsS \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json, sys
+          wanted = int(sys.argv[1])
+          for env in json.load(open('environments.json')).get('environments', []):
+              if int(env.get('id', -1)) == wanted:
+                  print('environment_name=' + env['name'])
+                  raise SystemExit(0)
+          raise SystemExit('environment-not-found')
+          PY
+
+  probe:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: virtualmac-hv-probe
+
+      - name: Install Theos
+        env:
+          THEOS: /opt/theos
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends bash curl sudo build-essential fakeroot rsync perl git libxml2 dpkg-dev unzip xz-utils ca-certificates python3 file openssh-client sshpass
+          sudo rm -rf /opt/theos
+          sudo mkdir -p /opt
+          sudo chown "$USER:$USER" /opt
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          test -x /opt/theos/toolchain/linux/iphone/bin/clang
+
+      - name: Build signed rootless probe
+        id: build
+        env:
+          THEOS: /opt/theos
+        run: |
+          set -euo pipefail
+          cd VirtualMacProbe
+          make clean package FINALPACKAGE=1
+          DEB="$(find packages -maxdepth 1 -type f -name '*.deb' | head -n1)"
+          test -n "$DEB"
+          cp "$DEB" ../VirtualMac-Hypervisor-Probe.deb
+          cd ..
+          rm -rf probe-root
+          dpkg-deb -x VirtualMac-Hypervisor-Probe.deb probe-root
+          BIN="$(find probe-root -type f -name vm-hvprobe | head -n1)"
+          test -n "$BIN"
+          file "$BIN" | tee probe-build.txt
+          grep -a -q 'hv_get_capabilities_raw' "$BIN"
+          echo 'build_status=PASS' | tee -a probe-build.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: VirtualMac-Hypervisor-Probe
+          path: |
+            VirtualMac-Hypervisor-Probe.deb
+            probe-build.txt
+            probe-device.txt
+          if-no-files-found: ignore
+
+      - uses: tailscale/github-action@v4
+        if: steps.build.outcome == 'success'
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Run probe on iPad
+        id: device
+        if: steps.build.outcome == 'success'
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          : > probe-device.txt
+          SSH_OPTS='-p 22 -o ConnectTimeout=8 -o ServerAliveInterval=10 -o ServerAliveCountMax=2 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+          connected=0
+          for attempt in $(seq 1 40); do
+            if sshpass -e ssh $SSH_OPTS mobile@"$IPAD_HOST" true >/dev/null 2>&1; then
+              connected=1
+              echo "ssh_attempt=$attempt" | tee -a probe-device.txt
+              break
+            fi
+            sleep 3
+          done
+          [ "$connected" -eq 1 ] || { echo 'device_status=UNREACHABLE' | tee -a probe-device.txt; exit 1; }
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null VirtualMac-Hypervisor-Probe.deb mobile@"$IPAD_HOST":/var/mobile/Media/VirtualMac-Hypervisor-Probe.deb
+          cat > /tmp/run-vm-hvprobe.sh <<'SH'
+          #!/bin/sh
+          set -u
+          export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
+          echo "uname=$(uname -a 2>/dev/null || true)"
+          echo "machine=$(uname -m 2>/dev/null || true)"
+          echo "hw_model=$(sysctl -n hw.model 2>/dev/null || true)"
+          echo "os_product=$(sw_vers -productVersion 2>/dev/null || true)"
+          echo 'checkpoint=install_probe'
+          dpkg -i /var/mobile/Media/VirtualMac-Hypervisor-Probe.deb || exit 20
+          BIN=/var/jb/usr/bin/vm-hvprobe
+          [ -x "$BIN" ] || exit 21
+          echo "probe_path=$BIN"
+          if command -v ldid >/dev/null 2>&1; then
+            echo 'entitlements_begin'
+            ldid -e "$BIN" 2>/dev/null || true
+            echo 'entitlements_end'
+          fi
+          echo 'checkpoint=execute_probe'
+          set +e
+          if command -v timeout >/dev/null 2>&1; then
+            timeout 12 "$BIN"
+            RC=$?
+          else
+            "$BIN"
+            RC=$?
+          fi
+          set -e
+          echo "probe_exit_code=$RC"
+          case "$RC" in
+            0) echo 'device_hypervisor_result=AVAILABLE_OR_RECOGNIZED' ;;
+            2) echo 'device_hypervisor_result=HV_UNSUPPORTED' ;;
+            3) echo 'device_hypervisor_result=CAPS_PRESENT_VM_CREATE_UNSUPPORTED' ;;
+            124) echo 'device_hypervisor_result=TIMEOUT' ;;
+            *) echo "device_hypervisor_result=PROBE_ERROR_$RC" ;;
+          esac
+          echo 'checkpoint=cleanup'
+          dpkg -r com.nightvibes.virtualmac-hvprobe >/dev/null 2>&1 || true
+          rm -f /var/mobile/Media/VirtualMac-Hypervisor-Probe.deb
+          echo 'probe_complete=true'
+          exit 0
+          SH
+          chmod +x /tmp/run-vm-hvprobe.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null /tmp/run-vm-hvprobe.sh mobile@"$IPAD_HOST":/var/mobile/Media/run-vm-hvprobe.sh
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh $SSH_OPTS mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/run-vm-hvprobe.sh' 2>&1 | tee -a probe-device.txt
+          grep -q '^device_hypervisor_result=' probe-device.txt
+          grep -q '^probe_complete=true' probe-device.txt
+
+      - name: Publish probe status
+        if: always()
+        env:
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          DEVICE_OUTCOME: ${{ steps.device.outcome }}
+        run: |
+          set -euo pipefail
+          {
+            echo '# VirtualMac Hypervisor Probe Status'
+            echo
+            echo "- Run: ${GITHUB_RUN_ID}"
+            echo "- Commit: ${GITHUB_SHA}"
+            echo "- Build: ${BUILD_OUTCOME}"
+            echo "- Device: ${DEVICE_OUTCOME}"
+            echo
+            echo '## Device output'
+            echo '```text'
+            cat probe-device.txt 2>/dev/null || echo 'No device output produced.'
+            echo '```'
+            echo
+            echo '## Build output'
+            echo '```text'
+            cat probe-build.txt 2>/dev/null || echo 'No build output produced.'
+            echo '```'
+          } > VirtualMacProbe/DEVICE_STATUS.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add VirtualMacProbe/DEVICE_STATUS.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record VirtualMac hypervisor probe [skip ci]'
+            git push origin HEAD:virtualmac-hv-probe
+          fi

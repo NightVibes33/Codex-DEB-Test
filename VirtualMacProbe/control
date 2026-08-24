@@ -1,0 +1,10 @@
+Package: com.nightvibes.virtualmac-hvprobe
+Name: VirtualMac Hypervisor Probe
+Version: 0.1.0
+Architecture: iphoneos-arm64
+Description: Diagnostic probe for the iOS/iPadOS hv_trap used by Virtual Mac.
+Maintainer: NightVibes33
+Author: NightVibes33
+Section: Development
+Priority: optional
+Depends: firmware (>= 14.0)
