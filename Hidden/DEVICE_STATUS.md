@@ -1,26 +1,22 @@
 # Hidden Build / Device Status
 
-- Run: 32674787155
-- Commit: 12c3bcd377630a453b7c06602a6a5c79a9347628
+- Run: 32674995933
+- Commit: 1a50cea5c691f6d8f2a38bbf79458be1a75c6784
 - Build step: success
-- Device step: success
+- Device step: failure
 
-## Device proof
+## Device proof and scan summary
 ```text
 Warning: Permanently added '100.116.117.65' (ED25519) to the list of known hosts.
 checkpoint=dpkg_install
-Selecting previously unselected package com.nightvibes.hidden.
-(Reading database ... 25604 files and directories currently installed.)
+(Reading database ... 25607 files and directories currently installed.)
 Preparing to unpack .../Hidden-0.1.0-rootless.deb ...
-Unpacking com.nightvibes.hidden (0.1.0) ...
+Unpacking com.nightvibes.hidden (0.1.0) over (0.1.0) ...
 Setting up com.nightvibes.hidden (0.1.0) ...
 Processing triggers for uikittools (2.1.8) ...
 installed_version=0.1.0
-hidden_pid=5429
-package_payload=pass
-uicache=pass
-homescreen_launch=pass
-device_proof=success
+hidden_pid=5506
+HIDDEN_DEVICE_FAIL=scan_report_timeout
 ```
 
 ## Validation log
@@ -31,13 +27,13 @@ package_name=com.nightvibes.hidden
 package_version=0.1.0
 package_arch=iphoneos-arm64
 package_contents_begin
-drwxr-xr-x 0/root            0 2026-08-23 23:51 .
-drwxr-xr-x 0/root            0 2026-08-23 23:51 var
-drwxr-xr-x 0/root            0 2026-08-23 23:51 var/jb
-drwxr-xr-x 0/root            0 2026-08-23 23:51 var/jb/Applications
-drwxr-xr-x 0/root            0 2026-08-23 23:51 var/jb/Applications/Hidden.app
--rwxr-xr-x 0/root        89888 2026-08-23 23:51 var/jb/Applications/Hidden.app/Hidden
--rw-r--r-- 0/root         1613 2026-08-23 23:50 var/jb/Applications/Hidden.app/Info.plist
+drwxr-xr-x 0/root            0 2026-08-23 23:55 .
+drwxr-xr-x 0/root            0 2026-08-23 23:55 var
+drwxr-xr-x 0/root            0 2026-08-23 23:55 var/jb
+drwxr-xr-x 0/root            0 2026-08-23 23:55 var/jb/Applications
+drwxr-xr-x 0/root            0 2026-08-23 23:55 var/jb/Applications/Hidden.app
+-rwxr-xr-x 0/root       107024 2026-08-23 23:55 var/jb/Applications/Hidden.app/Hidden
+-rw-r--r-- 0/root         1613 2026-08-23 23:54 var/jb/Applications/Hidden.app/Info.plist
 package_contents_end
 extracted_files_begin
 hidden-deb-root/var/jb/Applications/Hidden.app/Hidden
@@ -49,7 +45,7 @@ signature_ok=/System/Library/PrivateFrameworks
 signature_ok=PreferenceManifestsInternal
 signature_note=not_present_in_final_binary:Scanning PrivateFrameworks
 source_scanner_targets=pass
-8d638ec7105bd666433f3fbe9d03d4f610017cfd842b8d016014c06142052947  Hidden-0.1.0-rootless.deb
+579304d4fd11cc886b9c2d868101d75e0b1506286eff6f7dbcf68a242ad7a951  Hidden-0.1.0-rootless.deb
 package_validation=success
 ```
 
