@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=32670994199
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/32670994199
-commit=8035e1a6c1bebbc63f950fda5ff4109b489d6c1c
+run_id=32679008760
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/32679008760
+commit=a0150c92b2dda7e1223abb725a27383bd82b5d3b
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -9,183 +9,183 @@ install_ssh=success
 ssh=success
 
 --- sanitized SSH output ---
-	exit timeout = 3
-	runs = 3
-	pid = 5241
-	immediate reason = inefficient
-	forks = 0
-	execs = 1
-	initialized = 1
-	trampolined = 1
-	started suspended = 0
-	proxy started suspended = 0
-	uses proxy = 1
-	last terminating signal = Killed: 9
+uname=Darwin Bobbys-iPad 22.6.0 Darwin Kernel Version 22.6.0: Tue Jul  2 20:45:41 PDT 2024; root:xnu-8796.142.1.703.8~1/RELEASE_ARM64_S8000 iPad6,11 arm Darwin
+--- virtualization capability probes ---
+kern.hv_support=sysctl: unknown oid 'kern.hv_support'
+hw.optional.arm.FEAT_VHE=sysctl: unknown oid 'hw.optional.arm.FEAT_VHE'
+hw.optional.armv8_2_sha3=0
+hw.optional.arm64=1
+--- download official 1.2 ---
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
 
-	spawn type = adaptive (6)
-	jetsam priority = 40
-	jetsam memory limit (active, soft) = 6 MB
-	jetsam memory limit (inactive, hard) = 6 MB
-	jetsamproperties category = daemon
-	jetsam thread limit = 32
-	jetsam soft port limit = 32768
-	jetsam hard port limit = 65536
-	cpumon = default
-	job state = running
-	probabilistic guard malloc policy = {
-		activation rate = 1/1000
-		sample rate = 1/0
-	}
-
-	properties = keepalive | runatload | supports transactions | inferred program | exponential throttling | needs proxy
-}
---- daemon process/socket/log ---
- 5241   ??  ?s     0:00.00 /var/jb/usr/libexec/tweakmedicd
-srw-rw-rw- 1 root daemon 0 Aug 23 17:35 /var/run/tweakmedicd.sock
---- CLI ---
-{
-  "daemon" : "tweakmedicd",
-  "ok" : true,
-  "pid" : 5241,
-  "version" : "1.0.0"
-}
-ping_rc=0
-{
-  "ok" : true,
-  "restored" : 0
-}
-restore_rc=0
-{
-  "apps" : [
-    {
-      "path" : "\/var\/containers\/Bundle\/Application\/928D4CCD-71A2-4165-B146-F881842D30D3\/BitLife.app",
-      "executable" : "BitLife",
-      "name" : "🕷️ BitLife - iOSGods.com",
-      "bundleID" : "com.wtfapps.apollo16"
-    },
-    {
-      "path" : "\/Applications\/AAUIViewService.app",
-      "executable" : "AAUIViewService",
-      "name" : "AAUIViewService",
-      "bundleID" : "com.apple.AAUIViewService"
-    },
-    {
-      "path" : "\/Applications\/AccountAuthenticationDialog.app",
-      "executable" : "AccountAuthenticationDialog",
-      "name" : "AccountAuthenticationDialog",
-      "bundleID" : "com.apple.AccountAuthenticationDialog"
-    },
-    {
-      "path" : "\/Applications\/AirDropUI.app",
-      "executable" : "AirDropUI",
-      "name" : "AirDropUI",
-      "bundleID" : "com.apple.Sharing.AirDropUI"
-    },
-    {
-      "path" : "\/Applications\/AirPlayReceiver.app",
-      "executable" : "AirPlayReceiver",
-      "name" : "AirPlayReceiver",
-      "bundleID" : "com.apple.airplayreceiver"
-    },
-    {
-      "path" : "\/Applications\/AMSEngagementViewService.app",
-      "executable" : "AMSEngagementViewService",
-      "name" : "AMSEngagementViewService",
-      "bundleID" : "com.apple.AMSEngagementViewService"
-    },
-    {
-      "path" : "\/Applications\/AppStore.app",
-      "executable" : "AppStore",
-      "name" : "App Store",
-      "bundleID" : "com.apple.AppStore"
-    },
-    {
-      "path" : "\/Applications\/Apple TV Remote.app",
-      "executable" : "Apple TV Remote",
-      "name" : "Apple TV Remote",
-      "bundleID" : "com.apple.TVRemoteUIService"
-    },
-    {
-      "path" : "\/Applications\/AppSSOUIService.app",
-      "executable" : "AppSSOUIService",
-      "name" : "AppSSOUIService",
-      "bundleID" : "com.apple.AppSSOUIService"
-    },
-    {
-      "path" : "\/var\/containers\/Bundle\/Application\/38839394-178B-4011-917A-F45B9DB70D3B\/AppStorePlus.app",
-      "executable" : "AppStorePlus",
-      "name" : "AppStore++",
-      "bundleID" : "com.cokepokes.AppStorePlus"
-    },
-    {
-      "path" : "\/Applications\/AskPermissionUI.app",
-      "executable" : "AskPermissionUI",
-      "name" : "AskPermissionUI",
-      "bundleID" : "com.apple.AskPermissionUI"
-    },
-    {
-      "path" : "\/Applications\/AuthenticationServicesUI.app",
-      "executable" : "AuthenticationServicesUI",
-      "name" : "AuthenticationServicesUI",
-      "bundleID" : "com.apple.AuthenticationServicesUI"
-    },
-    {
-      "path" : "\/Applications\/AuthKitUIService.app",
-      "executable" : "AuthKitUIService",
-      "name" : "AuthKitUIService",
-      "bundleID" : "com.apple.AuthKitUIService"
-    },
-    {
-      "path" : "\/Applications\/AXUIViewService.app",
-      "executable" : "AXUIViewService",
-      "name" : "AXUIViewService",
-      "bundleID" : "com.apple.AXUIViewService"
-    },
-    {
-      "path" : "\/Applications\/BacklinkIndicator.app",
-      "executable" : "BacklinkIndicator",
-      "name" : "BacklinkIndicator",
-      "bundleID" : "com.apple.BacklinkIndicator"
-    },
-    {
-      "path" : "\/Applications\/Batteries.app",
-      "executable" : "Batteries",
-      "name" : "Batteries",
-      "bundleID" : "com.apple.Batteries"
-    },
-    {
-      "path" : "\/var\/containers\/Bundle\/Application\/3F2DA0C6-5087-4C1E-94E7-514CA5845B10\/Bootstrap.app",
-      "executable" : "Bootstrap",
-      "name" : "Bootstrap",
-      "bundleID" : "com.roothide.Bootstrap"
-    },
-    {
-      "path" : "\/var\/containers\/Bundle\/Application\/2EB52688-E5B9-4CE1-B396-96DF7A2B4672\/BowlingCrew.app",
-      "executable" : "BowlingCrew",
-      "name" : "Bowling Crew",
-      "bundleID" : "com.lesta.bowling"
-    },
-    {
-      "path" : "\/Applications\/BusinessChatViewService.app",
-      "executable" : "BusinessChatViewService",
-      "name" : "BusinessChatViewService",
-      "bundleID" : "com.apple.BusinessChatViewService"
-    },
-    {
-      "path" : "\/Applications\/BusinessExtensionsWrapper.app",
-      "executable" : "BusinessExtensionsWrapper",
-      "name" : "BusinessExtensionsWrapper",
-snapshot_rc=unknown
---- UI registration/launch ---
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100 19.9M  100 19.9M    0     0  19.4M      0  0:00:01  0:00:01 --:--:-- 19.4M
+download_rc=0
+-rw-r--r-- 1 root mobile 20M Aug 23 20:12 /var/mobile/Media/VirtualMac_1.2.deb
+48c1d0beec6bc5558d925a844f3a1a21b80aaa124d4566a455b9816db12df5e5  /var/mobile/Media/VirtualMac_1.2.deb
+--- official package metadata ---
+Package: com.mac.virtual
+Version: 2:1.2+565.799fc13aff
+Architecture: all
+Depends: firmware (>= 14.5), firmware (<< 16.4), ellekit | org.coolstar.libhooker
+metadata_rc=0
+--- unpack + patch only firmware upper-bound dependency ---
+unpack_rc=0
+control_before:
+Package: com.mac.virtual
+Name: Virtual Mac
+Version: 2:1.2+565.799fc13aff
+Architecture: all
+Description: People have dreamed of running macOS on iPad for more than a decade.
+ Today, that dream comes true. With Virtual Mac, iPad finally breaks free from
+ iPadOS, enabling pro apps like Xcode and Terminal to run directly on device.
+ Requires iPad Pro (M1, M2) or iPad Air (M1) running iPadOS 14 up to 16.3.1.
+Maintainer: Virtual Mac
+Author: Virtual Mac
+Icon: https://raw.githubusercontent.com/nfzerox/VirtualMacOniPad/main/VirtualMac/assets/VirtualMac.png
+Section: Utilities
+Priority: optional
+Installed-Size: 103712
+Depends: firmware (>= 14.5), firmware (<< 16.4), ellekit | org.coolstar.libhooker
+Tag: role::enduser
+control_after:
+Package: com.mac.virtual
+Name: Virtual Mac
+Version: 2:1.2+565.799fc13aff
+Architecture: all
+Description: People have dreamed of running macOS on iPad for more than a decade.
+ Today, that dream comes true. With Virtual Mac, iPad finally breaks free from
+ iPadOS, enabling pro apps like Xcode and Terminal to run directly on device.
+ Requires iPad Pro (M1, M2) or iPad Air (M1) running iPadOS 14 up to 16.3.1.
+Maintainer: Virtual Mac
+Author: Virtual Mac
+Icon: https://raw.githubusercontent.com/nfzerox/VirtualMacOniPad/main/VirtualMac/assets/VirtualMac.png
+Section: Utilities
+Priority: optional
+Installed-Size: 103712
+Depends: firmware (>= 14.5), ellekit | org.coolstar.libhooker
+Tag: role::enduser
+dpkg-deb: building package 'com.mac.virtual' in '/var/mobile/Media/VirtualMac_1.2-ipad5-test.deb'.
+repack_rc=0
+-rw-r--r-- 1 root mobile 20M Aug 23 20:12 /var/mobile/Media/VirtualMac_1.2-ipad5-test.deb
+Package: com.mac.virtual
+Version: 2:1.2+565.799fc13aff
+Architecture: all
+Depends: firmware (>= 14.5), ellekit | org.coolstar.libhooker
+--- install patched package ---
+Selecting previously unselected package com.mac.virtual.
+(Reading database ... 25607 files and directories currently installed.)
+Preparing to unpack .../VirtualMac_1.2-ipad5-test.deb ...
+Unpacking com.mac.virtual (2:1.2+565.799fc13aff) ...
+Setting up com.mac.virtual (2:1.2+565.799fc13aff) ...
+finish:restart
+Processing triggers for uikittools (2.1.8) ...
+install_rc=0
+package=com.mac.virtual
+version=2:1.2+565.799fc13aff
+status=install ok installed
+arch=all
+--- locate payload ---
+app_path=/var/jb/Applications/VirtualMac.app
+total 1588
+drwxr-xr-x 54 root wheel   1728 Aug 23 20:12 .
+drwxr-xr-x 26 root wheel    832 Aug 23 20:12 ..
+-rw-r--r--  1 root wheel 634032 Aug 22 23:33 AppIcon1024x1024.png
+-rw-r--r--  1 root wheel   8776 Aug 22 23:33 AppIcon60x60@2x.png
+-rw-r--r--  1 root wheel  15757 Aug 22 23:33 AppIcon60x60@3x.png
+-rw-r--r--  1 root wheel  11720 Aug 22 23:33 AppIcon76x76@2x.png
+-rw-r--r--  1 root wheel  13914 Aug 22 23:33 AppIcon83.5x83.5@2x.png
+drwxr-xr-x  6 root wheel    192 Aug 23 20:12 Developers
+drwxr-xr-x  3 root wheel     96 Aug 23 20:12 GuestTools
+-rw-r--r--  1 root wheel   2222 Aug 22 23:33 Info.plist
+drwxr-xr-x  9 root wheel    288 Aug 23 20:12 Installers
+-rwxr-xr-x  1 root wheel  93936 Aug 22 23:33 VZHostCompat.dylib
+-rwxr-xr-x  1 root wheel 712192 Aug 22 23:33 VirtualMac
+drwxr-xr-x  5 root wheel    160 Aug 23 20:12 VirtualMacLaunchScreen.storyboardc
+-rw-r--r--  1 root wheel   5163 Aug 22 23:33 VirtualMacTemplate.png
+drwxr-xr-x 10 root wheel    320 Aug 23 20:12 Wallpapers
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 cs.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 da.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 de.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 el.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 en.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 es.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 es_419.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 es_US.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 fi.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 fr.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 fr_CA.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 he.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 hi.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 hr.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 hu.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 id.lproj
+-rw-r--r--  1 root wheel 113797 Aug 22 23:33 ipsws_v2.json
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 it.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 ja.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 ko.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 ms.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 nl.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 no.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 pl.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 pt.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 pt_PT.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 ro.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 ru.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 sk.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 sl.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 sv.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 th.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 tr.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 uk.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 vi.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 zh_CN.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 zh_HK.lproj
+drwxr-xr-x  4 root wheel    128 Aug 23 20:12 zh_TW.lproj
+/var/jb/Applications/VirtualMac.app/VirtualMac: Mach-O 64-bit arm64 executable, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|PIE>
+/var/jb/Applications/VirtualMac.app/VirtualMac:
+	/System/Library/Frameworks/AVFAudio.framework/AVFAudio (compatibility version 1.0.0, current version 1.0.0)
+	/System/Library/Frameworks/CoreImage.framework/CoreImage (compatibility version 1.0.0, current version 7.0.0)
+	/System/Library/Frameworks/Foundation.framework/Foundation (compatibility version 300.0.0, current version 5027.0.69)
+	/System/Library/Frameworks/GameController.framework/GameController (compatibility version 1.0.0, current version 14.0.24)
+	/System/Library/Frameworks/Metal.framework/Metal (compatibility version 1.0.0, current version 382.5.3)
+	/System/Library/Frameworks/Security.framework/Security (compatibility version 1.0.0, current version 62460.2.1)
+	/System/Library/Frameworks/UIKit.framework/UIKit (compatibility version 1.0.0, current version 9127.0.84)
+	/System/Library/Frameworks/UniformTypeIdentifiers.framework/UniformTypeIdentifiers (compatibility version 1.0.0, current version 709.0.0)
+	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1359.0.0)
+	/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation (compatibility version 150.0.0, current version 5027.0.69)
+	/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)
+Error: Object not found at keypath "p" in file /var/jb/Applications/VirtualMac.app/Info.plist
+bundle_id=unknown
+--- runtime payload sanity ---
+PRESENT=/var/root/VirtualMac/payload/Frameworks/Hypervisor.framework/Versions/A/Hypervisor
+-rwxr-xr-x 1 root wheel 179K Aug 22 19:34 /var/root/VirtualMac/payload/Frameworks/Hypervisor.framework/Versions/A/Hypervisor
+/var/root/VirtualMac/payload/Frameworks/Hypervisor.framework/Versions/A/Hypervisor: Mach-O 64-bit arm64e (caps: PAC00) dynamically linked shared library, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|NO_REEXPORTED_DYLIBS|APP_EXTENSION_SAFE>
+PRESENT=/var/root/VirtualMac/payload/Frameworks/Virtualization.framework/Versions/A/Virtualization
+-rwxr-xr-x 1 root wheel 1.8M Aug 22 19:34 /var/root/VirtualMac/payload/Frameworks/Virtualization.framework/Versions/A/Virtualization
+/var/root/VirtualMac/payload/Frameworks/Virtualization.framework/Versions/A/Virtualization: Mach-O 64-bit arm64e (caps: PAC00) dynamically linked shared library, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|WEAK_DEFINES|BINDS_TO_WEAK|NO_REEXPORTED_DYLIBS|APP_EXTENSION_SAFE>
+PRESENT=/var/root/VirtualMac/payload/VirtualMachine.xpc/Contents/MacOS/com.apple.Virtualization.VirtualMachine
+-rwxr-xr-x 1 root wheel 1.9M Aug 23 20:12 /var/root/VirtualMac/payload/VirtualMachine.xpc/Contents/MacOS/com.apple.Virtualization.VirtualMachine
+/var/root/VirtualMac/payload/VirtualMachine.xpc/Contents/MacOS/com.apple.Virtualization.VirtualMachine: Mach-O 64-bit arm64e (caps: PAC00) executable, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|WEAK_DEFINES|BINDS_TO_WEAK|PIE|HAS_TLV_DESCRIPTORS>
+PRESENT=/var/root/VirtualMac/install/install-launcher
+-rwsr-xr-x 1 root wheel 53K Aug 22 19:34 /var/root/VirtualMac/install/install-launcher
+/var/root/VirtualMac/install/install-launcher: setuid Mach-O 64-bit arm64 executable, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|PIE>
+PRESENT=/var/jb/usr/bin/virtualmac-diagnostics
+-rwxr-xr-x 1 root wheel 115K Aug 22 23:33 /var/jb/usr/bin/virtualmac-diagnostics
+/var/jb/usr/bin/virtualmac-diagnostics: Mach-O 64-bit arm64 executable, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|PIE>
+--- register and launch app ---
 uiopen_rc=0
- 5177   ??  Ss     0:03.03 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/TweakMedic.app/TweakMedic
-app_pid=5177
---- preferences registration ---
-total 72
-drwxr-xr-x  4 root wheel   128 Aug 23 17:33 .
-drwxr-xr-x 25 root wheel   800 Aug 23 17:31 ..
--rw-r--r--  1 root wheel  1455 Aug 23 17:32 Root.plist
--rwxr-xr-x  1 root wheel 67824 Aug 23 17:33 TweakMedicPrefs
--rw-r--r-- 1 root wheel 385 Aug 23 17:33 /var/jb/Library/PreferenceLoader/Preferences/TweakMedicPrefs.plist
-TWEAKMEDIC_DIAGNOSTIC_COMPLETE=true
+ 7660   ??  Ss     0:00.95 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/VirtualMac.app/VirtualMac
+virtualmac_app_pid=7660
+--- diagnostics ---
+2026-08-23 20:13:17.597 virtualmac-diagnostics[7669:128362] FLXX: Not extracting, blacklisted
+/var/mobile/Media/VirtualMac/Diagnostics/VirtualMac-Diagnostics-20260823-201317.zip
+--- recent crash evidence ---
+--- final ---
+APP_LAUNCH=PASS
+KERNEL_HYPERVISOR=UNAVAILABLE_OR_UNEXPOSED
+PATCHED_DEB=/var/mobile/Media/VirtualMac_1.2-ipad5-test.deb
+VIRTUALMAC12_IPAD5_TEST_COMPLETE=true
 ssh_exit_code=0
