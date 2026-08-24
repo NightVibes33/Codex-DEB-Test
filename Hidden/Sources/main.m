@@ -14,15 +14,15 @@
 static NSString * const HIDReportDirectory = @"/var/mobile/Library/Hidden";
 static NSString * const HIDReportPath = @"/var/mobile/Library/Hidden/latest-scan.json";
 
-static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSError **error) {
+static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSTimeInterval elapsed, NSError **error) {
     NSFileManager *fm = NSFileManager.defaultManager;
     if (![fm createDirectoryAtPath:HIDReportDirectory withIntermediateDirectories:YES attributes:nil error:error]) return NO;
 
     NSMutableDictionary<NSString *, NSNumber *> *categoryCounts = [NSMutableDictionary dictionary];
     NSMutableDictionary<NSString *, NSNumber *> *targetCounts = [NSMutableDictionary dictionary];
     NSMutableArray<NSDictionary *> *rows = [NSMutableArray array];
-
     NSUInteger limit = MIN(findings.count, (NSUInteger)750);
+
     for (NSUInteger i = 0; i < findings.count; i++) {
         HIDFinding *f = findings[i];
         categoryCounts[f.category] = @([categoryCounts[f.category] unsignedIntegerValue] + 1);
@@ -50,18 +50,18 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSError **error) {
     formatter.dateFormat = @"yyyy-MM-dd'T'HH:mm:ssZZZZZ";
 
     NSDictionary *report = @{
-        @"schema": @1,
+        @"schema": @2,
+        @"mode": @"fast-system",
         @"generatedAt": [formatter stringFromDate:NSDate.date],
+        @"elapsedSeconds": @(elapsed),
         @"os": NSProcessInfo.processInfo.operatingSystemVersionString ?: @"unknown",
         @"totalFindings": @(findings.count),
         @"reportedFindings": @(rows.count),
         @"categoryCounts": categoryCounts,
         @"topTargets": sortedTargets,
         @"scopes": @[
-            @"/System/Applications",
-            @"/Applications",
-            @"/System/Library/CoreServices",
-            @"/System/Library/PrivateFrameworks",
+            @"priority Apple system applications",
+            @"priority /System/Library/PrivateFrameworks",
             @"/System/Library/PreferenceBundles",
             @"/System/Library/PreferenceManifestsInternal"
         ],
@@ -90,30 +90,36 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSError **error) {
     return self;
 }
 
+- (BOOL)string:(NSString *)value containsAny:(NSArray<NSString *> *)needles {
+    NSString *lower = value.lowercaseString;
+    for (NSString *needle in needles) if ([lower containsString:needle]) return YES;
+    return NO;
+}
+
 - (NSString *)categoryForString:(NSString *)s {
     NSString *l = s.lowercaseString;
-    if ([l containsString:@"debug"] || [l containsString:@"diagnostic"] || [l containsString:@"developer"] || [l containsString:@"internalmenu"]) return @"Developer / Diagnostics";
-    if ([l containsString:@"experiment"] || [l containsString:@"prototype"] || [l containsString:@"trialfeature"] || [l containsString:@"variant"]) return @"Experimental";
-    if ([l containsString:@"support"] || [l containsString:@"capability"] || [l containsString:@"eligible"] || [l containsString:@"availability"] || [l containsString:@"deviceclass"]) return @"Capability Gate";
-    if ([l containsString:@"controller"] || [l containsString:@"viewcontroller"] || [l containsString:@"hidden"] || [l containsString:@"menu"] || [l containsString:@"specifier"]) return @"Hidden UI";
+    if ([self string:l containsAny:@[@"debug", @"diagnostic", @"developer", @"internalmenu", @"devmenu"]]) return @"Developer / Diagnostics";
+    if ([self string:l containsAny:@[@"experiment", @"prototype", @"trialfeature", @"variant", @"rollout"]]) return @"Experimental";
+    if ([self string:l containsAny:@[@"support", @"capability", @"eligible", @"availability", @"deviceclass", @"hardware"]]) return @"Capability Gate";
+    if ([self string:l containsAny:@[@"controller", @"viewcontroller", @"hidden", @"menu", @"specifier", @"preference"]]) return @"Hidden UI";
     return @"Feature Flag";
 }
 
 - (NSInteger)scoreForString:(NSString *)s source:(NSString *)source {
     NSString *l = s.lowercaseString;
     NSInteger score = 1;
-    NSArray *high = @[@"experimental", @"prototype", @"internal", @"diagnostic", @"debugmenu", @"developer", @"hidden"];
-    NSArray *medium = @[@"feature", @"enabled", @"enable", @"disabled", @"supports", @"capability", @"eligible", @"variant", @"specifier"];
+    NSArray *high = @[@"experimental", @"prototype", @"internal", @"diagnostic", @"debugmenu", @"developer", @"hidden", @"featureflag"];
+    NSArray *medium = @[@"feature", @"enabled", @"enable", @"disabled", @"supports", @"capability", @"eligible", @"variant", @"specifier", @"preference"];
     for (NSString *k in high) if ([l containsString:k]) score += 5;
     for (NSString *k in medium) if ([l containsString:k]) score += 2;
-    if ([source.pathExtension.lowercaseString isEqualToString:@"plist"] || [source.pathExtension.lowercaseString isEqualToString:@"json"]) score += 2;
+    NSString *ext = source.pathExtension.lowercaseString;
+    if ([ext isEqualToString:@"plist"] || [ext isEqualToString:@"json"] || [ext isEqualToString:@"strings"]) score += 2;
     if ([s rangeOfString:@" "].location == NSNotFound && s.length < 90) score += 1;
     return MIN(score, 20);
 }
 
 - (BOOL)isInteresting:(NSString *)s {
     if (s.length < 6 || s.length > 180) return NO;
-    NSString *l = s.lowercaseString;
     static NSArray<NSString *> *terms;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
@@ -121,10 +127,10 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSError **error) {
                   @"hidden", @"featureflag", @"feature_flag", @"featureenabled", @"enablefeature", @"disablefeature",
                   @"capability", @"eligible", @"availability", @"supports", @"unsupported", @"specifier", @"viewcontroller",
                   @"controlcenter", @"springboard", @"stage manager", @"stagemanager", @"siri", @"assistant", @"camera",
-                  @"multitasking", @"alwayson", @"always_on", @"carplay", @"internalsettings", @"developmentmenu"];
+                  @"multitasking", @"alwayson", @"always_on", @"carplay", @"internalsettings", @"developmentmenu",
+                  @"featureoverride", @"featuregate", @"feature_gate", @"rollout", @"trial", @"hardwarecapability"];
     });
-    for (NSString *term in terms) if ([l containsString:term]) return YES;
-    return NO;
+    return [self string:s containsAny:terms];
 }
 
 - (void)addEvidence:(NSString *)evidence target:(NSString *)target path:(NSString *)path {
@@ -139,13 +145,13 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSError **error) {
     f.target = target ?: @"System";
     f.category = [self categoryForString:trim];
     f.evidence = trim;
-    f.path = path;
-    f.score = [self scoreForString:trim source:path];
+    f.path = path ?: @"";
+    f.score = [self scoreForString:trim source:path ?: @""];
     [self.findings addObject:f];
 }
 
 - (void)scanStructuredObject:(id)obj target:(NSString *)target path:(NSString *)path prefix:(NSString *)prefix depth:(NSUInteger)depth {
-    if (!obj || depth > 8) return;
+    if (!obj || depth > 7) return;
     if ([obj isKindOfClass:NSDictionary.class]) {
         [(NSDictionary *)obj enumerateKeysAndObjectsUsingBlock:^(id key, id value, BOOL *stop) {
             (void)stop;
@@ -162,56 +168,90 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSError **error) {
         NSUInteger i = 0;
         for (id value in (NSArray *)obj) {
             [self scanStructuredObject:value target:target path:path prefix:[NSString stringWithFormat:@"%@[%lu]", prefix, (unsigned long)i] depth:depth + 1];
-            i++;
-            if (i > 200) break;
+            if (++i >= 120) break;
         }
     }
 }
 
 - (void)scanPlistAtPath:(NSString *)path target:(NSString *)target {
+    NSDictionary *attrs = [NSFileManager.defaultManager attributesOfItemAtPath:path error:nil];
+    if ([attrs fileSize] > (4ULL * 1024ULL * 1024ULL)) return;
     NSData *data = [NSData dataWithContentsOfFile:path options:NSDataReadingMappedIfSafe error:nil];
     if (!data.length) return;
-    NSPropertyListFormat fmt;
-    id obj = [NSPropertyListSerialization propertyListWithData:data options:NSPropertyListImmutable format:&fmt error:nil];
+    NSPropertyListFormat format;
+    id obj = [NSPropertyListSerialization propertyListWithData:data options:NSPropertyListImmutable format:&format error:nil];
     if (obj) [self scanStructuredObject:obj target:target path:path prefix:@"" depth:0];
 }
 
 - (void)scanJSONAtPath:(NSString *)path target:(NSString *)target {
+    NSDictionary *attrs = [NSFileManager.defaultManager attributesOfItemAtPath:path error:nil];
+    if ([attrs fileSize] > (4ULL * 1024ULL * 1024ULL)) return;
     NSData *data = [NSData dataWithContentsOfFile:path options:NSDataReadingMappedIfSafe error:nil];
     if (!data.length) return;
     id obj = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
     if (obj) [self scanStructuredObject:obj target:target path:path prefix:@"" depth:0];
 }
 
-- (void)emitToken:(NSMutableData *)token target:(NSString *)target path:(NSString *)path emitted:(NSUInteger *)emitted {
-    if (token.length < 6 || *emitted >= 160) return;
-    NSString *s = [[NSString alloc] initWithData:token encoding:NSUTF8StringEncoding];
-    if (s && [self isInteresting:s]) {
-        [self addEvidence:s target:target path:path];
-        (*emitted)++;
-    }
-}
-
-- (void)scanTextAtPath:(NSString *)path target:(NSString *)target {
-    NSDictionary *attrs = [[NSFileManager defaultManager] attributesOfItemAtPath:path error:nil];
-    unsigned long long size = [attrs fileSize];
-    if (size == 0 || size > (80ULL * 1024ULL * 1024ULL)) return;
-    NSData *data = [NSData dataWithContentsOfFile:path options:NSDataReadingMappedIfSafe error:nil];
-    if (!data.length) return;
+- (void)scanASCIIData:(NSData *)data range:(NSRange)range target:(NSString *)target path:(NSString *)path emitted:(NSUInteger *)emitted {
     const unsigned char *bytes = data.bytes;
     NSMutableData *token = [NSMutableData dataWithCapacity:128];
-    NSUInteger emitted = 0;
-    for (NSUInteger i = 0; i < data.length && emitted < 160; i++) {
+    NSUInteger end = NSMaxRange(range);
+    for (NSUInteger i = range.location; i < end && *emitted < 100; i++) {
         unsigned char c = bytes[i];
         BOOL printable = (c >= 0x20 && c <= 0x7e);
         if (printable && token.length < 181) {
             [token appendBytes:&c length:1];
         } else {
-            [self emitToken:token target:target path:path emitted:&emitted];
+            if (token.length >= 6) {
+                NSString *s = [[NSString alloc] initWithData:token encoding:NSUTF8StringEncoding];
+                if (s && [self isInteresting:s]) {
+                    [self addEvidence:s target:target path:path];
+                    (*emitted)++;
+                }
+            }
             [token setLength:0];
         }
     }
-    [self emitToken:token target:target path:path emitted:&emitted];
+    if (token.length >= 6 && *emitted < 100) {
+        NSString *s = [[NSString alloc] initWithData:token encoding:NSUTF8StringEncoding];
+        if (s && [self isInteresting:s]) {
+            [self addEvidence:s target:target path:path];
+            (*emitted)++;
+        }
+    }
+}
+
+- (void)scanTextAtPath:(NSString *)path target:(NSString *)target {
+    NSDictionary *attrs = [NSFileManager.defaultManager attributesOfItemAtPath:path error:nil];
+    unsigned long long size = [attrs fileSize];
+    if (size == 0 || size > (160ULL * 1024ULL * 1024ULL)) return;
+    NSData *data = [NSData dataWithContentsOfFile:path options:NSDataReadingMappedIfSafe error:nil];
+    if (!data.length) return;
+
+    const NSUInteger slice = 8U * 1024U * 1024U;
+    NSUInteger emitted = 0;
+    if (data.length <= slice * 2) {
+        [self scanASCIIData:data range:NSMakeRange(0, data.length) target:target path:path emitted:&emitted];
+    } else {
+        [self scanASCIIData:data range:NSMakeRange(0, slice) target:target path:path emitted:&emitted];
+        if (emitted < 100) [self scanASCIIData:data range:NSMakeRange(data.length - slice, slice) target:target path:path emitted:&emitted];
+    }
+}
+
+- (BOOL)shouldScanSystemAppName:(NSString *)name {
+    NSArray *priority = @[@"springboard", @"preferences", @"settings", @"camera", @"photo", @"mobilesms", @"message",
+                          @"facetime", @"phone", @"appstore", @"store", @"files", @"mobilefile", @"safari", @"shortcuts",
+                          @"home", @"health", @"music", @"tips", @"findmy", @"compass", @"weather"];
+    return [self string:name containsAny:priority];
+}
+
+- (BOOL)shouldScanPrivateFrameworkName:(NSString *)name {
+    NSArray *priority = @[@"springboard", @"controlcenter", @"preference", @"settings", @"camera", @"photo", @"siri", @"assistant",
+                          @"intelligence", @"gestalt", @"frontboard", @"backboard", @"boardservices", @"chat", @"message", @"telephony",
+                          @"call", @"carplay", @"multitask", @"homescreen", @"home", @"appstore", @"storekit", @"trial", @"feature",
+                          @"proactive", @"coreduet", @"lockscreen", @"coversheet", @"chrono", @"sharing", @"accessibility", @"account",
+                          @"mobileactivation", @"mobilekeybag", @"biometric", @"passcode", @"display", @"battery", @"thermal", @"wifi"];
+    return [self string:name containsAny:priority];
 }
 
 - (void)scanBundle:(NSString *)bundlePath target:(NSString *)target {
@@ -226,14 +266,14 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSError **error) {
     } else {
         NSString *candidateName = bundlePath.lastPathComponent.stringByDeletingPathExtension;
         NSString *candidate = [bundlePath stringByAppendingPathComponent:candidateName];
-        if ([[NSFileManager defaultManager] isReadableFileAtPath:candidate]) exePath = candidate;
+        if ([NSFileManager.defaultManager isReadableFileAtPath:candidate]) exePath = candidate;
     }
     if (exePath.length) [self scanTextAtPath:exePath target:target];
 
-    NSDirectoryEnumerator *en = [[NSFileManager defaultManager] enumeratorAtURL:[NSURL fileURLWithPath:bundlePath]
-                                                     includingPropertiesForKeys:@[NSURLIsRegularFileKey]
-                                                                        options:NSDirectoryEnumerationSkipsHiddenFiles
-                                                                   errorHandler:nil];
+    NSDirectoryEnumerator *en = [NSFileManager.defaultManager enumeratorAtURL:[NSURL fileURLWithPath:bundlePath]
+                                                    includingPropertiesForKeys:@[NSURLIsRegularFileKey]
+                                                                       options:NSDirectoryEnumerationSkipsHiddenFiles
+                                                                  errorHandler:nil];
     NSUInteger resourceCount = 0;
     for (NSURL *url in en) {
         NSString *ext = url.pathExtension.lowercaseString;
@@ -244,7 +284,7 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSError **error) {
             [self scanPlistAtPath:url.path target:target];
             resourceCount++;
         }
-        if (resourceCount > 120) break;
+        if (resourceCount >= 32) break;
     }
 }
 
@@ -254,47 +294,48 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSError **error) {
     NSFileManager *fm = NSFileManager.defaultManager;
 
     NSArray<NSString *> *appRoots = @[@"/System/Applications", @"/Applications", @"/System/Library/CoreServices"];
+    NSUInteger appCount = 0;
     for (NSString *root in appRoots) {
-        NSArray<NSString *> *children = [fm contentsOfDirectoryAtPath:root error:nil];
-        for (NSString *name in children) {
-            if (![name.pathExtension.lowercaseString isEqualToString:@"app"]) continue;
+        for (NSString *name in [fm contentsOfDirectoryAtPath:root error:nil]) {
+            if (![name.pathExtension.lowercaseString isEqualToString:@"app"] || ![self shouldScanSystemAppName:name]) continue;
             NSString *path = [root stringByAppendingPathComponent:name];
             NSString *target = name.stringByDeletingPathExtension;
             if (progress) progress([NSString stringWithFormat:@"Scanning %@…", target]);
             @autoreleasepool { [self scanBundle:path target:target]; }
+            if (++appCount >= 28) break;
         }
     }
 
     NSString *pfRoot = @"/System/Library/PrivateFrameworks";
-    NSArray<NSString *> *frameworks = [fm contentsOfDirectoryAtPath:pfRoot error:nil];
     NSUInteger fwCount = 0;
-    for (NSString *name in frameworks) {
-        if (![name.pathExtension.lowercaseString isEqualToString:@"framework"]) continue;
+    for (NSString *name in [fm contentsOfDirectoryAtPath:pfRoot error:nil]) {
+        if (![name.pathExtension.lowercaseString isEqualToString:@"framework"] || ![self shouldScanPrivateFrameworkName:name]) continue;
         NSString *path = [pfRoot stringByAppendingPathComponent:name];
         NSString *target = [NSString stringWithFormat:@"%@ (PrivateFramework)", name.stringByDeletingPathExtension];
-        if (progress && fwCount % 20 == 0) progress([NSString stringWithFormat:@"Scanning PrivateFrameworks… %lu", (unsigned long)fwCount]);
+        if (progress && fwCount % 8 == 0) progress([NSString stringWithFormat:@"Scanning priority PrivateFrameworks… %lu", (unsigned long)fwCount]);
         @autoreleasepool { [self scanBundle:path target:target]; }
-        fwCount++;
-        if (fwCount >= 260) break;
+        if (++fwCount >= 90) break;
     }
 
     NSArray<NSString *> *prefRoots = @[@"/System/Library/PreferenceBundles", @"/System/Library/PreferenceManifestsInternal"];
     for (NSString *root in prefRoots) {
-        NSArray<NSString *> *children = [fm contentsOfDirectoryAtPath:root error:nil];
-        for (NSString *name in children) {
+        if (progress) progress([NSString stringWithFormat:@"Scanning %@…", root.lastPathComponent]);
+        NSUInteger prefCount = 0;
+        for (NSString *name in [fm contentsOfDirectoryAtPath:root error:nil]) {
             NSString *path = [root stringByAppendingPathComponent:name];
             BOOL isDir = NO;
             if (![fm fileExistsAtPath:path isDirectory:&isDir]) continue;
             if (isDir) [self scanBundle:path target:[NSString stringWithFormat:@"Settings/%@", name.stringByDeletingPathExtension]];
             else if ([name.pathExtension.lowercaseString isEqualToString:@"plist"]) [self scanPlistAtPath:path target:@"Settings"];
             else if ([name.pathExtension.lowercaseString isEqualToString:@"json"]) [self scanJSONAtPath:path target:@"Settings"];
+            if (++prefCount >= 180) break;
         }
     }
 
     [self.findings sortUsingComparator:^NSComparisonResult(HIDFinding *a, HIDFinding *b) {
         if (a.score != b.score) return a.score > b.score ? NSOrderedAscending : NSOrderedDescending;
-        NSComparisonResult target = [a.target compare:b.target options:NSCaseInsensitiveSearch];
-        if (target != NSOrderedSame) return target;
+        NSComparisonResult targetOrder = [a.target compare:b.target options:NSCaseInsensitiveSearch];
+        if (targetOrder != NSOrderedSame) return targetOrder;
         return [a.evidence compare:b.evidence options:NSCaseInsensitiveSearch];
     }];
     return self.findings.copy;
@@ -305,7 +346,6 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSError **error) {
 @property(nonatomic,strong) NSArray<HIDFinding *> *allFindings;
 @property(nonatomic,strong) NSArray<HIDFinding *> *visibleFindings;
 @property(nonatomic,strong) UILabel *statusLabel;
-@property(nonatomic,strong) UIActivityIndicatorView *spinner;
 @property(nonatomic,strong) UISearchController *searchController;
 @property(nonatomic,assign) BOOL scanRunning;
 @end
@@ -325,40 +365,38 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSError **error) {
     self.searchController.searchBar.placeholder = @"Search SpringBoard, Siri, Camera…";
     self.navigationItem.searchController = self.searchController;
     self.navigationItem.hidesSearchBarWhenScrolling = NO;
-
     self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Scan" style:UIBarButtonItemStyleDone target:self action:@selector(runScan)];
 
     UIView *header = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 1, 74)];
     self.statusLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 10, 700, 48)];
     self.statusLabel.numberOfLines = 2;
-    self.statusLabel.text = @"Apple system discovery engine\nPreparing automatic system scan…";
+    self.statusLabel.text = @"Apple system discovery engine\nPreparing fast system scan…";
     self.statusLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleSubheadline];
     [header addSubview:self.statusLabel];
     self.tableView.tableHeaderView = header;
 
     self.allFindings = @[];
     self.visibleFindings = @[];
-
     __weak typeof(self) weakSelf = self;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.45 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        [weakSelf runScan];
-    });
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.45 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{ [weakSelf runScan]; });
 }
 
 - (void)runScan {
     if (self.scanRunning) return;
     self.scanRunning = YES;
     self.navigationItem.rightBarButtonItem.enabled = NO;
-    self.statusLabel.text = @"Starting system scan…";
+    self.statusLabel.text = @"Starting fast system scan…";
     __weak typeof(self) weakSelf = self;
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+        NSDate *started = NSDate.date;
         HIDScanner *scanner = [HIDScanner new];
         NSArray *results = [scanner scanWithProgress:^(NSString *status) {
             dispatch_async(dispatch_get_main_queue(), ^{ weakSelf.statusLabel.text = status; });
         }];
+        NSTimeInterval elapsed = -[started timeIntervalSinceNow];
         NSError *reportError = nil;
-        BOOL reportSaved = HIDWriteReport(results, &reportError);
-        NSString *reportStatus = reportSaved ? @"Report saved for device verification." : [NSString stringWithFormat:@"Report error: %@", reportError.localizedDescription ?: @"unknown"];
+        BOOL reportSaved = HIDWriteReport(results, elapsed, &reportError);
+        NSString *reportStatus = reportSaved ? [NSString stringWithFormat:@"Completed in %.1fs. Report saved.", elapsed] : [NSString stringWithFormat:@"Report error: %@", reportError.localizedDescription ?: @"unknown"];
         dispatch_async(dispatch_get_main_queue(), ^{
             weakSelf.allFindings = results;
             weakSelf.visibleFindings = results;
@@ -406,15 +444,11 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSError **error) {
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
     HIDFinding *f = self.visibleFindings[indexPath.row];
     NSString *msg = [NSString stringWithFormat:@"Category: %@\nScore: %ld\n\nEvidence:\n%@\n\nSource:\n%@", f.category, (long)f.score, f.evidence, f.path];
-    UIAlertController *a = [UIAlertController alertControllerWithTitle:f.target message:msg preferredStyle:UIAlertControllerStyleAlert];
-    [a addAction:[UIAlertAction actionWithTitle:@"Copy Evidence" style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction *action) {
-        UIPasteboard.generalPasteboard.string = f.evidence;
-    }]];
-    [a addAction:[UIAlertAction actionWithTitle:@"Copy Path" style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction *action) {
-        UIPasteboard.generalPasteboard.string = f.path;
-    }]];
-    [a addAction:[UIAlertAction actionWithTitle:@"Done" style:UIAlertActionStyleCancel handler:nil]];
-    [self presentViewController:a animated:YES completion:nil];
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:f.target message:msg preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:@"Copy Evidence" style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction *action) { UIPasteboard.generalPasteboard.string = f.evidence; }]];
+    [alert addAction:[UIAlertAction actionWithTitle:@"Copy Path" style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction *action) { UIPasteboard.generalPasteboard.string = f.path; }]];
+    [alert addAction:[UIAlertAction actionWithTitle:@"Done" style:UIAlertActionStyleCancel handler:nil]];
+    [self presentViewController:alert animated:YES completion:nil];
 }
 @end
 
@@ -426,15 +460,12 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSError **error) {
     (void)application; (void)launchOptions;
     self.window = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
     HIDViewController *vc = [[HIDViewController alloc] initWithStyle:UITableViewStyleInsetGrouped];
-    UINavigationController *nav = [[UINavigationController alloc] initWithRootViewController:vc];
-    self.window.rootViewController = nav;
+    self.window.rootViewController = [[UINavigationController alloc] initWithRootViewController:vc];
     [self.window makeKeyAndVisible];
     return YES;
 }
 @end
 
 int main(int argc, char *argv[]) {
-    @autoreleasepool {
-        return UIApplicationMain(argc, argv, nil, NSStringFromClass(HIDAppDelegate.class));
-    }
+    @autoreleasepool { return UIApplicationMain(argc, argv, nil, NSStringFromClass(HIDAppDelegate.class)); }
 }
