@@ -1,9 +1,9 @@
 # Hidden Build / Device Status
 
-- Run: 32675376114
-- Commit: c5e91f4454b680469db636fbff7753ce12226a79
+- Run: 32675576855
+- Commit: ee31e5b34335711805efd8621196b0fb27d70ca3
 - Build step: success
-- Device step: success
+- Device step: failure
 
 ## Device proof and scan summary
 ```text
@@ -15,38 +15,8 @@ Unpacking com.nightvibes.hidden (0.1.0) over (0.1.0) ...
 Setting up com.nightvibes.hidden (0.1.0) ...
 Processing triggers for uikittools (2.1.8) ...
 installed_version=0.1.0
-hidden_pid=6271
-scan_report_bytes=216180
-package_payload=pass
-uicache=pass
-homescreen_launch=pass
-system_scan_report=pass
-device_proof=success
-scan_total_findings=7913
-scan_reported_findings=750
-scan_os=Version 16.7.11 (Build 20H360)
-scan_category_counts={"Capability Gate":481,"Developer / Diagnostics":559,"Experimental":21,"Feature Flag":1876,"Hidden UI":4976}
-scan_top_targets=Settings/AccessibilitySettings, SpringBoard, Settings/DeveloperSettings, MobileSMS, Settings/CameraSettings, Settings/HearingSettings, SpringBoardUIServices (PrivateFramework), Settings/AppClipDeveloperSettings, AppStore, Settings/MobileSlideShowSettings, HomeUIService, Settings/MusicSettings, StoreKitUIService, Settings/InternationalSettings, Preferences
-finding_01=score:14 | Settings/CallWaitingTelephonySettings | Developer / Diagnostics | _os_variant_has_internal_diagnostics | /System/Library/PreferenceBundles/CallWaitingTelephonySettings.bundle/CallWaitingTelephonySettings
-finding_02=score:14 | Settings/DeveloperSettings | Developer / Diagnostics | items[51].set = setWidgetKitDeveloperModeEnabled:specifier: | /System/Library/PreferenceBundles/DeveloperSettings.bundle/DTSettings.plist
-finding_03=score:14 | Settings/DictionarySettings | Developer / Diagnostics | _os_variant_has_internal_diagnostics | /System/Library/PreferenceBundles/DictionarySettings.bundle/DictionarySettings
-finding_04=score:13 | Settings/FocusSettings | Feature Flag | _$s12FeatureFlags02isA7EnabledySbAA0aB3Key_pF | /System/Library/PreferenceBundles/FocusSettings.bundle/FocusSettings
-finding_05=score:13 | Settings/HomeSettings | Developer / Diagnostics | _HFPreferencesInternalDebuggingEnabledKey | /System/Library/PreferenceBundles/HomeSettings.bundle/HomeSettings
-finding_06=score:12 | Settings/AppClipDeveloperSettings | Developer / Diagnostics | $s24AppClipDeveloperSettings0C15DiagnosticsViewV4bodyQrvp | /System/Library/PreferenceBundles/AppClipDeveloperSettings.bundle/AppClipDeveloperSettings
-finding_07=score:12 | Settings/AppClipDeveloperSettings | Developer / Diagnostics | $s24AppClipDeveloperSettings0C24DiagnosticsView_PreviewsV8previewsQrvpZ | /System/Library/PreferenceBundles/AppClipDeveloperSettings.bundle/AppClipDeveloperSettings
-finding_08=score:12 | Settings/AppClipDeveloperSettings | Developer / Diagnostics | _TtC24AppClipDeveloperSettings29DeveloperDiagnosticsViewModel | /System/Library/PreferenceBundles/AppClipDeveloperSettings.bundle/AppClipDeveloperSettings
-finding_09=score:12 | Settings/AppClipDeveloperSettings | Developer / Diagnostics | _TtC24AppClipDeveloperSettings41DeveloperDiagnosticsViewControllerFactory | /System/Library/PreferenceBundles/AppClipDeveloperSettings.bundle/AppClipDeveloperSettings
-finding_10=score:12 | Settings/AppClipDeveloperSettings | Developer / Diagnostics | appClipsDeveloperDiagnosticsViewController | /System/Library/PreferenceBundles/AppClipDeveloperSettings.bundle/AppClipDeveloperSettings
-finding_11=score:12 | Settings/AppClipDeveloperSettings | Developer / Diagnostics | developer_diagnostics | /System/Library/PreferenceBundles/AppClipDeveloperSettings.bundle/AppClipDeveloperSettings
-finding_12=score:12 | Settings/AppClipDeveloperSettings | Developer / Diagnostics | DeveloperDiagnosticsView | /System/Library/PreferenceBundles/AppClipDeveloperSettings.bundle/AppClipDeveloperSettings
-finding_13=score:12 | Settings/AppClipDeveloperSettings | Developer / Diagnostics | DeveloperDiagnosticsView_Previews | /System/Library/PreferenceBundles/AppClipDeveloperSettings.bundle/AppClipDeveloperSettings
-finding_14=score:12 | Settings/AppClipDeveloperSettings | Developer / Diagnostics | DeveloperDiagnosticsViewControllerFactory | /System/Library/PreferenceBundles/AppClipDeveloperSettings.bundle/AppClipDeveloperSettings
-finding_15=score:12 | Settings/AppClipDeveloperSettings | Developer / Diagnostics | DeveloperDiagnosticsViewModel | /System/Library/PreferenceBundles/AppClipDeveloperSettings.bundle/AppClipDeveloperSettings
-finding_16=score:12 | Settings/AppClipDeveloperSettings | Developer / Diagnostics | universalLinksDeveloperDiagnosticsViewController | /System/Library/PreferenceBundles/AppClipDeveloperSettings.bundle/AppClipDeveloperSettings
-finding_17=score:12 | Settings/DeveloperSettings | Developer / Diagnostics | developer_diagnostics | /System/Library/PreferenceBundles/DeveloperSettings.bundle/DeveloperSettings
-finding_18=score:12 | Settings/DeveloperSettings | Developer / Diagnostics | items[51].get = getWidgetKitDeveloperModeEnabled: | /System/Library/PreferenceBundles/DeveloperSettings.bundle/DTSettings.plist
-finding_19=score:12 | Settings/DeveloperSettings | Developer / Diagnostics | items[51].key = widgetKitDeveloperModeEnabled | /System/Library/PreferenceBundles/DeveloperSettings.bundle/DTSettings.plist
-finding_20=score:12 | Settings/DeveloperSettings | Developer / Diagnostics | items[51].label = WIDGETKIT_DEVELOPER_MODE_ENABLED | /System/Library/PreferenceBundles/DeveloperSettings.bundle/DTSettings.plist
+hidden_pid=6342
+Timeout, server 100.116.117.65 not responding.
 ```
 
 ## Validation log
@@ -57,13 +27,13 @@ package_name=com.nightvibes.hidden
 package_version=0.1.0
 package_arch=iphoneos-arm64
 package_contents_begin
-drwxr-xr-x 0/root            0 2026-08-24 00:02 .
-drwxr-xr-x 0/root            0 2026-08-24 00:02 var
-drwxr-xr-x 0/root            0 2026-08-24 00:02 var/jb
-drwxr-xr-x 0/root            0 2026-08-24 00:02 var/jb/Applications
-drwxr-xr-x 0/root            0 2026-08-24 00:02 var/jb/Applications/Hidden.app
--rwxr-xr-x 0/root       107024 2026-08-24 00:02 var/jb/Applications/Hidden.app/Hidden
--rw-r--r-- 0/root         1613 2026-08-24 00:02 var/jb/Applications/Hidden.app/Info.plist
+drwxr-xr-x 0/root            0 2026-08-24 00:06 .
+drwxr-xr-x 0/root            0 2026-08-24 00:06 var
+drwxr-xr-x 0/root            0 2026-08-24 00:06 var/jb
+drwxr-xr-x 0/root            0 2026-08-24 00:06 var/jb/Applications
+drwxr-xr-x 0/root            0 2026-08-24 00:06 var/jb/Applications/Hidden.app
+-rwxr-xr-x 0/root       107120 2026-08-24 00:06 var/jb/Applications/Hidden.app/Hidden
+-rw-r--r-- 0/root         1613 2026-08-24 00:06 var/jb/Applications/Hidden.app/Info.plist
 package_contents_end
 extracted_files_begin
 hidden-deb-root/var/jb/Applications/Hidden.app/Hidden
@@ -75,7 +45,7 @@ signature_ok=/System/Library/PrivateFrameworks
 signature_ok=PreferenceManifestsInternal
 signature_note=not_present_in_final_binary:Scanning PrivateFrameworks
 source_scanner_targets=pass
-24b591e11788a25247c5014bcc98b2f4afcff3855d75a7a67c88b89dc0698173  Hidden-0.1.0-rootless.deb
+1da4791d28ba33f14dd09176fed2d800c7a656d6175a767623758ae59f9e5c05  Hidden-0.1.0-rootless.deb
 package_validation=success
 ```
 
