@@ -21,7 +21,7 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSTimeInterval elaps
     NSMutableDictionary<NSString *, NSNumber *> *categoryCounts = [NSMutableDictionary dictionary];
     NSMutableDictionary<NSString *, NSNumber *> *targetCounts = [NSMutableDictionary dictionary];
     NSMutableArray<NSDictionary *> *rows = [NSMutableArray array];
-    NSUInteger limit = MIN(findings.count, (NSUInteger)750);
+    NSUInteger limit = MIN(findings.count, (NSUInteger)1000);
 
     for (NSUInteger i = 0; i < findings.count; i++) {
         HIDFinding *f = findings[i];
@@ -50,7 +50,7 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSTimeInterval elaps
     formatter.dateFormat = @"yyyy-MM-dd'T'HH:mm:ssZZZZZ";
 
     NSDictionary *report = @{
-        @"schema": @2,
+        @"schema": @3,
         @"mode": @"fast-system",
         @"generatedAt": [formatter stringFromDate:NSDate.date],
         @"elapsedSeconds": @(elapsed),
@@ -96,11 +96,18 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSTimeInterval elaps
     return NO;
 }
 
+- (BOOL)isNoise:(NSString *)s {
+    NSString *l = s.lowercaseString;
+    NSArray *noise = @[@"dtsdkname", @"dtplatformname", @"dtplatformversion", @"dtcompiler", @"dtxcode",
+                       @"uistatusbarhidden", @"unnotificationextensiondefaultcontenthidden"];
+    return [self string:l containsAny:noise];
+}
+
 - (NSString *)categoryForString:(NSString *)s {
     NSString *l = s.lowercaseString;
     if ([self string:l containsAny:@[@"debug", @"diagnostic", @"developer", @"internalmenu", @"devmenu"]]) return @"Developer / Diagnostics";
     if ([self string:l containsAny:@[@"experiment", @"prototype", @"trialfeature", @"variant", @"rollout"]]) return @"Experimental";
-    if ([self string:l containsAny:@[@"support", @"capability", @"eligible", @"availability", @"deviceclass", @"hardware"]]) return @"Capability Gate";
+    if ([self string:l containsAny:@[@"capability", @"eligible", @"availability", @"deviceclass", @"hardware", @"supports"]]) return @"Capability Gate";
     if ([self string:l containsAny:@[@"controller", @"viewcontroller", @"hidden", @"menu", @"specifier", @"preference"]]) return @"Hidden UI";
     return @"Feature Flag";
 }
@@ -112,6 +119,9 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSTimeInterval elaps
     NSArray *medium = @[@"feature", @"enabled", @"enable", @"disabled", @"supports", @"capability", @"eligible", @"variant", @"specifier", @"preference"];
     for (NSString *k in high) if ([l containsString:k]) score += 5;
     for (NSString *k in medium) if ([l containsString:k]) score += 2;
+    if ([l hasPrefix:@"specifier "]) score += 4;
+    if ([l containsString:@" key="]) score += 2;
+    if ([l containsString:@" set="] || [l containsString:@" get="]) score += 2;
     NSString *ext = source.pathExtension.lowercaseString;
     if ([ext isEqualToString:@"plist"] || [ext isEqualToString:@"json"] || [ext isEqualToString:@"strings"]) score += 2;
     if ([s rangeOfString:@" "].location == NSNotFound && s.length < 90) score += 1;
@@ -119,7 +129,7 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSTimeInterval elaps
 }
 
 - (BOOL)isInteresting:(NSString *)s {
-    if (s.length < 6 || s.length > 180) return NO;
+    if (s.length < 6 || s.length > 320 || [self isNoise:s]) return NO;
     static NSArray<NSString *> *terms;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
@@ -150,10 +160,38 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSTimeInterval elaps
     [self.findings addObject:f];
 }
 
+- (id)valueForCaseInsensitiveKey:(NSString *)wanted dictionary:(NSDictionary *)dictionary {
+    for (id rawKey in dictionary) {
+        NSString *key = [[rawKey description] lowercaseString];
+        if ([key isEqualToString:wanted.lowercaseString]) return dictionary[rawKey];
+    }
+    return nil;
+}
+
+- (void)addSpecifierSummaryForDictionary:(NSDictionary *)dictionary target:(NSString *)target path:(NSString *)path prefix:(NSString *)prefix {
+    NSArray<NSString *> *fieldNames = @[@"label", @"key", @"get", @"set", @"defaults", @"identifier", @"id", @"postnotification"];
+    NSMutableArray<NSString *> *parts = [NSMutableArray array];
+    BOOL useful = NO;
+    for (NSString *field in fieldNames) {
+        id value = [self valueForCaseInsensitiveKey:field dictionary:dictionary];
+        if (![value isKindOfClass:NSString.class] && ![value isKindOfClass:NSNumber.class]) continue;
+        NSString *text = [value description];
+        if ([self isInteresting:text]) useful = YES;
+        if (text.length > 100) text = [text substringToIndex:100];
+        [parts addObject:[NSString stringWithFormat:@"%@=%@", field, text]];
+    }
+    if (!useful || parts.count < 2) return;
+    NSString *summary = [NSString stringWithFormat:@"Specifier %@ | %@", prefix.length ? prefix : @"item", [parts componentsJoinedByString:@" | "]];
+    if (summary.length > 320) summary = [summary substringToIndex:320];
+    [self addEvidence:summary target:target path:path];
+}
+
 - (void)scanStructuredObject:(id)obj target:(NSString *)target path:(NSString *)path prefix:(NSString *)prefix depth:(NSUInteger)depth {
     if (!obj || depth > 7) return;
     if ([obj isKindOfClass:NSDictionary.class]) {
-        [(NSDictionary *)obj enumerateKeysAndObjectsUsingBlock:^(id key, id value, BOOL *stop) {
+        NSDictionary *dictionary = (NSDictionary *)obj;
+        [self addSpecifierSummaryForDictionary:dictionary target:target path:path prefix:prefix];
+        [dictionary enumerateKeysAndObjectsUsingBlock:^(id key, id value, BOOL *stop) {
             (void)stop;
             NSString *k = [key description];
             NSString *full = prefix.length ? [NSString stringWithFormat:@"%@.%@", prefix, k] : k;
@@ -199,7 +237,7 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSTimeInterval elaps
     for (NSUInteger i = range.location; i < end && *emitted < 100; i++) {
         unsigned char c = bytes[i];
         BOOL printable = (c >= 0x20 && c <= 0x7e);
-        if (printable && token.length < 181) {
+        if (printable && token.length < 321) {
             [token appendBytes:&c length:1];
         } else {
             if (token.length >= 6) {
@@ -347,6 +385,7 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSTimeInterval elaps
 @property(nonatomic,strong) NSArray<HIDFinding *> *visibleFindings;
 @property(nonatomic,strong) UILabel *statusLabel;
 @property(nonatomic,strong) UISearchController *searchController;
+@property(nonatomic,strong) UISegmentedControl *filterControl;
 @property(nonatomic,assign) BOOL scanRunning;
 @end
 
@@ -356,7 +395,7 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSTimeInterval elaps
     [super viewDidLoad];
     self.title = @"Hidden";
     self.view.backgroundColor = UIColor.systemBackgroundColor;
-    self.tableView.rowHeight = 72.0;
+    self.tableView.rowHeight = 78.0;
     self.tableView.keyboardDismissMode = UIScrollViewKeyboardDismissModeOnDrag;
 
     self.searchController = [[UISearchController alloc] initWithSearchResultsController:nil];
@@ -367,18 +406,52 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSTimeInterval elaps
     self.navigationItem.hidesSearchBarWhenScrolling = NO;
     self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Scan" style:UIBarButtonItemStyleDone target:self action:@selector(runScan)];
 
-    UIView *header = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 1, 74)];
-    self.statusLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 10, 700, 48)];
+    UIView *header = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 1, 116)];
+    self.statusLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 8, 700, 50)];
     self.statusLabel.numberOfLines = 2;
     self.statusLabel.text = @"Apple system discovery engine\nPreparing fast system scan…";
     self.statusLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleSubheadline];
     [header addSubview:self.statusLabel];
+
+    self.filterControl = [[UISegmentedControl alloc] initWithItems:@[@"Top", @"Gates", @"Experimental", @"Dev", @"All"]];
+    self.filterControl.frame = CGRectMake(20, 68, 700, 34);
+    self.filterControl.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+    self.filterControl.selectedSegmentIndex = 0;
+    [self.filterControl addTarget:self action:@selector(filterChanged) forControlEvents:UIControlEventValueChanged];
+    [header addSubview:self.filterControl];
     self.tableView.tableHeaderView = header;
 
     self.allFindings = @[];
     self.visibleFindings = @[];
     __weak typeof(self) weakSelf = self;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.45 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{ [weakSelf runScan]; });
+}
+
+- (BOOL)finding:(HIDFinding *)finding matchesSelectedFilter:(NSInteger)filter {
+    switch (filter) {
+        case 0: return finding.score >= 10;
+        case 1: return [finding.category isEqualToString:@"Capability Gate"] || [finding.evidence.lowercaseString containsString:@" key="] || [finding.evidence.lowercaseString containsString:@" set="];
+        case 2: return [finding.category isEqualToString:@"Experimental"];
+        case 3: return [finding.category isEqualToString:@"Developer / Diagnostics"];
+        default: return YES;
+    }
+}
+
+- (void)refreshVisibleFindings {
+    NSString *query = self.searchController.searchBar.text.lowercaseString ?: @"";
+    NSInteger filter = self.filterControl.selectedSegmentIndex;
+    self.visibleFindings = [self.allFindings filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(HIDFinding *f, NSDictionary *bindings) {
+        (void)bindings;
+        if (![self finding:f matchesSelectedFilter:filter]) return NO;
+        if (query.length == 0) return YES;
+        NSString *haystack = [[NSString stringWithFormat:@"%@ %@ %@ %@", f.target, f.category, f.evidence, f.path] lowercaseString];
+        return [haystack containsString:query];
+    }]];
+    [self.tableView reloadData];
+}
+
+- (void)filterChanged {
+    [self refreshVisibleFindings];
 }
 
 - (void)runScan {
@@ -399,26 +472,17 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSTimeInterval elaps
         NSString *reportStatus = reportSaved ? [NSString stringWithFormat:@"Completed in %.1fs. Report saved.", elapsed] : [NSString stringWithFormat:@"Report error: %@", reportError.localizedDescription ?: @"unknown"];
         dispatch_async(dispatch_get_main_queue(), ^{
             weakSelf.allFindings = results;
-            weakSelf.visibleFindings = results;
             weakSelf.statusLabel.text = [NSString stringWithFormat:@"%lu discoveries ranked by confidence.\n%@", (unsigned long)results.count, reportStatus];
             weakSelf.scanRunning = NO;
             weakSelf.navigationItem.rightBarButtonItem.enabled = YES;
-            [weakSelf.tableView reloadData];
+            [weakSelf refreshVisibleFindings];
         });
     });
 }
 
 - (void)updateSearchResultsForSearchController:(UISearchController *)searchController {
-    NSString *q = searchController.searchBar.text.lowercaseString;
-    if (q.length == 0) self.visibleFindings = self.allFindings;
-    else {
-        self.visibleFindings = [self.allFindings filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(HIDFinding *f, NSDictionary *bindings) {
-            (void)bindings;
-            NSString *haystack = [[NSString stringWithFormat:@"%@ %@ %@ %@", f.target, f.category, f.evidence, f.path] lowercaseString];
-            return [haystack containsString:q];
-        }]];
-    }
-    [self.tableView reloadData];
+    (void)searchController;
+    [self refreshVisibleFindings];
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
@@ -443,7 +507,7 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSTimeInterval elaps
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
     HIDFinding *f = self.visibleFindings[indexPath.row];
-    NSString *msg = [NSString stringWithFormat:@"Category: %@\nScore: %ld\n\nEvidence:\n%@\n\nSource:\n%@", f.category, (long)f.score, f.evidence, f.path];
+    NSString *msg = [NSString stringWithFormat:@"Category: %@\nScore: %ld\n\nEvidence / gate:\n%@\n\nSource:\n%@", f.category, (long)f.score, f.evidence, f.path];
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:f.target message:msg preferredStyle:UIAlertControllerStyleAlert];
     [alert addAction:[UIAlertAction actionWithTitle:@"Copy Evidence" style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction *action) { UIPasteboard.generalPasteboard.string = f.evidence; }]];
     [alert addAction:[UIAlertAction actionWithTitle:@"Copy Path" style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction *action) { UIPasteboard.generalPasteboard.string = f.path; }]];
