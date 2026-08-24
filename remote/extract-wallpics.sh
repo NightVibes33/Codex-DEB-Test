@@ -1,4 +1,5 @@
 #!/bin/sh
+# extraction trigger 2026-08-23
 set -eu
 export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
 
@@ -33,16 +34,10 @@ match_app() {
 }
 
 APP=''
-
-# Fast path: obvious bundle names.
-for p in \
-  /var/jb/Applications/WallPics.app \
-  /Applications/WallPics.app \
-  /System/Applications/WallPics.app; do
+for p in /var/jb/Applications/WallPics.app /Applications/WallPics.app /System/Applications/WallPics.app; do
   if [ -d "$p" ]; then APP="$p"; break; fi
 done
 
-# App Store / TrollStore-style containers.
 if [ -z "$APP" ]; then
   for root in /var/containers/Bundle/Application /private/var/containers/Bundle/Application; do
     [ -d "$root" ] || continue
@@ -57,7 +52,6 @@ if [ -z "$APP" ]; then
   done
 fi
 
-# Jailbreak app directories and any nonstandard locations under /var/jb/Applications.
 if [ -z "$APP" ]; then
   for root in /var/jb/Applications /Applications /System/Applications; do
     [ -d "$root" ] || continue
@@ -75,8 +69,7 @@ fi
 if [ -z "$APP" ] || [ ! -d "$APP" ]; then
   echo 'WALLPICS_EXPORT_FAIL=app_not_found'
   echo 'Candidate app names containing wall/pics:'
-  find /var/containers/Bundle/Application /private/var/containers/Bundle/Application /var/jb/Applications /Applications /System/Applications \
-    -maxdepth 3 -type d -name '*.app' 2>/dev/null | grep -Ei 'wall|pics' | sed -n '1,100p' || true
+  find /var/containers/Bundle/Application /private/var/containers/Bundle/Application /var/jb/Applications /Applications /System/Applications -maxdepth 3 -type d -name '*.app' 2>/dev/null | grep -Ei 'wall|pics' | sed -n '1,100p' || true
   exit 2
 fi
 
@@ -117,7 +110,6 @@ else
 fi
 
 [ -s "$OUT_ZIP" ] || { echo 'WALLPICS_EXPORT_FAIL=empty_zip'; exit 4; }
-
 ZIP_BYTES="$(stat -f '%z' "$OUT_ZIP" 2>/dev/null || wc -c < "$OUT_ZIP")"
 SHA256="$(sha256sum "$OUT_ZIP" 2>/dev/null | awk '{print $1}' || shasum -a 256 "$OUT_ZIP" 2>/dev/null | awk '{print $1}' || true)"
 
