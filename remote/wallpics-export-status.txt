@@ -1,0 +1,7 @@
+WallPics Extraction Status
+run_id=32688124537
+commit=062566be25ec97f35e434c0d94bb572ef068aeca
+tailscale=success
+extract=cancelled
+copy=skipped
+upload=skipped
