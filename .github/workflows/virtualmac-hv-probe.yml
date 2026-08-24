@@ -74,19 +74,25 @@ jobs:
         env:
           THEOS: /opt/theos
         run: |
-          set -euo pipefail
+          set -uo pipefail
+          : > probe-build.txt
           cd VirtualMacProbe
-          make clean package FINALPACKAGE=1
+          set +e
+          make clean package FINALPACKAGE=1 2>&1 | tee -a ../probe-build.txt
+          BUILD_RC=${PIPESTATUS[0]}
+          set -e
+          echo "make_exit_code=$BUILD_RC" | tee -a ../probe-build.txt
+          [ "$BUILD_RC" -eq 0 ] || exit "$BUILD_RC"
           DEB="$(find packages -maxdepth 1 -type f -name '*.deb' | head -n1)"
-          test -n "$DEB"
+          [ -n "$DEB" ] || { echo 'build_fail=no_deb' | tee -a ../probe-build.txt; exit 1; }
           cp "$DEB" ../VirtualMac-Hypervisor-Probe.deb
           cd ..
           rm -rf probe-root
           dpkg-deb -x VirtualMac-Hypervisor-Probe.deb probe-root
-          BIN="$(find probe-root -type f -name vm-hvprobe | head -n1)"
-          test -n "$BIN"
-          file "$BIN" | tee probe-build.txt
-          grep -a -q 'hv_get_capabilities_raw' "$BIN"
+          BIN="$(find probe-root -type f -name vmhvprobe | head -n1)"
+          [ -n "$BIN" ] || { echo 'build_fail=probe_binary_missing' | tee -a probe-build.txt; exit 1; }
+          file "$BIN" | tee -a probe-build.txt
+          grep -a -q 'hv_get_capabilities_raw' "$BIN" || { echo 'build_fail=probe_signature_missing' | tee -a probe-build.txt; exit 1; }
           echo 'build_status=PASS' | tee -a probe-build.txt
 
       - uses: actions/upload-artifact@v4
@@ -126,7 +132,7 @@ jobs:
           done
           [ "$connected" -eq 1 ] || { echo 'device_status=UNREACHABLE' | tee -a probe-device.txt; exit 1; }
           sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null VirtualMac-Hypervisor-Probe.deb mobile@"$IPAD_HOST":/var/mobile/Media/VirtualMac-Hypervisor-Probe.deb
-          cat > /tmp/run-vm-hvprobe.sh <<'SH'
+          cat > /tmp/run-vmhvprobe.sh <<'SH'
           #!/bin/sh
           set -u
           export PATH="/var/jb/usr/bin:/var/jb/usr/sbin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH"
@@ -136,7 +142,7 @@ jobs:
           echo "os_product=$(sw_vers -productVersion 2>/dev/null || true)"
           echo 'checkpoint=install_probe'
           dpkg -i /var/mobile/Media/VirtualMac-Hypervisor-Probe.deb || exit 20
-          BIN=/var/jb/usr/bin/vm-hvprobe
+          BIN=/var/jb/usr/bin/vmhvprobe
           [ -x "$BIN" ] || exit 21
           echo "probe_path=$BIN"
           if command -v ldid >/dev/null 2>&1; then
@@ -168,9 +174,9 @@ jobs:
           echo 'probe_complete=true'
           exit 0
           SH
-          chmod +x /tmp/run-vm-hvprobe.sh
-          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null /tmp/run-vm-hvprobe.sh mobile@"$IPAD_HOST":/var/mobile/Media/run-vm-hvprobe.sh
-          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh $SSH_OPTS mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/run-vm-hvprobe.sh' 2>&1 | tee -a probe-device.txt
+          chmod +x /tmp/run-vmhvprobe.sh
+          sshpass -e scp -P 22 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null /tmp/run-vmhvprobe.sh mobile@"$IPAD_HOST":/var/mobile/Media/run-vmhvprobe.sh
+          printf '%s\n' "$IPAD_PASSWORD" | sshpass -e ssh $SSH_OPTS mobile@"$IPAD_HOST" 'sudo -S -p "" sh /var/mobile/Media/run-vmhvprobe.sh' 2>&1 | tee -a probe-device.txt
           grep -q '^device_hypervisor_result=' probe-device.txt
           grep -q '^probe_complete=true' probe-device.txt
 
@@ -196,7 +202,7 @@ jobs:
             echo
             echo '## Build output'
             echo '```text'
-            cat probe-build.txt 2>/dev/null || echo 'No build output produced.'
+            tail -n 220 probe-build.txt 2>/dev/null || echo 'No build output produced.'
             echo '```'
           } > VirtualMacProbe/DEVICE_STATUS.md
           git config user.name 'github-actions[bot]'
