@@ -1,7 +1,7 @@
 # Hidden Build / Device Status
 
-- Run: 32676912310
-- Commit: 31141b38917a41dd0af04f514057fb122ac6d8c0
+- Run: 32677301736
+- Commit: f659436a3ddc56b1c74ba7a7ba24521a9f9430bf
 - Build step: success
 - Device step: success
 
@@ -17,15 +17,15 @@ Unpacking com.nightvibes.hidden (0.1.0) over (0.1.0) ...
 Setting up com.nightvibes.hidden (0.1.0) ...
 Processing triggers for uikittools (2.1.8) ...
 installed_version=0.1.0
-hidden_pid=7230
+hidden_pid=7297
 package_payload=pass
 homescreen_launch=pass
 checkpoint=scan_poll
-scan_poll_4=READY
+scan_poll_3=READY
 scan_schema=4
 scan_total_findings=3975
 scan_reported_findings=1000
-scan_elapsed_seconds=11.881286978721619
+scan_elapsed_seconds=11.327444911003113
 scan_os=Version 16.7.11 (Build 20H360)
 scan_category_counts={"Capability Gate":1006,"Experimental":77,"Feature Gate":431,"Hidden UI":108,"Internal / Developer":678,"System Signal":1675}
 scan_top_targets=Settings/MusicSettings, Settings/DeveloperSettings, Settings/CameraSettings, Settings/AccessibilitySettings, MobileSMS, Preferences, Settings/AppClipDeveloperSettings, AppStore, Settings/MapsSettings, HomeUIService, Settings/NotificationsSettings, Settings/CallForwardingTelephonySettings, Settings/AccessoryDeveloperSettings, Settings/BatteryUsageUI, SpringBoard
@@ -60,7 +60,7 @@ package_name=com.nightvibes.hidden
 package_version=0.1.0
 package_arch=iphoneos-arm64
 hidden-deb-root/var/jb/Applications/Hidden.app/Hidden: Mach-O 64-bit arm64 executable, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|PIE>
-1db69b8642366dc250b1a3620872fa9321fbe6d1775e3556339f4013eb08795b  Hidden-0.1.0-rootless.deb
+c942170f57d707343b9c9f090213c8e4f31f83fe59df2f2d8c77749310d20080  Hidden-0.1.0-rootless.deb
 package_validation=success
 ```
 
@@ -69,6 +69,7 @@ package_validation=success
 [0;36m==> [1;39mCleaning…[m
 [1;31m> [1;3;39mMaking all for application Hidden…[m
 [0;35m==> [1;39mCopying resource directories into the application wrapper…[m
+[0;32m==> [1;39mCompiling Sources/HiddenGateInspector.m (arm64)…[m
 [0;32m==> [1;39mCompiling Sources/HiddenV2.m (arm64)…[m
 [0;33m==> [1;39mLinking application Hidden (arm64)…[m
 [0;34m==> [1;39mGenerating debug symbols for Hidden…[m
