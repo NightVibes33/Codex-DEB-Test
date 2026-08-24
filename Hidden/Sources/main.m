@@ -234,7 +234,7 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSTimeInterval elaps
     const unsigned char *bytes = data.bytes;
     NSMutableData *token = [NSMutableData dataWithCapacity:128];
     NSUInteger end = NSMaxRange(range);
-    for (NSUInteger i = range.location; i < end && *emitted < 100; i++) {
+    for (NSUInteger i = range.location; i < end && *emitted < 60; i++) {
         unsigned char c = bytes[i];
         BOOL printable = (c >= 0x20 && c <= 0x7e);
         if (printable && token.length < 321) {
@@ -250,7 +250,7 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSTimeInterval elaps
             [token setLength:0];
         }
     }
-    if (token.length >= 6 && *emitted < 100) {
+    if (token.length >= 6 && *emitted < 60) {
         NSString *s = [[NSString alloc] initWithData:token encoding:NSUTF8StringEncoding];
         if (s && [self isInteresting:s]) {
             [self addEvidence:s target:target path:path];
@@ -262,17 +262,17 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSTimeInterval elaps
 - (void)scanTextAtPath:(NSString *)path target:(NSString *)target {
     NSDictionary *attrs = [NSFileManager.defaultManager attributesOfItemAtPath:path error:nil];
     unsigned long long size = [attrs fileSize];
-    if (size == 0 || size > (160ULL * 1024ULL * 1024ULL)) return;
+    if (size == 0 || size > (96ULL * 1024ULL * 1024ULL)) return;
     NSData *data = [NSData dataWithContentsOfFile:path options:NSDataReadingMappedIfSafe error:nil];
     if (!data.length) return;
 
-    const NSUInteger slice = 8U * 1024U * 1024U;
+    const NSUInteger slice = 1U * 1024U * 1024U;
     NSUInteger emitted = 0;
     if (data.length <= slice * 2) {
         [self scanASCIIData:data range:NSMakeRange(0, data.length) target:target path:path emitted:&emitted];
     } else {
         [self scanASCIIData:data range:NSMakeRange(0, slice) target:target path:path emitted:&emitted];
-        if (emitted < 100) [self scanASCIIData:data range:NSMakeRange(data.length - slice, slice) target:target path:path emitted:&emitted];
+        if (emitted < 60) [self scanASCIIData:data range:NSMakeRange(data.length - slice, slice) target:target path:path emitted:&emitted];
     }
 }
 
@@ -322,7 +322,7 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSTimeInterval elaps
             [self scanPlistAtPath:url.path target:target];
             resourceCount++;
         }
-        if (resourceCount >= 32) break;
+        if (resourceCount >= 16) break;
     }
 }
 
@@ -340,7 +340,7 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSTimeInterval elaps
             NSString *target = name.stringByDeletingPathExtension;
             if (progress) progress([NSString stringWithFormat:@"Scanning %@…", target]);
             @autoreleasepool { [self scanBundle:path target:target]; }
-            if (++appCount >= 28) break;
+            if (++appCount >= 20) break;
         }
     }
 
@@ -352,7 +352,7 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSTimeInterval elaps
         NSString *target = [NSString stringWithFormat:@"%@ (PrivateFramework)", name.stringByDeletingPathExtension];
         if (progress && fwCount % 8 == 0) progress([NSString stringWithFormat:@"Scanning priority PrivateFrameworks… %lu", (unsigned long)fwCount]);
         @autoreleasepool { [self scanBundle:path target:target]; }
-        if (++fwCount >= 90) break;
+        if (++fwCount >= 48) break;
     }
 
     NSArray<NSString *> *prefRoots = @[@"/System/Library/PreferenceBundles", @"/System/Library/PreferenceManifestsInternal"];
@@ -366,7 +366,7 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSTimeInterval elaps
             if (isDir) [self scanBundle:path target:[NSString stringWithFormat:@"Settings/%@", name.stringByDeletingPathExtension]];
             else if ([name.pathExtension.lowercaseString isEqualToString:@"plist"]) [self scanPlistAtPath:path target:@"Settings"];
             else if ([name.pathExtension.lowercaseString isEqualToString:@"json"]) [self scanJSONAtPath:path target:@"Settings"];
-            if (++prefCount >= 180) break;
+            if (++prefCount >= 100) break;
         }
     }
 
@@ -460,7 +460,7 @@ static BOOL HIDWriteReport(NSArray<HIDFinding *> *findings, NSTimeInterval elaps
     self.navigationItem.rightBarButtonItem.enabled = NO;
     self.statusLabel.text = @"Starting fast system scan…";
     __weak typeof(self) weakSelf = self;
-    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
         NSDate *started = NSDate.date;
         HIDScanner *scanner = [HIDScanner new];
         NSArray *results = [scanner scanWithProgress:^(NSString *status) {
