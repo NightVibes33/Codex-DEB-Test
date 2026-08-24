@@ -1,7 +1,7 @@
 WallPics Extraction Status
-run_id=32688124537
-commit=062566be25ec97f35e434c0d94bb572ef068aeca
+run_id=32688627776
+commit=0f53e95a9b6ff66fffbcb1b109ccf18019ef5d1d
 tailscale=success
-extract=cancelled
+extract=failure
 copy=skipped
 upload=skipped
