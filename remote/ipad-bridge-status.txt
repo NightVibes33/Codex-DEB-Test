@@ -1,191 +1,71 @@
 iPad Tailscale SSH Bridge
-run_id=32679008760
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/32679008760
-commit=a0150c92b2dda7e1223abb725a27383bd82b5d3b
+run_id=32689007999
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/32689007999
+commit=cf7033f56ce2761c3e8b9b0233e52760827798f2
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
 install_ssh=success
-ssh=success
+ssh=failure
 
 --- sanitized SSH output ---
-uname=Darwin Bobbys-iPad 22.6.0 Darwin Kernel Version 22.6.0: Tue Jul  2 20:45:41 PDT 2024; root:xnu-8796.142.1.703.8~1/RELEASE_ARM64_S8000 iPad6,11 arm Darwin
---- virtualization capability probes ---
-kern.hv_support=sysctl: unknown oid 'kern.hv_support'
-hw.optional.arm.FEAT_VHE=sysctl: unknown oid 'hw.optional.arm.FEAT_VHE'
-hw.optional.armv8_2_sha3=0
-hw.optional.arm64=1
---- download official 1.2 ---
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-100 19.9M  100 19.9M    0     0  19.4M      0  0:00:01  0:00:01 --:--:-- 19.4M
-download_rc=0
--rw-r--r-- 1 root mobile 20M Aug 23 20:12 /var/mobile/Media/VirtualMac_1.2.deb
-48c1d0beec6bc5558d925a844f3a1a21b80aaa124d4566a455b9816db12df5e5  /var/mobile/Media/VirtualMac_1.2.deb
---- official package metadata ---
-Package: com.mac.virtual
-Version: 2:1.2+565.799fc13aff
-Architecture: all
-Depends: firmware (>= 14.5), firmware (<< 16.4), ellekit | org.coolstar.libhooker
-metadata_rc=0
---- unpack + patch only firmware upper-bound dependency ---
-unpack_rc=0
-control_before:
-Package: com.mac.virtual
-Name: Virtual Mac
-Version: 2:1.2+565.799fc13aff
-Architecture: all
-Description: People have dreamed of running macOS on iPad for more than a decade.
- Today, that dream comes true. With Virtual Mac, iPad finally breaks free from
- iPadOS, enabling pro apps like Xcode and Terminal to run directly on device.
- Requires iPad Pro (M1, M2) or iPad Air (M1) running iPadOS 14 up to 16.3.1.
-Maintainer: Virtual Mac
-Author: Virtual Mac
-Icon: https://raw.githubusercontent.com/nfzerox/VirtualMacOniPad/main/VirtualMac/assets/VirtualMac.png
-Section: Utilities
-Priority: optional
-Installed-Size: 103712
-Depends: firmware (>= 14.5), firmware (<< 16.4), ellekit | org.coolstar.libhooker
-Tag: role::enduser
-control_after:
-Package: com.mac.virtual
-Name: Virtual Mac
-Version: 2:1.2+565.799fc13aff
-Architecture: all
-Description: People have dreamed of running macOS on iPad for more than a decade.
- Today, that dream comes true. With Virtual Mac, iPad finally breaks free from
- iPadOS, enabling pro apps like Xcode and Terminal to run directly on device.
- Requires iPad Pro (M1, M2) or iPad Air (M1) running iPadOS 14 up to 16.3.1.
-Maintainer: Virtual Mac
-Author: Virtual Mac
-Icon: https://raw.githubusercontent.com/nfzerox/VirtualMacOniPad/main/VirtualMac/assets/VirtualMac.png
-Section: Utilities
-Priority: optional
-Installed-Size: 103712
-Depends: firmware (>= 14.5), ellekit | org.coolstar.libhooker
-Tag: role::enduser
-dpkg-deb: building package 'com.mac.virtual' in '/var/mobile/Media/VirtualMac_1.2-ipad5-test.deb'.
-repack_rc=0
--rw-r--r-- 1 root mobile 20M Aug 23 20:12 /var/mobile/Media/VirtualMac_1.2-ipad5-test.deb
-Package: com.mac.virtual
-Version: 2:1.2+565.799fc13aff
-Architecture: all
-Depends: firmware (>= 14.5), ellekit | org.coolstar.libhooker
---- install patched package ---
-Selecting previously unselected package com.mac.virtual.
-(Reading database ... 25607 files and directories currently installed.)
-Preparing to unpack .../VirtualMac_1.2-ipad5-test.deb ...
-Unpacking com.mac.virtual (2:1.2+565.799fc13aff) ...
-Setting up com.mac.virtual (2:1.2+565.799fc13aff) ...
-finish:restart
-Processing triggers for uikittools (2.1.8) ...
-install_rc=0
-package=com.mac.virtual
-version=2:1.2+565.799fc13aff
-status=install ok installed
-arch=all
---- locate payload ---
-app_path=/var/jb/Applications/VirtualMac.app
-total 1588
-drwxr-xr-x 54 root wheel   1728 Aug 23 20:12 .
-drwxr-xr-x 26 root wheel    832 Aug 23 20:12 ..
--rw-r--r--  1 root wheel 634032 Aug 22 23:33 AppIcon1024x1024.png
--rw-r--r--  1 root wheel   8776 Aug 22 23:33 AppIcon60x60@2x.png
--rw-r--r--  1 root wheel  15757 Aug 22 23:33 AppIcon60x60@3x.png
--rw-r--r--  1 root wheel  11720 Aug 22 23:33 AppIcon76x76@2x.png
--rw-r--r--  1 root wheel  13914 Aug 22 23:33 AppIcon83.5x83.5@2x.png
-drwxr-xr-x  6 root wheel    192 Aug 23 20:12 Developers
-drwxr-xr-x  3 root wheel     96 Aug 23 20:12 GuestTools
--rw-r--r--  1 root wheel   2222 Aug 22 23:33 Info.plist
-drwxr-xr-x  9 root wheel    288 Aug 23 20:12 Installers
--rwxr-xr-x  1 root wheel  93936 Aug 22 23:33 VZHostCompat.dylib
--rwxr-xr-x  1 root wheel 712192 Aug 22 23:33 VirtualMac
-drwxr-xr-x  5 root wheel    160 Aug 23 20:12 VirtualMacLaunchScreen.storyboardc
--rw-r--r--  1 root wheel   5163 Aug 22 23:33 VirtualMacTemplate.png
-drwxr-xr-x 10 root wheel    320 Aug 23 20:12 Wallpapers
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 cs.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 da.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 de.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 el.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 en.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 es.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 es_419.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 es_US.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 fi.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 fr.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 fr_CA.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 he.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 hi.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 hr.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 hu.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 id.lproj
--rw-r--r--  1 root wheel 113797 Aug 22 23:33 ipsws_v2.json
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 it.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 ja.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 ko.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 ms.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 nl.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 no.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 pl.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 pt.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 pt_PT.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 ro.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 ru.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 sk.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 sl.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 sv.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 th.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 tr.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 uk.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 vi.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 zh_CN.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 zh_HK.lproj
-drwxr-xr-x  4 root wheel    128 Aug 23 20:12 zh_TW.lproj
-/var/jb/Applications/VirtualMac.app/VirtualMac: Mach-O 64-bit arm64 executable, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|PIE>
-/var/jb/Applications/VirtualMac.app/VirtualMac:
-	/System/Library/Frameworks/AVFAudio.framework/AVFAudio (compatibility version 1.0.0, current version 1.0.0)
-	/System/Library/Frameworks/CoreImage.framework/CoreImage (compatibility version 1.0.0, current version 7.0.0)
-	/System/Library/Frameworks/Foundation.framework/Foundation (compatibility version 300.0.0, current version 5027.0.69)
-	/System/Library/Frameworks/GameController.framework/GameController (compatibility version 1.0.0, current version 14.0.24)
-	/System/Library/Frameworks/Metal.framework/Metal (compatibility version 1.0.0, current version 382.5.3)
-	/System/Library/Frameworks/Security.framework/Security (compatibility version 1.0.0, current version 62460.2.1)
-	/System/Library/Frameworks/UIKit.framework/UIKit (compatibility version 1.0.0, current version 9127.0.84)
-	/System/Library/Frameworks/UniformTypeIdentifiers.framework/UniformTypeIdentifiers (compatibility version 1.0.0, current version 709.0.0)
-	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1359.0.0)
-	/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation (compatibility version 150.0.0, current version 5027.0.69)
-	/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)
-Error: Object not found at keypath "p" in file /var/jb/Applications/VirtualMac.app/Info.plist
-bundle_id=unknown
---- runtime payload sanity ---
-PRESENT=/var/root/VirtualMac/payload/Frameworks/Hypervisor.framework/Versions/A/Hypervisor
--rwxr-xr-x 1 root wheel 179K Aug 22 19:34 /var/root/VirtualMac/payload/Frameworks/Hypervisor.framework/Versions/A/Hypervisor
-/var/root/VirtualMac/payload/Frameworks/Hypervisor.framework/Versions/A/Hypervisor: Mach-O 64-bit arm64e (caps: PAC00) dynamically linked shared library, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|NO_REEXPORTED_DYLIBS|APP_EXTENSION_SAFE>
-PRESENT=/var/root/VirtualMac/payload/Frameworks/Virtualization.framework/Versions/A/Virtualization
--rwxr-xr-x 1 root wheel 1.8M Aug 22 19:34 /var/root/VirtualMac/payload/Frameworks/Virtualization.framework/Versions/A/Virtualization
-/var/root/VirtualMac/payload/Frameworks/Virtualization.framework/Versions/A/Virtualization: Mach-O 64-bit arm64e (caps: PAC00) dynamically linked shared library, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|WEAK_DEFINES|BINDS_TO_WEAK|NO_REEXPORTED_DYLIBS|APP_EXTENSION_SAFE>
-PRESENT=/var/root/VirtualMac/payload/VirtualMachine.xpc/Contents/MacOS/com.apple.Virtualization.VirtualMachine
--rwxr-xr-x 1 root wheel 1.9M Aug 23 20:12 /var/root/VirtualMac/payload/VirtualMachine.xpc/Contents/MacOS/com.apple.Virtualization.VirtualMachine
-/var/root/VirtualMac/payload/VirtualMachine.xpc/Contents/MacOS/com.apple.Virtualization.VirtualMachine: Mach-O 64-bit arm64e (caps: PAC00) executable, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|WEAK_DEFINES|BINDS_TO_WEAK|PIE|HAS_TLV_DESCRIPTORS>
-PRESENT=/var/root/VirtualMac/install/install-launcher
--rwsr-xr-x 1 root wheel 53K Aug 22 19:34 /var/root/VirtualMac/install/install-launcher
-/var/root/VirtualMac/install/install-launcher: setuid Mach-O 64-bit arm64 executable, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|PIE>
-PRESENT=/var/jb/usr/bin/virtualmac-diagnostics
--rwxr-xr-x 1 root wheel 115K Aug 22 23:33 /var/jb/usr/bin/virtualmac-diagnostics
-/var/jb/usr/bin/virtualmac-diagnostics: Mach-O 64-bit arm64 executable, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|PIE>
---- register and launch app ---
-uiopen_rc=0
- 7660   ??  Ss     0:00.95 /private/preboot/8579078043F0FC7B23462C6FC23605D3A3BB1E07/dopamine-QknMgj/procursus/Applications/VirtualMac.app/VirtualMac
-virtualmac_app_pid=7660
---- diagnostics ---
-2026-08-23 20:13:17.597 virtualmac-diagnostics[7669:128362] FLXX: Not extracting, blacklisted
-/var/mobile/Media/VirtualMac/Diagnostics/VirtualMac-Diagnostics-20260823-201317.zip
---- recent crash evidence ---
---- final ---
-APP_LAUNCH=PASS
-KERNEL_HYPERVISOR=UNAVAILABLE_OR_UNEXPOSED
-PATCHED_DEB=/var/mobile/Media/VirtualMac_1.2-ipad5-test.deb
-VIRTUALMAC12_IPAD5_TEST_COMPLETE=true
-ssh_exit_code=0
+Waking and checking iPad SSH port over Tailscale...
+SSH port attempt 1/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 2/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 3/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 4/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 5/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 6/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 7/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 8/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 9/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 10/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 11/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 12/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 13/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 14/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 15/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 16/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 17/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 18/18
+ping "100.116.117.65" timed out
+no reply
+Could not reach iPad TCP port 22 after wake and retry attempts.
+100.68.90.71    github-ipad-32689007999-1  NightVibes33@  linux    -                                                               
+100.116.117.65  bobbys-ipad                NightVibes33@  iOS      active; relay "dfw"; offline, last seen 56m ago, tx 12636 rx 0  
+100.127.94.70   desktop-o56xs              NightVibes33@  windows  offline, last seen 29d ago                                      
+100.79.177.16   iphone173                  NightVibes33@  iOS      offline, last seen 4d ago                                       
