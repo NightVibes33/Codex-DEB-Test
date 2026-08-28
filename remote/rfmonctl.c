@@ -18,13 +18,12 @@
 #define APPLE80211_IOC_CARD_SPECIFIC 0xffffffffu
 #define WLC_GET_MONITOR 107
 #define WLC_SET_MONITOR 108
+#define DLT_EN10MB 1u
+#define DLT_IEEE802_11 105u
+#define DLT_IEEE802_11_RADIO 127u
 
-/* Darwin/XNU BPF ABI subset. */
-struct timeval32_local {
-    int32_t tv_sec;
-    int32_t tv_usec;
-};
-
+/* Darwin/XNU BPF ABI subset; iPhoneOS exposes /dev/bpf but hides net/bpf.h. */
+struct timeval32_local { int32_t tv_sec; int32_t tv_usec; };
 struct bpf_hdr_local {
     struct timeval32_local bh_tstamp;
     uint32_t bh_caplen;
@@ -32,14 +31,24 @@ struct bpf_hdr_local {
     uint16_t bh_hdrlen;
 };
 
+#pragma pack(push, 4)
+struct bpf_dltlist_local {
+    uint32_t bfl_len;
+    union { uint32_t *bflu_list; uint64_t bflu_pad; } bfl_u;
+};
+#pragma pack(pop)
+#define bfl_list bfl_u.bflu_list
+
 #define BPF_ALIGNMENT ((size_t)sizeof(int32_t))
 #define BPF_WORDALIGN_LOCAL(x) (((x) + (BPF_ALIGNMENT - 1)) & ~(BPF_ALIGNMENT - 1))
 #define BPF_HDR_MIN_SIZE 18u
-#define BIOCGBLEN     _IOR('B', 102, unsigned int)
-#define BIOCPROMISC   _IO('B', 105)
-#define BIOCGDLT      _IOR('B', 106, unsigned int)
-#define BIOCSETIF     _IOW('B', 108, struct ifreq)
-#define BIOCIMMEDIATE _IOW('B', 112, unsigned int)
+#define BIOCGBLEN       _IOR('B', 102, unsigned int)
+#define BIOCPROMISC     _IO('B', 105)
+#define BIOCGDLT        _IOR('B', 106, unsigned int)
+#define BIOCSETIF       _IOW('B', 108, struct ifreq)
+#define BIOCIMMEDIATE   _IOW('B', 112, unsigned int)
+#define BIOCSDLT        _IOW('B', 120, unsigned int)
+#define BIOCGDLTLIST    _IOWR('B', 121, struct bpf_dltlist_local)
 
 #pragma pack(push, 4)
 struct apple80211req {
@@ -50,7 +59,6 @@ struct apple80211req {
     void *req_data;
 };
 #pragma pack(pop)
-
 #define SIOCSA80211 _IOW('i', 200, struct apple80211req)
 
 struct pcap_file_header_local {
@@ -62,7 +70,6 @@ struct pcap_file_header_local {
     uint32_t snaplen;
     uint32_t network;
 };
-
 struct pcap_packet_header_local {
     uint32_t ts_sec;
     uint32_t ts_usec;
@@ -71,11 +78,7 @@ struct pcap_packet_header_local {
 };
 
 static volatile sig_atomic_t stop_capture = 0;
-
-static void stop_handler(int sig) {
-    (void)sig;
-    stop_capture = 1;
-}
+static void stop_handler(int sig) { (void)sig; stop_capture = 1; }
 
 static int broadcom_ioctl(const char *ifname, int command, int *value) {
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -83,7 +86,6 @@ static int broadcom_ioctl(const char *ifname, int command, int *value) {
         fprintf(stderr, "socket failed: %s\n", strerror(errno));
         return -1;
     }
-
     struct apple80211req req;
     memset(&req, 0, sizeof(req));
     strlcpy(req.req_if_name, ifname, sizeof(req.req_if_name));
@@ -91,12 +93,10 @@ static int broadcom_ioctl(const char *ifname, int command, int *value) {
     req.req_val = command;
     req.req_len = sizeof(*value);
     req.req_data = value;
-
     errno = 0;
     int rc = ioctl(fd, SIOCSA80211, &req);
     int saved_errno = errno;
     close(fd);
-
     printf("ioctl command=%d request=0x%lx rc=%d errno=%d (%s) value=%d\n",
            command, (unsigned long)SIOCSA80211, rc, saved_errno,
            saved_errno ? strerror(saved_errno) : "ok", *value);
@@ -112,15 +112,11 @@ static int get_monitor_value(const char *ifname, int *out_value) {
     }
     return rc;
 }
-
-static int get_monitor(const char *ifname) {
-    return get_monitor_value(ifname, NULL);
-}
-
+static int get_monitor(const char *ifname) { return get_monitor_value(ifname, NULL); }
 static int set_monitor(const char *ifname, int enabled) {
     int value = enabled ? 1 : 0;
     int rc = broadcom_ioctl(ifname, WLC_SET_MONITOR, &value);
-    if (rc == 0) printf("monitor_set=%d\n", enabled ? 1 : 0);
+    if (rc == 0) printf("monitor_set=%d\n", value);
     return rc;
 }
 
@@ -135,12 +131,80 @@ static int open_bpf_device(char *chosen, size_t chosen_len) {
             return fd;
         }
         last_errno = errno;
-        if (errno != EBUSY && errno != EACCES && errno != ENOENT) {
-            fprintf(stderr, "open %s failed: errno=%d (%s)\n", path, errno, strerror(errno));
-        }
         if (errno == ENOENT && i > 16) break;
     }
     errno = last_errno;
+    return -1;
+}
+
+static int bpf_get_dlt(int fd, unsigned int *dlt) {
+    if (ioctl(fd, BIOCGDLT, dlt) < 0) {
+        fprintf(stderr, "BIOCGDLT failed: errno=%d (%s)\n", errno, strerror(errno));
+        return -1;
+    }
+    return 0;
+}
+
+static int bpf_choose_wireless_dlt(int fd, unsigned int *selected_out) {
+    struct bpf_dltlist_local dl;
+    memset(&dl, 0, sizeof(dl));
+    uint32_t *list = NULL;
+    int have_list = 0;
+
+    errno = 0;
+    if (ioctl(fd, BIOCGDLTLIST, &dl) == 0 && dl.bfl_len > 0 && dl.bfl_len <= 256) {
+        list = calloc(dl.bfl_len, sizeof(uint32_t));
+        if (list) {
+            uint32_t capacity = dl.bfl_len;
+            dl.bfl_list = list;
+            dl.bfl_len = capacity;
+            if (ioctl(fd, BIOCGDLTLIST, &dl) == 0) {
+                have_list = 1;
+                printf("bpf_available_dlt_count=%u bpf_available_dlts=", dl.bfl_len);
+                for (uint32_t i = 0; i < dl.bfl_len; i++) {
+                    printf("%s%u", i ? "," : "", list[i]);
+                }
+                printf("\n");
+            } else {
+                fprintf(stderr, "BIOCGDLTLIST(data) failed: errno=%d (%s)\n", errno, strerror(errno));
+            }
+        }
+    } else {
+        fprintf(stderr, "BIOCGDLTLIST(count) unavailable: errno=%d (%s) len=%u\n",
+                errno, strerror(errno), dl.bfl_len);
+    }
+
+    const unsigned int preferred[] = { DLT_IEEE802_11_RADIO, DLT_IEEE802_11 };
+    for (size_t p = 0; p < sizeof(preferred)/sizeof(preferred[0]); p++) {
+        int candidate_allowed = !have_list;
+        if (have_list) {
+            for (uint32_t i = 0; i < dl.bfl_len; i++) {
+                if (list[i] == preferred[p]) { candidate_allowed = 1; break; }
+            }
+        }
+        if (!candidate_allowed) continue;
+        unsigned int want = preferred[p];
+        errno = 0;
+        int rc = ioctl(fd, BIOCSDLT, &want);
+        printf("BIOCSDLT candidate=%u rc=%d errno=%d (%s)\n",
+               want, rc, errno, errno ? strerror(errno) : "ok");
+        if (rc == 0) {
+            unsigned int got = 0;
+            if (bpf_get_dlt(fd, &got) == 0) {
+                printf("bpf_selected_dlt=%u\n", got);
+                if (got == DLT_IEEE802_11_RADIO || got == DLT_IEEE802_11) {
+                    free(list);
+                    *selected_out = got;
+                    return 0;
+                }
+            }
+        }
+    }
+
+    unsigned int current = 0;
+    if (bpf_get_dlt(fd, &current) == 0) printf("bpf_wireless_dlt_selection_failed_current=%u\n", current);
+    free(list);
+    errno = EPROTONOSUPPORT;
     return -1;
 }
 
@@ -148,46 +212,42 @@ static int bind_bpf(int fd, const char *ifname, unsigned int *dlt_out, unsigned 
     struct ifreq ifr;
     memset(&ifr, 0, sizeof(ifr));
     strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
-
     if (ioctl(fd, BIOCSETIF, &ifr) < 0) {
         fprintf(stderr, "BIOCSETIF(%s) failed: errno=%d (%s)\n", ifname, errno, strerror(errno));
         return -1;
     }
 
-    unsigned int one = 1;
-    if (ioctl(fd, BIOCIMMEDIATE, &one) < 0) {
-        fprintf(stderr, "BIOCIMMEDIATE failed: errno=%d (%s)\n", errno, strerror(errno));
-    }
-    if (ioctl(fd, BIOCPROMISC, NULL) < 0) {
-        fprintf(stderr, "BIOCPROMISC failed: errno=%d (%s)\n", errno, strerror(errno));
+    unsigned int initial = 0;
+    if (bpf_get_dlt(fd, &initial) == 0) printf("bpf_initial_dlt=%u\n", initial);
+
+    unsigned int dlt = initial;
+    if (initial != DLT_IEEE802_11 && initial != DLT_IEEE802_11_RADIO) {
+        if (bpf_choose_wireless_dlt(fd, &dlt) != 0) {
+            fprintf(stderr, "No selectable raw 802.11 BPF DLT was exposed by en0 in monitor mode.\n");
+            return -1;
+        }
     }
 
-    unsigned int dlt = 0;
-    if (ioctl(fd, BIOCGDLT, &dlt) < 0) {
-        fprintf(stderr, "BIOCGDLT failed: errno=%d (%s)\n", errno, strerror(errno));
-        return -1;
-    }
+    unsigned int one = 1;
+    if (ioctl(fd, BIOCIMMEDIATE, &one) < 0)
+        fprintf(stderr, "BIOCIMMEDIATE failed: errno=%d (%s)\n", errno, strerror(errno));
+    if (ioctl(fd, BIOCPROMISC, NULL) < 0)
+        fprintf(stderr, "BIOCPROMISC failed: errno=%d (%s)\n", errno, strerror(errno));
+
     unsigned int blen = 0;
     if (ioctl(fd, BIOCGBLEN, &blen) < 0 || blen == 0) {
         fprintf(stderr, "BIOCGBLEN failed: errno=%d (%s)\n", errno, strerror(errno));
         return -1;
     }
-
     printf("bpf_dlt=%u bpf_buffer_length=%u\n", dlt, blen);
-    if (dlt_out) *dlt_out = dlt;
-    if (buflen_out) *buflen_out = blen;
+    *dlt_out = dlt;
+    *buflen_out = blen;
     return 0;
 }
 
 static int write_pcap_header(FILE *fp, unsigned int dlt) {
-    struct pcap_file_header_local hdr;
-    memset(&hdr, 0, sizeof(hdr));
-    hdr.magic = 0xa1b2c3d4u;
-    hdr.version_major = 2;
-    hdr.version_minor = 4;
-    hdr.snaplen = 65535u;
-    hdr.network = dlt;
-    return fwrite(&hdr, sizeof(hdr), 1, fp) == 1 ? 0 : -1;
+    struct pcap_file_header_local h = {0xa1b2c3d4u, 2, 4, 0, 0, 65535u, dlt};
+    return fwrite(&h, sizeof(h), 1, fp) == 1 ? 0 : -1;
 }
 
 static int capture_monitor(const char *ifname, const char *outfile, int seconds) {
@@ -202,10 +262,8 @@ static int capture_monitor(const char *ifname, const char *outfile, int seconds)
         if (set_monitor(ifname, 0) != 0) return 1;
         usleep(250000);
     }
-
     if (set_monitor(ifname, 1) != 0) return 1;
     usleep(250000);
-
     int live_monitor = -1;
     if (get_monitor_value(ifname, &live_monitor) != 0 || live_monitor == 0) {
         fprintf(stderr, "capture_preflight=monitor-did-not-latch\n");
@@ -230,174 +288,99 @@ static int capture_monitor(const char *ifname, const char *outfile, int seconds)
     }
 
     FILE *fp = fopen(outfile, "wb");
-    if (!fp) {
-        fprintf(stderr, "fopen(%s) failed: errno=%d (%s)\n", outfile, errno, strerror(errno));
+    if (!fp || write_pcap_header(fp, dlt) != 0) {
+        fprintf(stderr, "pcap open/header failed: %s\n", strerror(errno));
+        if (fp) fclose(fp);
         close(bpf);
         set_monitor(ifname, 0);
         return 1;
     }
-    if (write_pcap_header(fp, dlt) != 0) {
-        fprintf(stderr, "write pcap header failed\n");
-        fclose(fp);
-        close(bpf);
-        set_monitor(ifname, 0);
-        return 1;
-    }
-
     unsigned char *buf = malloc(blen);
     if (!buf) {
-        fprintf(stderr, "malloc(%u) failed\n", blen);
-        fclose(fp);
-        close(bpf);
-        set_monitor(ifname, 0);
-        return 1;
+        fclose(fp); close(bpf); set_monitor(ifname, 0); return 1;
     }
 
     signal(SIGINT, stop_handler);
     signal(SIGTERM, stop_handler);
-
     struct timeval start, now;
     gettimeofday(&start, NULL);
-    uint64_t packet_count = 0;
-    uint64_t payload_bytes = 0;
+    uint64_t packets = 0, bytes = 0;
     int result = 0;
 
     while (!stop_capture) {
         gettimeofday(&now, NULL);
-        double elapsed = (double)(now.tv_sec - start.tv_sec) +
-                         (double)(now.tv_usec - start.tv_usec) / 1000000.0;
-        if (elapsed >= (double)seconds) break;
-
+        double elapsed = (double)(now.tv_sec - start.tv_sec) + (double)(now.tv_usec - start.tv_usec) / 1000000.0;
+        if (elapsed >= seconds) break;
         fd_set rfds;
-        FD_ZERO(&rfds);
-        FD_SET(bpf, &rfds);
+        FD_ZERO(&rfds); FD_SET(bpf, &rfds);
         struct timeval tv = {0, 250000};
         int sr = select(bpf + 1, &rfds, NULL, NULL, &tv);
-        if (sr < 0) {
-            if (errno == EINTR) continue;
-            fprintf(stderr, "select failed: errno=%d (%s)\n", errno, strerror(errno));
-            result = 1;
-            break;
-        }
+        if (sr < 0) { if (errno == EINTR) continue; result = 1; break; }
         if (sr == 0) continue;
-
         ssize_t n = read(bpf, buf, blen);
-        if (n < 0) {
-            if (errno == EINTR) continue;
-            fprintf(stderr, "bpf read failed: errno=%d (%s)\n", errno, strerror(errno));
-            result = 1;
-            break;
-        }
+        if (n < 0) { if (errno == EINTR) continue; result = 1; break; }
 
-        unsigned char *ptr = buf;
-        unsigned char *end = buf + n;
+        unsigned char *ptr = buf, *end = buf + n;
         while ((size_t)(end - ptr) >= BPF_HDR_MIN_SIZE) {
             const struct bpf_hdr_local *bh = (const struct bpf_hdr_local *)ptr;
-            size_t hdrlen = (size_t)bh->bh_hdrlen;
-            size_t caplen = (size_t)bh->bh_caplen;
-            if (hdrlen < BPF_HDR_MIN_SIZE || hdrlen > (size_t)(end - ptr)) break;
-            if (caplen > (size_t)(end - ptr) - hdrlen) break;
-            size_t record_len = hdrlen + caplen;
-
-            struct pcap_packet_header_local ph;
-            ph.ts_sec = (uint32_t)bh->bh_tstamp.tv_sec;
-            ph.ts_usec = (uint32_t)bh->bh_tstamp.tv_usec;
-            ph.incl_len = (uint32_t)bh->bh_caplen;
-            ph.orig_len = (uint32_t)bh->bh_datalen;
-
-            if (fwrite(&ph, sizeof(ph), 1, fp) != 1 ||
-                (caplen != 0 && fwrite(ptr + hdrlen, caplen, 1, fp) != 1)) {
-                fprintf(stderr, "pcap packet write failed\n");
-                result = 1;
-                stop_capture = 1;
-                break;
+            size_t hdrlen = bh->bh_hdrlen, caplen = bh->bh_caplen;
+            if (hdrlen < BPF_HDR_MIN_SIZE || hdrlen > (size_t)(end - ptr) || caplen > (size_t)(end - ptr) - hdrlen) break;
+            struct pcap_packet_header_local ph = {
+                (uint32_t)bh->bh_tstamp.tv_sec, (uint32_t)bh->bh_tstamp.tv_usec,
+                bh->bh_caplen, bh->bh_datalen
+            };
+            if (fwrite(&ph, sizeof(ph), 1, fp) != 1 || (caplen && fwrite(ptr + hdrlen, caplen, 1, fp) != 1)) {
+                result = 1; stop_capture = 1; break;
             }
-
-            packet_count++;
-            payload_bytes += caplen;
-            size_t advance = BPF_WORDALIGN_LOCAL(record_len);
-            if (advance == 0 || advance > (size_t)(end - ptr)) break;
+            packets++; bytes += caplen;
+            size_t advance = BPF_WORDALIGN_LOCAL(hdrlen + caplen);
+            if (!advance || advance > (size_t)(end - ptr)) break;
             ptr += advance;
         }
         fflush(fp);
     }
 
-    free(buf);
-    fclose(fp);
-    close(bpf);
-
+    free(buf); fclose(fp); close(bpf);
     printf("capture_packets=%llu capture_payload_bytes=%llu capture_dlt=%u\n",
-           (unsigned long long)packet_count,
-           (unsigned long long)payload_bytes,
-           dlt);
-
+           (unsigned long long)packets, (unsigned long long)bytes, dlt);
     int off_rc = set_monitor(ifname, 0);
     printf("capture_monitor_off_rc=%d\n", off_rc);
     if (off_rc != 0) result = 1;
-
     int final_monitor = -1;
     if (get_monitor_value(ifname, &final_monitor) == 0) {
         printf("capture_final_monitor=%d\n", final_monitor);
         if (final_monitor != 0) result = 1;
     }
-
     return result;
 }
 
-static void usage(const char *argv0) {
-    fprintf(stderr,
-            "usage: %s [en0] get|on|off|pulse [seconds]\n"
-            "       %s [en0] capture <output.pcap> [seconds]\n",
-            argv0, argv0);
+static void usage(const char *p) {
+    fprintf(stderr, "usage: %s [en0] get|on|off|pulse [seconds]\n       %s [en0] capture <output.pcap> [seconds]\n", p, p);
 }
 
 int main(int argc, char **argv) {
     const char *ifname = "en0";
-    const char *cmd = NULL;
     int argi = 1;
-
-    if (argc > 2 && argv[1][0] != '-') {
-        ifname = argv[1];
-        argi = 2;
-    }
-    if (argc <= argi) {
-        usage(argv[0]);
-        return 2;
-    }
-    cmd = argv[argi];
-
+    if (argc > 2 && argv[1][0] != '-') { ifname = argv[1]; argi = 2; }
+    if (argc <= argi) { usage(argv[0]); return 2; }
+    const char *cmd = argv[argi];
     printf("rfmonctl interface=%s sizeof_req=%zu SIOCSA80211=0x%lx\n",
            ifname, sizeof(struct apple80211req), (unsigned long)SIOCSA80211);
-
-    if (strcmp(cmd, "get") == 0) return get_monitor(ifname) == 0 ? 0 : 1;
-    if (strcmp(cmd, "on") == 0) return set_monitor(ifname, 1) == 0 ? 0 : 1;
-    if (strcmp(cmd, "off") == 0) return set_monitor(ifname, 0) == 0 ? 0 : 1;
-    if (strcmp(cmd, "pulse") == 0) {
-        int seconds = 2;
-        if (argc > argi + 1) {
-            seconds = atoi(argv[argi + 1]);
-            if (seconds < 1) seconds = 1;
-            if (seconds > 10) seconds = 10;
-        }
-        int rc_on = set_monitor(ifname, 1);
-        if (rc_on != 0) return 1;
-        printf("monitor_pulse_seconds=%d\n", seconds);
-        fflush(stdout);
-        sleep((unsigned)seconds);
-        int rc_off = set_monitor(ifname, 0);
-        return rc_off == 0 ? 0 : 1;
+    if (!strcmp(cmd, "get")) return get_monitor(ifname) == 0 ? 0 : 1;
+    if (!strcmp(cmd, "on")) return set_monitor(ifname, 1) == 0 ? 0 : 1;
+    if (!strcmp(cmd, "off")) return set_monitor(ifname, 0) == 0 ? 0 : 1;
+    if (!strcmp(cmd, "pulse")) {
+        int s = argc > argi + 1 ? atoi(argv[argi + 1]) : 2;
+        if (s < 1) s = 1; if (s > 10) s = 10;
+        if (set_monitor(ifname, 1) != 0) return 1;
+        sleep((unsigned)s);
+        return set_monitor(ifname, 0) == 0 ? 0 : 1;
     }
-    if (strcmp(cmd, "capture") == 0) {
-        if (argc <= argi + 1) {
-            usage(argv[0]);
-            return 2;
-        }
-        const char *outfile = argv[argi + 1];
-        int seconds = 4;
-        if (argc > argi + 2) seconds = atoi(argv[argi + 2]);
-        return capture_monitor(ifname, outfile, seconds);
+    if (!strcmp(cmd, "capture")) {
+        if (argc <= argi + 1) { usage(argv[0]); return 2; }
+        int s = argc > argi + 2 ? atoi(argv[argi + 2]) : 4;
+        return capture_monitor(ifname, argv[argi + 1], s);
     }
-
     usage(argv[0]);
     return 2;
 }
