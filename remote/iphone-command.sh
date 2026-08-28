@@ -1,6 +1,8 @@
 #!/bin/sh
 set +e
 
+# trigger: iPhone Tailscale SSH bridge 100.96.37.124
+
 echo '=== IPHONE SSH DIAGNOSTIC ==='
 echo "time=$(date 2>/dev/null || true)"
 echo "whoami=$(whoami 2>/dev/null || true)"
