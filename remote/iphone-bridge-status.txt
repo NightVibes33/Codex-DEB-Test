@@ -1,0 +1,14 @@
+iPhone Tailscale SSH Bridge
+run_id=33169558882
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33169558882
+commit=4673834e74e2ff0c8dbe85276a2fc5bc7b33e78e
+environment=TAILSCALE_AUTHKEY-
+target=100.96.37.124:22
+validate=success
+tailscale=success
+install_ssh=success
+ssh=cancelled
+
+--- sanitized SSH output ---
+Checking iPhone SSH port over Tailscale at 100.96.37.124:22...
+SSH port attempt 1/18
