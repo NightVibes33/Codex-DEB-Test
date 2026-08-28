@@ -56,3 +56,120 @@ jobs:
             git commit -m "Fix image enumerator build diagnostics [skip ci]"
             git push origin HEAD:main
           fi
+
+  resolve-iphone-environment:
+    if: contains(github.event.head_commit.message, '[iphone-ssh]')
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - name: Resolve environment
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" \
+            > environments.json
+          environment_name="$(python3 - "$TARGET_ENVIRONMENT_ID" <<'PY'
+          import json, sys
+          target = int(sys.argv[1])
+          payload = json.load(open('environments.json', encoding='utf-8'))
+          for env in payload.get('environments', []):
+              if int(env.get('id', -1)) == target:
+                  print(env['name'])
+                  raise SystemExit(0)
+          raise SystemExit(1)
+          PY
+          )"
+          echo "environment_name=$environment_name" >> "$GITHUB_OUTPUT"
+          echo "Resolved environment: $environment_name"
+
+  iphone-ssh:
+    if: contains(github.event.head_commit.message, '[iphone-ssh]')
+    needs: resolve-iphone-environment
+    environment:
+      name: ${{ needs.resolve-iphone-environment.outputs.environment_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Tailscale and SSH clients
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+        run: |
+          set -euo pipefail
+          test -n "$TAILSCALE_AUTHKEY" || { echo 'Missing TAILSCALE_AUTHKEY'; exit 1; }
+          sudo install -d -m 0755 /usr/share/keyrings
+          curl --fail --silent --show-error --retry 3 --connect-timeout 20 https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
+          curl --fail --silent --show-error --retry 3 --connect-timeout 20 https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list | sudo tee /etc/apt/sources.list.d/tailscale.list >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends tailscale openssh-client sshpass netcat-openbsd
+          sudo systemctl enable --now tailscaled
+
+      - name: Join Tailscale and test iPhone 100.96.37.124
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+          IPHONE_HOST: 100.96.37.124
+        run: |
+          set -euo pipefail
+          : > iphone-output.txt
+          sudo tailscale logout >/dev/null 2>&1 || true
+          sudo systemctl restart tailscaled
+          sleep 3
+          sudo tailscale up --auth-key="$TAILSCALE_AUTHKEY" --hostname="github-iphone-${GITHUB_RUN_ID}" --accept-dns=false --accept-routes=false --reset 2>&1 | tee -a iphone-output.txt
+          sudo tailscale status 2>&1 | tee -a iphone-output.txt
+          sudo tailscale status | grep -F "$IPHONE_HOST" | tee -a iphone-output.txt
+          sudo tailscale ping --timeout=8s --c 2 "$IPHONE_HOST" 2>&1 | tee -a iphone-output.txt || true
+          nc -zvw8 "$IPHONE_HOST" 22 2>&1 | tee -a iphone-output.txt
+          echo 'iphone_tcp_22=open' | tee -a iphone-output.txt
+
+      - name: SSH and run battery diagnostic
+        env:
+          IPHONE_HOST: 100.96.37.124
+          IPHONE_PORT: "22"
+          IPHONE_USER: mobile
+          IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -uo pipefail
+          test -n "$IPHONE_PASSWORD" || { echo 'Missing IPAD_PASSWORD used for iPhone login' | tee -a iphone-output.txt; exit 1; }
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          ssh-keyscan -T 10 -H -p "$IPHONE_PORT" "$IPHONE_HOST" > "$HOME/.ssh/known_hosts" 2>>iphone-output.txt
+          test -s "$HOME/.ssh/known_hosts" || { echo 'iphone_host_key_scan=failed' | tee -a iphone-output.txt; exit 1; }
+          chmod 600 "$HOME/.ssh/known_hosts"
+          set +e
+          {
+            printf '%s\n' "$IPHONE_PASSWORD"
+            cat remote/iphone-command.sh
+          } | sshpass -e ssh -p "$IPHONE_PORT" \
+                -o BatchMode=no \
+                -o ConnectTimeout=20 \
+                -o ConnectionAttempts=2 \
+                -o ServerAliveInterval=15 \
+                -o ServerAliveCountMax=2 \
+                -o StrictHostKeyChecking=yes \
+                -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+                "$IPHONE_USER@$IPHONE_HOST" \
+                'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
+                2>&1 | tee -a iphone-output.txt
+          ssh_status=${PIPESTATUS[1]}
+          set -e
+          echo "iphone_ssh_exit_code=$ssh_status" | tee -a iphone-output.txt
+          exit "$ssh_status"
+
+      - name: Upload iPhone SSH output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iphone-ssh-output-${{ github.run_id }}
+          path: iphone-output.txt
+          if-no-files-found: warn
+          retention-days: 7
