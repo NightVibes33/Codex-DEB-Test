@@ -1,7 +1,7 @@
 iPhone Tailscale SSH Bridge
-run_id=33213675452
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33213675452
-commit=23bde5903c9007c6566e7608905beff568865bbd
+run_id=33213847460
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33213847460
+commit=602e9ac358971bbb09ecb6a012226d4649665c56
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
@@ -12,6 +12,24 @@ ssh=success
 --- sanitized SSH output ---
 Waking and checking iPhone SSH port over Tailscale...
 SSH port attempt 1/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 2/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 3/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 4/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 5/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 6/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 7/18
 # 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
 # 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
 # 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
@@ -19,92 +37,123 @@ SSH port attempt 1/18
 # 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
 iphone_ssh_port_ready=success
 Staging native rfmonctl and running probe as root...
-=== IOS MONITOR INTERFACE + CHANNEL TRACE ===
-captured_at=Fri Aug 28 16:42:45 CDT 2026
+=== PROCursus LIBPCAP RFMOn TEST ===
+captured_at=Fri Aug 28 16:47:50 CDT 2026
 whoami=root
 model=iPhone8,1 ios=15.8.8
-ldid_sign_rc=0
-===== BASELINE =====
-date=Fri Aug 28 16:42:48 CDT 2026
--- monitor value --
-rfmonctl interface=en0 sizeof_req=40 SIOCSA80211=0x802869c8
-ioctl command=107 request=0x802869c8 rc=0 errno=0 (ok) value=0
-monitor_value=0
--- interface names --
-/var/jb/usr/bin/sh: 43: ifconfig: not found
--- ifconfig en0 --
-/var/jb/usr/bin/sh: 45: ifconfig: not found
--- all interfaces (trimmed) --
-/var/jb/usr/bin/sh: 47: ifconfig: not found
--- netstat interfaces --
-/var/jb/usr/bin/sh: 49: netstat: not found
--- IO80211Interface registry --
--- IO80211InterfaceMonitor registry --
--- likely wifi/capture binaries --
-/usr/sbin/wifid
-/usr/libexec/corecaptured
-/usr/libexec/wifip2pd
-/usr/libexec/wifivelocityd
-/usr/libexec/wifianalyticsd
-/usr/libexec/wifiFirmwareLoader
-
-===== ENTER MODE 2 =====
-rfmonctl interface=en0 sizeof_req=40 SIOCSA80211=0x802869c8
-ioctl command=108 request=0x802869c8 rc=0 errno=0 (ok) value=2
-monitor_set=2
-mode2_set_rc=0
-===== MODE2 =====
-date=Fri Aug 28 16:42:53 CDT 2026
--- monitor value --
-rfmonctl interface=en0 sizeof_req=40 SIOCSA80211=0x802869c8
-ioctl command=107 request=0x802869c8 rc=0 errno=0 (ok) value=2
-monitor_value=2
--- interface names --
-/var/jb/usr/bin/sh: 43: ifconfig: not found
--- ifconfig en0 --
-/var/jb/usr/bin/sh: 45: ifconfig: not found
--- all interfaces (trimmed) --
-/var/jb/usr/bin/sh: 47: ifconfig: not found
--- netstat interfaces --
-/var/jb/usr/bin/sh: 49: netstat: not found
--- IO80211Interface registry --
--- IO80211InterfaceMonitor registry --
--- likely wifi/capture binaries --
-/usr/sbin/wifid
-/usr/libexec/corecaptured
-/usr/libexec/wifip2pd
-/usr/libexec/wifivelocityd
-/usr/libexec/wifianalyticsd
-/usr/libexec/wifiFirmwareLoader
-
-===== LEAVE MODE 2 =====
+rfmon_sign_rc=0
 rfmonctl interface=en0 sizeof_req=40 SIOCSA80211=0x802869c8
 ioctl command=108 request=0x802869c8 rc=0 errno=0 (ok) value=0
 monitor_set=0
-===== RESTORED =====
-date=Fri Aug 28 16:42:57 CDT 2026
--- monitor value --
+
+===== STORAGE =====
+Filesystem                                                                                             Size   Used  Avail Capacity iused     ifree %iused  Mounted on
+/dev/disk0s1s2                                                                                         30Gi  3.7Gi   19Gi    17%   86544 198612360    0%   /private/var
+/dev/disk0s1s6                                                                                         30Gi  710Mi   19Gi     4%   27572 198612360    0%   /private/preboot
+
+===== TCPDUMP PACKAGE =====
+tcpdump:
+  Installed: (none)
+  Candidate: 4.99.1-1
+  Version table:
+     4.99.1-1 1001
+       1001 https://apt.procurs.us 1800/main iphoneos-arm64 Packages
+tcpdump_install=attempting
+Reading package lists...
+E: Could not get lock /var/jb/var/lib/apt/lists/lock. It is held by process 40208
+E: Unable to lock directory /var/jb/var/lib/apt/lists/
+Reading package lists...
+Building dependency tree...
+Reading state information...
+The following NEW packages will be installed:
+  tcpdump
+0 upgraded, 1 newly installed, 0 to remove and 26 not upgraded.
+Need to get 462 kB of archives.
+After this operation, 1249 kB of additional disk space will be used.
+Get:1 https://apt.procurs.us 1800/main iphoneos-arm64 tcpdump iphoneos-arm64 4.99.1-1 [462 kB]
+Fetched 462 kB in 0s (930 kB/s)
+Selecting previously unselected package tcpdump.
+(Reading database ... 26547 files and directories currently installed.)
+Preparing to unpack .../tcpdump_4.99.1-1_iphoneos-arm64.deb ...
+Unpacking tcpdump (4.99.1-1) ...
+Setting up tcpdump (4.99.1-1) ...
+tcpdump_install_rc=0
+tcpdump_bin=/var/jb/usr/bin/tcpdump
+tcpdump_sign_rc=0
+
+===== TCPDUMP BUILD =====
+tcpdump-rfmon version 4.99.1
+libpcap version 1.10.4
+OpenSSL 3.2.1 30 Jan 2024
+
+===== PCAP DEVICES =====
+1.en0 [Up, Running, Wireless, Associated]
+2.awdl0 [Up, Running, Wireless, Associated]
+3.llw0 [Up, Running, Wireless, Associated]
+4.utun0 [Up, Running]
+5.utun1 [Up, Running]
+6.utun2 [Up, Running]
+7.ipsec0 [Up, Running]
+8.ipsec1 [Up, Running]
+9.ipsec2 [Up, Running]
+10.utun3 [Up, Running]
+11.utun4 [Up, Running]
+12.utun5 [Up, Running]
+13.lo0 [Up, Running, Loopback]
+14.anpi0 [Up, Running, Disconnected]
+15.en2 [Up, Running, Disconnected]
+16.pdp_ip0 [none]
+17.pdp_ip2 [none]
+18.pdp_ip4 [none]
+19.pdp_ip3 [none]
+20.pdp_ip1 [none]
+21.ap1 [Wireless, Not associated]
+22.en1 [none, Disconnected]
+
+===== EN0 LINK TYPES =====
+Data link types for en0 when not in monitor mode (use option -y to set):
+  EN10MB (Ethernet)
+  RAW (Raw IP)
+
+===== GUARDED TCPDUMP -I CAPTURE =====
+tcpdump_pid=42256
+
+-- state while tcpdump -I is active --
 rfmonctl interface=en0 sizeof_req=40 SIOCSA80211=0x802869c8
 ioctl command=107 request=0x802869c8 rc=0 errno=0 (ok) value=0
 monitor_value=0
--- interface names --
-/var/jb/usr/bin/sh: 43: ifconfig: not found
--- ifconfig en0 --
-/var/jb/usr/bin/sh: 45: ifconfig: not found
--- all interfaces (trimmed) --
-/var/jb/usr/bin/sh: 47: ifconfig: not found
--- netstat interfaces --
-/var/jb/usr/bin/sh: 49: netstat: not found
--- IO80211Interface registry --
--- IO80211InterfaceMonitor registry --
--- likely wifi/capture binaries --
-/usr/sbin/wifid
-/usr/libexec/corecaptured
-/usr/libexec/wifip2pd
-/usr/libexec/wifivelocityd
-/usr/libexec/wifianalyticsd
-/usr/libexec/wifiFirmwareLoader
+-rw-r--r-- 1 root mobile 24 Aug 28 16:48 /var/mobile/tcpdump-rfmon.pcap
+rfmonctl interface=en0 sizeof_req=40 SIOCSA80211=0x802869c8
+ioctl command=108 request=0x802869c8 rc=0 errno=0 (ok) value=0
+monitor_set=0
 
-===== HARD RECOVERY LOG =====
-=== END IOS MONITOR INTERFACE + CHANNEL TRACE ===
+===== TCPDUMP LOG =====
+tcpdump-rfmon: listening on en0, link-type IEEE802_11_RADIO (802.11 plus radiotap header), snapshot length 262144 bytes
+0 packets captured
+0 packets received by filter
+0 packets dropped by kernel
+
+===== TCPDUMP PCAP =====
+-rw-r--r-- 1 root mobile 24 Aug 28 16:48 /var/mobile/tcpdump-rfmon.pcap
+pcap_bytes=24
+-- tcpdump readback --
+reading from file /var/mobile/tcpdump-rfmon.pcap, link-type IEEE802_11_RADIO (802.11 plus radiotap header), snapshot length 262144
+-- aircrack parse --
+Reading packets, please wait...
+Opening /var/mobile/tcpdump-rfmon.pcap
+[0KRead 0 packets.
+
+No networks found, exiting.
+
+
+Quitting aircrack-ng...
+
+===== FINAL STATE =====
+rfmonctl interface=en0 sizeof_req=40 SIOCSA80211=0x802869c8
+ioctl command=108 request=0x802869c8 rc=0 errno=0 (ok) value=0
+monitor_set=0
+rfmonctl interface=en0 sizeof_req=40 SIOCSA80211=0x802869c8
+ioctl command=107 request=0x802869c8 rc=0 errno=0 (ok) value=0
+monitor_value=0
+=== END PROCursus LIBPCAP RFMOn TEST ===
 ssh_exit_code=0
