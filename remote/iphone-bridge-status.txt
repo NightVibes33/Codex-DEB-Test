@@ -1,13 +1,109 @@
 iPhone Tailscale SSH Bridge
-run_id=33213382714
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33213382714
-commit=791016a7790c859d28bb2c1c16345458e8edc385
+run_id=33213418289
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33213418289
+commit=88efe21706a9893fc0c8efc68084d7ddd2ee53e5
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
-tailscale=skipped
-install_ssh=cancelled
-ssh=skipped
+tailscale=success
+install_ssh=success
+ssh=success
 
 --- sanitized SSH output ---
-No SSH output file was created.
+Waking and checking iPhone SSH port over Tailscale...
+SSH port attempt 1/18
+# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
+# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
+# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
+# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
+# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
+iphone_ssh_port_ready=success
+Staging native rfmonctl and running probe as root...
+=== IOS NATIVE RADIOTAP MONITOR CAPTURE ===
+captured_at=Fri Aug 28 16:39:13 CDT 2026
+whoami=root
+model=iPhone8,1 ios=15.8.8
+
+===== SIGN NATIVE TOOL =====
+ldid_sign_rc=0
+
+===== FORCE CLEAN BASELINE =====
+rfmonctl interface=en0 sizeof_req=40 SIOCSA80211=0x802869c8
+ioctl command=108 request=0x802869c8 rc=0 errno=0 (ok) value=0
+monitor_set=0
+rfmonctl interface=en0 sizeof_req=40 SIOCSA80211=0x802869c8
+ioctl command=107 request=0x802869c8 rc=0 errno=0 (ok) value=0
+monitor_value=0
+baseline_get_rc=0
+
+===== BPF DEVICES =====
+crw------- 1 root wheel 23, 0 Aug 28 16:04 /dev/bpf0
+crw------- 1 root wheel 23, 1 Aug 28 15:12 /dev/bpf1
+crw------- 1 root wheel 23, 2 Aug 28 07:57 /dev/bpf2
+crw------- 1 root wheel 23, 3 Aug 28 07:57 /dev/bpf3
+
+===== GUARDED MODE-2 RADIOTAP CAPTURE =====
+capture_worker_pid=41966
+
+===== CAPTURE RESULT =====
+Fri Aug 28 16:39:19 CDT 2026
+capture_command_rc=0
+-rw-r--r-- 1 root mobile 0 Aug 28 16:39 /var/mobile/bootybandit1-rfmon.pcap
+rfmonctl interface=en0 sizeof_req=40 SIOCSA80211=0x802869c8
+capture_sequence=dlt127-plus-wlc-monitor-mode2
+capture_interface=en0 capture_file=/var/mobile/bootybandit1-rfmon.pcap capture_seconds=8
+ioctl command=107 request=0x802869c8 rc=0 errno=0 (ok) value=0
+monitor_value=0
+bpf_device=/dev/bpf1
+bpf_initial_dlt=1
+bpf_available_dlt_count=3 bpf_available_dlts=1,12,127
+capture_wireless_dlt=127 monitor_mode_request=2
+BIOCSDLT candidate=127 rc=0 errno=0 (ok)
+bpf_selected_dlt=127
+ioctl command=108 request=0x802869c8 rc=0 errno=0 (ok) value=2
+monitor_set=2
+ioctl command=107 request=0x802869c8 rc=0 errno=0 (ok) value=2
+monitor_value=2
+capture_monitor_live=2 expected=2
+bpf_dlt=127 bpf_buffer_length=4096
+capture_packets=0 capture_payload_bytes=0 capture_dlt=127
+capture_monitor_restore=wlc-mode-0
+ioctl command=108 request=0x802869c8 rc=0 errno=0 (ok) value=0
+monitor_set=0
+capture_monitor_off_rc=0
+BIOCSDLT candidate=1 rc=0 errno=0 (ok)
+bpf_selected_dlt=1
+ioctl command=107 request=0x802869c8 rc=0 errno=0 (ok) value=0
+monitor_value=0
+capture_final_monitor=0
+capture_command_rc=0
+-rw-r--r-- 1 root mobile 24 Aug 28 16:39 /var/mobile/bootybandit1-rfmon.pcap
+
+===== PCAP FILE =====
+-rw-r--r-- 1 root mobile 24 Aug 28 16:39 /var/mobile/bootybandit1-rfmon.pcap
+pcap_bytes=24
+
+===== AIRCRACK 802.11 PARSE CHECK =====
+Reading packets, please wait...
+Opening /var/mobile/bootybandit1-rfmon.pcap
+[0KRead 0 packets.
+
+No networks found, exiting.
+
+
+Quitting aircrack-ng...
+aircrack_parse_rc=0
+
+===== FINAL RADIO STATE =====
+rfmonctl interface=en0 sizeof_req=40 SIOCSA80211=0x802869c8
+ioctl command=108 request=0x802869c8 rc=0 errno=0 (ok) value=0
+monitor_set=0
+rfmonctl interface=en0 sizeof_req=40 SIOCSA80211=0x802869c8
+ioctl command=107 request=0x802869c8 rc=0 errno=0 (ok) value=0
+monitor_value=0
+final_get_rc=0
+rfmonctl interface=en0 sizeof_req=40 SIOCSA80211=0x802869c8
+ioctl command=108 request=0x802869c8 rc=0 errno=0 (ok) value=0
+monitor_set=0
+=== END IOS NATIVE RADIOTAP MONITOR CAPTURE ===
+ssh_exit_code=0
