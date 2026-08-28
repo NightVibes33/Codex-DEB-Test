@@ -5,36 +5,22 @@ SSID='bootybandit1'
 WORDLIST='/var/mobile/bootybandit1-wordlist.txt'
 AIRMON='/var/jb/usr/sbin/airmon-ng'
 
-echo '=== OWNED WIFI AIRMON INSTALL + TEST ==='
+echo '=== OWNED WIFI STAGED AIRMON/AIRCRACK TEST ==='
 echo "captured_at=$(date 2>/dev/null)"
 echo "whoami=$(whoami 2>/dev/null)"
 echo "model=$(sysctl -n hw.machine 2>/dev/null) ios=$(sw_vers -productVersion 2>/dev/null)"
 
-printf '\n===== INSTALL CURL IF NEEDED =====\n'
-if ! command -v curl >/dev/null 2>&1; then
-  apt-get update 2>&1 | tail -n 60
-  apt-get install -y curl 2>&1 | tail -n 100
-  echo "apt_install_curl_rc=$?"
-fi
-command -v curl 2>/dev/null || true
-
-printf '\n===== INSTALL UPSTREAM AIRMON-NG =====\n'
-if command -v curl >/dev/null 2>&1; then
-  curl -fL --connect-timeout 15 --max-time 45 \
-    'https://raw.githubusercontent.com/aircrack-ng/aircrack-ng/master/scripts/airmon-ng.linux' \
-    -o "$AIRMON" 2>&1
-  crc=$?
-  echo "airmon_download_rc=$crc"
-  if [ "$crc" -eq 0 ] && [ -s "$AIRMON" ]; then
-    chmod 755 "$AIRMON"
-    echo "airmon_installed=$AIRMON"
-  fi
-else
-  echo 'airmon_install_result=curl-still-missing'
-fi
+printf '\n===== STAGED AIRMON-NG =====\n'
 ls -l "$AIRMON" 2>/dev/null || true
+if [ -s "$AIRMON" ]; then chmod 755 "$AIRMON" 2>/dev/null || true; fi
+if [ -x "$AIRMON" ]; then
+  echo "airmon_installed=$AIRMON"
+  head -n 3 "$AIRMON" 2>/dev/null || true
+else
+  echo 'airmon_install_result=missing-after-staging'
+fi
 
-printf '\n===== AIRMON PREREQUISITES =====\n'
+printf '\n===== PLATFORM PREREQUISITES =====\n'
 for p in /sys /sys/class /sys/class/net /sys/class/ieee80211 /proc; do
   if [ -e "$p" ]; then echo "$p=PRESENT"; else echo "$p=MISSING"; fi
 done
@@ -100,4 +86,4 @@ else
   echo 'result=no-capture-to-crack'
 fi
 
-echo '=== END OWNED WIFI AIRMON INSTALL + TEST ==='
+echo '=== END OWNED WIFI STAGED AIRMON/AIRCRACK TEST ==='
