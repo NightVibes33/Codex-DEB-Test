@@ -1,7 +1,7 @@
 iPhone Tailscale SSH Bridge
-run_id=33199709651
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33199709651
-commit=bcfc62047437ba3c0fb378f0dd47554c233ade8a
+run_id=33200220666
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33200220666
+commit=9eb9255925c147462682192dc59b2518b9328bd4
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
@@ -10,59 +10,6 @@ install_ssh=success
 ssh=success
 
 --- sanitized SSH output ---
-        500 http://sparkdev.me ./ Packages
-     1.5.24-Beta4-rootless 500
-        500 http://sparkdev.me ./ Packages
-     1.5.21-Beta3-rootless 500
-        500 http://sparkdev.me ./ Packages
-     1.5.19-Beta3-rootless 500
-        500 http://sparkdev.me ./ Packages
-     1.5.17-Beta3-rootless 500
-        500 http://sparkdev.me ./ Packages
-     1.5.16-Beta3-rootless 500
-        500 http://sparkdev.me ./ Packages
-     1.5.15-Beta3-rootless 500
-        500 http://sparkdev.me ./ Packages
-     1.5.13-Beta3-rootless 500
-        500 http://sparkdev.me ./ Packages
-     1.5.9-Beta3-rootless 500
-        500 http://sparkdev.me ./ Packages
-candidate=1.5.37-Beta4-rootless
-
-===== INSTALL ONLY SNOWBOARD + REQUIRED DEPENDENCIES =====
-Reading package lists...
-Building dependency tree...
-Reading state information...
-The following NEW packages will be installed:
-  com.spark.snowboard
-0 upgraded, 1 newly installed, 0 to remove and 26 not upgraded.
-Need to get 1129 kB of archives.
-After this operation, 3346 kB of additional disk space will be used.
-WARNING: The following packages cannot be authenticated!
-  com.spark.snowboard
-Authentication warning overridden.
-Get:1 https://sparkdev.me ./ com.spark.snowboard 1.5.37-Beta4-rootless [1129 kB]
-Fetched 1129 kB in 1s (1000 kB/s)
-Selecting previously unselected package com.spark.snowboard.
-(Reading database ... 26409 files and directories currently installed.)
-Preparing to unpack .../com.spark.snowboard_1.5.37-Beta4-rootless_iphoneos-arm64.deb ...
-Unpacking com.spark.snowboard (1.5.37-Beta4-rootless) ...
-Setting up com.spark.snowboard (1.5.37-Beta4-rootless) ...
-Processing triggers for org.coolstar.sileo (2.5.1) ...
-apt_install_rc=0
-
-===== VERIFY PACKAGE =====
-install ok installed	com.spark.snowboard	1.5.37-Beta4-rootless	iphoneos-arm64	Depends=mobilesubstrate, preferenceloader
--- SnowBoard installed files relevant to prefs/injection/themes --
-/var/jb/Library/MobileSubstrate/DynamicLibraries/AAASnowBoardStub.dylib
-/var/jb/Library/MobileSubstrate/DynamicLibraries/AAASnowBoardStub.plist
-/var/jb/Library/MobileSubstrate/DynamicLibraries/Snowboard.dylib
-/var/jb/Library/MobileSubstrate/DynamicLibraries/Snowboard.plist
-/var/jb/Library/PreferenceBundles
-/var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle
-/var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle/.git
-/var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle/.gitattributes
-/var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle/.gitignore
 /var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle/IconOptions.plist
 /var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle/Info.plist
 /var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle/README.md
@@ -161,72 +108,125 @@ install ok installed	com.spark.snowboard	1.5.37-Beta4-rootless	iphoneos-arm64	De
 /var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle/zh_TW.lproj/IconOptions.strings
 /var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle/zh_TW.lproj/Localizable.strings
 /var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle/zh_TW.lproj/Root.strings
-/var/jb/Library/PreferenceLoader
-/var/jb/Library/PreferenceLoader/Preferences
 /var/jb/Library/PreferenceLoader/Preferences/SnowboardPrefs.plist
 /var/jb/usr/lib/SnowBoardBase.dylib
-/var/jb/usr/local/bin/snowboardutil
-
-===== VERIFY SETTINGS PANE =====
-/var/jb/Library/PreferenceLoader/Preferences/SnowboardPrefs.plist
-/var/jb/Library/PreferenceLoader/Preferences/appstoretrollerPrefs.plist
-/var/jb/Library/PreferenceBundles
+--- PACKAGE xyz.cypwn.applist ---
+Status=install ok installed
+Package=xyz.cypwn.applist
+Version=1.5.16
+Architecture=iphoneos-arm64
+Depends=mobilesubstrate, com.rpetrich.rocketbootstrap
+Pre-Depends=
+Description=Allow extensions to read the list of installed apps
+RelevantFiles:
+/var/jb/Library/MobileSubstrate/DynamicLibraries/AppList.dylib
+/var/jb/Library/MobileSubstrate/DynamicLibraries/AppList.plist
 /var/jb/Library/PreferenceBundles/AppList.bundle
-/var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle
+/var/jb/Library/PreferenceBundles/AppList.bundle/AppList
+/var/jb/Library/PreferenceBundles/AppList.bundle/Info.plist
+/var/jb/usr/lib/libapplist.dylib
+--- PACKAGE xyz.cypwn.appstoretrollern ---
+Status=install ok installed
+Package=xyz.cypwn.appstoretrollern
+Version=0.1.1a
+Architecture=iphoneos-arm64
+Depends=mobilesubstrate (>= 0.9.5000)
+Pre-Depends=
+Description=Modified version of Mineek's tweak that lets you specify the minimum version and bypass installd version check.
+RelevantFiles:
+/var/jb/Library/MobileSubstrate/DynamicLibraries/appstoretroller.dylib
+/var/jb/Library/MobileSubstrate/DynamicLibraries/appstoretroller.plist
 /var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/Info.plist
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/Root.plist
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/appstoretrollerPrefs
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon.png
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon@2x.png
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon@3x.png
+/var/jb/Library/PreferenceLoader/Preferences/appstoretrollerPrefs.plist
 
-===== VERIFY SNOWBOARD INJECTION =====
+===== ROOTFUL / WRONG-ARCH SUSPECTS =====
+/var/jb/usr/bin/sh: 58: awk: not found
+
+===== UNOWNED TWEAK / PREF FILES =====
+/var/jb/usr/lib/TweakInject/0Hello3Q.dylib
+/var/jb/usr/lib/TweakInject/0Hello3Q.plist
 /var/jb/usr/lib/TweakInject/AAASnowBoardStub.dylib
 /var/jb/usr/lib/TweakInject/AAASnowBoardStub.plist
+/var/jb/usr/lib/TweakInject/AppList.dylib
+/var/jb/usr/lib/TweakInject/AppList.plist
+/var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.dylib
+/var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.plist
+/var/jb/usr/lib/TweakInject/AppSyncUnified-installd.dylib
+/var/jb/usr/lib/TweakInject/AppSyncUnified-installd.plist
+/var/jb/usr/lib/TweakInject/ArthurBrowserPro.dylib
+/var/jb/usr/lib/TweakInject/ArthurBrowserPro.plist
+/var/jb/usr/lib/TweakInject/AutoRevenueCat.dylib
+/var/jb/usr/lib/TweakInject/AutoRevenueCat.plist
+/var/jb/usr/lib/TweakInject/FilzaCrack.dylib
+/var/jb/usr/lib/TweakInject/FilzaCrack.plist
+/var/jb/usr/lib/TweakInject/GboardAll.dylib
+/var/jb/usr/lib/TweakInject/GboardAll.plist
+/var/jb/usr/lib/TweakInject/PreferenceLoader.dylib
+/var/jb/usr/lib/TweakInject/PreferenceLoader.plist
+/var/jb/usr/lib/TweakInject/RocketBootstrap.plist
 /var/jb/usr/lib/TweakInject/Snowboard.dylib
 /var/jb/usr/lib/TweakInject/Snowboard.plist
+/var/jb/usr/lib/TweakInject/afc2dService.dylib
+/var/jb/usr/lib/TweakInject/afc2dService.plist
+/var/jb/usr/lib/TweakInject/appstoretroller.dylib
+/var/jb/usr/lib/TweakInject/appstoretroller.plist
+/var/jb/usr/lib/TweakInject/iCleanerProCrack.dylib
+/var/jb/usr/lib/TweakInject/iCleanerProCrack.plist
+/var/jb/usr/lib/TweakInject/mmaintenanced_hook.dylib
+/var/jb/usr/lib/TweakInject/mmaintenanced_hook.plist
 
-===== VERIFY EXISTING THEMES =====
-/var/jb/Library/Themes/Glass Alt.theme
-/var/jb/Library/Themes/Glass Badge.theme
-/var/jb/Library/Themes/Glass Border.theme
-/var/jb/Library/Themes/Glass Shadow.theme
-/var/jb/Library/Themes/Glass.theme
-/var/jb/Library/Themes/Lucent Badges alts.theme
-/var/jb/Library/Themes/Lucent Badges.theme
-/var/jb/Library/Themes/Lucent Mask.theme
-/var/jb/Library/Themes/Lucent Settings.theme
-/var/jb/Library/Themes/Lucent alts.theme
-/var/jb/Library/Themes/Lucent.theme
-/var/jb/Library/Themes/LucentBlack Badges alts.theme
-/var/jb/Library/Themes/LucentBlack Badges.theme
-/var/jb/Library/Themes/LucentBlack Mask.theme
-/var/jb/Library/Themes/LucentBlack Settings.theme
-/var/jb/Library/Themes/LucentBlack alts.theme
-/var/jb/Library/Themes/LucentBlack.theme
-/var/jb/Library/Themes/LucentGlyph Badges alts.theme
-/var/jb/Library/Themes/LucentGlyphs Badges.theme
-/var/jb/Library/Themes/LucentGlyphs Mask.theme
-/var/jb/Library/Themes/LucentGlyphs Settings.theme
-/var/jb/Library/Themes/LucentGlyphs alts.theme
-/var/jb/Library/Themes/LucentGlyphs.theme
-/var/jb/Library/Themes/LucentWhite Badges alts.theme
-/var/jb/Library/Themes/LucentWhite Badges.theme
-/var/jb/Library/Themes/LucentWhite Mask.theme
-/var/jb/Library/Themes/LucentWhite Settings.theme
-/var/jb/Library/Themes/LucentWhite alts.theme
-/var/jb/Library/Themes/LucentWhite.theme
-/var/jb/Library/Themes/Solstice Alt Home.theme
-/var/jb/Library/Themes/Solstice Badge Red.theme
-/var/jb/Library/Themes/Solstice Badge.theme
-/var/jb/Library/Themes/Solstice Folder Effect.theme
-/var/jb/Library/Themes/Solstice Home.theme
-/var/jb/Library/Themes/Solstice Settings.theme
-/var/jb/Library/Themes/Solstice Tweaked IOS 18 Icons.theme
-/var/jb/Library/Themes/SolsticeIcon.theme
-/var/jb/Library/Themes/ViolaBlack alts
-/var/jb/Library/Themes/ViolaBlack.theme
-/var/jb/Library/Themes/macOS Spinner.theme
+===== DISABLED / BACKUP INJECTION FILES =====
 
-===== RELOAD SETTINGS + SPRINGBOARD =====
-springboard_pid_before=unknown
-springboard_pid_after=unknown
-12977 /System/Library/CoreServices/SpringBoard.app/SpringBoard
-12983 /System/Library/PrivateFrameworks/SpringBoard.framework/XPCServices/SBRendererService.xpc/SBRendererService
-=== END IPHONE SNOWBOARD ROOTLESS REPAIR ===
+===== PREF PLIST -> BUNDLE REFERENCES =====
+--- /var/jb/Library/PreferenceLoader/Preferences/SnowboardPrefs.plist ---
+--- /var/jb/Library/PreferenceLoader/Preferences/appstoretrollerPrefs.plist ---
+
+===== INJECTION FILTER SNAPSHOT =====
+--- /var/jb/usr/lib/TweakInject/0Hello3Q.plist ---
+--- /var/jb/usr/lib/TweakInject/AAASnowBoardStub.plist ---
+--- /var/jb/usr/lib/TweakInject/AppList.plist ---
+--- /var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.plist ---
+--- /var/jb/usr/lib/TweakInject/AppSyncUnified-installd.plist ---
+--- /var/jb/usr/lib/TweakInject/ArthurBrowserPro.plist ---
+--- /var/jb/usr/lib/TweakInject/AutoRevenueCat.plist ---
+--- /var/jb/usr/lib/TweakInject/FilzaCrack.plist ---
+--- /var/jb/usr/lib/TweakInject/GboardAll.plist ---
+--- /var/jb/usr/lib/TweakInject/PreferenceLoader.plist ---
+--- /var/jb/usr/lib/TweakInject/RocketBootstrap.plist ---
+--- /var/jb/usr/lib/TweakInject/Snowboard.plist ---
+--- /var/jb/usr/lib/TweakInject/afc2dService.plist ---
+--- /var/jb/usr/lib/TweakInject/appstoretroller.plist ---
+--- /var/jb/usr/lib/TweakInject/iCleanerProCrack.plist ---
+--- /var/jb/usr/lib/TweakInject/mmaintenanced_hook.plist ---
+--- /var/jb/Library/MobileSubstrate/DynamicLibraries/0Hello3Q.plist ---
+--- /var/jb/Library/MobileSubstrate/DynamicLibraries/AAASnowBoardStub.plist ---
+--- /var/jb/Library/MobileSubstrate/DynamicLibraries/AppList.plist ---
+--- /var/jb/Library/MobileSubstrate/DynamicLibraries/AppSyncUnified-FrontBoard.plist ---
+--- /var/jb/Library/MobileSubstrate/DynamicLibraries/AppSyncUnified-installd.plist ---
+--- /var/jb/Library/MobileSubstrate/DynamicLibraries/ArthurBrowserPro.plist ---
+--- /var/jb/Library/MobileSubstrate/DynamicLibraries/AutoRevenueCat.plist ---
+--- /var/jb/Library/MobileSubstrate/DynamicLibraries/FilzaCrack.plist ---
+--- /var/jb/Library/MobileSubstrate/DynamicLibraries/GboardAll.plist ---
+--- /var/jb/Library/MobileSubstrate/DynamicLibraries/PreferenceLoader.plist ---
+--- /var/jb/Library/MobileSubstrate/DynamicLibraries/RocketBootstrap.plist ---
+--- /var/jb/Library/MobileSubstrate/DynamicLibraries/Snowboard.plist ---
+--- /var/jb/Library/MobileSubstrate/DynamicLibraries/afc2dService.plist ---
+--- /var/jb/Library/MobileSubstrate/DynamicLibraries/appstoretroller.plist ---
+--- /var/jb/Library/MobileSubstrate/DynamicLibraries/iCleanerProCrack.plist ---
+--- /var/jb/Library/MobileSubstrate/DynamicLibraries/mmaintenanced_hook.plist ---
+
+===== CURRENT PROCESSES OF INTEREST =====
+  320   0.0 /private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus//basebin/idownloadd
+  350   1.0 /usr/libexec/backboardd
+  359   0.0 /System/Library/PrivateFrameworks/NanoPreferencesSync.framework/nanoprefsyncd
+  440   0.0 /System/Library/PrivateFrameworks/IntlPreferences.framework/Support/localizationswitcherd
+13059   0.6 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+13066   0.0 /Applications/Preferences.app/Preferences
+=== END IPHONE ROOTLESS TWEAK AUDIT ===
 ssh_exit_code=0
