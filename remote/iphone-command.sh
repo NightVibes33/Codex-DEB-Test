@@ -4,13 +4,14 @@ export PATH="/var/jb/usr/bin:/var/jb/bin:/var/jb/usr/sbin:/var/jb/usr/local/bin:
 RFMON=/var/jb/usr/local/bin/rfmonctl
 LDID=$(command -v ldid 2>/dev/null)
 ENT=/tmp/rfmon-wifi-entitlements.plist
-PCAP=/var/mobile/tcpdump-wlc2-rfmon.pcap
 TD=/var/jb/usr/local/bin/tcpdump-rfmon
-LOG=/tmp/tcpdump-wlc2-rfmon.log
-REC=/tmp/tcpdump-wlc2-recovery.txt
+WORKER=/var/mobile/native-monitor-disassoc-worker.sh
+LOG=/var/mobile/native-monitor-disassoc.log
+PCAP_RF=/var/mobile/native-mode1-rfmon.pcap
+PCAP_EN=/var/mobile/native-mode1-en10mb.pcap
 
-echo '=== LIBPCAP RADIOTAP + BROADCOM WLC MODE 2 ==='
-echo "captured_at=$(date 2>/dev/null)"
+echo '=== ARM DETACHED DISASSOCIATED NATIVE MONITOR TEST ==='
+echo "armed_at=$(date 2>/dev/null)"
 echo "whoami=$(whoami 2>/dev/null)"
 echo "model=$(sysctl -n hw.machine 2>/dev/null) ios=$(sw_vers -productVersion 2>/dev/null)"
 
@@ -25,19 +26,14 @@ cat > "$ENT" <<'PLIST'
 </dict></plist>
 PLIST
 
-if [ ! -x "$RFMON" ]; then
-  echo 'result=missing-rfmonctl'
-  exit 0
-fi
-if [ -z "$LDID" ]; then
-  echo 'result=missing-ldid'
+if [ ! -x "$RFMON" ] || [ -z "$LDID" ]; then
+  echo 'result=missing-rfmonctl-or-ldid'
   exit 0
 fi
 
 "$LDID" -S"$ENT" "$RFMON" 2>&1
 echo "rfmon_sign_rc=$?"
 "$RFMON" en0 off 2>&1 || true
-sleep 1
 "$RFMON" en0 get 2>&1 || true
 
 TCPDUMP_BIN=$(command -v tcpdump 2>/dev/null)
@@ -51,73 +47,111 @@ chmod 755 "$TD"
 "$LDID" -S"$ENT" "$TD" 2>&1
 echo "tcpdump_sign_rc=$?"
 
-printf '\n===== PRECHECK =====\n'
-"$TD" --version 2>&1 | head -n 20 || true
-"$TD" -L -i en0 2>&1 | head -n 80 || true
+rm -f "$LOG" "$PCAP_RF" "$PCAP_EN" \
+  /var/mobile/native-mode1-rfmon-tcpdump.log \
+  /var/mobile/native-mode1-en10mb-tcpdump.log 2>/dev/null || true
 
-rm -f "$PCAP" "$LOG" "$REC" 2>/dev/null || true
+cat > "$WORKER" <<'WORKER_EOF'
+#!/bin/sh
+set +e
+export PATH="/var/jb/usr/bin:/var/jb/bin:/var/jb/usr/sbin:/var/jb/usr/local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+RF=/var/jb/usr/local/bin/rfmonctl
+TD=/var/jb/usr/local/bin/tcpdump-rfmon
+LOG=/var/mobile/native-monitor-disassoc.log
+P_RF=/var/mobile/native-mode1-rfmon.pcap
+P_EN=/var/mobile/native-mode1-en10mb.pcap
+TLOG_RF=/var/mobile/native-mode1-rfmon-tcpdump.log
+TLOG_EN=/var/mobile/native-mode1-en10mb-tcpdump.log
+exec >>"$LOG" 2>&1
 
-# Independent recovery in case monitor mode interrupts the transport.
-nohup sh -c '
-  sleep 18
-  /var/jb/usr/local/bin/rfmonctl en0 off >>/tmp/tcpdump-wlc2-recovery.txt 2>&1 || true
-  killall tcpdump-rfmon >>/tmp/tcpdump-wlc2-recovery.txt 2>&1 || true
-  killall wifid >>/tmp/tcpdump-wlc2-recovery.txt 2>&1 || true
-' >/dev/null 2>&1 </dev/null &
+echo '=== DISASSOCIATED STOCK MODE-1 WORKER ==='
+echo "worker_start=$(date 2>/dev/null)"
+echo "pid=$$"
 
-printf '\n===== START LIBPCAP RADIOTAP HANDLE =====\n'
-nohup "$TD" -I -i en0 -s 0 -U -w "$PCAP" >"$LOG" 2>&1 </dev/null &
-TPID=$!
-echo "tcpdump_pid=$TPID"
+echo '===== BASELINE ====='
+"$RF" en0 off || true
+"$RF" en0 get || true
+"$TD" -D 2>&1 | head -n 40 || true
+ps ax 2>/dev/null | grep '[w]ifid' | head -n 10 || true
+
+# Keep wifid from immediately re-associating while the direct Broadcom
+# disassociation + monitor capture is in progress.
+echo '===== FREEZE WIFID + DISASSOCIATE ====='
+killall -STOP wifid 2>&1
+echo "wifid_stop_rc=$?"
+"$RF" en0 disassoc
+echo "disassoc_rc=$?"
 sleep 2
+"$TD" -D 2>&1 | head -n 40 || true
 
-echo '-- before WLC mode 2 --'
-"$RFMON" en0 get 2>&1 || true
-ls -l "$PCAP" 2>&1 || true
-
-printf '\n===== ENABLE WLC RADIOTAP MODE 2 =====\n'
-"$RFMON" en0 mode 2 2>&1
-SET_RC=$?
-echo "wlc_mode2_set_rc=$SET_RC"
+# Open both the Apple/libpcap rfmon descriptor and a normal en0 descriptor
+# before enabling stock native monitor mode 1. This tells us which path, if
+# either, receives the raw monitor stream.
+echo '===== OPEN CAPTURE DESCRIPTORS ====='
+"$TD" -I -i en0 -s 0 -U -w "$P_RF" >"$TLOG_RF" 2>&1 &
+PID_RF=$!
+"$TD" -i en0 -s 0 -U -w "$P_EN" >"$TLOG_EN" 2>&1 &
+PID_EN=$!
+echo "tcpdump_rf_pid=$PID_RF tcpdump_en_pid=$PID_EN"
 sleep 1
-"$RFMON" en0 get 2>&1
-GET_RC=$?
-echo "wlc_mode2_get_rc=$GET_RC"
 
-# Capture while libpcap's DLT127 descriptor and firmware mode 2 are both active.
-sleep 7
-printf '\n===== STATE DURING COMBINED CAPTURE =====\n'
-"$RFMON" en0 get 2>&1 || true
-ls -l "$PCAP" 2>&1 || true
-
-printf '\n===== RESTORE =====\n'
-"$RFMON" en0 off 2>&1 || true
-sleep 1
-kill "$TPID" 2>/dev/null || true
+# Mode 1 is Broadcom's stock/native monitor path; unlike mode 2, it does not
+# depend on a Nexmon radiotap firmware patch.
+echo '===== ENABLE STOCK NATIVE MONITOR MODE 1 ====='
+"$RF" en0 raw
+echo "mode1_set_rc=$?"
 sleep 2
-"$RFMON" en0 get 2>&1 || true
+"$RF" en0 get || true
 
-printf '\n===== TCPDUMP LOG =====\n'
-cat "$LOG" 2>/dev/null | tail -n 180 || true
+sleep 8
 
-printf '\n===== PCAP RESULT =====\n'
-ls -l "$PCAP" 2>&1 || true
-if [ -s "$PCAP" ]; then
-  BYTES=$(wc -c < "$PCAP" 2>/dev/null | tr -d ' ')
-  echo "pcap_bytes=${BYTES:-0}"
-  echo '-- tcpdump readback --'
-  "$TD" -n -r "$PCAP" -c 30 2>&1 | head -n 140 || true
-  if command -v aircrack-ng >/dev/null 2>&1; then
-    echo '-- aircrack parse --'
-    aircrack-ng "$PCAP" 2>&1 | tail -n 140 || true
+echo '===== CAPTURE WINDOW END ====='
+"$RF" en0 get || true
+ls -l "$P_RF" "$P_EN" 2>&1 || true
+
+# Restore radio before waking/restarting wifid.
+echo '===== RESTORE RADIO + WIFI ====='
+"$RF" en0 off || true
+kill "$PID_RF" "$PID_EN" 2>/dev/null || true
+sleep 2
+killall -CONT wifid 2>&1 || true
+sleep 1
+killall -9 wifid 2>&1 || true
+sleep 15
+"$RF" en0 off || true
+"$RF" en0 get || true
+"$TD" -D 2>&1 | head -n 40 || true
+
+for P in "$P_RF" "$P_EN"; do
+  echo "===== RESULT $P ====="
+  ls -l "$P" 2>&1 || true
+  if [ -s "$P" ]; then
+    echo "pcap_bytes=$(wc -c < "$P" 2>/dev/null | tr -d ' ')"
+    "$TD" -n -r "$P" -c 25 2>&1 | head -n 120 || true
+    if command -v aircrack-ng >/dev/null 2>&1; then
+      aircrack-ng "$P" 2>&1 | tail -n 100 || true
+    fi
   fi
-else
-  echo 'pcap_created=no'
-fi
+done
 
-printf '\n===== FINAL RADIO STATE =====\n'
-"$RFMON" en0 off 2>&1 || true
-"$RFMON" en0 get 2>&1 || true
-cat "$REC" 2>/dev/null || true
+echo '===== TCPDUMP RFMON LOG ====='
+cat "$TLOG_RF" 2>/dev/null | tail -n 100 || true
+echo '===== TCPDUMP EN0 LOG ====='
+cat "$TLOG_EN" 2>/dev/null | tail -n 100 || true
 
-echo '=== END LIBPCAP RADIOTAP + BROADCOM WLC MODE 2 ==='
+echo "worker_end=$(date 2>/dev/null)"
+echo 'worker_complete=yes'
+WORKER_EOF
+chmod 755 "$WORKER"
+
+# Return the SSH command successfully before the worker deliberately drops the
+# Wi-Fi association. The next bridge run reads the persistent result files.
+nohup sh -c 'sleep 4; exec /var/mobile/native-monitor-disassoc-worker.sh' \
+  >/dev/null 2>&1 </dev/null &
+WPID=$!
+echo "detached_worker_pid=$WPID"
+echo "worker_log=$LOG"
+echo "rfmon_pcap=$PCAP_RF"
+echo "en0_pcap=$PCAP_EN"
+echo 'armed=yes; worker will disassociate Wi-Fi after this SSH command returns'
+echo '=== DETACHED TEST ARMED ==='
