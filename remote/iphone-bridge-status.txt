@@ -1,232 +1,232 @@
 iPhone Tailscale SSH Bridge
-run_id=33199384511
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33199384511
-commit=c90ce56c7c5be9a7f554320bbafe3127b0fe5510
+run_id=33199541000
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33199541000
+commit=68b5dd4934ca4d630c0cedbaed9182a341ae0675
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
 tailscale=success
 install_ssh=success
-ssh=success
+ssh=failure
 
 --- sanitized SSH output ---
- gsc.siri-gesture     virtual GraphicsServices dependency
- gsc.siri-offline-capability virtual GraphicsServices dependency
- gsc.sms              virtual GraphicsServices dependency
- gsc.stand-alone-contacts virtual GraphicsServices dependency
- gsc.stark-capability virtual GraphicsServices dependency
- gsc.still-camera     virtual GraphicsServices dependency
- gsc.supports-force-touch virtual GraphicsServices dependency
- gsc.supports-iris-capture virtual GraphicsServices dependency
- gsc.supports-low-power-mode virtual GraphicsServices dependency
- gsc.supports-rotate-to-wake virtual GraphicsServices dependency
- gsc.supports-s-o-s   virtual GraphicsServices dependency
- gsc.telephony        virtual GraphicsServices dependency
- gsc.touch-id         virtual GraphicsServices dependency
- gsc.tv-out-crossfade virtual GraphicsServices dependency
- gsc.u-i-background-quality virtual GraphicsServices dependency
- gsc.u-i-parallax-capability virtual GraphicsServices dependency
- gsc.u-i-procedural-wallpaper-capability virtual GraphicsServices dependency
- gsc.u-i-reachability virtual GraphicsServices dependency
- gsc.unified-ipod     virtual GraphicsServices dependency
- gsc.venice           virtual GraphicsServices dependency
- gsc.vibrator-capability virtual GraphicsServices dependency
- gsc.video-camera     virtual GraphicsServices dependency
- gsc.video-stills     virtual GraphicsServices dependency
- gsc.voice-control    virtual GraphicsServices dependency
- gsc.voip             virtual GraphicsServices dependency
- gsc.volume-buttons   virtual GraphicsServices dependency
- gsc.w-a-graphic-quality virtual GraphicsServices dependency
- gsc.w-l-a-n-bkg-scan-cache virtual GraphicsServices dependency
- gsc.wi-fi            virtual GraphicsServices dependency
- gsc.wifi             virtual GraphicsServices dependency
- gsc.wifi-chipset     virtual GraphicsServices dependency
+===== BEFORE =====
+snowboard=not-installed
+-- SparkDev source entries --
+/var/jb/etc/apt/sources.list.d/sileo.sources:URIs: http://sparkdev.me/
+sparkdev_source=not-present
+-- package candidate before source repair --
+com.spark.snowboard:
+  Installed: (none)
+  Candidate: 1.5.37-Beta4-rootless
+  Version table:
+     1.5.37-Beta4-rootless 500
+        500 http://sparkdev.me ./ Packages
+     1.5.26-Beta4-rootless 500
+        500 http://sparkdev.me ./ Packages
+     1.5.25-Beta4-rootless 500
+        500 http://sparkdev.me ./ Packages
+     1.5.24-Beta4-rootless 500
+        500 http://sparkdev.me ./ Packages
+     1.5.21-Beta3-rootless 500
+        500 http://sparkdev.me ./ Packages
+     1.5.19-Beta3-rootless 500
+        500 http://sparkdev.me ./ Packages
+     1.5.17-Beta3-rootless 500
+        500 http://sparkdev.me ./ Packages
+     1.5.16-Beta3-rootless 500
+        500 http://sparkdev.me ./ Packages
+     1.5.15-Beta3-rootless 500
+        500 http://sparkdev.me ./ Packages
+     1.5.13-Beta3-rootless 500
+        500 http://sparkdev.me ./ Packages
+     1.5.9-Beta3-rootless 500
+        500 http://sparkdev.me ./ Packages
 
+===== ENSURE OFFICIAL SPARKDEV SOURCE =====
+sparkdev_source=already-present
+
+===== REFRESH PACKAGE INDEX =====
+Ign:1 http://skylerk99.github.io ./ InRelease
+Ign:2 http://julioverne.github.io ./ InRelease
+Get:5 http://skylerk99.github.io ./ Release [203 B]
+Get:6 http://julioverne.github.io ./ Release [279 B]
+Ign:7 https://poomsmart.github.io/repo ./ InRelease
+Ign:10 https://ca13ra1.github.io/repo ./ InRelease
+Ign:11 http://julioverne.github.io ./ Release.gpg
+Ign:12 http://skylerk99.github.io ./ Release.gpg
+Ign:13 https://spicat.github.io ./ InRelease
+Err:14 https://ca13ra1.github.io/repo ./ Release
+  404  Not Found [IP: 185.199.111.153 443]
+Ign:15 http://getdelta.co ./ InRelease
+Ign:16 https://repo.chariz.com ./ InRelease
+Err:17 https://spicat.github.io ./ Release
+  404  Not Found [IP: 185.199.111.153 443]
+Hit:18 https://repo.chariz.com ./ Release
+Ign:19 https://havoc.app ./ InRelease
+Ign:20 http://apt.thebigboss.org/repofiles/cydia stable InRelease
+Get:21 https://ellekit.space ./ InRelease [16.7 kB]
+Ign:22 https://xenpublic.incendo.ws ./ InRelease
+Get:23 http://getdelta.co ./ Release [141 B]
+Hit:24 https://havoc.app ./ Release
+Ign:25 http://getdelta.co ./ Release.gpg
+Get:26 https://apt.procurs.us 1800 InRelease [8310 B]
+Get:27 https://repo.cypwn.xyz ./ InRelease [3384 B]
+Err:27 https://repo.cypwn.xyz ./ InRelease
+  Clearsigned file isn't valid, got 'NOSPLIT' (does the network require authentication?)
+Hit:28 http://apt.thebigboss.org/repofiles/cydia stable Release
+Ign:29 https://rpetri.ch/repo ./ InRelease
+Get:31 http://apt.thebigboss.org/repofiles/cydia stable Release.gpg [181 B]
+Ign:32 https://repo.dynastic.co ./ InRelease
+Ign:33 http://limneos.net/repo ./ InRelease
+Ign:34 https://ryleyangus.com/repo ./ InRelease
+Get:35 https://ryleyangus.com/repo ./ Release [191 B]
+Ign:36 https://ryleyangus.com/repo ./ Release.gpg
+Ign:37 https://repo.thireus.com ./ InRelease
+Get:38 https://repo.thireus.com ./ Release [27.1 kB]
+Get:40 https://repo.thireus.com ./ Release.gpg [488 B]
+Err:21 https://ellekit.space ./ InRelease
+  The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 015D4A9B1D4A2370
+Ign:31 http://apt.thebigboss.org/repofiles/cydia stable Release.gpg
+Ign:40 https://repo.thireus.com ./ Release.gpg
+Err:42 https://cydia.angelxwind.net ./ InRelease
+  522  <none> [IP: 104.21.25.116 443]
+Err:43 https://test.unlimapps.com ./ InRelease
+  522  <none> [IP: 172.67.68.72 443]
+Ign:44 https://shiftcmdk.github.io/repo ./ InRelease
+Err:45 http://ib-soft.net/cydia/beta ./ InRelease
+  522  <none> [IP: 172.67.129.6 80]
+Ign:47 https://midnightchips.me ./ InRelease
+Hit:49 http://limneos.net/repo ./ Release
+Ign:50 https://lumartti.github.io ./ InRelease
+Ign:51 https://icrazeios.github.io/repo ./ InRelease
+Ign:52 http://limneos.net/repo ./ Release.gpg
+Ign:3 https://repo.packix.com ./ InRelease
+Ign:4 https://cemck.github.io/repo ./ InRelease
+Hit:55 https://poomsmart.github.io/repo ./ Release
+Ign:8 https://sparkdev.me ./ InRelease
+Ign:9 https://skitty.xyz/repo ./ InRelease
+Get:58 https://rpetri.ch/repo ./ Release [596 B]
+Ign:30 https://tigisoftware.com/cydia ./ InRelease
+Get:60 https://repo.dynastic.co ./ Release [176 B]
+Get:61 https://shiftcmdk.github.io/repo ./ Release [143 B]
+Ign:46 http://www.tateu.net/repo ./ InRelease
+Err:63 https://midnightchips.me ./ Release
+  404  Not Found [IP: 104.21.7.235 443]
+Ign:48 https://apt.alfhaily.me ./ InRelease
+Get:64 https://lumartti.github.io ./ Release [189 B]
+Err:65 https://icrazeios.github.io/repo ./ Release
+  404  Not Found [IP: 185.199.110.153 443]
+Get:53 https://repo.packix.com ./ Release [1133 B]
+Get:54 https://cemck.github.io/repo ./ Release [320 B]
+Ign:66 https://poomsmart.github.io/repo ./ Release.gpg
+Get:56 https://sparkdev.me ./ Release [160 B]
+Hit:57 https://skitty.xyz/repo ./ Release
+Ign:67 https://rpetri.ch/repo ./ Release.gpg
+Get:59 https://tigisoftware.com/cydia ./ Release [798 B]
+Ign:68 https://repo.dynastic.co ./ Release.gpg
+Ign:69 https://shiftcmdk.github.io/repo ./ Release.gpg
+Hit:62 http://www.tateu.net/repo ./ Release
+Ign:72 https://lumartti.github.io ./ Release.gpg
+Get:73 https://repo.packix.com ./ Release.gpg [833 B]
+Ign:74 https://cemck.github.io/repo ./ Release.gpg
+Ign:74 http://cemck.github.io/repo ./ Release.gpg
+Ign:75 https://sparkdev.me ./ Release.gpg
+Ign:76 http://ftp.sident.net/cydia ./ InRelease
+Ign:75 http://sparkdev.me ./ Release.gpg
+Ign:77 https://skitty.xyz/repo ./ Release.gpg
+Ign:22 https://xenpublic.incendo.ws ./ InRelease
+Ign:77 http://skitty.xyz/repo ./ Release.gpg
+Ign:76 http://ftp.sident.net/cydia ./ InRelease
+Get:78 https://tigisoftware.com/cydia ./ Release.gpg [228 B]
+Ign:70 http://www.tateu.net/repo ./ Release.gpg
+Get:71 https://apt.alfhaily.me ./ Release [1204 B]
+Get:79 https://repo.packix.com ./ Packages [411 kB]
+Ign:22 https://xenpublic.incendo.ws ./ InRelease
+Ign:80 https://apt.alfhaily.me ./ Release.gpg
+Ign:76 http://ftp.sident.net/cydia ./ InRelease
+Ign:78 https://tigisoftware.com/cydia ./ Release.gpg
+Err:22 https://xenpublic.incendo.ws ./ InRelease
+  Could not resolve 'xenpublic.incendo.ws' [IP: 185.199.109.153 443]
+Err:76 http://ftp.sident.net/cydia ./ InRelease
+  Could not connect to ftp.sident.net:80 (202.215.220.83), connection timed out Could not connect to ftp.sident.net:80 (124.41.94.200), connection timed out
+Reading package lists...
+E: The repository 'http://getdelta.co ./ Release' is not signed.
+E: The repository 'https://spicat.github.io ./ Release' does not have a Release file.
+E: The repository 'https://ca13ra1.github.io/repo ./ Release' does not have a Release file.
+E: The repository 'http://skylerk99.github.io ./ Release' is not signed.
+E: The repository 'http://julioverne.github.io ./ Release' is not signed.
+E: The repository 'https://repo.thireus.com ./ Release' is not signed.
+W: GPG error: https://repo.thireus.com ./ Release: The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 5291BA68CB801DF0
+E: The repository 'http://apt.thebigboss.org/repofiles/cydia stable Release' is not signed.
+W: GPG error: http://apt.thebigboss.org/repofiles/cydia stable Release: The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 694D17D38764B4F4
+E: The repository 'https://ellekit.space ./ InRelease' is not signed.
+W: GPG error: https://ellekit.space ./ InRelease: The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 015D4A9B1D4A2370
+E: The repository 'https://ryleyangus.com/repo ./ Release' is not signed.
+E: The repository 'https://repo.cypwn.xyz ./ InRelease' is not signed.
+E: Failed to fetch https://repo.cypwn.xyz/./InRelease  Clearsigned file isn't valid, got 'NOSPLIT' (does the network require authentication?)
+E: The repository 'https://cydia.angelxwind.net ./ InRelease' is not signed.
+E: Failed to fetch https://cydia.angelxwind.net/./InRelease  522  <none> [IP: 104.21.25.116 443]
+E: Failed to fetch https://test.unlimapps.com/./InRelease  522  <none> [IP: 172.67.68.72 443]
+E: The repository 'https://test.unlimapps.com ./ InRelease' is not signed.
+E: Failed to fetch http://ib-soft.net/cydia/beta/./InRelease  522  <none> [IP: 172.67.129.6 80]
+E: The repository 'http://ib-soft.net/cydia/beta ./ InRelease' is not signed.
+E: The repository 'http://limneos.net/repo ./ Release' is not signed.
+E: The repository 'https://midnightchips.me ./ Release' does not have a Release file.
+E: The repository 'https://icrazeios.github.io/repo ./ Release' does not have a Release file.
+E: The repository 'https://poomsmart.github.io/repo ./ Release' is not signed.
+E: The repository 'https://rpetri.ch/repo ./ Release' is not signed.
+E: The repository 'https://repo.dynastic.co ./ Release' is not signed.
+E: The repository 'https://shiftcmdk.github.io/repo ./ Release' is not signed.
+E: The repository 'https://lumartti.github.io ./ Release' is not signed.
+E: The repository 'http://cemck.github.io/repo ./ Release' is not signed.
+E: The repository 'http://sparkdev.me ./ Release' is not signed.
+E: The repository 'http://skitty.xyz/repo ./ Release' is not signed.
+E: The repository 'http://www.tateu.net/repo ./ Release' is not signed.
+E: The repository 'https://apt.alfhaily.me ./ Release' is not signed.
+W: GPG error: https://tigisoftware.com/cydia ./ Release: The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 518C70CFC20DFB56
+E: The repository 'http://tigisoftware.com/cydia ./ Release' is not signed.
+apt_update_rc=100
+-- package candidate after update --
+com.spark.snowboard:
+  Installed: (none)
+  Candidate: 1.5.37-Beta4-rootless
+  Version table:
+     1.5.37-Beta4-rootless 500
+        500 http://sparkdev.me ./ Packages
+     1.5.26-Beta4-rootless 500
+        500 http://sparkdev.me ./ Packages
+     1.5.25-Beta4-rootless 500
+        500 http://sparkdev.me ./ Packages
+     1.5.24-Beta4-rootless 500
+        500 http://sparkdev.me ./ Packages
+     1.5.21-Beta3-rootless 500
+        500 http://sparkdev.me ./ Packages
+     1.5.19-Beta3-rootless 500
+        500 http://sparkdev.me ./ Packages
+     1.5.17-Beta3-rootless 500
+        500 http://sparkdev.me ./ Packages
+     1.5.16-Beta3-rootless 500
+        500 http://sparkdev.me ./ Packages
+     1.5.15-Beta3-rootless 500
+        500 http://sparkdev.me ./ Packages
+     1.5.13-Beta3-rootless 500
+        500 http://sparkdev.me ./ Packages
+     1.5.9-Beta3-rootless 500
+        500 http://sparkdev.me ./ Packages
+candidate=1.5.37-Beta4-rootless
+
+===== INSTALL ROOTLESS SNOWBOARD =====
 Reading package lists...
 Building dependency tree...
 Reading state information...
-
-===== THEMES DIRECTORIES =====
-DIR=/var/jb/Library/Themes
-/var/jb/Library/Themes/LucentBlack.theme
-/var/jb/Library/Themes/LucentBlack.theme/IconBundles
-/var/jb/Library/Themes/LucentBlack.theme/icon.png
-/var/jb/Library/Themes/LucentBlack.theme/Info.plist
-/var/jb/Library/Themes/LucentBlack.theme/Bundles
-/var/jb/Library/Themes/Glass Border.theme
-/var/jb/Library/Themes/Glass Border.theme/AnemoneEffects
-/var/jb/Library/Themes/Glass Border.theme/Info.plist
-/var/jb/Library/Themes/Lucent Settings.theme
-/var/jb/Library/Themes/Lucent Settings.theme/IconBundles
-/var/jb/Library/Themes/Lucent Settings.theme/icon.png
-/var/jb/Library/Themes/Lucent Settings.theme/Info.plist
-/var/jb/Library/Themes/Lucent Settings.theme/Bundles
-/var/jb/Library/Themes/Lucent Badges.theme
-/var/jb/Library/Themes/Lucent Badges.theme/IconBundles
-/var/jb/Library/Themes/Lucent Badges.theme/icon.png
-/var/jb/Library/Themes/Lucent Badges.theme/Info.plist
-/var/jb/Library/Themes/Lucent Badges.theme/Bundles
-/var/jb/Library/Themes/LucentWhite Badges.theme
-/var/jb/Library/Themes/LucentWhite Badges.theme/IconBundles
-/var/jb/Library/Themes/LucentWhite Badges.theme/icon.png
-/var/jb/Library/Themes/LucentWhite Badges.theme/Info.plist
-/var/jb/Library/Themes/LucentWhite Badges.theme/Bundles
-/var/jb/Library/Themes/Glass Alt.theme
-/var/jb/Library/Themes/Glass Alt.theme/IconBundles
-/var/jb/Library/Themes/Glass Alt.theme/Info.plist
-/var/jb/Library/Themes/Solstice Home.theme
-/var/jb/Library/Themes/Solstice Home.theme/IconBundles
-/var/jb/Library/Themes/Solstice Home.theme/Info.plist
-/var/jb/Library/Themes/Solstice Home.theme/Bundles
-/var/jb/Library/Themes/Solstice Folder Effect.theme
-/var/jb/Library/Themes/Solstice Folder Effect.theme/IconBundles
-/var/jb/Library/Themes/Solstice Folder Effect.theme/Info.plist
-/var/jb/Library/Themes/Solstice Folder Effect.theme/Bundles
-/var/jb/Library/Themes/LucentWhite Settings.theme
-/var/jb/Library/Themes/LucentWhite Settings.theme/IconBundles
-/var/jb/Library/Themes/LucentWhite Settings.theme/icon.png
-/var/jb/Library/Themes/LucentWhite Settings.theme/Info.plist
-/var/jb/Library/Themes/LucentWhite Settings.theme/Bundles
-/var/jb/Library/Themes/LucentGlyphs.theme
-/var/jb/Library/Themes/LucentGlyphs.theme/IconBundles
-/var/jb/Library/Themes/LucentGlyphs.theme/icon.png
-/var/jb/Library/Themes/LucentGlyphs.theme/Info.plist
-/var/jb/Library/Themes/LucentGlyphs.theme/Bundles
-/var/jb/Library/Themes/LucentGlyph Badges alts.theme
-/var/jb/Library/Themes/LucentGlyph Badges alts.theme/IconBundles
-/var/jb/Library/Themes/LucentGlyph Badges alts.theme/icon.png
-/var/jb/Library/Themes/LucentGlyph Badges alts.theme/Info.plist
-/var/jb/Library/Themes/LucentGlyph Badges alts.theme/Bundles
-/var/jb/Library/Themes/macOS Spinner.theme
-/var/jb/Library/Themes/macOS Spinner.theme/Info.plist
-/var/jb/Library/Themes/macOS Spinner.theme/Bundles
-/var/jb/Library/Themes/Lucent Badges alts.theme
-/var/jb/Library/Themes/Lucent Badges alts.theme/IconBundles
-/var/jb/Library/Themes/Lucent Badges alts.theme/icon.png
-/var/jb/Library/Themes/Lucent Badges alts.theme/Info.plist
-/var/jb/Library/Themes/Lucent Badges alts.theme/Bundles
-/var/jb/Library/Themes/Glass Shadow.theme
-/var/jb/Library/Themes/Glass Shadow.theme/AnemoneEffects
-/var/jb/Library/Themes/Glass Shadow.theme/Info.plist
-/var/jb/Library/Themes/Solstice Badge Red.theme
-/var/jb/Library/Themes/Solstice Badge Red.theme/IconBundles
-/var/jb/Library/Themes/Solstice Badge Red.theme/UIImages
-/var/jb/Library/Themes/Solstice Badge Red.theme/Info.plist
-/var/jb/Library/Themes/Solstice Badge Red.theme/Bundles
-/var/jb/Library/Themes/LucentBlack Badges alts.theme
-/var/jb/Library/Themes/LucentBlack Badges alts.theme/IconBundles
-/var/jb/Library/Themes/LucentBlack Badges alts.theme/icon.png
-/var/jb/Library/Themes/LucentBlack Badges alts.theme/Info.plist
-/var/jb/Library/Themes/LucentBlack Badges alts.theme/Bundles
-/var/jb/Library/Themes/LucentBlack Mask.theme
-/var/jb/Library/Themes/LucentBlack Mask.theme/Info.plist
-/var/jb/Library/Themes/LucentBlack Mask.theme/Bundles
-/var/jb/Library/Themes/ViolaBlack.theme
-/var/jb/Library/Themes/ViolaBlack.theme/IconBundles
-/var/jb/Library/Themes/ViolaBlack.theme/Info.plist
-/var/jb/Library/Themes/ViolaBlack.theme/Bundles
-/var/jb/Library/Themes/LucentWhite Mask.theme
-/var/jb/Library/Themes/LucentWhite Mask.theme/Info.plist
-/var/jb/Library/Themes/LucentWhite Mask.theme/Bundles
-/var/jb/Library/Themes/Solstice Badge.theme
-/var/jb/Library/Themes/Solstice Badge.theme/IconBundles
-/var/jb/Library/Themes/Solstice Badge.theme/UIImages
-/var/jb/Library/Themes/Solstice Badge.theme/Info.plist
-/var/jb/Library/Themes/Solstice Badge.theme/Bundles
-/var/jb/Library/Themes/LucentGlyphs Mask.theme
-/var/jb/Library/Themes/LucentGlyphs Mask.theme/Info.plist
-/var/jb/Library/Themes/LucentGlyphs Mask.theme/Bundles
-/var/jb/Library/Themes/LucentWhite Badges alts.theme
-/var/jb/Library/Themes/LucentWhite Badges alts.theme/IconBundles
-/var/jb/Library/Themes/LucentWhite Badges alts.theme/icon.png
-/var/jb/Library/Themes/LucentWhite Badges alts.theme/Info.plist
-/var/jb/Library/Themes/LucentWhite Badges alts.theme/Bundles
-/var/jb/Library/Themes/Solstice Settings.theme
-/var/jb/Library/Themes/Solstice Settings.theme/IconBundles
-/var/jb/Library/Themes/Solstice Settings.theme/Info.plist
-/var/jb/Library/Themes/Solstice Settings.theme/Bundles
-/var/jb/Library/Themes/Lucent alts.theme
-/var/jb/Library/Themes/Lucent alts.theme/IconBundles
-/var/jb/Library/Themes/Lucent alts.theme/icon.png
-/var/jb/Library/Themes/Lucent alts.theme/Info.plist
-/var/jb/Library/Themes/ViolaBlack alts
-/var/jb/Library/Themes/ViolaBlack alts/IconBundles
-/var/jb/Library/Themes/ViolaBlack alts/Info.plist
-/var/jb/Library/Themes/Solstice Alt Home.theme
-/var/jb/Library/Themes/Solstice Alt Home.theme/IconBundles
-/var/jb/Library/Themes/Solstice Alt Home.theme/Info.plist
-/var/jb/Library/Themes/LucentGlyphs Badges.theme
-/var/jb/Library/Themes/LucentGlyphs Badges.theme/IconBundles
-/var/jb/Library/Themes/LucentGlyphs Badges.theme/icon.png
-/var/jb/Library/Themes/LucentGlyphs Badges.theme/Info.plist
-/var/jb/Library/Themes/LucentGlyphs Badges.theme/Bundles
-/var/jb/Library/Themes/LucentBlack Badges.theme
-/var/jb/Library/Themes/LucentBlack Badges.theme/IconBundles
-/var/jb/Library/Themes/LucentBlack Badges.theme/icon.png
-/var/jb/Library/Themes/LucentBlack Badges.theme/Info.plist
-/var/jb/Library/Themes/LucentBlack Badges.theme/Bundles
-/var/jb/Library/Themes/SolsticeIcon.theme
-/var/jb/Library/Themes/SolsticeIcon.theme/IconBundles
-/var/jb/Library/Themes/SolsticeIcon.theme/Info.plist
-/var/jb/Library/Themes/LucentWhite.theme
-/var/jb/Library/Themes/LucentWhite.theme/IconBundles
-/var/jb/Library/Themes/LucentWhite.theme/icon.png
-/var/jb/Library/Themes/LucentWhite.theme/Info.plist
-/var/jb/Library/Themes/LucentWhite.theme/Bundles
-/var/jb/Library/Themes/Solstice Tweaked IOS 18 Icons.theme
-/var/jb/Library/Themes/Solstice Tweaked IOS 18 Icons.theme/IconBundles
-/var/jb/Library/Themes/Solstice Tweaked IOS 18 Icons.theme/Info.plist
-/var/jb/Library/Themes/Glass Badge.theme
-/var/jb/Library/Themes/Glass Badge.theme/UIImages
-/var/jb/Library/Themes/Glass Badge.theme/Info.plist
-/var/jb/Library/Themes/Glass Badge.theme/Bundles
-/var/jb/Library/Themes/Lucent Mask.theme
-/var/jb/Library/Themes/Lucent Mask.theme/Info.plist
-/var/jb/Library/Themes/Lucent Mask.theme/Bundles
-/var/jb/Library/Themes/LucentBlack alts.theme
-/var/jb/Library/Themes/LucentBlack alts.theme/IconBundles
-/var/jb/Library/Themes/LucentBlack alts.theme/icon.png
-/var/jb/Library/Themes/LucentBlack alts.theme/Info.plist
-/var/jb/Library/Themes/Lucent.theme
-/var/jb/Library/Themes/Lucent.theme/IconBundles
-/var/jb/Library/Themes/Lucent.theme/icon.png
-/var/jb/Library/Themes/Lucent.theme/Info.plist
-/var/jb/Library/Themes/Lucent.theme/Bundles
-/var/jb/Library/Themes/LucentWhite alts.theme
-/var/jb/Library/Themes/LucentWhite alts.theme/IconBundles
-/var/jb/Library/Themes/LucentWhite alts.theme/icon.png
-/var/jb/Library/Themes/LucentWhite alts.theme/Info.plist
-/var/jb/Library/Themes/Glass.theme
-/var/jb/Library/Themes/Glass.theme/IconBundles
-/var/jb/Library/Themes/Glass.theme/Info.plist
-/var/jb/Library/Themes/Glass.theme/Bundles
-/var/jb/Library/Themes/LucentBlack Settings.theme
-/var/jb/Library/Themes/LucentBlack Settings.theme/IconBundles
-/var/jb/Library/Themes/LucentBlack Settings.theme/icon.png
-/var/jb/Library/Themes/LucentBlack Settings.theme/Info.plist
-/var/jb/Library/Themes/LucentBlack Settings.theme/Bundles
-/var/jb/Library/Themes/LucentGlyphs Settings.theme
-/var/jb/Library/Themes/LucentGlyphs Settings.theme/IconBundles
-/var/jb/Library/Themes/LucentGlyphs Settings.theme/icon.png
-/var/jb/Library/Themes/LucentGlyphs Settings.theme/Info.plist
-/var/jb/Library/Themes/LucentGlyphs Settings.theme/Bundles
-/var/jb/Library/Themes/LucentGlyphs alts.theme
-/var/jb/Library/Themes/LucentGlyphs alts.theme/IconBundles
-/var/jb/Library/Themes/LucentGlyphs alts.theme/icon.png
-/var/jb/Library/Themes/LucentGlyphs alts.theme/Info.plist
-DIR=/Library/Themes
-MISSING
-DIR=/var/mobile/Library/SnowBoard
-MISSING
-DIR=/var/mobile/Library/Designer
-MISSING
-
-===== SETTINGS / SPRINGBOARD STATE =====
-  347     1   0.0  2.6 /System/Library/CoreServices/SpringBoard.app/SpringBoard
-  359     1   0.0  0.1 /System/Library/PrivateFrameworks/NanoPreferencesSync.framework/nanoprefsyncd
-  440     1   0.0  0.5 /System/Library/PrivateFrameworks/IntlPreferences.framework/Support/localizationswitcherd
-391	0	com.rpetrich.rocketbootstrapd
--	255	com.opa334.Dopamine.startup
-320	0	com.opa334.Dopamine.idownloadd
-=== END IPHONE THEME TWEAK / SETTINGS PANE AUDIT ===
-ssh_exit_code=0
+The following NEW packages will be installed:
+  com.spark.snowboard
+0 upgraded, 1 newly installed, 0 to remove and 26 not upgraded.
+Need to get 1129 kB of archives.
+After this operation, 3346 kB of additional disk space will be used.
+WARNING: The following packages cannot be authenticated!
+  com.spark.snowboard
+E: There were unauthenticated packages and -y was used without --allow-unauthenticated
+apt_install_rc=100
+ssh_exit_code=100
