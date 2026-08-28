@@ -1,40 +1,68 @@
 iPhone Tailscale SSH Bridge
-run_id=33214630472
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33214630472
-commit=97dda4bac3dbde9c04a3ecd209c2eb8066f6d4d3
+run_id=33214742940
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33214742940
+commit=3ec9234597ec66f6e4b496379890442f1fc0f6ee
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
 tailscale=success
 install_ssh=success
-ssh=success
+ssh=failure
 
 --- sanitized SSH output ---
 Waking and checking iPhone SSH port over Tailscale...
 SSH port attempt 1/18
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-iphone_ssh_port_ready=success
-Staging native rfmonctl and running probe as root...
-=== ARM DETACHED DISASSOCIATED NATIVE MONITOR TEST ===
-armed_at=Fri Aug 28 16:56:06 CDT 2026
-whoami=root
-model=iPhone8,1 ios=15.8.8
-rfmon_sign_rc=0
-rfmonctl interface=en0 sizeof_req=40 SIOCSA80211=0x802869c8
-ioctl command=108 request=0x802869c8 rc=0 errno=0 (ok) value=0
-monitor_set=0
-rfmonctl interface=en0 sizeof_req=40 SIOCSA80211=0x802869c8
-ioctl command=107 request=0x802869c8 rc=0 errno=0 (ok) value=0
-monitor_value=0
-tcpdump_sign_rc=0
-detached_worker_pid=42487
-worker_log=/var/mobile/native-monitor-disassoc.log
-rfmon_pcap=/var/mobile/native-mode1-rfmon.pcap
-en0_pcap=/var/mobile/native-mode1-en10mb.pcap
-armed=yes; worker will disassociate Wi-Fi after this SSH command returns
-=== DETACHED TEST ARMED ===
-ssh_exit_code=0
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 2/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 3/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 4/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 5/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 6/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 7/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 8/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 9/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 10/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 11/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 12/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 13/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 14/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 15/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 16/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 17/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 18/18
+ping "100.96.37.124" timed out
+no reply
+Could not reach iPhone TCP port 22
