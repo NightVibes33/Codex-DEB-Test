@@ -1,232 +1,232 @@
 iPhone Tailscale SSH Bridge
-run_id=33194068742
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33194068742
-commit=6794e11b7a571c43596e47bfc86fabd43b4e559a
+run_id=33194449889
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33194449889
+commit=622833939bf0563b53aac0be9b6d8271eec6aadf
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
 tailscale=success
 install_ssh=success
-ssh=cancelled
+ssh=success
 
 --- sanitized SSH output ---
- aircrack-ng is a fork of aircrack, as that project has been stopped by
-com.ps.gboardall	1.0.3	iphoneos-arm64	Tweaks	ii 	Allow unsupported emojis to show on Gboard keyboard.
-com.rpetrich.rocketbootstrap	1.1.1~rootless	iphoneos-arm64	Tweaks	ii 	Support library allowing tweaks to communicate with sandboxed processes
-ellekit	1.2	iphoneos-arm64	Tweak Injection	ii 	ElleKit tweak injection libraries and loader
-libkrw0	1.1.1-2	iphoneos-arm64	Libraries	ii 	A kernel R/W API for jailbreaks (Shared Library)
- should use this library in preference to the older library.
-preferenceloader	2.2.8	iphoneos-arm64	System	ii 	load preferences in style
-xyz.cypwn.afc2d-arm64	1.2.0	iphoneos-arm64	System	ii 	Allow full file-system access over USB for all arm64 devices, especially useful for those on iOS 11 and above. Please install ldid as it is required for use. (except for the XinaA15 jailbreak)
-xyz.cypwn.appstoretrollern	0.1.1a	iphoneos-arm64	Tweaks	ii 	Modified version of Mineek's tweak that lets you specify the minimum version and bypass installd version check.
-xyz.cypwn.appsyncunified	116.0	iphoneos-arm64	Tweaks	ii 	Enables the ability to install unsigned/fakesigned iOS applications.
-xyz.cypwn.arthurbrowserpro	1.0.1	iphoneos-arm64	Cracks	ii 	Unlock Pro features and block jailbreak detection
-  - Only supports jailbreak and Bootstrap environments
-xyz.cypwn.autorc	1.3	iphoneos-arm64	Cracks	ii 	Crack for RevenueCat apps. Made by Blatant.
-xyz.cypwn.cracktool5	5.1	iphoneos-arm64	Utilities	ii 	Crack Tweaks on one click
-xyz.cypwn.filzacrackrootless	0.0.4	iphoneos-arm64	Cracks	ii 	Filza and AppsManager activation for free
-xyz.cypwn.icleanerprocrack	1.1	iphoneos-arm64	Tweaks	ii 	iCleaner Pro Crack
-  - Live preferences updates
-xyz.cypwn.startupoptimizations	2.3.6	iphoneos-arm64	System	ii 	Automatically optimize and clean your device after jailbreaking by removing unnecessary user-installed app data, system cache files, and performing additional system optimizations.
-xyz.cypwn.tweaksettings	1.0.9	iphoneos-arm64	Applications	ii 	Dedicated settings app for tweaks
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/9Nt-UW-N9b-view-PqQ-w0-XjO.nib/objects-11.0+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/9Nt-UW-N9b-view-PqQ-w0-XjO.nib/objects-9.1+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/9Nt-UW-N9b-view-PqQ-w0-XjO.nib/runtime.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Author Packages.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Author Packages.nib/objects-11.0+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Author Packages.nib/objects-9.1+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Author Packages.nib/runtime.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/B5D-p6-E07-view-o1A-46-hKa.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/B5D-p6-E07-view-o1A-46-hKa.nib/objects-11.0+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/B5D-p6-E07-view-o1A-46-hKa.nib/objects-9.1+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/B5D-p6-E07-view-o1A-46-hKa.nib/runtime.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/BYZ-38-t0r-view-8bC-Xf-vdC.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/BYZ-38-t0r-view-8bC-Xf-vdC.nib/objects-11.0+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/BYZ-38-t0r-view-8bC-Xf-vdC.nib/objects-9.1+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/BYZ-38-t0r-view-8bC-Xf-vdC.nib/runtime.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/EZp-oK-GMJ-view-6SK-PC-Jh7.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/EZp-oK-GMJ-view-6SK-PC-Jh7.nib/objects-11.0+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/EZp-oK-GMJ-view-6SK-PC-Jh7.nib/objects-9.1+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/EZp-oK-GMJ-view-6SK-PC-Jh7.nib/runtime.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/GZt-zM-RLB-view-xvs-0X-OZK.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/GZt-zM-RLB-view-xvs-0X-OZK.nib/objects-11.0+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/GZt-zM-RLB-view-xvs-0X-OZK.nib/objects-9.1+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/GZt-zM-RLB-view-xvs-0X-OZK.nib/runtime.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Info.plist
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/KbC-nX-R6d-view-yCZ-qh-ACa.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/KbC-nX-R6d-view-yCZ-qh-ACa.nib/objects-11.0+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/KbC-nX-R6d-view-yCZ-qh-ACa.nib/objects-9.1+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/KbC-nX-R6d-view-yCZ-qh-ACa.nib/runtime.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/KgF-4e-H9k-view-4S3-dv-b0f.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/KgF-4e-H9k-view-4S3-dv-b0f.nib/objects-11.0+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/KgF-4e-H9k-view-4S3-dv-b0f.nib/objects-9.1+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/KgF-4e-H9k-view-4S3-dv-b0f.nib/runtime.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/MIC-s4-hG3-view-2pG-Gr-dem.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/MIC-s4-hG3-view-2pG-Gr-dem.nib/objects-11.0+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/MIC-s4-hG3-view-2pG-Gr-dem.nib/objects-9.1+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/MIC-s4-hG3-view-2pG-Gr-dem.nib/runtime.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Mqk-oQ-y2I-view-ZET-rm-6Wq.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Mqk-oQ-y2I-view-ZET-rm-6Wq.nib/objects-11.0+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Mqk-oQ-y2I-view-ZET-rm-6Wq.nib/objects-9.1+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Mqk-oQ-y2I-view-ZET-rm-6Wq.nib/runtime.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/S2S-wW-UmR-view-sMh-kh-jCb.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/S2S-wW-UmR-view-sMh-kh-jCb.nib/objects-11.0+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/S2S-wW-UmR-view-sMh-kh-jCb.nib/objects-9.1+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/S2S-wW-UmR-view-sMh-kh-jCb.nib/runtime.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Ty6-FV-h0G-view-pbU-HD-2Rk.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Ty6-FV-h0G-view-pbU-HD-2Rk.nib/objects-11.0+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Ty6-FV-h0G-view-pbU-HD-2Rk.nib/objects-9.1+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Ty6-FV-h0G-view-pbU-HD-2Rk.nib/runtime.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Utk-Km-MBH-view-bJy-9H-FBb.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Utk-Km-MBH-view-bJy-9H-FBb.nib/objects-11.0+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Utk-Km-MBH-view-bJy-9H-FBb.nib/objects-9.1+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Utk-Km-MBH-view-bJy-9H-FBb.nib/runtime.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/VGm-ey-YYQ-view-1EL-hk-CbP.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/VGm-ey-YYQ-view-1EL-hk-CbP.nib/objects-11.0+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/VGm-ey-YYQ-view-1EL-hk-CbP.nib/objects-9.1+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/VGm-ey-YYQ-view-1EL-hk-CbP.nib/runtime.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/XsN-hL-RGd-view-b0R-Yb-XZS.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/XsN-hL-RGd-view-b0R-Yb-XZS.nib/objects-11.0+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/XsN-hL-RGd-view-b0R-Yb-XZS.nib/objects-9.1+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/XsN-hL-RGd-view-b0R-Yb-XZS.nib/runtime.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/ZBChangesTableViewController.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/ZBChangesTableViewController.nib/objects-11.0+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/ZBChangesTableViewController.nib/objects-9.1+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/ZBChangesTableViewController.nib/runtime.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/ZBPackageListTableViewController.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/ZBPackageListTableViewController.nib/objects-11.0+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/ZBPackageListTableViewController.nib/objects-9.1+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/ZBPackageListTableViewController.nib/runtime.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/accentColorPicker.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/accentColorPicker.nib/objects-11.0+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/accentColorPicker.nib/objects-9.1+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/accentColorPicker.nib/runtime.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/addSourcesController.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/addSourcesController.nib/objects-11.0+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/addSourcesController.nib/objects-9.1+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/addSourcesController.nib/runtime.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/alternateIconController.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/alternateIconController.nib/objects-11.0+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/alternateIconController.nib/objects-9.1+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/alternateIconController.nib/runtime.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/bGz-84-RrI-view-hlV-dP-QmP.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/bGz-84-RrI-view-hlV-dP-QmP.nib/objects-11.0+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/bGz-84-RrI-view-hlV-dP-QmP.nib/objects-9.1+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/bGz-84-RrI-view-hlV-dP-QmP.nib/runtime.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/bfp-la-uN6-view-O16-fK-JCy.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/bfp-la-uN6-view-O16-fK-JCy.nib/objects-11.0+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/bfp-la-uN6-view-O16-fK-JCy.nib/objects-9.1+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/bfp-la-uN6-view-O16-fK-JCy.nib/runtime.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/changeLogController.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/changeLogController.nib/objects-11.0+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/changeLogController.nib/objects-9.1+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/changeLogController.nib/runtime.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/consoleViewController.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/consoleViewController.nib/objects-11.0+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/consoleViewController.nib/objects-9.1+.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/consoleViewController.nib/runtime.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/creditsController.nib
+/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/creditsController.nib/objects-11.0+.nib
+missing_interesting_files=0
+tweak_like_package_count=27
+tweak_like_package_names:
+base
+com.opa334.trollstorehelper
+com.ps.gboardall
+com.rpetrich.rocketbootstrap
+com.tigisoftware.filza
+ellekit
+org.coolstar.sileo
+preferenceloader
+xyz.cypwn.afc2d-arm64
+xyz.cypwn.applist
+xyz.cypwn.appstoretrollern
+xyz.cypwn.appsyncunified
+xyz.cypwn.arthurbrowserpro
+xyz.cypwn.autorc
+xyz.cypwn.cocoatop64
+xyz.cypwn.cracktool5
+xyz.cypwn.cydiaclassic
+xyz.cypwn.filzacrackrootless
+xyz.cypwn.icleanerpro
+xyz.cypwn.icleanerprocrack
+xyz.cypwn.newterm3
+xyz.cypwn.stopautolaunchapps
+xyz.cypwn.systemmemoryresetfix
+xyz.cypwn.terminal
+xyz.cypwn.trolldecrypt
+xyz.cypwn.tweaksettings
+xyz.willy.zebra
 
-===== PACKAGES OWNING TWEAK / PREFERENCE / JAILBREAK APP FILES =====
---- PACKAGE base ---
-version=2
-arch=iphoneos-arm64
-section=System
-status=ii 
-description=underlying system directory structure
-interesting_files:
-/var/jb/System/Library/PreferenceBundles
-missing_interesting_files=0
---- PACKAGE com.opa334.trollstorehelper ---
-version=2.1
-arch=iphoneos-arm64
-section=Applications
-status=ii 
-description=Helper utility to install and manage TrollStore!
-interesting_files:
-/var/jb/Applications/TrollStorePersistenceHelper.app
-/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon29x29.png
-/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon29x29@2x.png
-/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon29x29@3x.png
-/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon40x40.png
-/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon40x40@2x.png
-/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon40x40@3x.png
-/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon50x50.png
-/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon50x50@2x.png
-/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon57x57.png
-/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon57x57@2x.png
-/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon57x57@3x.png
-/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon60x60.png
-/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon60x60@2x.png
-/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon60x60@3x.png
-/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon72x72.png
-/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon72x72@2x.png
-/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon76x76.png
-/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon76x76@2x.png
-/var/jb/Applications/TrollStorePersistenceHelper.app/Info.plist
-/var/jb/Applications/TrollStorePersistenceHelper.app/TrollStorePersistenceHelper
-/var/jb/Applications/TrollStorePersistenceHelper.app/trollstorehelper
-missing_interesting_files=0
---- PACKAGE com.ps.gboardall ---
-version=1.0.3
-arch=iphoneos-arm64
-section=Tweaks
-status=ii 
-description=Allow unsupported emojis to show on Gboard keyboard.
-interesting_files:
-/var/jb/Library/MobileSubstrate/DynamicLibraries
-/var/jb/Library/MobileSubstrate/DynamicLibraries/GboardAll.dylib
-/var/jb/Library/MobileSubstrate/DynamicLibraries/GboardAll.plist
-missing_interesting_files=0
---- PACKAGE com.rpetrich.rocketbootstrap ---
-version=1.1.1~rootless
-arch=iphoneos-arm64
-section=Tweaks
-status=ii 
-description=Support library allowing tweaks to communicate with sandboxed processes
-interesting_files:
-/var/jb/Library/MobileSubstrate/DynamicLibraries
-/var/jb/Library/MobileSubstrate/DynamicLibraries/RocketBootstrap.plist
-/var/jb/Library/MobileSubstrate/DynamicLibraries/RocketBootstrap.dylib
-missing_interesting_files=0
---- PACKAGE com.tigisoftware.filza ---
-version=4.0.1-3
-arch=iphoneos-arm64
-section=Utilities
-status=ii 
-description=File Manager for iPhone, iPad, iPod Touch. Supports iOS 7+
-interesting_files:
+===== ACTUAL INJECTION FILES AND OWNER LOOKUP =====
+FILE=/var/jb/usr/lib/TweakInject/0Hello3Q.dylib
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/AppList.dylib
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.dylib
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/AppSyncUnified-installd.dylib
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/ArthurBrowserPro.dylib
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/AutoRevenueCat.dylib
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/FilzaCrack.dylib
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/GboardAll.dylib
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/PreferenceLoader.dylib
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/RocketBootstrap.dylib
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/afc2dService.dylib
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/appstoretroller.dylib
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/iCleanerProCrack.dylib
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/mmaintenanced_hook.dylib
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/0Hello3Q.plist
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/AppList.plist
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.plist
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/AppSyncUnified-installd.plist
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/ArthurBrowserPro.plist
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/AutoRevenueCat.plist
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/FilzaCrack.plist
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/GboardAll.plist
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/PreferenceLoader.plist
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/RocketBootstrap.plist
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/afc2dService.plist
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/appstoretroller.plist
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/iCleanerProCrack.plist
+OWNER=ORPHAN_OR_MANUAL_FILE
+FILE=/var/jb/usr/lib/TweakInject/mmaintenanced_hook.plist
+OWNER=ORPHAN_OR_MANUAL_FILE
+
+===== ROOTFUL / WRONG-PREFIX FILES =====
+
+===== INSTALLED ROOTFUL-ARCH PACKAGES =====
+/var/jb/usr/bin/sh: 90: awk: not found
+
+===== PREFERENCE UI INVENTORY =====
+PreferenceLoader entries:
+/var/jb/Library/PreferenceLoader/Preferences/appstoretrollerPrefs.plist
+Preference bundles:
+/var/jb/Library/PreferenceBundles/AppList.bundle
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle
+Dedicated jailbreak apps:
+/var/jb/Applications/CocoaTop.app
+/var/jb/Applications/CrackTool5.app
+/var/jb/Applications/CydiaClassic.app
 /var/jb/Applications/Filza.app
-/var/jb/Applications/Filza.app/AppIcon29x29.png
-/var/jb/Applications/Filza.app/AppIcon29x29@2x.png
-/var/jb/Applications/Filza.app/AppIcon29x29@2x~ipad.png
-/var/jb/Applications/Filza.app/AppIcon29x29@3x.png
-/var/jb/Applications/Filza.app/AppIcon29x29~ipad.png
-/var/jb/Applications/Filza.app/AppIcon40x40@2x.png
-/var/jb/Applications/Filza.app/AppIcon40x40@2x~ipad.png
-/var/jb/Applications/Filza.app/AppIcon40x40@3x.png
-/var/jb/Applications/Filza.app/AppIcon40x40~ipad.png
-/var/jb/Applications/Filza.app/AppIcon60x60@2x.png
-/var/jb/Applications/Filza.app/AppIcon60x60@3x.png
-/var/jb/Applications/Filza.app/AppIcon76x76@2x~ipad.png
-/var/jb/Applications/Filza.app/AppIcon76x76~ipad.png
-/var/jb/Applications/Filza.app/AppIcon83.5x83.5@2x~ipad.png
-/var/jb/Applications/Filza.app/Assets.car
-/var/jb/Applications/Filza.app/Base.lproj
-/var/jb/Applications/Filza.app/Base.lproj/InfoPlist.strings
-/var/jb/Applications/Filza.app/ChangeLogViewController.nib
-/var/jb/Applications/Filza.app/DateTools.bundle
-/var/jb/Applications/Filza.app/DateTools.bundle/ar.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/ar.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/bg.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/bg.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/ca.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/ca.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/cs.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/cs.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/cy.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/cy.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/da.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/da.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/de.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/de.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/en.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/en.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/es.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/es.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/eu.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/eu.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/fi.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/fi.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/fr.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/fr.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/gre.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/gre.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/he.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/he.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/hu.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/hu.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/id.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/id.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/is.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/is.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/it.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/it.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/ja.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/ja.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/ko.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/ko.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/lv.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/lv.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/nb.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/nb.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/nl.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/nl.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/pl.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/pl.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/pt-PT.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/pt-PT.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/pt.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/pt.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/ro.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/ro.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/ru.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/ru.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/sv.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/sv.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/th.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/th.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/tr.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/tr.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/uk.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/uk.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/vi.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/vi.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/zh-Hans.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/zh-Hans.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/zh-Hant.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/zh-Hant.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/ExtensionIcon60x60@2x.png
-/var/jb/Applications/Filza.app/ExtensionIcon76x76@2x~ipad.png
-/var/jb/Applications/Filza.app/FTPServerForm.json
-/var/jb/Applications/Filza.app/Filza
-/var/jb/Applications/Filza.app/Filza.signature
-/var/jb/Applications/Filza.app/GDFileManagerDataCache.mom
-/var/jb/Applications/Filza.app/GDFileManagerMetadataCache.mom
-/var/jb/Applications/Filza.app/GoogleSignIn.bundle
-/var/jb/Applications/Filza.app/GoogleSignIn.bundle/Info.plist
-/var/jb/Applications/Filza.app/GoogleSignIn.bundle/Roboto-Bold.ttf
-/var/jb/Applications/Filza.app/GoogleSignIn.bundle/ar.lproj
-/var/jb/Applications/Filza.app/GoogleSignIn.bundle/ar.lproj/GoogleSignIn.strings
-/var/jb/Applications/Filza.app/GoogleSignIn.bundle/ca.lproj
-/var/jb/Applications/Filza.app/GoogleSignIn.bundle/ca.lproj/GoogleSignIn.strings
-/var/jb/Applications/Filza.app/GoogleSignIn.bundle/cs.lproj
-/var/jb/Applications/Filza.app/GoogleSignIn.bundle/cs.lproj/GoogleSignIn.strings
-/var/jb/Applications/Filza.app/GoogleSignIn.bundle/da.lproj
-/var/jb/Applications/Filza.app/GoogleSignIn.bundle/da.lproj/GoogleSignIn.strings
-/var/jb/Applications/Filza.app/GoogleSignIn.bundle/de.lproj
-/var/jb/Applications/Filza.app/GoogleSignIn.bundle/de.lproj/GoogleSignIn.strings
-/var/jb/Applications/Filza.app/GoogleSignIn.bundle/el.lproj
-/var/jb/Applications/Filza.app/GoogleSignIn.bundle/el.lproj/GoogleSignIn.strings
-/var/jb/Applications/Filza.app/GoogleSignIn.bundle/en.lproj
-/var/jb/Applications/Filza.app/GoogleSignIn.bundle/en.lproj/GoogleSignIn.strings
-/var/jb/Applications/Filza.app/GoogleSignIn.bundle/en_GB.lproj
-/var/jb/Applications/Filza.app/GoogleSignIn.bundle/en_GB.lproj/GoogleSignIn.strings
-/var/jb/Applications/Filza.app/GoogleSignIn.bundle/es.lproj
-/var/jb/Applications/Filza.app/GoogleSignIn.bundle/es.lproj/GoogleSignIn.strings
-/var/jb/Applications/Filza.app/GoogleSignIn.bundle/es_MX.lproj
-/var/jb/Applications/Filza.app/GoogleSignIn.bundle/es_MX.lproj/GoogleSignIn.strings
-missing_interesting_files=0
---- PACKAGE ellekit ---
-version=1.2
-arch=iphoneos-arm64
-section=Tweak Injection
-status=ii 
-description=ElleKit tweak injection libraries and loader
-interesting_files:
-/var/jb/usr/lib/TweakInject
-/var/jb/Library/MobileSubstrate/DynamicLibraries
-missing_interesting_files=0
+/var/jb/Applications/NewTerm.app
+/var/jb/Applications/Sileo.app
+/var/jb/Applications/Terminal.app
+/var/jb/Applications/TrollDecrypt.app
+/var/jb/Applications/TrollStorePersistenceHelper.app
+/var/jb/Applications/TweakSettings.app
+/var/jb/Applications/Zebra.app
+/var/jb/Applications/iCleaner.app
+
+===== DOPAMINE / ELLEKIT SETTINGS AND DISABLE MARKERS =====
+
+===== CURRENT JAILBREAK SERVICES =====
+391	0	com.rpetrich.rocketbootstrapd
+-	255	com.opa334.Dopamine.startup
+320	0	com.opa334.Dopamine.idownloadd
+=== END FULL TWEAK PACKAGE INVENTORY V2 ===
+ssh_exit_code=0
