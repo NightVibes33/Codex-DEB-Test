@@ -7,90 +7,226 @@ target=100.96.37.124:22
 validate=success
 tailscale=success
 install_ssh=success
-ssh=failure
+ssh=success
 
 --- sanitized SSH output ---
-Waking and checking iPhone SSH port over Tailscale...
-SSH port attempt 1/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 2/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 3/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 4/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 5/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 6/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 7/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 8/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 9/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 10/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 11/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 12/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 13/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 14/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 15/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 16/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 17/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 18/18
-ping "100.96.37.124" timed out
-no reply
-Could not reach iPhone TCP port 22 after wake and retry attempts.
-100.94.185.31    github-iphone-33172460629-1          NightVibes33@  linux    -                                                              
-100.116.117.65   bobbys-ipad                          NightVibes33@  iOS      offline, last seen 12h ago                                     
-100.127.94.70    desktop-o56xs                        NightVibes33@  windows  offline, last seen 34d ago                                     
-100.80.212.102   github-ipad-33169677825-1            NightVibes33@  linux    offline, last seen 47m ago                                     
-100.109.40.14    github-ipad-33169718049-1            NightVibes33@  linux    offline, last seen 44m ago                                     
-100.73.152.2     github-ipad-33169925337-3            NightVibes33@  linux    offline, last seen 42m ago                                     
-100.111.111.120  github-ipad-33170449705-3            NightVibes33@  linux    offline, last seen 34m ago                                     
-100.122.202.62   github-ipad-33170638787-3            NightVibes33@  linux    offline, last seen 32m ago                                     
-100.71.119.93    github-ipad-33172107641-3            NightVibes33@  linux    offline, last seen 10m ago                                     
-100.99.252.70    github-ipad-33172460641-3            NightVibes33@  linux    offline, last seen 3m ago                                      
-100.70.169.26    github-iphone-33169558882-1          NightVibes33@  linux    offline, last seen 48m ago                                     
-100.121.162.113  github-iphone-33169609016-1          NightVibes33@  linux    offline, last seen 47m ago                                     
-100.123.223.80   github-iphone-33169677825            NightVibes33@  linux    offline, last seen 47m ago                                     
-100.80.207.6     github-iphone-33169718049            NightVibes33@  linux    offline, last seen 45m ago                                     
-100.64.82.127    github-iphone-33169718105-1          NightVibes33@  linux    offline, last seen 44m ago                                     
-100.118.202.50   github-iphone-33169925314-1          NightVibes33@  linux    offline, last seen 36m ago                                     
-100.95.107.30    github-iphone-33169925337            NightVibes33@  linux    offline, last seen 43m ago                                     
-100.86.142.60    github-iphone-33170449705            NightVibes33@  linux    offline, last seen 35m ago                                     
-100.114.170.100  github-iphone-33170449732-1          NightVibes33@  linux    offline, last seen 33m ago                                     
-100.84.192.40    github-iphone-33170638787            NightVibes33@  linux    offline, last seen 32m ago                                     
-100.126.16.118   github-iphone-33170638893-1-1        NightVibes33@  linux    offline, last seen 14m ago                                     
-100.91.121.83    github-iphone-33170638893-1          NightVibes33@  linux    offline, last seen 25m ago                                     
-100.105.222.104  github-iphone-33172107632-1          NightVibes33@  linux    offline, last seen 8m ago                                      
-100.70.20.103    github-iphone-33172107641            NightVibes33@  linux    offline, last seen 8m ago                                      
-100.107.4.101    github-iphone-33172460641            NightVibes33@  linux    offline, last seen 3m ago                                      
-100.85.224.37    github-iphone-discovery-33169477534  NightVibes33@  linux    offline, last seen 49m ago                                     
-100.96.37.124    iphone                               NightVibes33@  iOS      active; relay "dfw"; offline, last seen 9m ago, tx 12636 rx 0  
-100.79.177.16    iphone173                            NightVibes33@  iOS      offline, last seen 8d ago                                      
+    | |   |   "AppleRawMaxCapacity" = 1429
+
+===== TWEAK FILES + PACKAGE OWNERS =====
+file=/var/jb/usr/lib/TweakInject/0Hello3Q.dylib
+owner=UNOWNED
+file=/var/jb/usr/lib/TweakInject/0Hello3Q.plist
+owner=UNOWNED
+plist_strings:
+file=/var/jb/usr/lib/TweakInject/AppList.dylib
+owner=UNOWNED
+file=/var/jb/usr/lib/TweakInject/AppList.plist
+owner=UNOWNED
+plist_strings:
+file=/var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.dylib
+owner=UNOWNED
+file=/var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.plist
+owner=UNOWNED
+plist_strings:
+file=/var/jb/usr/lib/TweakInject/AppSyncUnified-installd.dylib
+owner=UNOWNED
+file=/var/jb/usr/lib/TweakInject/AppSyncUnified-installd.plist
+owner=UNOWNED
+plist_strings:
+file=/var/jb/usr/lib/TweakInject/ArthurBrowserPro.dylib
+owner=UNOWNED
+file=/var/jb/usr/lib/TweakInject/ArthurBrowserPro.plist
+owner=UNOWNED
+plist_strings:
+file=/var/jb/usr/lib/TweakInject/AutoRevenueCat.dylib
+owner=UNOWNED
+file=/var/jb/usr/lib/TweakInject/AutoRevenueCat.plist
+owner=UNOWNED
+plist_strings:
+file=/var/jb/usr/lib/TweakInject/FilzaCrack.dylib
+owner=UNOWNED
+file=/var/jb/usr/lib/TweakInject/FilzaCrack.plist
+owner=UNOWNED
+plist_strings:
+file=/var/jb/usr/lib/TweakInject/GboardAll.dylib
+owner=UNOWNED
+file=/var/jb/usr/lib/TweakInject/GboardAll.plist
+owner=UNOWNED
+plist_strings:
+file=/var/jb/usr/lib/TweakInject/PreferenceLoader.dylib
+owner=UNOWNED
+file=/var/jb/usr/lib/TweakInject/PreferenceLoader.plist
+owner=UNOWNED
+plist_strings:
+file=/var/jb/usr/lib/TweakInject/RocketBootstrap.plist
+owner=UNOWNED
+plist_strings:
+file=/var/jb/usr/lib/TweakInject/afc2dService.dylib
+owner=UNOWNED
+file=/var/jb/usr/lib/TweakInject/afc2dService.plist
+owner=UNOWNED
+plist_strings:
+file=/var/jb/usr/lib/TweakInject/appstoretroller.dylib
+owner=UNOWNED
+file=/var/jb/usr/lib/TweakInject/appstoretroller.plist
+owner=UNOWNED
+plist_strings:
+file=/var/jb/usr/lib/TweakInject/iCleanerProCrack.dylib
+owner=UNOWNED
+file=/var/jb/usr/lib/TweakInject/iCleanerProCrack.plist
+owner=UNOWNED
+plist_strings:
+file=/var/jb/usr/lib/TweakInject/mmaintenanced_hook.dylib
+owner=UNOWNED
+file=/var/jb/usr/lib/TweakInject/mmaintenanced_hook.plist
+owner=UNOWNED
+plist_strings:
+
+===== SUSPECT PACKAGE DETAILS =====
+package=xyz.cypwn.startupoptimizations
+version=2.3.6
+status=ii 
+description=Automatically optimize and clean your device after jailbreaking by removing unnecessary user-installed app data, system cache files, and performing additional system optimizations.
+  - ****`--- Optimizations ---`****
+  - Enhances multitasking via improved thread management.
+  - Optimizes memory handling for smoother performance.
+  - Prevents premature app termination under memory pressure.
+  - ****`--- Removed Cache ---`****
+  - /var/MobileAsset/AssetsV2
+  - /var/mobile/Media/PhotoData/Thumbnails/VideoKeyFrames/DCIM
+  - /var/mobile/Media/PhotoData/Thumbnails/V2/PhotoData/CPLAssets
+  - /var/mobile/Media/PhotoData/Thumbnails/V2/DCIM
+  - /var/mobile/Library/Mail/MessageData
+  - /var/mobile/Library/Mail/MessageData
+  - /var/mobile/Library/Mail/AttachmentData
+  - /var/mobile/Library/Caches
+  - /var/mobile/Containers/Data/Application/*/Library/Caches
+  - /var/db/uuidtext
+  - /var/db/diagnostics/Special
+  - /var/db/diagnostics/Signpost
+  - /var/db/diagnostics/Persist
+
+package=xyz.cypwn.stopautolaunchapps
+version=1.1
+status=ii 
+description=Disable iOS's neural engine from automatically starting, and prevent apps from pre-loading in the background! iOS 15 and above only.
+ - Advantages: Saves memory, reduces app terminations in background. May decrease random reboots.
+
+package=xyz.cypwn.systemmemoryresetfix
+version=2.0
+status=ii 
+description=Prevent overnight userspace reboots triggered by maintenanced daemon when iCloud backup occurs. This is a must have for users with nightly reboots.
+
+package=xyz.cypwn.appstoretrollern
+version=0.1.1a
+status=ii 
+description=Modified version of Mineek's tweak that lets you specify the minimum version and bypass installd version check.
+
+package=xyz.cypwn.appsyncunified
+version=116.0
+status=ii 
+description=Enables the ability to install unsigned/fakesigned iOS applications.
+
+package=com.rpetrich.rocketbootstrap
+version=1.1.1~rootless
+status=ii 
+description=Support library allowing tweaks to communicate with sandboxed processes
+
+
+===== THIRD PARTY LAUNCH DAEMONS =====
+daemon=/var/jb/Library/LaunchDaemons/com.apple.atrun.plist
+owner=system-cmds: /var/jb/Library/LaunchDaemons/com.apple.atrun.plist
+plist_strings:
+
+daemon=/var/jb/Library/LaunchDaemons/com.openssh.sshd.plist
+owner=openssh-server: /var/jb/Library/LaunchDaemons/com.openssh.sshd.plist
+plist_strings:
+
+daemon=/var/jb/Library/LaunchDaemons/com.rpetrich.rocketbootstrapd.plist
+owner=com.rpetrich.rocketbootstrap: /var/jb/Library/LaunchDaemons/com.rpetrich.rocketbootstrapd.plist
+plist_strings:
+
+daemon=/var/jb/Library/LaunchDaemons/com.startup.op.plist
+owner=xyz.cypwn.startupoptimizations: /var/jb/Library/LaunchDaemons/com.startup.op.plist
+plist_strings:
+
+daemon=/var/jb/Library/LaunchDaemons/com.tigisoftware.filza.helper.plist
+owner=com.tigisoftware.filza: /var/jb/Library/LaunchDaemons/com.tigisoftware.filza.helper.plist
+plist_strings:
+
+daemon=/var/jb/Library/LaunchDaemons/us.diatr.shshd.plist
+owner=shshd: /var/jb/Library/LaunchDaemons/us.diatr.shshd.plist
+plist_strings:
+
+
+===== LAUNCHCTL FAILURES / RESTART CANDIDATES =====
+391	0	com.rpetrich.rocketbootstrapd
+-	255	com.opa334.Dopamine.startup
+-	0	com.openssh.sshd
+1729	0	com.openssh.sshd.877ACD66-C112-4CA3-88D0-A1618EAF92C3
+-	0	com.startup.op
+-	1	us.diatr.shshd
+320	0	com.opa334.Dopamine.idownloadd
+-	0	com.tigisoftware.filza.helper
+/var/jb/usr/bin/sh: 53: awk: not found
+
+===== CURRENT CPU TOP =====
+  PID  PPID  %CPU %MEM  ELAPSED STAT COMM
+ 1893  1734  16.0  0.2    00:00 R    ps
+ 1895  1894  11.9  0.1    00:00 R    (head)
+  421     1   7.3  0.9    11:53 Rs   /usr/libexec/nsurlsessiond
+  407     1   6.1  1.2    11:56 Rs   /System/Library/PrivateFrameworks/CloudKitDaemon.framework/Support/cloudd
+  379     1   6.0  0.4    11:59 Ss   /usr/sbin/cfprefsd
+ 1734  1731   4.8  0.2    00:19 S    /var/jb/usr/bin/sh
+  462     1   1.8  1.0    11:43 Rs   /System/Library/PrivateFrameworks/CloudDocsDaemon.framework/bird
+  528     1   1.3  0.5    10:38 Rs   /usr/libexec/rtcreportingd
+  393     1   1.2  0.8    11:58 Rs   /usr/libexec/dasd
+  950     1   0.7  1.7    04:58 Ss   /private/var/containers/Bundle/Application/4CD29918-8DA7-46FB-8B6E-400C029CC753/Tailscale.app/PlugIns/IPNExtension.appex/IPNExtension
+  370     1   0.7  0.2    12:00 Rs   /usr/sbin/notifyd
+ 1894  1734   0.4  0.0    00:00 S    /var/jb/usr/bin/sh
+  336     1   0.3  0.8    12:00 Ss   /usr/sbin/wifid
+ 1729     1   0.1  0.3    00:21 Ss   sshd: mobile@notty
+  392     1   0.1  0.4    11:58 Ss   /usr/libexec/mobileassetd
+  350     1   0.1  1.7    12:00 Ss   /usr/libexec/backboardd
+ 1731  1729   0.0  0.3    00:20 Ss   sudo
+ 1723     1   0.0  0.6    00:29 Ss   /System/Library/PrivateFrameworks/MobileBackup.framework/backupd
+ 1722     1   0.0  0.2    01:33 Ss   /System/Library/PrivateFrameworks/CoreSymbolication.framework/coresymbolicationd
+ 1721     1   0.0  0.4    01:34 Ss   /System/Library/CoreServices/ReportCrash
+ 1720     1   0.0  0.6    01:34 Ss   /usr/libexec/routined
+ 1315     1   0.0  0.4    04:28 Ss   /System/Library/Frameworks/Metal.framework/XPCServices/MTLCompilerService.xpc/MTLCompilerService
+ 1310     1   0.0  0.9    04:31 Ss   /System/Library/Frameworks/MapKit.framework/XPCServices/com.apple.MapKit.SnapshotService.xpc/com.apple.MapKit.SnapshotService
+ 1307     1   0.0  0.9    04:36 Ss   /private/var/containers/Bundle/Application/77473139-2B73-4470-BF34-6909B0239043/Maps.app/PlugIns/GeneralMapsWidget.appex/GeneralMapsWidget
+ 1220     1   0.0  0.7    04:45 Ss   /System/Library/PrivateFrameworks/HealthRecordServices.framework/healthrecordsd
+ 1195     1   0.0  0.2    04:47 Ss   /System/Library/PrivateFrameworks/DeviceCheckInternal.framework/devicecheckd
+ 1086     1   0.0  0.3    04:52 Ss   /usr/libexec/biomesyncd
+  949     1   0.0  0.2    04:58 Ss   /System/Library/Frameworks/GSS.framework/Helpers/GSSCred
+  948     1   0.0  0.3    04:59 Ss   /usr/libexec/neagent
+  947     1   0.0  0.3    04:59 Ss   /System/Library/PrivateFrameworks/AppSSO.framework/Support/AppSSODaemon
+  938     1   0.0  0.1    04:59 Ss   /usr/libexec/metrickitd
+  773     1   0.0  0.4    05:07 Ss   /System/Library/PrivateFrameworks/AppleMediaDiscovery.framework/PlugIns/AMDEngagementExtension.appex/AMDEngagementExtension
+  772     1   0.0  0.3    05:07 Ss   /System/Library/PrivateFrameworks/ExtensionFoundation.framework/XPCServices/extensionkitservice.xpc/extensionkitservice
+  770     1   0.0  0.5    05:08 Ss   /usr/libexec/diagnosticextensionsd
+  768     1   0.0  0.3    05:08 Ss   /System/Library/PrivateFrameworks/UsageTracking.framework/UsageTrackingAgent
+
+===== RESOURCE REPORT COUNTS =====
+IPNExtension.wakeups_resource=1
+healthd.diskwrites_resource=1
+LowBatteryLog=5
+routined=3
+cloudd=1
+JetsamEvent=2
+
+===== TAILSCALE RESOURCE VIOLATION SUMMARY =====
+Wakeups:          45001 wakeups over the last 158 seconds (284 wakeups per second average), exceeding limit of 150 wakeups per second over 300 seconds
+Wakeups caused:   45001
+Duration:         158.22s
+Advisory levels:  Battery -> 2, User -> 3, ThermalPressure -> 0, Combined -> 2
+Power Source:     11 samples on Battery, 0 samples on AC
+
+===== LOW BATTERY DROOP SUMMARY =====
+{"timestamp":"2026-08-28 07:48:50.00 -0500","bug_type":"120","os_version":"iPhone OS 15.8.8 (19H422)","incident_id":"B324DBE2-914C-411E-B7DA-AECCA417FC18"}
+Voltage: 3569 mV
+Voltage Droop Time: 59421008
+Voltage Droop Transitions: 89
+=== END OWNER TRIAGE ===
+ssh_exit_code=0
