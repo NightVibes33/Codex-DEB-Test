@@ -79,6 +79,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            remote/iphone-command.sh
+            remote/iphone-bridge-status.txt
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
 
       - name: Validate required secrets
         id: validate
