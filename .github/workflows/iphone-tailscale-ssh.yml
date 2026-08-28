@@ -1,4 +1,4 @@
-# Dedicated iPhone SSH bridge
+# Dedicated iPhone SSH bridge - Aircrack probe
 name: iPhone Tailscale SSH Bridge
 
 on:
