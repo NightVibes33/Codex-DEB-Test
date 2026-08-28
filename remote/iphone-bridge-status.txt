@@ -1,7 +1,7 @@
 iPhone Tailscale SSH Bridge
-run_id=33205001564
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33205001564
-commit=ec038b6f989b4e741c6ddb1b8911a9c54a42e92d
+run_id=33206522944
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33206522944
+commit=5f2083728814de6bffcf452b13592bf2cb1991b2
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
@@ -19,48 +19,54 @@ SSH port attempt 1/18
 # 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
 iphone_ssh_port_ready=success
 Running remote/iphone-command.sh on mobile@100.96.37.124:22 as root...
-=== OWNED WIFI AIRCRACK AUDIT ===
-captured_at=Fri Aug 28 14:42:32 CDT 2026
+=== OWNED WIFI AIRMON/AIRCRACK TEST ===
+captured_at=Fri Aug 28 15:03:29 CDT 2026
 whoami=root
 model=iPhone8,1 ios=15.8.8
 
-===== AIRCRACK SUITE =====
+===== CURRENT AIRCRACK INSTALL =====
 aircrack-ng=/var/jb/usr/bin/aircrack-ng
 airodump-ng=/var/jb/usr/sbin/airodump-ng
 aireplay-ng=/var/jb/usr/sbin/aireplay-ng
 airmon-ng=NOT_FOUND
 airbase-ng=/var/jb/usr/sbin/airbase-ng
 packetforge-ng=/var/jb/usr/bin/packetforge-ng
+curl=NOT_FOUND
+apt-get=/var/jb/usr/bin/apt-get
+apt-cache=/var/jb/usr/bin/apt-cache
+dpkg=/var/jb/usr/bin/dpkg
 
-===== BUILD TARGETED WORDLIST FOR OWN SSID =====
-1032 /var/mobile/bootybandit1-wordlist.txt
-wordlist_path=/var/mobile/bootybandit1-wordlist.txt
-BOOTYBANDIT
-BOOTYBANDIT!
-BOOTYBANDIT!!
-BOOTYBANDIT#
-BOOTYBANDIT$
-BOOTYBANDIT0
-BOOTYBANDIT007
-BOOTYBANDIT01
-BOOTYBANDIT1
-BOOTYBANDIT1!
-BOOTYBANDIT1!!
-BOOTYBANDIT1#
-BOOTYBANDIT1$
-BOOTYBANDIT10
-BOOTYBANDIT1007
-BOOTYBANDIT101
-BOOTYBANDIT11
-BOOTYBANDIT110
-BOOTYBANDIT111
-BOOTYBANDIT112
+===== PACKAGE CONTENTS / REPO CHECK =====
+aircrack-ng package contains no airmon-ng
+aircrack-ng - wireless WEP/WPA cracking utilities
 
-===== SEARCH FOR EXISTING CAPTURES =====
+===== INSTALL UPSTREAM AIRMON-NG SCRIPT =====
+install_result=curl-not-found
+
+===== PLATFORM PREREQUISITES =====
+/sys=MISSING
+/sys/class=MISSING
+/sys/class/net=MISSING
+/sys/class/ieee80211=MISSING
+/proc=MISSING
+iw=NOT_FOUND
+ethtool=NOT_FOUND
+awk=NOT_FOUND
+grep=/var/jb/usr/bin/grep
+ifconfig=NOT_FOUND
+ip=NOT_FOUND
+
+===== TRY MONITOR MODE ON EN0 =====
+airmon_start_result=not-installed
+interfaces_after_airmon:
+
+===== PASSIVE CAPTURE IF MONITOR MODE ACTUALLY SUCCEEDED =====
+capture_skipped=monitor-mode-not-available
+
+===== SEARCH FOR WPA CAPTURES =====
 capture_count=0
 
-===== OFFLINE TEST AGAINST OWN SSID =====
-result=no-existing-capture-found
-note=Need a WPA/WPA2 handshake or PMKID capture before an offline password test can run.
-=== END OWNED WIFI AIRCRACK AUDIT ===
+===== OFFLINE PASSWORD TEST =====
+result=no-capture-to-crack
+=== END OWNED WIFI AIRMON/AIRCRACK TEST ===
 ssh_exit_code=0
