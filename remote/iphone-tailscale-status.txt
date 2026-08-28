@@ -1,0 +1,24 @@
+iPhone Tailscale Discovery Bridge
+run_id=33169477534
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33169477534
+commit=5a2fa9016d8553a9a6e0c071a872b7443b551dc0
+environment=TAILSCALE_AUTHKEY-
+discover=success
+
+--- discovery output ---
+Visible non-iPad peers:
+peer host=localhost dns=iphone173.tail5b157d.ts.net. os=iOS ip=100.79.177.16 online=False score=185
+peer host=iPhone dns=iphone.tail5b157d.ts.net. os=iOS ip=100.96.37.124 online=False score=185
+peer host=Desktop-O56XS dns=desktop-o56xs.tail5b157d.ts.net. os=windows ip=100.127.94.70 online=False score=5
+iphone_detected=yes
+iphone_host=localhost
+iphone_dns=iphone173.tail5b157d.ts.net.
+iphone_os=iOS
+iphone_ip=100.79.177.16
+iphone_online=False
+Testing Tailscale reachability to 100.79.177.16...
+ping "100.79.177.16" timed out
+ping "100.79.177.16" timed out
+no reply
+nc: connect to 100.79.177.16 port 22 (tcp) timed out: Operation now in progress
+iphone_ssh_port_22=CLOSED_OR_UNREACHABLE
