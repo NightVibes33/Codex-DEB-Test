@@ -1,33 +1,232 @@
 iPhone Tailscale SSH Bridge
-run_id=33193181235
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33193181235
-commit=c0f07b94c08b8f5b5082749f60e59839966e406e
+run_id=33193365810
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33193365810
+commit=66354ac36b38d9894bcbd666ff87264b17797dd3
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
 tailscale=success
 install_ssh=success
-ssh=cancelled
+ssh=success
 
 --- sanitized SSH output ---
-Waking and checking iPhone SSH port over Tailscale...
-SSH port attempt 1/18
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-iphone_ssh_port_ready=success
-Running remote/iphone-command.sh on mobile@100.96.37.124:22 as root...
-=== IPHONE TWEAK PACKAGE / SETTINGS MAP ===
-captured_at=Fri Aug 28 12:07:46 CDT 2026
-whoami=root
+STATUS=ii 
+DESCRIPTION=iCleaner Pro Crack
+FILE=mmaintenanced_hook.dylib
+OWNER=xyz.cypwn.systemmemoryresetfix
+VERSION=2.0
+ARCH=iphoneos-arm64
+STATUS=ii 
+DESCRIPTION=Prevent overnight userspace reboots triggered by maintenanced daemon when iCloud backup occurs. This is a must have for users with nightly reboots.
+FILE=0Hello3Q.plist
+OWNER=xyz.cypwn.stopautolaunchapps
+VERSION=1.1
+ARCH=iphoneos-arm64
+STATUS=ii 
+DESCRIPTION=Disable iOS's neural engine from automatically starting, and prevent apps from pre-loading in the background! iOS 15 and above only.
+ - Advantages: Saves memory, reduces app terminations in background. May decrease random reboots.
+FILE=AppList.plist
+OWNER=xyz.cypwn.applist
+VERSION=1.5.16
+ARCH=iphoneos-arm64
+STATUS=ii 
+DESCRIPTION=Allow extensions to read the list of installed apps
+FILE=AppSyncUnified-FrontBoard.plist
+OWNER=xyz.cypwn.appsyncunified
+VERSION=116.0
+ARCH=iphoneos-arm64
+STATUS=ii 
+DESCRIPTION=Enables the ability to install unsigned/fakesigned iOS applications.
+FILE=AppSyncUnified-installd.plist
+OWNER=xyz.cypwn.appsyncunified
+VERSION=116.0
+ARCH=iphoneos-arm64
+STATUS=ii 
+DESCRIPTION=Enables the ability to install unsigned/fakesigned iOS applications.
+FILE=ArthurBrowserPro.plist
+OWNER=xyz.cypwn.arthurbrowserpro
+VERSION=1.0.1
+ARCH=iphoneos-arm64
+STATUS=ii 
+DESCRIPTION=Unlock Pro features and block jailbreak detection
+  - The app name is 亚瑟浏览器 on the App Store
+  - Only supports jailbreak and Bootstrap environments
+FILE=AutoRevenueCat.plist
+OWNER=xyz.cypwn.autorc
+VERSION=1.3
+ARCH=iphoneos-arm64
+STATUS=ii 
+DESCRIPTION=Crack for RevenueCat apps. Made by Blatant.
+FILE=FilzaCrack.plist
+OWNER=xyz.cypwn.filzacrackrootless
+VERSION=0.0.4
+ARCH=iphoneos-arm64
+STATUS=ii 
+DESCRIPTION=Filza and AppsManager activation for free
+FILE=GboardAll.plist
+OWNER=com.ps.gboardall
+VERSION=1.0.3
+ARCH=iphoneos-arm64
+STATUS=ii 
+DESCRIPTION=Allow unsupported emojis to show on Gboard keyboard.
+FILE=PreferenceLoader.plist
+OWNER=preferenceloader
+VERSION=2.2.8
+ARCH=iphoneos-arm64
+STATUS=ii 
+DESCRIPTION=load preferences in style
+FILE=RocketBootstrap.plist
+OWNER=com.rpetrich.rocketbootstrap
+VERSION=1.1.1~rootless
+ARCH=iphoneos-arm64
+STATUS=ii 
+DESCRIPTION=Support library allowing tweaks to communicate with sandboxed processes
+FILE=afc2dService.plist
+OWNER=xyz.cypwn.afc2d-arm64
+VERSION=1.2.0
+ARCH=iphoneos-arm64
+STATUS=ii 
+DESCRIPTION=Allow full file-system access over USB for all arm64 devices, especially useful for those on iOS 11 and above. Please install ldid as it is required for use. (except for the XinaA15 jailbreak)
+FILE=appstoretroller.plist
+OWNER=xyz.cypwn.appstoretrollern
+VERSION=0.1.1a
+ARCH=iphoneos-arm64
+STATUS=ii 
+DESCRIPTION=Modified version of Mineek's tweak that lets you specify the minimum version and bypass installd version check.
+FILE=iCleanerProCrack.plist
+OWNER=xyz.cypwn.icleanerprocrack
+VERSION=1.1
+ARCH=iphoneos-arm64
+STATUS=ii 
+DESCRIPTION=iCleaner Pro Crack
+FILE=mmaintenanced_hook.plist
+OWNER=xyz.cypwn.systemmemoryresetfix
+VERSION=2.0
+ARCH=iphoneos-arm64
+STATUS=ii 
+DESCRIPTION=Prevent overnight userspace reboots triggered by maintenanced daemon when iCloud backup occurs. This is a must have for users with nightly reboots.
 
-===== CORE STATUS =====
-com.rpetrich.rocketbootstrap	1.1.1~rootless	iphoneos-arm64	ii 	Support library allowing tweaks to communicate with sandboxed processes
-ellekit	1.2	iphoneos-arm64	ii 	ElleKit tweak injection libraries and loader
-preferenceloader	2.2.8	iphoneos-arm64	ii 	load preferences in style
-xyz.cypwn.applist	1.5.16	iphoneos-arm64	ii 	Allow extensions to read the list of installed apps
+===== PACKAGES SHIPPING SETTINGS PANES =====
+PACKAGE=xyz.cypwn.applist
+VERSION=1.5.16
+ARCH=iphoneos-arm64
+STATUS=ii 
+DESCRIPTION=Allow extensions to read the list of installed apps
+/var/jb/Library/PreferenceBundles/AppList.bundle
+/var/jb/Library/PreferenceBundles/AppList.bundle/AppList
+/var/jb/Library/PreferenceBundles/AppList.bundle/Info.plist
 
-===== TWEAK FILE -> PACKAGE OWNER VIA DPKG .list =====
-FILE=0Hello3Q.dylib
+PACKAGE=xyz.cypwn.appstoretrollern
+VERSION=0.1.1a
+ARCH=iphoneos-arm64
+STATUS=ii 
+DESCRIPTION=Modified version of Mineek's tweak that lets you specify the minimum version and bypass installd version check.
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/Info.plist
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/Root.plist
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/appstoretrollerPrefs
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon.png
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon@2x.png
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon@3x.png
+/var/jb/Library/PreferenceLoader/Preferences/appstoretrollerPrefs.plist
+
+
+===== ACTUAL SETTINGS ENTRIES ON DISK =====
+/var/jb/Library/PreferenceLoader/Preferences/appstoretrollerPrefs.plist
+/var/jb/Library/PreferenceBundles/AppList.bundle
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle
+
+===== PREFERENCELOADER INJECTION FILTER =====
+
+===== TWEAK FILTER TARGETS =====
+FILTER=0Hello3Q.plist
+
+FILTER=AppList.plist
+
+FILTER=AppSyncUnified-FrontBoard.plist
+
+FILTER=AppSyncUnified-installd.plist
+
+FILTER=ArthurBrowserPro.plist
+
+FILTER=AutoRevenueCat.plist
+
+FILTER=FilzaCrack.plist
+
+FILTER=GboardAll.plist
+
+FILTER=PreferenceLoader.plist
+
+FILTER=RocketBootstrap.plist
+
+FILTER=afc2dService.plist
+
+FILTER=appstoretroller.plist
+
+FILTER=iCleanerProCrack.plist
+
+FILTER=mmaintenanced_hook.plist
+
+
+===== SAFE MODE / DISABLED MARKERS =====
+
+===== ELLEKIT LOADER INTEGRITY =====
+-rw-r--r-- 1 root wheel 136448 Jul 31 10:25 /var/jb/usr/lib/ellekit/libinjector.dylib
+-rw-r--r-- 1 root wheel 889008 Jul 31 10:25 /var/jb/usr/lib/ellekit/pspawn.dylib
+-rwxr-xr-x 1 root wheel 739984 Jul 31 10:25 /var/jb/usr/libexec/ellekit/loader
+lrwxr-xr-x 1 root wheel 41 Jul 31 10:25 /var/jb/usr/lib/TweakInject.dylib -> /var/jb/usr/lib/ellekit/libinjector.dylib
+lrwxr-xr-x 1 root wheel 41 Jul 31 10:25 /var/jb/usr/lib/TweakLoader.dylib -> /var/jb/usr/lib/ellekit/libinjector.dylib
+lrwxr-xr-x 1 root wheel 34 Jul 31 10:25 /var/jb/etc/rc.d/ellekit-loader -> /var/jb/usr/libexec/ellekit/loader
+
+===== SPRINGBOARD / SETTINGS PROCESS STATE =====
+  347     1   1.8  3.0    19:27 Ss   /System/Library/CoreServices/SpringBoard.app/SpringBoard
+  359     1   0.0  0.1    19:27 Ss   /System/Library/PrivateFrameworks/NanoPreferencesSync.framework/nanoprefsyncd
+  440     1   0.0  0.4    19:16 Ss   /System/Library/PrivateFrameworks/IntlPreferences.framework/Support/localizationswitcherd
+SpringBoardPID=
+lsof unavailable; cannot directly enumerate SpringBoard dylibs
+
+===== RECENT SETTINGS / SPRINGBOARD CRASH SIGNALS =====
+
+===== DPKG AUDIT SUMMARY =====
+The following packages are missing the md5sums control file in the
+database, they need to be reinstalled:
+ cy+cpu.arm64         virtual CPU dependency
+ cy+cpu.arm64v8       virtual CPU dependency
+ cy+kernel.darwin     virtual kernel dependency
+ cy+lib.corefoundation virtual corefoundation dependency
+ cy+model.iphone      virtual model dependency
+ cy+os.iphoneos       virtual operating system dependency
+ firmware             almost impressive Apple frameworks
+ gsc.3-gvenice        virtual GraphicsServices dependency
+ gsc.64-bit           virtual GraphicsServices dependency
+ gsc.720p             virtual GraphicsServices dependency
+ gsc.a-w-d-l-capability virtual GraphicsServices dependency
+ gsc.accelerometer    virtual GraphicsServices dependency
+ gsc.accessibility    virtual GraphicsServices dependency
+ gsc.activation-protocol virtual GraphicsServices dependency
+ gsc.additional-text-tones virtual GraphicsServices dependency
+ gsc.air-drop-capability virtual GraphicsServices dependency
+ gsc.airplay-mirroring virtual GraphicsServices dependency
+ gsc.all-features     virtual GraphicsServices dependency
+ gsc.allow-you-tube   virtual GraphicsServices dependency
+ gsc.allow-you-tube-plugin virtual GraphicsServices dependency
+ gsc.allow32-bit-apps virtual GraphicsServices dependency
+ gsc.ambient-light-sensor virtual GraphicsServices dependency
+ gsc.any-telephony    virtual GraphicsServices dependency
+ gsc.app-capacity-t-v-o-s virtual GraphicsServices dependency
+ gsc.app-store        virtual GraphicsServices dependency
+ gsc.application-installation virtual GraphicsServices dependency
+ gsc.arkit            virtual GraphicsServices dependency
+ gsc.arm64            virtual GraphicsServices dependency
+ gsc.armv6            virtual GraphicsServices dependency
+ gsc.armv7            virtual GraphicsServices dependency
+ gsc.armv7s           virtual GraphicsServices dependency
+ gsc.assistant        virtual GraphicsServices dependency
+ gsc.audio-playback-capability virtual GraphicsServices dependency
+ gsc.auto-focus-camera virtual GraphicsServices dependency
+ gsc.backlight-capability virtual GraphicsServices dependency
+ gsc.baseband-class   virtual GraphicsServices dependency
+ gsc.blue-light-reduction-supported virtual GraphicsServices dependency
+ gsc.bluetooth        virtual GraphicsServices dependency
+=== END FAST TWEAK DIAGNOSTIC ===
+ssh_exit_code=0
