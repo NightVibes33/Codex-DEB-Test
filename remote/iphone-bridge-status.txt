@@ -1,7 +1,7 @@
 iPhone Tailscale SSH Bridge
-run_id=33195275404
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33195275404
-commit=9c849697624f58287119ffe9d6bb7e715a368224
+run_id=33195786789
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33195786789
+commit=968f0d3b0e85720aec112c8483bd5626b4f8155f
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
@@ -19,77 +19,161 @@ SSH port attempt 1/18
 # 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
 iphone_ssh_port_ready=success
 Running remote/iphone-command.sh on mobile@100.96.37.124:22 as root...
-=== IPHONE TWEAK BINARY COMPATIBILITY CHECK ===
-captured_at=Fri Aug 28 12:34:49 CDT 2026
+=== IPHONE TWEAK REPAIR + PREFERENCE AUDIT ===
+captured_at=Fri Aug 28 12:41:27 CDT 2026
+whoami=root
 model=iPhone8,1 ios=15.8.8
 
-===== MACH-O FIRST 32 BYTES =====
-HEADER_BEGIN=0Hello3Q.dylib
-yv66vgAAAAIBAAAMAAAAAAAAQAAAAUggAAAADgEAAAw=
-HEADER_END=0Hello3Q.dylib
-HEADER_BEGIN=AppList.dylib
-yv66vgAAAAUAAAAMAAAABgAAQAAAAT1QAAAADgAAAAw=
-HEADER_END=AppList.dylib
-HEADER_BEGIN=AppSyncUnified-FrontBoard.dylib
-yv66vgAAAAQAAAAMAAAACQAAQAAAAIUgAAAADgAAAAw=
-HEADER_END=AppSyncUnified-FrontBoard.dylib
-HEADER_BEGIN=AppSyncUnified-installd.dylib
-yv66vgAAAAQAAAAMAAAACQAAQAAAAJPQAAAADgAAAAw=
-HEADER_END=AppSyncUnified-installd.dylib
-HEADER_BEGIN=ArthurBrowserPro.dylib
-z/rt/gwAAAEAAAAABgAAABkAAABACAAAhQAQAAAAAAA=
-HEADER_END=ArthurBrowserPro.dylib
-HEADER_BEGIN=AutoRevenueCat.dylib
-yv66vgAAAAIBAAAMAAAAAAAAQAAAAVcgAAAADgEAAAw=
-HEADER_END=AutoRevenueCat.dylib
-HEADER_BEGIN=FilzaCrack.dylib
-yv66vgAAAAIBAAAMAAAAAAAAQAAAATrQAAAADgEAAAw=
-HEADER_END=FilzaCrack.dylib
-HEADER_BEGIN=GboardAll.dylib
-yv66vgAAAAIAAAAMAAAACQAAQAAAAMXAAAAADgEAAAw=
-HEADER_END=GboardAll.dylib
-HEADER_BEGIN=PreferenceLoader.dylib
-yv66vgAAAAIBAAAMAAAAAAAAQAAAARjQAAAADgEAAAw=
-HEADER_END=PreferenceLoader.dylib
-HEADER_BEGIN=RocketBootstrap.dylib
-yv66vgAAAAIBAAAMAAAAAAAAQAAAAW7AAAAADgEAAAw=
-HEADER_END=RocketBootstrap.dylib
-HEADER_BEGIN=afc2dService.dylib
-yv66vgAAAAIBAAAMAAAAAAAAQAAAAQhwAAAADgEAAAw=
-HEADER_END=afc2dService.dylib
-HEADER_BEGIN=appstoretroller.dylib
-yv66vgAAAAIBAAAMAAAAAAAAQAAAAQqwAAAADgEAAAw=
-HEADER_END=appstoretroller.dylib
-HEADER_BEGIN=iCleanerProCrack.dylib
-yv66vgAAAAIBAAAMAAAAAAAAQAAAAMhQAAAADgEAAAw=
-HEADER_END=iCleanerProCrack.dylib
-HEADER_BEGIN=mmaintenanced_hook.dylib
-yv66vgAAAAIBAAAMAAAAAAAAQAAAAIQgAAAADgEAAAw=
-HEADER_END=mmaintenanced_hook.dylib
+===== REPAIR SYSTEMMEMORYRESETFIX FILTER =====
+backup=/var/mobile/Library/ChatGPT-Tweak-Backups/mmaintenanced_hook.plist.20260828-124127.bak
+original_base64:
+YnBsaXN0MDDRAQJWRmlsdGVy0QMEW0V4ZWN1dGFibGVzoQVdbW1haW50ZW5hbmNlZAgLEhUhIwAAAAAAAAEBAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAx
+replacement_text:
+Filter = {
+    Executables = (
+        "mmaintenanced"
+    );
+};
 
-===== TARGET APP DIRECTORY NAMES =====
-/var/containers/Bundle/Application/BC9EB832-FBA8-4915-9B69-D3128260C0F8/SideStore.app
-/var/containers/Bundle/Application/BE9B476F-4FAE-44CE-974D-44EC5A57CE39/TrollStore.app
-/var/jb/Applications/Filza.app
-/var/jb/Applications/Sileo.app
-/var/jb/Applications/TweakSettings.app
-/var/jb/Applications/Zebra.app
-/var/jb/Applications/iCleaner.app
+===== APPSYNC FILTER VALIDATION =====
+5:	<key>Filter</key>
+7:		<key>Executables</key>
+9:			<string>installd</string>
+11:	</dict>
+12:</dict>
+13:</plist>
 
-===== EXACT SYSTEM TARGETS =====
-TARGET=SpringBoard
-  347 /System/Library/CoreServices/SpringBoard.app/SpringBoard
-TARGET=dasd
-  393 /usr/libexec/dasd
-TARGET=appstored
-  450 /System/Library/PrivateFrameworks/AppStoreDaemon.framework/Support/appstored
-TARGET=installd
-NOT_RUNNING
-TARGET=mmaintenanced
-  535 /usr/libexec/mmaintenanced
-TARGET=lockdownd
-  361 /usr/libexec/lockdownd
-TARGET=MobileGestaltHelper
-  430 /usr/libexec/MobileGestaltHelper
-=== END IPHONE TWEAK BINARY COMPATIBILITY CHECK ===
+===== PREFERENCELOADER CORE PACKAGES =====
+install ok installed	preferenceloader	2.2.8	iphoneos-arm64
+unknown ok not-installed	applist		
+install ok installed	ellekit	1.2	iphoneos-arm64
+-- fuzzy package names --
+com.rpetrich.rocketbootstrap	1.1.1~rootless	iphoneos-arm64	install ok installed
+ellekit	1.2	iphoneos-arm64	install ok installed
+preferenceloader	2.2.8	iphoneos-arm64	install ok installed
+xyz.cypwn.applist	1.5.16	iphoneos-arm64	install ok installed
+xyz.cypwn.tweaksettings	1.0.9	iphoneos-arm64	install ok installed
+
+===== PREFERENCE BUNDLES =====
+DIR=/var/jb/Library/PreferenceBundles
+/var/jb/Library/PreferenceBundles/AppList.bundle
+/var/jb/Library/PreferenceBundles/AppList.bundle/AppList
+/var/jb/Library/PreferenceBundles/AppList.bundle/Info.plist
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/Info.plist
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/Root.plist
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/appstoretrollerPrefs
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon.png
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon@2x.png
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon@3x.png
+DIR=/var/jb/Library/PreferenceLoader/Preferences
+/var/jb/Library/PreferenceLoader/Preferences/appstoretrollerPrefs.plist
+
+===== PREFERENCE FILE OWNERS =====
+ITEM=/var/jb/Library/PreferenceBundles/AppList.bundle
+xyz.cypwn.applist: /var/jb/Library/PreferenceBundles/AppList.bundle
+ITEM=/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle
+xyz.cypwn.appstoretrollern: /var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle
+ITEM=/var/jb/Library/PreferenceLoader/Preferences/appstoretrollerPrefs.plist
+xyz.cypwn.appstoretrollern: /var/jb/Library/PreferenceLoader/Preferences/appstoretrollerPrefs.plist
+
+===== TWEAK PACKAGE MANIFEST PREFERENCE CONTENT =====
+PKG=base
+/var/jb/System/Library/PreferenceBundles
+PKG=com.tigisoftware.filza
+/var/jb/Applications/Filza.app/DateTools.bundle/ar.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/ar.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/bg.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/bg.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/ca.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/ca.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/cs.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/cs.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/cy.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/cy.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/da.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/da.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/de.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/de.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/en.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/en.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/es.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/es.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/eu.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/eu.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/fi.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/fi.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/fr.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/fr.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/gre.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/gre.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/he.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/he.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/hu.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/hu.lproj/DateTools.strings
+PKG=org.coolstar.sileo
+/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView (macOS).bundle
+/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView (macOS).bundle/css
+/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView (macOS).bundle/css/down.min.css
+/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView (macOS).bundle/index.html
+/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView (macOS).bundle/js
+/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView (macOS).bundle/js/down.js
+/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView (macOS).bundle/js/highlight.min.js
+/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView.bundle
+/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView.bundle/css
+/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView.bundle/css/down.min.css
+/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView.bundle/index.html
+/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView.bundle/js
+/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView.bundle/js/down.js
+/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView.bundle/js/highlight.min.js
+/var/jb/Applications/Sileo.app/Down_Down.bundle/Info.plist
+PKG=preferenceloader
+/var/jb/Library/PreferenceBundles
+/var/jb/Library/PreferenceLoader/Preferences
+PKG=xyz.cypwn.applist
+/var/jb/Library/PreferenceBundles
+/var/jb/Library/PreferenceBundles/AppList.bundle
+/var/jb/Library/PreferenceBundles/AppList.bundle/AppList
+/var/jb/Library/PreferenceBundles/AppList.bundle/Info.plist
+PKG=xyz.cypwn.appstoretrollern
+/var/jb/Library/PreferenceBundles
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/Info.plist
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/Root.plist
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/appstoretrollerPrefs
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon.png
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon@2x.png
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon@3x.png
+/var/jb/Library/PreferenceLoader/Preferences
+/var/jb/Library/PreferenceLoader/Preferences/appstoretrollerPrefs.plist
+PKG=xyz.cypwn.cydiaclassic
+/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView (macOS).bundle
+/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView (macOS).bundle/css
+/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView (macOS).bundle/css/down.min.css
+/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView (macOS).bundle/index.html
+/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView (macOS).bundle/js
+/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView (macOS).bundle/js/down.js
+/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView (macOS).bundle/js/highlight.min.js
+/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView.bundle
+/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView.bundle/css
+/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView.bundle/css/down.min.css
+/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView.bundle/index.html
+/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView.bundle/js
+/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView.bundle/js/down.js
+/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView.bundle/js/highlight.min.js
+/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/Info.plist
+PKG=xyz.cypwn.icleanerpro
+/var/jb/Applications/iCleaner.app/PreferenceBundlesIcon.png
+/var/jb/Applications/iCleaner.app/PreferenceBundlesIcon@2x.png
+
+===== SETTINGS / INJECTION STATE =====
+  347     1   0.0  3.1 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+  359     1   0.0  0.1 /System/Library/PrivateFrameworks/NanoPreferencesSync.framework/nanoprefsyncd
+  440     1   0.0  0.5 /System/Library/PrivateFrameworks/IntlPreferences.framework/Support/localizationswitcherd
+  535     1   0.0  0.2 /usr/libexec/mmaintenanced
+391	0	com.rpetrich.rocketbootstrapd
+-	255	com.opa334.Dopamine.startup
+320	0	com.opa334.Dopamine.idownloadd
+-- restarting only affected processes --
+=== END IPHONE TWEAK REPAIR + PREFERENCE AUDIT ===
 ssh_exit_code=0
