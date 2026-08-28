@@ -1,7 +1,7 @@
 iPhone Tailscale SSH Bridge
-run_id=33200220666
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33200220666
-commit=9eb9255925c147462682192dc59b2518b9328bd4
+run_id=33200366009
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33200366009
+commit=eeb66fff39572fe8a2e53733a83865bef40b7027
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
@@ -10,6 +10,37 @@ install_ssh=success
 ssh=success
 
 --- sanitized SSH output ---
+/var/jb/Library/MobileSubstrate/DynamicLibraries/RocketBootstrap.plist	target=DIRECT	real=/private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus/usr/lib/TweakInject/RocketBootstrap.plist	owner=com.rpetrich.rocketbootstrap	realowner=NONE
+/var/jb/Library/MobileSubstrate/DynamicLibraries/Snowboard.dylib	target=DIRECT	real=/private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus/usr/lib/TweakInject/Snowboard.dylib	owner=com.spark.snowboard	realowner=NONE
+/var/jb/Library/MobileSubstrate/DynamicLibraries/Snowboard.plist	target=DIRECT	real=/private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus/usr/lib/TweakInject/Snowboard.plist	owner=com.spark.snowboard	realowner=NONE
+/var/jb/Library/MobileSubstrate/DynamicLibraries/afc2dService.dylib	target=DIRECT	real=/private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus/usr/lib/TweakInject/afc2dService.dylib	owner=xyz.cypwn.afc2d-arm64	realowner=NONE
+/var/jb/Library/MobileSubstrate/DynamicLibraries/afc2dService.plist	target=DIRECT	real=/private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus/usr/lib/TweakInject/afc2dService.plist	owner=xyz.cypwn.afc2d-arm64	realowner=NONE
+/var/jb/Library/MobileSubstrate/DynamicLibraries/appstoretroller.dylib	target=DIRECT	real=/private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus/usr/lib/TweakInject/appstoretroller.dylib	owner=xyz.cypwn.appstoretrollern	realowner=NONE
+/var/jb/Library/MobileSubstrate/DynamicLibraries/appstoretroller.plist	target=DIRECT	real=/private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus/usr/lib/TweakInject/appstoretroller.plist	owner=xyz.cypwn.appstoretrollern	realowner=NONE
+/var/jb/Library/MobileSubstrate/DynamicLibraries/iCleanerProCrack.dylib	target=DIRECT	real=/private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus/usr/lib/TweakInject/iCleanerProCrack.dylib	owner=xyz.cypwn.icleanerprocrack	realowner=NONE
+/var/jb/Library/MobileSubstrate/DynamicLibraries/iCleanerProCrack.plist	target=DIRECT	real=/private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus/usr/lib/TweakInject/iCleanerProCrack.plist	owner=xyz.cypwn.icleanerprocrack	realowner=NONE
+/var/jb/Library/MobileSubstrate/DynamicLibraries/mmaintenanced_hook.dylib	target=DIRECT	real=/private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus/usr/lib/TweakInject/mmaintenanced_hook.dylib	owner=xyz.cypwn.systemmemoryresetfix	realowner=NONE
+/var/jb/Library/MobileSubstrate/DynamicLibraries/mmaintenanced_hook.plist	target=DIRECT	real=/private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus/usr/lib/TweakInject/mmaintenanced_hook.plist	owner=xyz.cypwn.systemmemoryresetfix	realowner=NONE
+
+===== ALL PACKAGES THAT SHIP TWEAK/PREF FILES =====
+--- install ok installed|com.ps.gboardall|1.0.3|iphoneos-arm64|firmware (>= 8.0), mobilesubstrate|Allow unsupported emojis to show on Gboard keyboard. ---
+classification=inject:yes,settings-pane-files:no
+/var/jb/Library/MobileSubstrate/DynamicLibraries/GboardAll.dylib
+/var/jb/Library/MobileSubstrate/DynamicLibraries/GboardAll.plist
+--- install ok installed|com.rpetrich.rocketbootstrap|1.1.1~rootless|iphoneos-arm64|firmware (>= 15.0), mobilesubstrate|Support library allowing tweaks to communicate with sandboxed processes ---
+classification=inject:yes,settings-pane-files:no
+/var/jb/Library/MobileSubstrate/DynamicLibraries/RocketBootstrap.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/RocketBootstrap.dylib
+--- install ok installed|com.spark.snowboard|1.5.37-Beta4-rootless|iphoneos-arm64|mobilesubstrate, preferenceloader|Snowboard theming engine ---
+classification=inject:yes,settings-pane-files:yes
+/var/jb/Library/MobileSubstrate/DynamicLibraries/AAASnowBoardStub.dylib
+/var/jb/Library/MobileSubstrate/DynamicLibraries/AAASnowBoardStub.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/Snowboard.dylib
+/var/jb/Library/MobileSubstrate/DynamicLibraries/Snowboard.plist
+/var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle
+/var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle/.git
+/var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle/.gitattributes
+/var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle/.gitignore
 /var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle/IconOptions.plist
 /var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle/Info.plist
 /var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle/README.md
@@ -102,38 +133,23 @@ ssh=success
 /var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle/warning.png
 /var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle/zh_CN.lproj
 /var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle/zh_CN.lproj/IconOptions.strings
-/var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle/zh_CN.lproj/Localizable.strings
-/var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle/zh_CN.lproj/Root.strings
-/var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle/zh_TW.lproj
-/var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle/zh_TW.lproj/IconOptions.strings
-/var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle/zh_TW.lproj/Localizable.strings
-/var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle/zh_TW.lproj/Root.strings
-/var/jb/Library/PreferenceLoader/Preferences/SnowboardPrefs.plist
-/var/jb/usr/lib/SnowBoardBase.dylib
---- PACKAGE xyz.cypwn.applist ---
-Status=install ok installed
-Package=xyz.cypwn.applist
-Version=1.5.16
-Architecture=iphoneos-arm64
-Depends=mobilesubstrate, com.rpetrich.rocketbootstrap
-Pre-Depends=
-Description=Allow extensions to read the list of installed apps
-RelevantFiles:
+--- install ok installed|preferenceloader|2.2.8|iphoneos-arm64|mobilesubstrate, firmware (>= 15.0)|load preferences in style ---
+classification=inject:yes,settings-pane-files:no
+/var/jb/Library/MobileSubstrate/DynamicLibraries/PreferenceLoader.dylib
+/var/jb/Library/MobileSubstrate/DynamicLibraries/PreferenceLoader.plist
+--- install ok installed|xyz.cypwn.afc2d-arm64|1.2.0|iphoneos-arm64|cy+cpu.arm64, mobilesubstrate, firmware (>= 11.0)|Allow full file-system access over USB for all arm64 devices, especially useful for those on iOS 11 and above. Please install ldid as it is required for use. (except for the XinaA15 jailbreak) ---
+classification=inject:yes,settings-pane-files:no
+/var/jb/Library/MobileSubstrate/DynamicLibraries/afc2dService.dylib
+/var/jb/Library/MobileSubstrate/DynamicLibraries/afc2dService.plist
+--- install ok installed|xyz.cypwn.applist|1.5.16|iphoneos-arm64|mobilesubstrate, com.rpetrich.rocketbootstrap|Allow extensions to read the list of installed apps ---
+classification=inject:yes,settings-pane-files:yes
 /var/jb/Library/MobileSubstrate/DynamicLibraries/AppList.dylib
 /var/jb/Library/MobileSubstrate/DynamicLibraries/AppList.plist
 /var/jb/Library/PreferenceBundles/AppList.bundle
 /var/jb/Library/PreferenceBundles/AppList.bundle/AppList
 /var/jb/Library/PreferenceBundles/AppList.bundle/Info.plist
-/var/jb/usr/lib/libapplist.dylib
---- PACKAGE xyz.cypwn.appstoretrollern ---
-Status=install ok installed
-Package=xyz.cypwn.appstoretrollern
-Version=0.1.1a
-Architecture=iphoneos-arm64
-Depends=mobilesubstrate (>= 0.9.5000)
-Pre-Depends=
-Description=Modified version of Mineek's tweak that lets you specify the minimum version and bypass installd version check.
-RelevantFiles:
+--- install ok installed|xyz.cypwn.appstoretrollern|0.1.1a|iphoneos-arm64|mobilesubstrate (>= 0.9.5000)|Modified version of Mineek's tweak that lets you specify the minimum version and bypass installd version check. ---
+classification=inject:yes,settings-pane-files:yes
 /var/jb/Library/MobileSubstrate/DynamicLibraries/appstoretroller.dylib
 /var/jb/Library/MobileSubstrate/DynamicLibraries/appstoretroller.plist
 /var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle
@@ -144,89 +160,73 @@ RelevantFiles:
 /var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon@2x.png
 /var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon@3x.png
 /var/jb/Library/PreferenceLoader/Preferences/appstoretrollerPrefs.plist
+--- install ok installed|xyz.cypwn.appsyncunified|116.0|iphoneos-arm64|firmware (>= 5.0), mobilesubstrate (>= 0.9.5100), firmware (<= 18.2)|Enables the ability to install unsigned/fakesigned iOS applications. ---
+classification=inject:yes,settings-pane-files:no
+/var/jb/Library/MobileSubstrate/DynamicLibraries/AppSyncUnified-FrontBoard.dylib
+/var/jb/Library/MobileSubstrate/DynamicLibraries/AppSyncUnified-FrontBoard.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/AppSyncUnified-installd.dylib
+/var/jb/Library/MobileSubstrate/DynamicLibraries/AppSyncUnified-installd.plist
+--- install ok installed|xyz.cypwn.arthurbrowserpro|1.0.1|iphoneos-arm64|mobilesubstrate (>= 0.9.5000)|Unlock Pro features and block jailbreak detection
+ ---
+classification=inject:yes,settings-pane-files:no
+/var/jb/Library/MobileSubstrate/DynamicLibraries/ArthurBrowserPro.dylib
+/var/jb/Library/MobileSubstrate/DynamicLibraries/ArthurBrowserPro.plist
+--- install ok installed|xyz.cypwn.autorc|1.3|iphoneos-arm64|mobilesubstrate (>= 0.9.5000)|Crack for RevenueCat apps. Made by Blatant. ---
+classification=inject:yes,settings-pane-files:no
+/var/jb/Library/MobileSubstrate/DynamicLibraries/AutoRevenueCat.dylib
+/var/jb/Library/MobileSubstrate/DynamicLibraries/AutoRevenueCat.plist
+--- install ok installed|xyz.cypwn.filzacrackrootless|0.0.4|iphoneos-arm64|firmware (>= 15.0)|Filza and AppsManager activation for free ---
+classification=inject:yes,settings-pane-files:no
+/var/jb/Library/MobileSubstrate/DynamicLibraries/FilzaCrack.dylib
+/var/jb/Library/MobileSubstrate/DynamicLibraries/FilzaCrack.plist
+--- install ok installed|xyz.cypwn.icleanerprocrack|1.1|iphoneos-arm64|mobilesubstrate, xyz.cypwn.icleanerpro|iCleaner Pro Crack ---
+classification=inject:yes,settings-pane-files:no
+/var/jb/Library/MobileSubstrate/DynamicLibraries/iCleanerProCrack.dylib
+/var/jb/Library/MobileSubstrate/DynamicLibraries/iCleanerProCrack.plist
+--- install ok installed|xyz.cypwn.stopautolaunchapps|1.1|iphoneos-arm64|mobilesubstrate (>= 0.9.5000), firmware (>= 15.0)|Disable iOS's neural engine from automatically starting, and prevent apps from pre-loading in the background! iOS 15 and above only.
+ ---
+classification=inject:yes,settings-pane-files:no
+/var/jb/Library/MobileSubstrate/DynamicLibraries/0Hello3Q.dylib
+/var/jb/Library/MobileSubstrate/DynamicLibraries/0Hello3Q.plist
+--- install ok installed|xyz.cypwn.systemmemoryresetfix|2.0|iphoneos-arm64|mobilesubstrate|Prevent overnight userspace reboots triggered by maintenanced daemon when iCloud backup occurs. This is a must have for users with nightly reboots. ---
+classification=inject:yes,settings-pane-files:no
+/var/jb/Library/MobileSubstrate/DynamicLibraries/mmaintenanced_hook.dylib
+/var/jb/Library/MobileSubstrate/DynamicLibraries/mmaintenanced_hook.plist
 
-===== ROOTFUL / WRONG-ARCH SUSPECTS =====
-/var/jb/usr/bin/sh: 58: awk: not found
+===== PACKAGES WITH INJECTION BUT NO SETTINGS PANE =====
+com.ps.gboardall	1.0.3	iphoneos-arm64	Allow unsupported emojis to show on Gboard keyboard.
+com.rpetrich.rocketbootstrap	1.1.1~rootless	iphoneos-arm64	Support library allowing tweaks to communicate with sandboxed processes
+preferenceloader	2.2.8	iphoneos-arm64	load preferences in style
+xyz.cypwn.afc2d-arm64	1.2.0	iphoneos-arm64	Allow full file-system access over USB for all arm64 devices, especially useful for those on iOS 11 and above. Please install ldid as it is required for use. (except for the XinaA15 jailbreak)
+xyz.cypwn.appsyncunified	116.0	iphoneos-arm64	Enables the ability to install unsigned/fakesigned iOS applications.
+xyz.cypwn.arthurbrowserpro	1.0.1	iphoneos-arm64	Unlock Pro features and block jailbreak detection
+xyz.cypwn.autorc	1.3	iphoneos-arm64	Crack for RevenueCat apps. Made by Blatant.
+xyz.cypwn.filzacrackrootless	0.0.4	iphoneos-arm64	Filza and AppsManager activation for free
+xyz.cypwn.icleanerprocrack	1.1	iphoneos-arm64	iCleaner Pro Crack
+xyz.cypwn.stopautolaunchapps	1.1	iphoneos-arm64	Disable iOS's neural engine from automatically starting, and prevent apps from pre-loading in the background! iOS 15 and above only.
+xyz.cypwn.systemmemoryresetfix	2.0	iphoneos-arm64	Prevent overnight userspace reboots triggered by maintenanced daemon when iCloud backup occurs. This is a must have for users with nightly reboots.
 
-===== UNOWNED TWEAK / PREF FILES =====
-/var/jb/usr/lib/TweakInject/0Hello3Q.dylib
-/var/jb/usr/lib/TweakInject/0Hello3Q.plist
-/var/jb/usr/lib/TweakInject/AAASnowBoardStub.dylib
-/var/jb/usr/lib/TweakInject/AAASnowBoardStub.plist
-/var/jb/usr/lib/TweakInject/AppList.dylib
-/var/jb/usr/lib/TweakInject/AppList.plist
-/var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.dylib
-/var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.plist
-/var/jb/usr/lib/TweakInject/AppSyncUnified-installd.dylib
-/var/jb/usr/lib/TweakInject/AppSyncUnified-installd.plist
-/var/jb/usr/lib/TweakInject/ArthurBrowserPro.dylib
-/var/jb/usr/lib/TweakInject/ArthurBrowserPro.plist
-/var/jb/usr/lib/TweakInject/AutoRevenueCat.dylib
-/var/jb/usr/lib/TweakInject/AutoRevenueCat.plist
-/var/jb/usr/lib/TweakInject/FilzaCrack.dylib
-/var/jb/usr/lib/TweakInject/FilzaCrack.plist
-/var/jb/usr/lib/TweakInject/GboardAll.dylib
-/var/jb/usr/lib/TweakInject/GboardAll.plist
-/var/jb/usr/lib/TweakInject/PreferenceLoader.dylib
-/var/jb/usr/lib/TweakInject/PreferenceLoader.plist
-/var/jb/usr/lib/TweakInject/RocketBootstrap.plist
-/var/jb/usr/lib/TweakInject/Snowboard.dylib
-/var/jb/usr/lib/TweakInject/Snowboard.plist
-/var/jb/usr/lib/TweakInject/afc2dService.dylib
-/var/jb/usr/lib/TweakInject/afc2dService.plist
-/var/jb/usr/lib/TweakInject/appstoretroller.dylib
-/var/jb/usr/lib/TweakInject/appstoretroller.plist
-/var/jb/usr/lib/TweakInject/iCleanerProCrack.dylib
-/var/jb/usr/lib/TweakInject/iCleanerProCrack.plist
-/var/jb/usr/lib/TweakInject/mmaintenanced_hook.dylib
-/var/jb/usr/lib/TweakInject/mmaintenanced_hook.plist
+===== PACKAGES THAT SHOULD APPEAR IN SETTINGS =====
+com.spark.snowboard	1.5.37-Beta4-rootless	iphoneos-arm64	Snowboard theming engine
+xyz.cypwn.applist	1.5.16	iphoneos-arm64	Allow extensions to read the list of installed apps
+xyz.cypwn.appstoretrollern	0.1.1a	iphoneos-arm64	Modified version of Mineek's tweak that lets you specify the minimum version and bypass installd version check.
 
-===== DISABLED / BACKUP INJECTION FILES =====
+===== ROOTFUL / WRONG-ARCH INSTALLED PACKAGES =====
 
-===== PREF PLIST -> BUNDLE REFERENCES =====
---- /var/jb/Library/PreferenceLoader/Preferences/SnowboardPrefs.plist ---
---- /var/jb/Library/PreferenceLoader/Preferences/appstoretrollerPrefs.plist ---
+===== PREFERENCELOADER CURRENT ENTRIES =====
+/var/jb/Library/PreferenceLoader/Preferences/SnowboardPrefs.plist
+/var/jb/Library/PreferenceLoader/Preferences/appstoretrollerPrefs.plist
+/var/jb/Library/PreferenceBundles/AppList.bundle
+/var/jb/Library/PreferenceBundles/SnowboardPrefs.bundle
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle
 
-===== INJECTION FILTER SNAPSHOT =====
---- /var/jb/usr/lib/TweakInject/0Hello3Q.plist ---
---- /var/jb/usr/lib/TweakInject/AAASnowBoardStub.plist ---
---- /var/jb/usr/lib/TweakInject/AppList.plist ---
---- /var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.plist ---
---- /var/jb/usr/lib/TweakInject/AppSyncUnified-installd.plist ---
---- /var/jb/usr/lib/TweakInject/ArthurBrowserPro.plist ---
---- /var/jb/usr/lib/TweakInject/AutoRevenueCat.plist ---
---- /var/jb/usr/lib/TweakInject/FilzaCrack.plist ---
---- /var/jb/usr/lib/TweakInject/GboardAll.plist ---
---- /var/jb/usr/lib/TweakInject/PreferenceLoader.plist ---
---- /var/jb/usr/lib/TweakInject/RocketBootstrap.plist ---
---- /var/jb/usr/lib/TweakInject/Snowboard.plist ---
---- /var/jb/usr/lib/TweakInject/afc2dService.plist ---
---- /var/jb/usr/lib/TweakInject/appstoretroller.plist ---
---- /var/jb/usr/lib/TweakInject/iCleanerProCrack.plist ---
---- /var/jb/usr/lib/TweakInject/mmaintenanced_hook.plist ---
---- /var/jb/Library/MobileSubstrate/DynamicLibraries/0Hello3Q.plist ---
---- /var/jb/Library/MobileSubstrate/DynamicLibraries/AAASnowBoardStub.plist ---
---- /var/jb/Library/MobileSubstrate/DynamicLibraries/AppList.plist ---
---- /var/jb/Library/MobileSubstrate/DynamicLibraries/AppSyncUnified-FrontBoard.plist ---
---- /var/jb/Library/MobileSubstrate/DynamicLibraries/AppSyncUnified-installd.plist ---
---- /var/jb/Library/MobileSubstrate/DynamicLibraries/ArthurBrowserPro.plist ---
---- /var/jb/Library/MobileSubstrate/DynamicLibraries/AutoRevenueCat.plist ---
---- /var/jb/Library/MobileSubstrate/DynamicLibraries/FilzaCrack.plist ---
---- /var/jb/Library/MobileSubstrate/DynamicLibraries/GboardAll.plist ---
---- /var/jb/Library/MobileSubstrate/DynamicLibraries/PreferenceLoader.plist ---
---- /var/jb/Library/MobileSubstrate/DynamicLibraries/RocketBootstrap.plist ---
---- /var/jb/Library/MobileSubstrate/DynamicLibraries/Snowboard.plist ---
---- /var/jb/Library/MobileSubstrate/DynamicLibraries/afc2dService.plist ---
---- /var/jb/Library/MobileSubstrate/DynamicLibraries/appstoretroller.plist ---
---- /var/jb/Library/MobileSubstrate/DynamicLibraries/iCleanerProCrack.plist ---
---- /var/jb/Library/MobileSubstrate/DynamicLibraries/mmaintenanced_hook.plist ---
+===== DISABLED INJECTION FILES =====
 
-===== CURRENT PROCESSES OF INTEREST =====
-  320   0.0 /private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus//basebin/idownloadd
-  350   1.0 /usr/libexec/backboardd
+===== LIVE UI PROCESSES =====
+  350   0.2 /usr/libexec/backboardd
   359   0.0 /System/Library/PrivateFrameworks/NanoPreferencesSync.framework/nanoprefsyncd
   440   0.0 /System/Library/PrivateFrameworks/IntlPreferences.framework/Support/localizationswitcherd
-13059   0.6 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+13059   0.0 /System/Library/CoreServices/SpringBoard.app/SpringBoard
 13066   0.0 /Applications/Preferences.app/Preferences
-=== END IPHONE ROOTLESS TWEAK AUDIT ===
+=== END IPHONE ROOTLESS TWEAK OWNERSHIP AUDIT ===
 ssh_exit_code=0
