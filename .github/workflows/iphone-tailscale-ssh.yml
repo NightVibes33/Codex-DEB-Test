@@ -1,4 +1,3 @@
-# Dedicated iPhone SSH bridge - Aircrack probe
 name: iPhone Tailscale SSH Bridge
 
 on:
@@ -8,6 +7,7 @@ on:
       - main
     paths:
       - "remote/iphone-command.sh"
+      - "remote/rfmonctl.c"
       - ".github/workflows/iphone-tailscale-ssh.yml"
 
 permissions:
@@ -25,7 +25,6 @@ jobs:
     timeout-minutes: 2
     outputs:
       environment_name: ${{ steps.resolve.outputs.environment_name }}
-
     steps:
       - name: Resolve environment ID
         id: resolve
@@ -34,49 +33,76 @@ jobs:
           TARGET_ENVIRONMENT_ID: "18728387881"
         run: |
           set -euo pipefail
-
           curl --fail --silent --show-error \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" \
             > environments.json
-
           environment_name="$({
             python3 - "$TARGET_ENVIRONMENT_ID" <<'PY'
-          import json
-          import sys
-
+          import json, sys
           target_id = int(sys.argv[1])
           with open("environments.json", "r", encoding="utf-8") as handle:
               payload = json.load(handle)
-
           for environment in payload.get("environments", []):
               if int(environment.get("id", -1)) == target_id:
                   print(environment["name"])
                   raise SystemExit(0)
-
           raise SystemExit(1)
           PY
           } || true)"
-
           if [ -z "$environment_name" ]; then
             echo "Could not resolve GitHub environment ID $TARGET_ENVIRONMENT_ID" >&2
-            cat environments.json >&2
             exit 1
           fi
-
-          echo "Resolved environment ID $TARGET_ENVIRONMENT_ID to: $environment_name"
           echo "environment_name=$environment_name" >> "$GITHUB_OUTPUT"
+
+  build-rfmonctl:
+    name: Build arm64 iOS rfmonctl
+    runs-on: macos-15
+    timeout-minutes: 8
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            remote/rfmonctl.c
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+      - name: Cross-compile for iOS 15 arm64
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
+          echo "SDKROOT=$SDKROOT"
+          xcrun --sdk iphoneos clang \
+            -arch arm64 \
+            -miphoneos-version-min=15.0 \
+            -isysroot "$SDKROOT" \
+            -O2 -Wall -Wextra \
+            remote/rfmonctl.c \
+            -o rfmonctl
+          codesign --force --sign - rfmonctl
+          file rfmonctl
+          codesign -dv --verbose=2 rfmonctl 2>&1 | head -n 40 || true
+          shasum -a 256 rfmonctl
+      - name: Upload rfmonctl
+        uses: actions/upload-artifact@v4
+        with:
+          name: rfmonctl-${{ github.run_id }}
+          path: rfmonctl
+          if-no-files-found: error
+          retention-days: 7
 
   run-command:
     name: Run command on iPhone
-    needs: resolve-environment
+    needs: [resolve-environment, build-rfmonctl]
     environment:
       name: ${{ needs.resolve-environment.outputs.environment_name }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -87,7 +113,13 @@ jobs:
           sparse-checkout-cone-mode: false
           fetch-depth: 1
 
-      - name: Validate required secrets
+      - name: Download rfmonctl
+        uses: actions/download-artifact@v4
+        with:
+          name: rfmonctl-${{ github.run_id }}
+          path: /tmp/rfmon-stage
+
+      - name: Validate staged binary and secrets
         id: validate
         env:
           TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
@@ -95,15 +127,16 @@ jobs:
         run: |
           set -euo pipefail
           : > validation-error.txt
-          if [ -z "$TAILSCALE_AUTHKEY" ]; then
-            echo "Missing environment secret: TAILSCALE_AUTHKEY" | tee -a validation-error.txt >&2
-          fi
-          if [ -z "$IPHONE_PASSWORD" ]; then
-            echo "Missing environment secret used for iPhone login: IPAD_PASSWORD" | tee -a validation-error.txt >&2
-          fi
+          test -s /tmp/rfmon-stage/rfmonctl || echo "rfmonctl artifact missing" >> validation-error.txt
+          [ -n "$TAILSCALE_AUTHKEY" ] || echo "Missing environment secret: TAILSCALE_AUTHKEY" >> validation-error.txt
+          [ -n "$IPHONE_PASSWORD" ] || echo "Missing environment secret used for iPhone login: IPAD_PASSWORD" >> validation-error.txt
           if [ -s validation-error.txt ]; then
+            cat validation-error.txt >&2
             exit 1
           fi
+          chmod 755 /tmp/rfmon-stage/rfmonctl
+          file /tmp/rfmon-stage/rfmonctl
+          sha256sum /tmp/rfmon-stage/rfmonctl
 
       - name: Install Tailscale and SSH clients
         id: install_ssh
@@ -120,17 +153,6 @@ jobs:
           sudo apt-get install -y --no-install-recommends tailscale openssh-client sshpass
           sudo systemctl enable --now tailscaled
           tailscale version
-
-      - name: Download upstream airmon-ng for staging
-        id: stage_airmon
-        run: |
-          set -euo pipefail
-          curl --fail --location --silent --show-error --retry 3 --connect-timeout 20 \
-            https://raw.githubusercontent.com/aircrack-ng/aircrack-ng/master/scripts/airmon-ng.linux \
-            -o /tmp/airmon-ng
-          test -s /tmp/airmon-ng
-          head -n 1 /tmp/airmon-ng
-          wc -c /tmp/airmon-ng
 
       - name: Join the Tailscale network with retries
         id: tailscale
@@ -164,13 +186,12 @@ jobs:
             sleep $((attempt * 8))
           done
           if [ "$connected" != 1 ]; then
-            echo "Tailscale login succeeded inconsistently or the iPhone node was not visible." | tee -a iphone-output.txt >&2
-            sudo tailscale status 2>&1 | tee -a iphone-output.txt || true
+            echo "iPhone node not visible over Tailscale" | tee -a iphone-output.txt >&2
             exit 1
           fi
           echo 'tailscale_iphone_node_visible=success' | tee -a iphone-output.txt
 
-      - name: Run command file on iPhone as root
+      - name: Stage rfmonctl and run iPhone command as root
         id: ssh
         shell: bash
         env:
@@ -182,19 +203,13 @@ jobs:
         run: |
           set -uo pipefail
           : > iphone-output.txt
-
           if [ ! -s remote/iphone-command.sh ]; then
             echo "remote/iphone-command.sh is missing or empty" | tee -a iphone-output.txt
-            exit 1
-          fi
-          if [ ! -s /tmp/airmon-ng ]; then
-            echo "upstream airmon-ng staging file is missing" | tee -a iphone-output.txt
             exit 1
           fi
 
           mkdir -p "$HOME/.ssh"
           chmod 700 "$HOME/.ssh"
-
           echo "Waking and checking iPhone SSH port over Tailscale..." | tee -a iphone-output.txt
           key_ready=0
           for attempt in $(seq 1 18); do
@@ -210,21 +225,20 @@ jobs:
             sleep 8
           done
           if [ "$key_ready" != 1 ]; then
-            echo "Could not reach iPhone TCP port 22 after wake and retry attempts." | tee -a iphone-output.txt
-            sudo tailscale status 2>&1 | tee -a iphone-output.txt || true
+            echo "Could not reach iPhone TCP port 22" | tee -a iphone-output.txt
             exit 1
           fi
           chmod 600 "$HOME/.ssh/known_hosts"
           echo 'iphone_ssh_port_ready=success' | tee -a iphone-output.txt
 
-          AIRMON_B64="$(base64 -w 0 /tmp/airmon-ng)"
-          echo "Staging upstream airmon-ng and running remote/iphone-command.sh on $IPHONE_USER@$IPHONE_HOST:$IPHONE_PORT as root..." | tee -a iphone-output.txt
+          RFMON_B64="$(base64 -w 0 /tmp/rfmon-stage/rfmonctl)"
+          echo "Staging native rfmonctl and running probe as root..." | tee -a iphone-output.txt
           set +e
           {
             printf '%s\n' "$IPHONE_PASSWORD"
-            printf '%s\n' 'mkdir -p /var/jb/usr/sbin'
-            printf "printf '%%s' '%s' | base64 -d > /var/jb/usr/sbin/airmon-ng\n" "$AIRMON_B64"
-            printf '%s\n' 'chmod 755 /var/jb/usr/sbin/airmon-ng'
+            printf '%s\n' 'mkdir -p /var/jb/usr/local/bin'
+            printf "printf '%%s' '%s' | base64 -d > /var/jb/usr/local/bin/rfmonctl\n" "$RFMON_B64"
+            printf '%s\n' 'chmod 755 /var/jb/usr/local/bin/rfmonctl'
             cat remote/iphone-command.sh
           } | sshpass -e ssh \
                 -p "$IPHONE_PORT" \
@@ -240,7 +254,6 @@ jobs:
                 2>&1 | tee -a iphone-output.txt
           ssh_status=${PIPESTATUS[1]}
           set -e
-
           echo "ssh_exit_code=$ssh_status" | tee -a iphone-output.txt
           exit "$ssh_status"
 
@@ -267,11 +280,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git pull --rebase origin main
-
           python3 - <<'PY'
           import os
           from pathlib import Path
-
           lines = [
               "iPhone Tailscale SSH Bridge",
               f"run_id={os.environ.get('GITHUB_RUN_ID', '')}",
@@ -283,30 +294,21 @@ jobs:
               f"tailscale={os.environ.get('TAILSCALE_OUTCOME', '')}",
               f"install_ssh={os.environ.get('INSTALL_SSH_OUTCOME', '')}",
               f"ssh={os.environ.get('SSH_OUTCOME', '')}",
+              "",
+              "--- sanitized SSH output ---",
           ]
-
-          validation = Path("validation-error.txt")
-          if validation.exists() and validation.stat().st_size:
-              lines.extend(["", "--- validation error ---"])
-              lines.extend(validation.read_text(errors="replace").splitlines())
-
-          lines.extend(["", "--- sanitized SSH output ---"])
           output = Path("iphone-output.txt")
           if output.exists():
               text = output.read_text(errors="replace")
               password = os.environ.get("IPHONE_PASSWORD", "")
               if password:
                   text = text.replace(password, "***REDACTED***")
-              lines.extend(text.splitlines()[-220:])
+              lines.extend(text.splitlines()[-260:])
           else:
-              lines.append("No SSH output file was created; failure occurred before the SSH step.")
-
+              lines.append("No SSH output file was created.")
           Path("remote/iphone-bridge-status.txt").write_text("\n".join(lines) + "\n")
           PY
-
           git add remote/iphone-bridge-status.txt
-          if git diff --cached --quiet; then
-            exit 0
-          fi
+          if git diff --cached --quiet; then exit 0; fi
           git commit -m "Record iPhone SSH bridge status [skip ci]"
           git push origin HEAD:main
