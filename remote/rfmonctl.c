@@ -1,7 +1,6 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <net/bpf.h>
 #include <net/if.h>
 #include <signal.h>
 #include <stdint.h>
@@ -12,12 +11,35 @@
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #define IFNAMSIZ_LOCAL 16
 #define APPLE80211_IOC_CARD_SPECIFIC 0xffffffffu
 #define WLC_GET_MONITOR 107
 #define WLC_SET_MONITOR 108
+
+/* Darwin/XNU BPF ABI subset. */
+struct timeval32_local {
+    int32_t tv_sec;
+    int32_t tv_usec;
+};
+
+struct bpf_hdr_local {
+    struct timeval32_local bh_tstamp;
+    uint32_t bh_caplen;
+    uint32_t bh_datalen;
+    uint16_t bh_hdrlen;
+};
+
+#define BPF_ALIGNMENT ((size_t)sizeof(int32_t))
+#define BPF_WORDALIGN_LOCAL(x) (((x) + (BPF_ALIGNMENT - 1)) & ~(BPF_ALIGNMENT - 1))
+#define BPF_HDR_MIN_SIZE 18u
+#define BIOCGBLEN     _IOR('B', 102, unsigned int)
+#define BIOCPROMISC   _IO('B', 105)
+#define BIOCGDLT      _IOR('B', 106, unsigned int)
+#define BIOCSETIF     _IOW('B', 108, struct ifreq)
+#define BIOCIMMEDIATE _IOW('B', 112, unsigned int)
 
 #pragma pack(push, 4)
 struct apple80211req {
@@ -103,6 +125,7 @@ static int set_monitor(const char *ifname, int enabled) {
 }
 
 static int open_bpf_device(char *chosen, size_t chosen_len) {
+    int last_errno = ENOENT;
     for (int i = 0; i < 256; i++) {
         char path[32];
         snprintf(path, sizeof(path), "/dev/bpf%d", i);
@@ -111,11 +134,13 @@ static int open_bpf_device(char *chosen, size_t chosen_len) {
             strlcpy(chosen, path, chosen_len);
             return fd;
         }
+        last_errno = errno;
         if (errno != EBUSY && errno != EACCES && errno != ENOENT) {
             fprintf(stderr, "open %s failed: errno=%d (%s)\n", path, errno, strerror(errno));
         }
         if (errno == ENOENT && i > 16) break;
     }
+    errno = last_errno;
     return -1;
 }
 
@@ -133,7 +158,6 @@ static int bind_bpf(int fd, const char *ifname, unsigned int *dlt_out, unsigned 
     if (ioctl(fd, BIOCIMMEDIATE, &one) < 0) {
         fprintf(stderr, "BIOCIMMEDIATE failed: errno=%d (%s)\n", errno, strerror(errno));
     }
-
     if (ioctl(fd, BIOCPROMISC, NULL) < 0) {
         fprintf(stderr, "BIOCPROMISC failed: errno=%d (%s)\n", errno, strerror(errno));
     }
@@ -143,7 +167,6 @@ static int bind_bpf(int fd, const char *ifname, unsigned int *dlt_out, unsigned 
         fprintf(stderr, "BIOCGDLT failed: errno=%d (%s)\n", errno, strerror(errno));
         return -1;
     }
-
     unsigned int blen = 0;
     if (ioctl(fd, BIOCGBLEN, &blen) < 0 || blen == 0) {
         fprintf(stderr, "BIOCGBLEN failed: errno=%d (%s)\n", errno, strerror(errno));
@@ -170,13 +193,10 @@ static int write_pcap_header(FILE *fp, unsigned int dlt) {
 static int capture_monitor(const char *ifname, const char *outfile, int seconds) {
     if (seconds < 1) seconds = 1;
     if (seconds > 20) seconds = 20;
-
     printf("capture_interface=%s capture_file=%s capture_seconds=%d\n", ifname, outfile, seconds);
 
     int initial_monitor = 0;
     if (get_monitor_value(ifname, &initial_monitor) != 0) return 1;
-
-    /* Always begin from a known station/non-monitor state. */
     if (initial_monitor != 0) {
         printf("capture_preflight=monitor-was-on-forcing-off\n");
         if (set_monitor(ifname, 0) != 0) return 1;
@@ -184,7 +204,6 @@ static int capture_monitor(const char *ifname, const char *outfile, int seconds)
     }
 
     if (set_monitor(ifname, 1) != 0) return 1;
-    int monitor_enabled = 1;
     usleep(250000);
 
     int live_monitor = -1;
@@ -272,10 +291,13 @@ static int capture_monitor(const char *ifname, const char *outfile, int seconds)
 
         unsigned char *ptr = buf;
         unsigned char *end = buf + n;
-        while (ptr + sizeof(struct bpf_hdr) <= end) {
-            struct bpf_hdr *bh = (struct bpf_hdr *)ptr;
-            size_t record_len = (size_t)bh->bh_hdrlen + (size_t)bh->bh_caplen;
-            if (bh->bh_hdrlen < sizeof(struct bpf_hdr) || ptr + record_len > end) break;
+        while ((size_t)(end - ptr) >= BPF_HDR_MIN_SIZE) {
+            const struct bpf_hdr_local *bh = (const struct bpf_hdr_local *)ptr;
+            size_t hdrlen = (size_t)bh->bh_hdrlen;
+            size_t caplen = (size_t)bh->bh_caplen;
+            if (hdrlen < BPF_HDR_MIN_SIZE || hdrlen > (size_t)(end - ptr)) break;
+            if (caplen > (size_t)(end - ptr) - hdrlen) break;
+            size_t record_len = hdrlen + caplen;
 
             struct pcap_packet_header_local ph;
             ph.ts_sec = (uint32_t)bh->bh_tstamp.tv_sec;
@@ -284,7 +306,7 @@ static int capture_monitor(const char *ifname, const char *outfile, int seconds)
             ph.orig_len = (uint32_t)bh->bh_datalen;
 
             if (fwrite(&ph, sizeof(ph), 1, fp) != 1 ||
-                fwrite(ptr + bh->bh_hdrlen, bh->bh_caplen, 1, fp) != 1) {
+                (caplen != 0 && fwrite(ptr + hdrlen, caplen, 1, fp) != 1)) {
                 fprintf(stderr, "pcap packet write failed\n");
                 result = 1;
                 stop_capture = 1;
@@ -292,9 +314,9 @@ static int capture_monitor(const char *ifname, const char *outfile, int seconds)
             }
 
             packet_count++;
-            payload_bytes += bh->bh_caplen;
-            size_t advance = BPF_WORDALIGN(record_len);
-            if (advance == 0 || ptr + advance > end) break;
+            payload_bytes += caplen;
+            size_t advance = BPF_WORDALIGN_LOCAL(record_len);
+            if (advance == 0 || advance > (size_t)(end - ptr)) break;
             ptr += advance;
         }
         fflush(fp);
@@ -309,11 +331,9 @@ static int capture_monitor(const char *ifname, const char *outfile, int seconds)
            (unsigned long long)payload_bytes,
            dlt);
 
-    if (monitor_enabled) {
-        int off_rc = set_monitor(ifname, 0);
-        printf("capture_monitor_off_rc=%d\n", off_rc);
-        if (off_rc != 0) result = 1;
-    }
+    int off_rc = set_monitor(ifname, 0);
+    printf("capture_monitor_off_rc=%d\n", off_rc);
+    if (off_rc != 0) result = 1;
 
     int final_monitor = -1;
     if (get_monitor_value(ifname, &final_monitor) == 0) {
