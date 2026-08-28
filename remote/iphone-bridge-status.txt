@@ -1,7 +1,7 @@
 iPhone Tailscale SSH Bridge
-run_id=33172107632
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33172107632
-commit=19d977c3f92b31afb5ae905b04f5844407aa62c0
+run_id=33172460629
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33172460629
+commit=0a4e9f976eff86fdcbbc50488e64bc63973b67b5
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
@@ -10,223 +10,87 @@ install_ssh=success
 ssh=failure
 
 --- sanitized SSH output ---
-  510     1   0.1  0.5 05:37:49 Ss   /System/Library/PrivateFrameworks/ApplePushService.framework/apsd
-  508     1   0.1  0.5 05:37:50 Rs   /usr/libexec/networkserviceproxy
-  425   ??  Ss     0:19.13 /usr/libexec/runningboardd
-  428   ??  Ss     0:23.55 /usr/sbin/mediaserverd
-  430   ??  Ss     0:00.98 /System/Library/PrivateFrameworks/MediaRemote.framework/Support/mediaremoted
-  436   ??  Rs     0:24.81 /System/Library/CoreServices/powerd.bundle/powerd
-  445   ??  Ss     2:30.81 /usr/sbin/wifid
-  456   ??  Ss     0:24.05 /usr/libexec/thermalmonitord
-  457   ??  Ss     2:39.64 /System/Library/CoreServices/SpringBoard.app/SpringBoard
-  459   ??  Ss     4:35.37 /usr/libexec/backboardd
-  464   ??  Ss     2:11.11 /usr/libexec/locationd
-  466   ??  Ss     0:03.72 /usr/libexec/containermanagerd --runmode=exclusive --default-user=mobile --bundle-container-mode=global --bundle-container-owner=_installd --system-container-mode=global --system-container-owner=root
-  472   ??  Rs     1:17.43 /System/Library/PrivateFrameworks/AggregateDictionary.framework/Support/aggregated
-  481   ??  Ss     0:50.76 /usr/sbin/bluetoothd
-  491   ??  Ss     0:01.24 /System/Library/PrivateFrameworks/CoreAnalytics.framework/Support/analyticsd
-  494   ??  Ss     0:00.08 /var/jb/usr/libexec/rocketd
-  496   ??  Ss     0:31.00 /usr/libexec/mobileassetd
-  540   ??  Rs     0:06.87 /System/Library/PrivateFrameworks/iTunesCloud.framework/Support/itunescloudd
-  553   ??  Ss     5:34.43 /usr/libexec/nsurlsessiond
-  554   ??  Ss     0:00.34 /usr/libexec/symptomsd-diag
-  562   ??  Rs     1:01.30 /usr/libexec/symptomsd
-  568   ??  Ss     0:01.98 /Applications/Spotlight.app/Spotlight
-  587   ??  Ss     0:41.07 /usr/libexec/wifianalyticsd
-  602   ??  Ss     0:04.26 /System/Library/PrivateFrameworks/CloudDocsDaemon.framework/bird
-  607   ??  Ss     0:00.51 /usr/libexec/siriknowledged
-  636   ??  Rs     0:20.90 /System/Library/PrivateFrameworks/Search.framework/searchd
-  866   ??  Ss     0:00.59 /System/Library/PrivateFrameworks/CloudDocsDaemon.framework/XPCServices/ContainerMetadataExtractor.xpc/ContainerMetadataExtractor
-  867   ??  Ss     0:00.45 /System/Library/PrivateFrameworks/CloudDocs.framework/PlugIns/com.apple.CloudDocs.MobileDocumentsFileProvider.appex/com.apple.CloudDocs.MobileDocumentsFileProvider -AppleLanguages ("en-US")
- 2050   ??  Ss     0:00.57 /System/Library/CoreServices/ReportCrash agent
- 2069   ??  Ss     0:02.35 /usr/libexec/installd
- 2084   ??  Ss     2:21.26 /private/var/containers/Bundle/Application/4CD29918-8DA7-46FB-8B6E-400C029CC753/Tailscale.app/PlugIns/IPNExtension.appex/IPNExtension -AppleLanguages ("en-US")
- 2147   ??  Ss     0:08.97 /System/Library/PrivateFrameworks/PhotoAnalysis.framework/Support/photoanalysisd
- 2149   ??  Ss     3:31.28 /System/Library/PrivateFrameworks/CloudKitDaemon.framework/Support/cloudd
- 2278   ??  Ss     0:01.48 /var/containers/Bundle/Application/4CD29918-8DA7-46FB-8B6E-400C029CC753/Tailscale.app/Tailscale
- 2602   ??  Ss     0:00.18 sshd: mobile@notty 
- 2603   ??  Ss     0:00.17 sshd: mobile@notty 
-
-===== 2-MINUTE LIVE DISCHARGE / CPU TRACE =====
-NOTE: current is raw IOKit gauge output; large unsigned values represent negative discharge current on this OS.
---- battery_sample=trace_1 time=2026-08-28 07:42:07 CDT ---
---- cpu_sample=trace_1 time=07:42:08 ---
-  PID  PPID  %CPU %MEM  ELAPSED STAT COMM
-  459     1  20.6  1.7 05:37:55 Ss   /usr/libexec/backboardd
- 2304     1   9.1  3.7    06:02 Ss   /private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus/Applications/Sileo.app/Sileo
- 2249     1   7.7  0.4    40:35 Rs   /usr/sbin/cfprefsd
- 2917  2612   6.6  0.1    00:00 R    (date)
-  457     1   3.4  3.2 05:37:55 Ss   /System/Library/CoreServices/SpringBoard.app/SpringBoard
- 2615  2609   1.6  0.2    00:09 S    /var/jb/usr/bin/sh
- 2612  2606   1.5  0.2    00:09 S    /var/jb/usr/bin/sh
- 2084     1   1.5  1.9 05:32:30 Ss   /private/var/containers/Bundle/Application/4CD29918-8DA7-46FB-8B6E-400C029CC753/Tailscale.app/PlugIns/IPNExtension.appex/IPNExtension
-  479     1   1.5  0.1 05:37:55 Rs   /usr/sbin/notifyd
-  464     1   0.4  1.8 05:37:55 Rs   /usr/libexec/locationd
-  461     1   0.2  0.6 05:37:55 Ss   /usr/libexec/sharingd
- 2919  2615   0.1  0.0    00:00 S    /var/jb/usr/bin/sh
-  767     1   0.1  0.6 05:36:26 Rs   /System/Library/PrivateFrameworks/AssistantServices.framework/assistant_service
-  548     1   0.1  0.4 05:37:42 Ss   /usr/sbin/mDNSResponder
-  449     1   0.1  0.9 05:37:55 Ss   /System/Library/PrivateFrameworks/IDS.framework/identityservicesd.app/identityservicesd
-  439     1   0.1  0.3 05:37:55 Rs   /usr/sbin/WirelessRadioManagerd
- 2920  2919   0.0  0.1    00:00 R    (head)
- 2918  2615   0.0  0.2    00:00 R    ps
- 2609  2602   0.0  0.3    00:10 Ss   sudo
- 2606  2603   0.0  0.3    00:10 Ss   sudo
- 2603     1   0.0  0.3    00:10 Ss   sshd: mobile@notty
- 2602     1   0.0  0.3    00:10 Ss   sshd: mobile@notty
- 2324     1   0.0  0.6    05:26 Ss   /System/Library/PrivateFrameworks/MobileBackup.framework/backupd
- 2303     1   0.0  0.1    06:53 Ss   /System/Library/Frameworks/Metal.framework/XPCServices/MTLCompilerService.xpc/MTLCompilerService
- 2302     1   0.0  0.7    06:54 Ss   /System/Library/Frameworks/WebKit.framework/XPCServices/com.apple.WebKit.WebContent.xpc/com.apple.WebKit.WebContent
- 2301     1   0.0  0.1    07:14 Ss   /System/Library/Frameworks/Metal.framework/XPCServices/MTLCompilerService.xpc/MTLCompilerService
- 2300     1   0.0  0.4    07:15 Ss   /System/Library/Frameworks/WebKit.framework/XPCServices/com.apple.WebKit.Networking.xpc/com.apple.WebKit.Networking
- 2299     1   0.0  0.7    07:15 Ss   /System/Library/Frameworks/WebKit.framework/XPCServices/com.apple.WebKit.WebContent.xpc/com.apple.WebKit.WebContent
- 2292     1   0.0  2.2    07:23 Ss   /private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus/Applications/Zebra.app/Zebra
- 2289  2287   0.0  0.2    07:51 Ss+  -bash
---- battery_sample=trace_2 time=2026-08-28 07:42:14 CDT ---
---- battery_sample=trace_3 time=2026-08-28 07:42:19 CDT ---
---- battery_sample=trace_4 time=2026-08-28 07:42:24 CDT ---
---- cpu_sample=trace_4 time=07:42:25 ---
-  PID  PPID  %CPU %MEM  ELAPSED STAT COMM
-  459     1   7.1  1.7 05:38:12 Ss   /usr/libexec/backboardd
- 2249     1   6.0  0.4    40:52 Rs   /usr/sbin/cfprefsd
- 2962  2612   3.4  0.2    00:00 R    (ps)
- 2084     1   2.9  1.9 05:32:47 Ss   /private/var/containers/Bundle/Application/4CD29918-8DA7-46FB-8B6E-400C029CC753/Tailscale.app/PlugIns/IPNExtension.appex/IPNExtension
-  457     1   2.8  3.2 05:38:12 Ss   /System/Library/CoreServices/SpringBoard.app/SpringBoard
- 2612  2606   2.2  0.2    00:26 S    /var/jb/usr/bin/sh
- 2060     1   2.1  0.6 05:34:06 Ss   /usr/libexec/gamed
- 2615  2609   1.8  0.2    00:26 S    /var/jb/usr/bin/sh
- 2964  2963   1.6  0.1    00:00 S    (head)
-  479     1   1.2  0.1 05:38:12 Rs   /usr/sbin/notifyd
-  445     1   0.8  0.8 05:38:12 Ss   /usr/sbin/wifid
- 2304     1   0.7  3.7    06:19 Ss   /private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus/Applications/Sileo.app/Sileo
- 2963  2612   0.1  0.0    00:00 S    /var/jb/usr/bin/sh
-  548     1   0.1  0.4 05:37:59 Ss   /usr/sbin/mDNSResponder
-  493     1   0.1  0.6 05:38:09 Ss   /usr/libexec/dasd
-  439     1   0.1  0.3 05:38:12 Ss   /usr/sbin/WirelessRadioManagerd
- 2967  2966   0.0  0.1    00:00 R    (head)
- 2966  2615   0.0  0.0    00:00 S    /var/jb/usr/bin/sh
- 2965  2615   0.0  0.2    00:00 R    ps
- 2609  2602   0.0  0.3    00:27 Ss   sudo
- 2606  2603   0.0  0.3    00:27 Ss   sudo
- 2603     1   0.0  0.3    00:27 Ss   sshd: mobile@notty
- 2602     1   0.0  0.3    00:27 Ss   sshd: mobile@notty
- 2324     1   0.0  0.6    05:43 Ss   /System/Library/PrivateFrameworks/MobileBackup.framework/backupd
- 2303     1   0.0  0.1    07:10 Ss   /System/Library/Frameworks/Metal.framework/XPCServices/MTLCompilerService.xpc/MTLCompilerService
- 2302     1   0.0  0.7    07:11 Ss   /System/Library/Frameworks/WebKit.framework/XPCServices/com.apple.WebKit.WebContent.xpc/com.apple.WebKit.WebContent
- 2301     1   0.0  0.1    07:31 Ss   /System/Library/Frameworks/Metal.framework/XPCServices/MTLCompilerService.xpc/MTLCompilerService
- 2300     1   0.0  0.4    07:32 Ss   /System/Library/Frameworks/WebKit.framework/XPCServices/com.apple.WebKit.Networking.xpc/com.apple.WebKit.Networking
- 2299     1   0.0  0.7    07:32 Ss   /System/Library/Frameworks/WebKit.framework/XPCServices/com.apple.WebKit.WebContent.xpc/com.apple.WebKit.WebContent
- 2292     1   0.0  2.2    07:40 Ss   /private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus/Applications/Zebra.app/Zebra
---- battery_sample=trace_5 time=2026-08-28 07:42:30 CDT ---
---- battery_sample=trace_6 time=2026-08-28 07:42:35 CDT ---
---- battery_sample=trace_7 time=2026-08-28 07:42:41 CDT ---
---- battery_sample=trace_8 time=2026-08-28 07:42:46 CDT ---
---- cpu_sample=trace_8 time=07:42:46 ---
-  PID  PPID  %CPU %MEM  ELAPSED STAT COMM
- 2304     1  44.4  4.2    06:41 Ss   /private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus/Applications/Sileo.app/Sileo
-  459     1  29.1  1.7 05:38:34 Ss   /usr/libexec/backboardd
- 3016  2615  14.1  0.2    00:01 R    ps
- 3018  3017  10.8  0.1    00:01 R    (head)
- 2249     1   4.5  0.4    41:14 Rs   /usr/sbin/cfprefsd
-  481     1   4.4  0.7 05:38:34 Ss   /usr/sbin/bluetoothd
-  457     1   4.2  3.2 05:38:34 Ss   /System/Library/CoreServices/SpringBoard.app/SpringBoard
- 3019  2612   3.7  0.1    00:00 R    ps
-  461     1   1.4  0.6 05:38:34 Ss   /usr/libexec/sharingd
- 2612  2606   1.3  0.2    00:48 S    /var/jb/usr/bin/sh
-  464     1   1.1  1.8 05:38:34 Ss   /usr/libexec/locationd
-  479     1   0.9  0.1 05:38:34 Rs   /usr/sbin/notifyd
- 2615  2609   0.7  0.2    00:48 S    /var/jb/usr/bin/sh
- 3021  3020   0.4  0.1    00:00 R    head
-  449     1   0.3  0.9 05:38:34 Ss   /System/Library/PrivateFrameworks/IDS.framework/identityservicesd.app/identityservicesd
- 2084     1   0.2  1.9 05:33:09 Ss   /private/var/containers/Bundle/Application/4CD29918-8DA7-46FB-8B6E-400C029CC753/Tailscale.app/PlugIns/IPNExtension.appex/IPNExtension
- 3020  2612   0.1  0.0    00:00 S    /var/jb/usr/bin/sh
- 3017  2615   0.1  0.0    00:01 S    /var/jb/usr/bin/sh
- 2609  2602   0.0  0.3    00:49 Ss   sudo
- 2606  2603   0.0  0.3    00:49 Ss   sudo
- 2603     1   0.0  0.3    00:49 Ss   sshd: mobile@notty
- 2602     1   0.0  0.3    00:49 Ss   sshd: mobile@notty
- 2324     1   0.0  0.6    06:05 Ss   /System/Library/PrivateFrameworks/MobileBackup.framework/backupd
- 2303     1   0.0  0.1    07:32 Ss   /System/Library/Frameworks/Metal.framework/XPCServices/MTLCompilerService.xpc/MTLCompilerService
- 2302     1   0.0  0.7    07:33 Ss   /System/Library/Frameworks/WebKit.framework/XPCServices/com.apple.WebKit.WebContent.xpc/com.apple.WebKit.WebContent
- 2301     1   0.0  0.1    07:53 Ss   /System/Library/Frameworks/Metal.framework/XPCServices/MTLCompilerService.xpc/MTLCompilerService
- 2300     1   0.0  0.4    07:54 Ss   /System/Library/Frameworks/WebKit.framework/XPCServices/com.apple.WebKit.Networking.xpc/com.apple.WebKit.Networking
- 2299     1   0.0  0.7    07:54 Ss   /System/Library/Frameworks/WebKit.framework/XPCServices/com.apple.WebKit.WebContent.xpc/com.apple.WebKit.WebContent
- 2292     1   0.0  2.2    08:02 Ss   /private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus/Applications/Zebra.app/Zebra
- 2289  2287   0.0  0.2    08:30 Ss+  -bash
---- battery_sample=trace_9 time=2026-08-28 07:42:52 CDT ---
---- battery_sample=trace_10 time=2026-08-28 07:42:58 CDT ---
---- battery_sample=trace_11 time=2026-08-28 07:43:03 CDT ---
---- battery_sample=trace_12 time=2026-08-28 07:43:08 CDT ---
---- cpu_sample=trace_12 time=07:43:09 ---
-  PID  PPID  %CPU %MEM  ELAPSED STAT COMM
-  459     1  25.4  1.8 05:38:56 Ss   /usr/libexec/backboardd
- 2304     1  24.6  4.6    07:03 Ss   /private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus/Applications/Sileo.app/Sileo
- 2249     1   4.3  0.4    41:36 Rs   /usr/sbin/cfprefsd
-  457     1   3.3  3.2 05:38:56 Ss   /System/Library/CoreServices/SpringBoard.app/SpringBoard
- 2615  2609   1.1  0.2    01:10 S    /var/jb/usr/bin/sh
- 2612  2606   1.0  0.2    01:10 S    /var/jb/usr/bin/sh
-  479     1   1.0  0.1 05:38:56 Rs   /usr/sbin/notifyd
- 2084     1   0.2  1.9 05:33:31 Ss   /private/var/containers/Bundle/Application/4CD29918-8DA7-46FB-8B6E-400C029CC753/Tailscale.app/PlugIns/IPNExtension.appex/IPNExtension
-  464     1   0.2  1.8 05:38:56 Ss   /usr/libexec/locationd
-  526     1   0.1  0.5 05:38:48 Rs   /System/Library/PrivateFrameworks/TelephonyUtilities.framework/callservicesd
- 3075  3074   0.0  0.0    00:00 R    head
- 3074  2612   0.0  0.0    00:00 S    /var/jb/usr/bin/sh
- 3073  2612   0.0  0.0    00:00 R    ps
- 3072  3071   0.0  0.1    00:00 R    (head)
- 3071  2615   0.0  0.0    00:00 S    /var/jb/usr/bin/sh
- 3070  2615   0.0  0.2    00:00 R    ps
- 2609  2602   0.0  0.3    01:11 Ss   sudo
- 2606  2603   0.0  0.3    01:11 Ss   sudo
- 2603     1   0.0  0.3    01:11 Ss   sshd: mobile@notty
- 2602     1   0.0  0.3    01:11 Ss   sshd: mobile@notty
- 2324     1   0.0  0.6    06:27 Ss   /System/Library/PrivateFrameworks/MobileBackup.framework/backupd
- 2303     1   0.0  0.1    07:54 Ss   /System/Library/Frameworks/Metal.framework/XPCServices/MTLCompilerService.xpc/MTLCompilerService
- 2302     1   0.0  0.7    07:55 Ss   /System/Library/Frameworks/WebKit.framework/XPCServices/com.apple.WebKit.WebContent.xpc/com.apple.WebKit.WebContent
- 2301     1   0.0  0.1    08:15 Ss   /System/Library/Frameworks/Metal.framework/XPCServices/MTLCompilerService.xpc/MTLCompilerService
- 2300     1   0.0  0.4    08:16 Ss   /System/Library/Frameworks/WebKit.framework/XPCServices/com.apple.WebKit.Networking.xpc/com.apple.WebKit.Networking
- 2299     1   0.0  0.7    08:16 Ss   /System/Library/Frameworks/WebKit.framework/XPCServices/com.apple.WebKit.WebContent.xpc/com.apple.WebKit.WebContent
- 2292     1   0.0  2.2    08:24 Ss   /private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus/Applications/Zebra.app/Zebra
- 2289  2287   0.0  0.2    08:52 Ss+  -bash
- 2287     1   0.0  1.3    08:53 Ss   /private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus/Applications/Terminal.app/Terminal
- 2278     1   0.0  1.4    27:18 Ss   /var/containers/Bundle/Application/4CD29918-8DA7-46FB-8B6E-400C029CC753/Tailscale.app/Tailscale
---- battery_sample=trace_13 time=2026-08-28 07:43:14 CDT ---
---- battery_sample=trace_14 time=2026-08-28 07:43:20 CDT ---
---- battery_sample=trace_15 time=2026-08-28 07:43:25 CDT ---
---- battery_sample=trace_16 time=2026-08-28 07:43:30 CDT ---
---- cpu_sample=trace_16 time=07:43:31 ---
-  PID  PPID  %CPU %MEM  ELAPSED STAT COMM
- 3130  2612  13.2  0.2    00:00 R    (ps)
-  459     1  10.9  1.7 05:39:18 Ss   /usr/libexec/backboardd
- 3134  3132  10.3  0.1    00:00 R    (head)
- 3131  2615   9.4  0.2    00:00 R    ps
- 2249     1   4.2  0.4    41:58 Rs   /usr/sbin/cfprefsd
- 3135  3133   3.6  0.1    00:00 R    head
- 2612  2606   1.9  0.2    01:32 S    /var/jb/usr/bin/sh
- 2615  2609   1.8  0.2    01:32 S    /var/jb/usr/bin/sh
- 2304     1   1.4  4.5    07:25 Ss   /private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus/Applications/Sileo.app/Sileo
-  457     1   1.3  3.2 05:39:18 Ss   /System/Library/CoreServices/SpringBoard.app/SpringBoard
-  479     1   1.0  0.1 05:39:18 Rs   /usr/sbin/notifyd
- 2084     1   0.4  1.9 05:33:53 Ss   /private/var/containers/Bundle/Application/4CD29918-8DA7-46FB-8B6E-400C029CC753/Tailscale.app/PlugIns/IPNExtension.appex/IPNExtension
-  481     1   0.4  0.7 05:39:18 Ss   /usr/sbin/bluetoothd
-  464     1   0.4  1.8 05:39:18 Ss   /usr/libexec/locationd
-  445     1   0.2  0.8 05:39:18 Ss   /usr/sbin/wifid
- 3133  2615   0.1  0.0    00:00 S    /var/jb/usr/bin/sh
- 3132  2612   0.1  0.0    00:00 S    /var/jb/usr/bin/sh
- 2609  2602   0.0  0.3    01:33 Ss   sudo
- 2606  2603   0.0  0.3    01:33 Ss   sudo
- 2603     1   0.0  0.3    01:33 Ss   sshd: mobile@notty
- 2602     1   0.0  0.3    01:33 Ss   sshd: mobile@notty
- 2324     1   0.0  0.6    06:49 Ss   /System/Library/PrivateFrameworks/MobileBackup.framework/backupd
- 2303     1   0.0  0.1    08:16 Ss   /System/Library/Frameworks/Metal.framework/XPCServices/MTLCompilerService.xpc/MTLCompilerService
- 2302     1   0.0  0.7    08:17 Ss   /System/Library/Frameworks/WebKit.framework/XPCServices/com.apple.WebKit.WebContent.xpc/com.apple.WebKit.WebContent
- 2301     1   0.0  0.1    08:37 Ss   /System/Library/Frameworks/Metal.framework/XPCServices/MTLCompilerService.xpc/MTLCompilerService
- 2300     1   0.0  0.4    08:38 Ss   /System/Library/Frameworks/WebKit.framework/XPCServices/com.apple.WebKit.Networking.xpc/com.apple.WebKit.Networking
- 2299     1   0.0  0.7    08:38 Ss   /System/Library/Frameworks/WebKit.framework/XPCServices/com.apple.WebKit.WebContent.xpc/com.apple.WebKit.WebContent
- 2292     1   0.0  2.2    08:46 Ss   /private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus/Applications/Zebra.app/Zebra
- 2289  2287   0.0  0.2    09:14 Ss+  -bash
- 2287     1   0.0  1.3    09:15 Ss   /private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus/Applications/Terminal.app/Terminal
---- battery_sample=trace_17 time=2026-08-28 07:43:36 CDT ---
---- battery_sample=trace_18 time=2026-08-28 07:43:41 CDT ---
---- battery_sample=trace_19 time=2026-08-28 07:43:47 CDT ---
-Timeout, server 100.96.37.124 not responding.
-ssh_exit_code=255
+Waking and checking iPhone SSH port over Tailscale...
+SSH port attempt 1/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 2/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 3/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 4/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 5/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 6/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 7/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 8/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 9/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 10/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 11/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 12/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 13/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 14/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 15/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 16/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 17/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 18/18
+ping "100.96.37.124" timed out
+no reply
+Could not reach iPhone TCP port 22 after wake and retry attempts.
+100.94.185.31    github-iphone-33172460629-1          NightVibes33@  linux    -                                                              
+100.116.117.65   bobbys-ipad                          NightVibes33@  iOS      offline, last seen 12h ago                                     
+100.127.94.70    desktop-o56xs                        NightVibes33@  windows  offline, last seen 34d ago                                     
+100.80.212.102   github-ipad-33169677825-1            NightVibes33@  linux    offline, last seen 47m ago                                     
+100.109.40.14    github-ipad-33169718049-1            NightVibes33@  linux    offline, last seen 44m ago                                     
+100.73.152.2     github-ipad-33169925337-3            NightVibes33@  linux    offline, last seen 42m ago                                     
+100.111.111.120  github-ipad-33170449705-3            NightVibes33@  linux    offline, last seen 34m ago                                     
+100.122.202.62   github-ipad-33170638787-3            NightVibes33@  linux    offline, last seen 32m ago                                     
+100.71.119.93    github-ipad-33172107641-3            NightVibes33@  linux    offline, last seen 10m ago                                     
+100.99.252.70    github-ipad-33172460641-3            NightVibes33@  linux    offline, last seen 3m ago                                      
+100.70.169.26    github-iphone-33169558882-1          NightVibes33@  linux    offline, last seen 48m ago                                     
+100.121.162.113  github-iphone-33169609016-1          NightVibes33@  linux    offline, last seen 47m ago                                     
+100.123.223.80   github-iphone-33169677825            NightVibes33@  linux    offline, last seen 47m ago                                     
+100.80.207.6     github-iphone-33169718049            NightVibes33@  linux    offline, last seen 45m ago                                     
+100.64.82.127    github-iphone-33169718105-1          NightVibes33@  linux    offline, last seen 44m ago                                     
+100.118.202.50   github-iphone-33169925314-1          NightVibes33@  linux    offline, last seen 36m ago                                     
+100.95.107.30    github-iphone-33169925337            NightVibes33@  linux    offline, last seen 43m ago                                     
+100.86.142.60    github-iphone-33170449705            NightVibes33@  linux    offline, last seen 35m ago                                     
+100.114.170.100  github-iphone-33170449732-1          NightVibes33@  linux    offline, last seen 33m ago                                     
+100.84.192.40    github-iphone-33170638787            NightVibes33@  linux    offline, last seen 32m ago                                     
+100.126.16.118   github-iphone-33170638893-1-1        NightVibes33@  linux    offline, last seen 14m ago                                     
+100.91.121.83    github-iphone-33170638893-1          NightVibes33@  linux    offline, last seen 25m ago                                     
+100.105.222.104  github-iphone-33172107632-1          NightVibes33@  linux    offline, last seen 8m ago                                      
+100.70.20.103    github-iphone-33172107641            NightVibes33@  linux    offline, last seen 8m ago                                      
+100.107.4.101    github-iphone-33172460641            NightVibes33@  linux    offline, last seen 3m ago                                      
+100.85.224.37    github-iphone-discovery-33169477534  NightVibes33@  linux    offline, last seen 49m ago                                     
+100.96.37.124    iphone                               NightVibes33@  iOS      active; relay "dfw"; offline, last seen 9m ago, tx 12636 rx 0  
+100.79.177.16    iphone173                            NightVibes33@  iOS      offline, last seen 8d ago                                      
