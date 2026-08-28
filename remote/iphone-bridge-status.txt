@@ -1,7 +1,7 @@
 iPhone Tailscale SSH Bridge
-run_id=33194449889
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33194449889
-commit=622833939bf0563b53aac0be9b6d8271eec6aadf
+run_id=33194939470
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33194939470
+commit=5cd4d2671482a646df0dec49a756bb780e47f631
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
@@ -10,223 +10,128 @@ install_ssh=success
 ssh=success
 
 --- sanitized SSH output ---
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/9Nt-UW-N9b-view-PqQ-w0-XjO.nib/objects-11.0+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/9Nt-UW-N9b-view-PqQ-w0-XjO.nib/objects-9.1+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/9Nt-UW-N9b-view-PqQ-w0-XjO.nib/runtime.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Author Packages.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Author Packages.nib/objects-11.0+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Author Packages.nib/objects-9.1+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Author Packages.nib/runtime.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/B5D-p6-E07-view-o1A-46-hKa.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/B5D-p6-E07-view-o1A-46-hKa.nib/objects-11.0+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/B5D-p6-E07-view-o1A-46-hKa.nib/objects-9.1+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/B5D-p6-E07-view-o1A-46-hKa.nib/runtime.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/BYZ-38-t0r-view-8bC-Xf-vdC.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/BYZ-38-t0r-view-8bC-Xf-vdC.nib/objects-11.0+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/BYZ-38-t0r-view-8bC-Xf-vdC.nib/objects-9.1+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/BYZ-38-t0r-view-8bC-Xf-vdC.nib/runtime.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/EZp-oK-GMJ-view-6SK-PC-Jh7.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/EZp-oK-GMJ-view-6SK-PC-Jh7.nib/objects-11.0+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/EZp-oK-GMJ-view-6SK-PC-Jh7.nib/objects-9.1+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/EZp-oK-GMJ-view-6SK-PC-Jh7.nib/runtime.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/GZt-zM-RLB-view-xvs-0X-OZK.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/GZt-zM-RLB-view-xvs-0X-OZK.nib/objects-11.0+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/GZt-zM-RLB-view-xvs-0X-OZK.nib/objects-9.1+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/GZt-zM-RLB-view-xvs-0X-OZK.nib/runtime.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Info.plist
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/KbC-nX-R6d-view-yCZ-qh-ACa.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/KbC-nX-R6d-view-yCZ-qh-ACa.nib/objects-11.0+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/KbC-nX-R6d-view-yCZ-qh-ACa.nib/objects-9.1+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/KbC-nX-R6d-view-yCZ-qh-ACa.nib/runtime.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/KgF-4e-H9k-view-4S3-dv-b0f.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/KgF-4e-H9k-view-4S3-dv-b0f.nib/objects-11.0+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/KgF-4e-H9k-view-4S3-dv-b0f.nib/objects-9.1+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/KgF-4e-H9k-view-4S3-dv-b0f.nib/runtime.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/MIC-s4-hG3-view-2pG-Gr-dem.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/MIC-s4-hG3-view-2pG-Gr-dem.nib/objects-11.0+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/MIC-s4-hG3-view-2pG-Gr-dem.nib/objects-9.1+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/MIC-s4-hG3-view-2pG-Gr-dem.nib/runtime.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Mqk-oQ-y2I-view-ZET-rm-6Wq.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Mqk-oQ-y2I-view-ZET-rm-6Wq.nib/objects-11.0+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Mqk-oQ-y2I-view-ZET-rm-6Wq.nib/objects-9.1+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Mqk-oQ-y2I-view-ZET-rm-6Wq.nib/runtime.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/S2S-wW-UmR-view-sMh-kh-jCb.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/S2S-wW-UmR-view-sMh-kh-jCb.nib/objects-11.0+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/S2S-wW-UmR-view-sMh-kh-jCb.nib/objects-9.1+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/S2S-wW-UmR-view-sMh-kh-jCb.nib/runtime.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Ty6-FV-h0G-view-pbU-HD-2Rk.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Ty6-FV-h0G-view-pbU-HD-2Rk.nib/objects-11.0+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Ty6-FV-h0G-view-pbU-HD-2Rk.nib/objects-9.1+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Ty6-FV-h0G-view-pbU-HD-2Rk.nib/runtime.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Utk-Km-MBH-view-bJy-9H-FBb.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Utk-Km-MBH-view-bJy-9H-FBb.nib/objects-11.0+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Utk-Km-MBH-view-bJy-9H-FBb.nib/objects-9.1+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/Utk-Km-MBH-view-bJy-9H-FBb.nib/runtime.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/VGm-ey-YYQ-view-1EL-hk-CbP.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/VGm-ey-YYQ-view-1EL-hk-CbP.nib/objects-11.0+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/VGm-ey-YYQ-view-1EL-hk-CbP.nib/objects-9.1+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/VGm-ey-YYQ-view-1EL-hk-CbP.nib/runtime.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/XsN-hL-RGd-view-b0R-Yb-XZS.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/XsN-hL-RGd-view-b0R-Yb-XZS.nib/objects-11.0+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/XsN-hL-RGd-view-b0R-Yb-XZS.nib/objects-9.1+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/XsN-hL-RGd-view-b0R-Yb-XZS.nib/runtime.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/ZBChangesTableViewController.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/ZBChangesTableViewController.nib/objects-11.0+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/ZBChangesTableViewController.nib/objects-9.1+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/ZBChangesTableViewController.nib/runtime.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/ZBPackageListTableViewController.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/ZBPackageListTableViewController.nib/objects-11.0+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/ZBPackageListTableViewController.nib/objects-9.1+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/ZBPackageListTableViewController.nib/runtime.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/accentColorPicker.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/accentColorPicker.nib/objects-11.0+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/accentColorPicker.nib/objects-9.1+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/accentColorPicker.nib/runtime.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/addSourcesController.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/addSourcesController.nib/objects-11.0+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/addSourcesController.nib/objects-9.1+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/addSourcesController.nib/runtime.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/alternateIconController.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/alternateIconController.nib/objects-11.0+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/alternateIconController.nib/objects-9.1+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/alternateIconController.nib/runtime.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/bGz-84-RrI-view-hlV-dP-QmP.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/bGz-84-RrI-view-hlV-dP-QmP.nib/objects-11.0+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/bGz-84-RrI-view-hlV-dP-QmP.nib/objects-9.1+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/bGz-84-RrI-view-hlV-dP-QmP.nib/runtime.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/bfp-la-uN6-view-O16-fK-JCy.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/bfp-la-uN6-view-O16-fK-JCy.nib/objects-11.0+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/bfp-la-uN6-view-O16-fK-JCy.nib/objects-9.1+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/bfp-la-uN6-view-O16-fK-JCy.nib/runtime.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/changeLogController.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/changeLogController.nib/objects-11.0+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/changeLogController.nib/objects-9.1+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/changeLogController.nib/runtime.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/consoleViewController.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/consoleViewController.nib/objects-11.0+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/consoleViewController.nib/objects-9.1+.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/consoleViewController.nib/runtime.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/creditsController.nib
-/var/jb/Applications/Zebra.app/Base.lproj/Main.storyboardc/creditsController.nib/objects-11.0+.nib
-missing_interesting_files=0
-tweak_like_package_count=27
-tweak_like_package_names:
-base
-com.opa334.trollstorehelper
-com.ps.gboardall
-com.rpetrich.rocketbootstrap
-com.tigisoftware.filza
-ellekit
-org.coolstar.sileo
-preferenceloader
-xyz.cypwn.afc2d-arm64
-xyz.cypwn.applist
-xyz.cypwn.appstoretrollern
-xyz.cypwn.appsyncunified
-xyz.cypwn.arthurbrowserpro
-xyz.cypwn.autorc
-xyz.cypwn.cocoatop64
-xyz.cypwn.cracktool5
-xyz.cypwn.cydiaclassic
-xyz.cypwn.filzacrackrootless
-xyz.cypwn.icleanerpro
-xyz.cypwn.icleanerprocrack
-xyz.cypwn.newterm3
-xyz.cypwn.stopautolaunchapps
-xyz.cypwn.systemmemoryresetfix
-xyz.cypwn.terminal
-xyz.cypwn.trolldecrypt
-xyz.cypwn.tweaksettings
-xyz.willy.zebra
+Waking and checking iPhone SSH port over Tailscale...
+SSH port attempt 1/18
+# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
+# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
+# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
+# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
+# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
+iphone_ssh_port_ready=success
+Running remote/iphone-command.sh on mobile@100.96.37.124:22 as root...
+=== IPHONE TWEAK FILTER TARGET DIAGNOSTIC ===
+captured_at=Fri Aug 28 12:30:34 CDT 2026
+whoami=root
+model=iPhone8,1 ios=15.8.8
 
-===== ACTUAL INJECTION FILES AND OWNER LOOKUP =====
-FILE=/var/jb/usr/lib/TweakInject/0Hello3Q.dylib
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/AppList.dylib
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.dylib
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/AppSyncUnified-installd.dylib
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/ArthurBrowserPro.dylib
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/AutoRevenueCat.dylib
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/FilzaCrack.dylib
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/GboardAll.dylib
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/PreferenceLoader.dylib
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/RocketBootstrap.dylib
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/afc2dService.dylib
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/appstoretroller.dylib
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/iCleanerProCrack.dylib
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/mmaintenanced_hook.dylib
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/0Hello3Q.plist
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/AppList.plist
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.plist
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/AppSyncUnified-installd.plist
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/ArthurBrowserPro.plist
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/AutoRevenueCat.plist
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/FilzaCrack.plist
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/GboardAll.plist
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/PreferenceLoader.plist
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/RocketBootstrap.plist
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/afc2dService.plist
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/appstoretroller.plist
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/iCleanerProCrack.plist
-OWNER=ORPHAN_OR_MANUAL_FILE
-FILE=/var/jb/usr/lib/TweakInject/mmaintenanced_hook.plist
-OWNER=ORPHAN_OR_MANUAL_FILE
+===== FILTER TARGETS =====
 
-===== ROOTFUL / WRONG-PREFIX FILES =====
+--- FILTER=0Hello3Q.plist ---
+/var/jb/usr/bin/sh: 16: plutil: not found
 
-===== INSTALLED ROOTFUL-ARCH PACKAGES =====
-/var/jb/usr/bin/sh: 90: awk: not found
+--- FILTER=AppList.plist ---
+/var/jb/usr/bin/sh: 16: plutil: not found
 
-===== PREFERENCE UI INVENTORY =====
-PreferenceLoader entries:
-/var/jb/Library/PreferenceLoader/Preferences/appstoretrollerPrefs.plist
-Preference bundles:
-/var/jb/Library/PreferenceBundles/AppList.bundle
-/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle
-Dedicated jailbreak apps:
-/var/jb/Applications/CocoaTop.app
-/var/jb/Applications/CrackTool5.app
-/var/jb/Applications/CydiaClassic.app
-/var/jb/Applications/Filza.app
-/var/jb/Applications/NewTerm.app
-/var/jb/Applications/Sileo.app
-/var/jb/Applications/Terminal.app
-/var/jb/Applications/TrollDecrypt.app
-/var/jb/Applications/TrollStorePersistenceHelper.app
-/var/jb/Applications/TweakSettings.app
-/var/jb/Applications/Zebra.app
-/var/jb/Applications/iCleaner.app
+--- FILTER=AppSyncUnified-FrontBoard.plist ---
+/var/jb/usr/bin/sh: 16: plutil: not found
 
-===== DOPAMINE / ELLEKIT SETTINGS AND DISABLE MARKERS =====
+--- FILTER=AppSyncUnified-installd.plist ---
+/var/jb/usr/bin/sh: 16: plutil: not found
 
-===== CURRENT JAILBREAK SERVICES =====
+--- FILTER=ArthurBrowserPro.plist ---
+/var/jb/usr/bin/sh: 16: plutil: not found
+
+--- FILTER=AutoRevenueCat.plist ---
+/var/jb/usr/bin/sh: 16: plutil: not found
+
+--- FILTER=FilzaCrack.plist ---
+/var/jb/usr/bin/sh: 16: plutil: not found
+
+--- FILTER=GboardAll.plist ---
+/var/jb/usr/bin/sh: 16: plutil: not found
+
+--- FILTER=PreferenceLoader.plist ---
+/var/jb/usr/bin/sh: 16: plutil: not found
+
+--- FILTER=RocketBootstrap.plist ---
+/var/jb/usr/bin/sh: 16: plutil: not found
+
+--- FILTER=afc2dService.plist ---
+/var/jb/usr/bin/sh: 16: plutil: not found
+
+--- FILTER=appstoretroller.plist ---
+/var/jb/usr/bin/sh: 16: plutil: not found
+
+--- FILTER=iCleanerProCrack.plist ---
+/var/jb/usr/bin/sh: 16: plutil: not found
+
+--- FILTER=mmaintenanced_hook.plist ---
+/var/jb/usr/bin/sh: 16: plutil: not found
+
+===== INJECTION FILE PAIRS =====
+DYLIB=0Hello3Q.dylib plist=yes
+-rwxr-xr-x 1 _installd _installd 215216 Jun  3  2025 /var/jb/usr/lib/TweakInject/0Hello3Q.dylib
+-rw-r--r-- 1 _installd _installd    134 Jun  3  2025 /var/jb/usr/lib/TweakInject/0Hello3Q.plist
+DYLIB=AppList.dylib plist=yes
+-rwxr-xr-x 1 _installd _installd 471888 Jun  6  2023 /var/jb/usr/lib/TweakInject/AppList.dylib
+-rw-r--r-- 1 _installd _installd     93 May  9  2020 /var/jb/usr/lib/TweakInject/AppList.plist
+DYLIB=AppSyncUnified-FrontBoard.dylib plist=yes
+-rwxr-xr-x 1 root wheel 231168 Nov 28  2024 /var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.dylib
+-rw-r--r-- 1 root wheel    356 Nov 28  2024 /var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.plist
+DYLIB=AppSyncUnified-installd.dylib plist=yes
+-rwxr-xr-x 1 root wheel 234800 Nov 28  2024 /var/jb/usr/lib/TweakInject/AppSyncUnified-installd.dylib
+-rw-r--r-- 1 root wheel    299 Nov 28  2024 /var/jb/usr/lib/TweakInject/AppSyncUnified-installd.plist
+DYLIB=ArthurBrowserPro.dylib plist=yes
+-rwxr-xr-x 1 root wheel 84544 Dec 25  2024 /var/jb/usr/lib/TweakInject/ArthurBrowserPro.dylib
+-rw-r--r-- 1 root wheel    89 Dec 25  2024 /var/jb/usr/lib/TweakInject/ArthurBrowserPro.plist
+DYLIB=AutoRevenueCat.dylib plist=yes
+-rwxr-xr-x 1 root wheel 202528 Apr 23  2025 /var/jb/usr/lib/TweakInject/AutoRevenueCat.dylib
+-rw-r--r-- 1 root wheel     87 Apr 23  2025 /var/jb/usr/lib/TweakInject/AutoRevenueCat.plist
+DYLIB=FilzaCrack.dylib plist=yes
+-rwxr-xr-x 1 _installd _installd 194816 Apr 30  2023 /var/jb/usr/lib/TweakInject/FilzaCrack.dylib
+-rw-r--r-- 1 _installd _installd    125 Jan  8  2023 /var/jb/usr/lib/TweakInject/FilzaCrack.plist
+DYLIB=GboardAll.dylib plist=yes
+-rwxr-xr-x 1 root wheel 132576 Dec  4  2024 /var/jb/usr/lib/TweakInject/GboardAll.dylib
+-rwxr-xr-x 1 root wheel    133 Dec  4  2024 /var/jb/usr/lib/TweakInject/GboardAll.plist
+DYLIB=PreferenceLoader.dylib plist=yes
+-rwxr-xr-x 1 root wheel 170192 Jul 22  2024 /var/jb/usr/lib/TweakInject/PreferenceLoader.dylib
+-rw-r--r-- 1 root wheel     56 Jul 22  2024 /var/jb/usr/lib/TweakInject/PreferenceLoader.plist
+DYLIB=RocketBootstrap.dylib plist=yes
+lrwxr-xr-x 1 root wheel  40 Jun 29  2023 /var/jb/usr/lib/TweakInject/RocketBootstrap.dylib -> /var/jb/usr/lib/librocketbootstrap.dylib
+-rw-r--r-- 1 root wheel 174 May 27  2024 /var/jb/usr/lib/TweakInject/RocketBootstrap.plist
+DYLIB=afc2dService.dylib plist=yes
+-rwxr-xr-x 1 _installd _installd 166000 Feb 29  2024 /var/jb/usr/lib/TweakInject/afc2dService.dylib
+-rw-r--r-- 1 _installd _installd    123 Feb 29  2024 /var/jb/usr/lib/TweakInject/afc2dService.plist
+DYLIB=appstoretroller.dylib plist=yes
+-rwxr-xr-x 1 root wheel 166576 Apr 16  2025 /var/jb/usr/lib/TweakInject/appstoretroller.dylib
+-rw-r--r-- 1 root wheel     94 Apr 16  2025 /var/jb/usr/lib/TweakInject/appstoretroller.plist
+DYLIB=iCleanerProCrack.dylib plist=yes
+-rwxr-xr-x 1 root wheel 133040 Apr 30  2023 /var/jb/usr/lib/TweakInject/iCleanerProCrack.dylib
+-rw-r--r-- 1 root wheel     98 Jan  4  2023 /var/jb/usr/lib/TweakInject/iCleanerProCrack.plist
+DYLIB=mmaintenanced_hook.dylib plist=yes
+-rwxr-xr-x 1 root wheel 99312 Jun 19  2023 /var/jb/usr/lib/TweakInject/mmaintenanced_hook.dylib
+-rw-r--r-- 1 root wheel    87 Aug 18  2019 /var/jb/usr/lib/TweakInject/mmaintenanced_hook.plist
+
+===== TARGET PROCESS SNAPSHOT =====
+  316     1   0.0  0.5 /usr/libexec/runningboardd
+  346     1   0.0  0.9 /System/Library/PrivateFrameworks/CoreDuetContext.framework/Resources/contextstored
+  347     1   1.3  3.3 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+  359     1   0.0  0.1 /System/Library/PrivateFrameworks/NanoPreferencesSync.framework/nanoprefsyncd
+  393     1   0.0  0.8 /usr/libexec/dasd
+  440     1   0.0  0.4 /System/Library/PrivateFrameworks/IntlPreferences.framework/Support/localizationswitcherd
+  450     1   0.0  1.0 /System/Library/PrivateFrameworks/AppStoreDaemon.framework/Support/appstored
+  466     1   0.0  0.8 /System/Library/PrivateFrameworks/iTunesStore.framework/Support/itunesstored
+  535     1   0.0  0.2 /usr/libexec/mmaintenanced
+
+===== INSTALLED USER APP BUNDLE IDS =====
+
+===== JAILBREAK APP BUNDLE IDS =====
+
+===== ELLEKIT / ROCKETBOOTSTRAP SERVICES =====
 391	0	com.rpetrich.rocketbootstrapd
 -	255	com.opa334.Dopamine.startup
 320	0	com.opa334.Dopamine.idownloadd
-=== END FULL TWEAK PACKAGE INVENTORY V2 ===
+
+===== RECENT RELEVANT CRASH REPORT NAMES =====
+=== END IPHONE TWEAK FILTER TARGET DIAGNOSTIC ===
 ssh_exit_code=0
