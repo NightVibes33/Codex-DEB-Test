@@ -1,4 +1,4 @@
-name: iPad Tailscale SSH Bridge
+name: iPad + iPhone Tailscale SSH Bridge
 
 on:
   workflow_dispatch:
@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - "remote/ipad-command.sh"
+      - "remote/iphone-command.sh"
       - ".github/workflows/ipad-tailscale-ssh.yml"
 
 permissions:
@@ -283,3 +284,117 @@ jobs:
           fi
           git commit -m "Record iPad SSH bridge status [skip ci]"
           git push origin HEAD:main
+
+  run-command-iphone:
+    name: Run diagnostic on iPhone 100.96.37.124
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+          IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$TAILSCALE_AUTHKEY" || { echo 'Missing TAILSCALE_AUTHKEY'; exit 1; }
+          test -n "$IPHONE_PASSWORD" || { echo 'Missing IPAD_PASSWORD used for iPhone SSH'; exit 1; }
+
+      - name: Install Tailscale and SSH clients
+        run: |
+          set -euo pipefail
+          sudo install -d -m 0755 /usr/share/keyrings
+          curl --fail --silent --show-error --retry 3 --connect-timeout 20 \
+            https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg \
+            | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
+          curl --fail --silent --show-error --retry 3 --connect-timeout 20 \
+            https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list \
+            | sudo tee /etc/apt/sources.list.d/tailscale.list >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends tailscale openssh-client sshpass netcat-openbsd
+          sudo systemctl enable --now tailscaled
+
+      - name: Join Tailscale and verify iPhone
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+          IPHONE_HOST: 100.96.37.124
+        run: |
+          set -euo pipefail
+          : > iphone-output.txt
+          sudo tailscale logout >/dev/null 2>&1 || true
+          sudo systemctl restart tailscaled
+          sleep 3
+          sudo tailscale up \
+            --auth-key="$TAILSCALE_AUTHKEY" \
+            --hostname="github-iphone-${GITHUB_RUN_ID}" \
+            --accept-dns=false \
+            --accept-routes=false \
+            --reset 2>&1 | tee -a iphone-output.txt
+          sudo tailscale status 2>&1 | tee -a iphone-output.txt
+          if ! sudo tailscale status | grep -Fq "$IPHONE_HOST"; then
+            echo "iphone_node_visible=no target=$IPHONE_HOST" | tee -a iphone-output.txt
+            exit 1
+          fi
+          echo "iphone_node_visible=yes target=$IPHONE_HOST" | tee -a iphone-output.txt
+          sudo tailscale ping --timeout=8s --c 2 "$IPHONE_HOST" 2>&1 | tee -a iphone-output.txt || true
+          if nc -zvw8 "$IPHONE_HOST" 22 2>&1 | tee -a iphone-output.txt; then
+            echo 'iphone_tcp_22=open' | tee -a iphone-output.txt
+          else
+            echo 'iphone_tcp_22=closed_or_unreachable' | tee -a iphone-output.txt
+            exit 1
+          fi
+
+      - name: SSH and run iPhone battery diagnostic
+        env:
+          IPHONE_HOST: 100.96.37.124
+          IPHONE_PORT: "22"
+          IPHONE_USER: mobile
+          IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -uo pipefail
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          rm -f "$HOME/.ssh/known_hosts"
+          ssh-keyscan -T 10 -H -p "$IPHONE_PORT" "$IPHONE_HOST" > "$HOME/.ssh/known_hosts" 2>>iphone-output.txt
+          if [ ! -s "$HOME/.ssh/known_hosts" ]; then
+            echo 'iphone_host_key_scan=failed' | tee -a iphone-output.txt
+            exit 1
+          fi
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+          set +e
+          {
+            printf '%s\n' "$IPHONE_PASSWORD"
+            cat remote/iphone-command.sh
+          } | sshpass -e ssh \
+                -p "$IPHONE_PORT" \
+                -o BatchMode=no \
+                -o ConnectTimeout=20 \
+                -o ConnectionAttempts=2 \
+                -o ServerAliveInterval=15 \
+                -o ServerAliveCountMax=2 \
+                -o StrictHostKeyChecking=yes \
+                -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+                "$IPHONE_USER@$IPHONE_HOST" \
+                'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
+                2>&1 | tee -a iphone-output.txt
+          ssh_status=${PIPESTATUS[1]}
+          set -e
+          echo "iphone_ssh_exit_code=$ssh_status" | tee -a iphone-output.txt
+          exit "$ssh_status"
+
+      - name: Upload iPhone diagnostic output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iphone-ssh-output-${{ github.run_id }}
+          path: iphone-output.txt
+          if-no-files-found: warn
+          retention-days: 7
