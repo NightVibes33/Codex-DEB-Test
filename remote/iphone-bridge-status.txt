@@ -1,7 +1,7 @@
 iPhone Tailscale SSH Bridge
-run_id=33172460629
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33172460629
-commit=0a4e9f976eff86fdcbbc50488e64bc63973b67b5
+run_id=33193003837
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33193003837
+commit=29ac79e3cf030a392981893eda8f476cd70f222b
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
@@ -10,223 +10,223 @@ install_ssh=success
 ssh=success
 
 --- sanitized SSH output ---
-    | |   |   "AppleRawMaxCapacity" = 1429
-
-===== TWEAK FILES + PACKAGE OWNERS =====
-file=/var/jb/usr/lib/TweakInject/0Hello3Q.dylib
-owner=UNOWNED
-file=/var/jb/usr/lib/TweakInject/0Hello3Q.plist
-owner=UNOWNED
-plist_strings:
-file=/var/jb/usr/lib/TweakInject/AppList.dylib
-owner=UNOWNED
-file=/var/jb/usr/lib/TweakInject/AppList.plist
-owner=UNOWNED
-plist_strings:
-file=/var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.dylib
-owner=UNOWNED
-file=/var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.plist
-owner=UNOWNED
-plist_strings:
-file=/var/jb/usr/lib/TweakInject/AppSyncUnified-installd.dylib
-owner=UNOWNED
-file=/var/jb/usr/lib/TweakInject/AppSyncUnified-installd.plist
-owner=UNOWNED
-plist_strings:
-file=/var/jb/usr/lib/TweakInject/ArthurBrowserPro.dylib
-owner=UNOWNED
-file=/var/jb/usr/lib/TweakInject/ArthurBrowserPro.plist
-owner=UNOWNED
-plist_strings:
-file=/var/jb/usr/lib/TweakInject/AutoRevenueCat.dylib
-owner=UNOWNED
-file=/var/jb/usr/lib/TweakInject/AutoRevenueCat.plist
-owner=UNOWNED
-plist_strings:
-file=/var/jb/usr/lib/TweakInject/FilzaCrack.dylib
-owner=UNOWNED
-file=/var/jb/usr/lib/TweakInject/FilzaCrack.plist
-owner=UNOWNED
-plist_strings:
-file=/var/jb/usr/lib/TweakInject/GboardAll.dylib
-owner=UNOWNED
-file=/var/jb/usr/lib/TweakInject/GboardAll.plist
-owner=UNOWNED
-plist_strings:
-file=/var/jb/usr/lib/TweakInject/PreferenceLoader.dylib
-owner=UNOWNED
-file=/var/jb/usr/lib/TweakInject/PreferenceLoader.plist
-owner=UNOWNED
-plist_strings:
-file=/var/jb/usr/lib/TweakInject/RocketBootstrap.plist
-owner=UNOWNED
-plist_strings:
-file=/var/jb/usr/lib/TweakInject/afc2dService.dylib
-owner=UNOWNED
-file=/var/jb/usr/lib/TweakInject/afc2dService.plist
-owner=UNOWNED
-plist_strings:
-file=/var/jb/usr/lib/TweakInject/appstoretroller.dylib
-owner=UNOWNED
-file=/var/jb/usr/lib/TweakInject/appstoretroller.plist
-owner=UNOWNED
-plist_strings:
-file=/var/jb/usr/lib/TweakInject/iCleanerProCrack.dylib
-owner=UNOWNED
-file=/var/jb/usr/lib/TweakInject/iCleanerProCrack.plist
-owner=UNOWNED
-plist_strings:
-file=/var/jb/usr/lib/TweakInject/mmaintenanced_hook.dylib
-owner=UNOWNED
-file=/var/jb/usr/lib/TweakInject/mmaintenanced_hook.plist
-owner=UNOWNED
-plist_strings:
-
-===== SUSPECT PACKAGE DETAILS =====
-package=xyz.cypwn.startupoptimizations
-version=2.3.6
+PACKAGE=ellekit
+version=1.2
+arch=iphoneos-arm64
 status=ii 
-description=Automatically optimize and clean your device after jailbreaking by removing unnecessary user-installed app data, system cache files, and performing additional system optimizations.
-  - ****`--- Optimizations ---`****
-  - Enhances multitasking via improved thread management.
-  - Optimizes memory handling for smoother performance.
-  - Prevents premature app termination under memory pressure.
-  - ****`--- Removed Cache ---`****
-  - /var/MobileAsset/AssetsV2
-  - /var/mobile/Media/PhotoData/Thumbnails/VideoKeyFrames/DCIM
-  - /var/mobile/Media/PhotoData/Thumbnails/V2/PhotoData/CPLAssets
-  - /var/mobile/Media/PhotoData/Thumbnails/V2/DCIM
-  - /var/mobile/Library/Mail/MessageData
-  - /var/mobile/Library/Mail/MessageData
-  - /var/mobile/Library/Mail/AttachmentData
-  - /var/mobile/Library/Caches
-  - /var/mobile/Containers/Data/Application/*/Library/Caches
-  - /var/db/uuidtext
-  - /var/db/diagnostics/Special
-  - /var/db/diagnostics/Signpost
-  - /var/db/diagnostics/Persist
+description=ElleKit tweak injection libraries and loader
+/.
+/var
+/var/jb
+/var/jb/Library
+/var/jb/Library/Frameworks
+/var/jb/Library/Frameworks/CydiaSubstrate.framework
+/var/jb/Library/MobileSubstrate
+/var/jb/etc
+/var/jb/etc/rc.d
+/var/jb/usr
+/var/jb/usr/lib
+/var/jb/usr/lib/TweakInject
+/var/jb/usr/lib/ellekit
+/var/jb/usr/lib/ellekit/MobileSafety.dylib
+/var/jb/usr/lib/ellekit/libinjector.dylib
+/var/jb/usr/lib/ellekit/pspawn.dylib
+/var/jb/usr/lib/libellekit.dylib
+/var/jb/usr/libexec
+/var/jb/usr/libexec/ellekit
+/var/jb/usr/libexec/ellekit/loader
+/var/jb/usr/share
+/var/jb/usr/share/doc
+/var/jb/usr/share/doc/ellekit
+/var/jb/usr/share/doc/ellekit/LICENSE
+/var/jb/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate
+/var/jb/Library/MobileSubstrate/DynamicLibraries
+/var/jb/etc/rc.d/ellekit-loader
+/var/jb/usr/lib/TweakInject.dylib
+/var/jb/usr/lib/TweakLoader.dylib
+/var/jb/usr/lib/libblackjack.dylib
+/var/jb/usr/lib/libhooker.dylib
+/var/jb/usr/lib/libsubstrate.dylib
 
-package=xyz.cypwn.stopautolaunchapps
-version=1.1
-status=ii 
-description=Disable iOS's neural engine from automatically starting, and prevent apps from pre-loading in the background! iOS 15 and above only.
- - Advantages: Saves memory, reduces app terminations in background. May decrease random reboots.
+===== PREFERENCE DIRECTORIES =====
+DIR=/var/jb/Library/PreferenceBundles
+/var/jb/Library/PreferenceBundles
+/var/jb/Library/PreferenceBundles/AppList.bundle
+/var/jb/Library/PreferenceBundles/AppList.bundle/AppList
+/var/jb/Library/PreferenceBundles/AppList.bundle/Info.plist
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/Info.plist
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/Root.plist
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/appstoretrollerPrefs
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon.png
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon@2x.png
+/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon@3x.png
+DIR=/var/jb/Library/PreferenceLoader/Preferences
+/var/jb/Library/PreferenceLoader/Preferences
+/var/jb/Library/PreferenceLoader/Preferences/appstoretrollerPrefs.plist
+DIR=/Library/PreferenceBundles
+MISSING
+DIR=/Library/PreferenceLoader/Preferences
+MISSING
 
-package=xyz.cypwn.systemmemoryresetfix
-version=2.0
-status=ii 
-description=Prevent overnight userspace reboots triggered by maintenanced daemon when iCloud backup occurs. This is a must have for users with nightly reboots.
+===== PREFERENCE BUNDLE EXECUTABLES / OWNERS =====
+BUNDLE=/var/jb/Library/PreferenceBundles/AppList.bundle
+EXEC=/var/jb/Library/PreferenceBundles/AppList.bundle/AppList
+owner=NONE
+BUNDLE=/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle
+EXEC=/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/appstoretrollerPrefs
+owner=NONE
 
-package=xyz.cypwn.appstoretrollern
-version=0.1.1a
-status=ii 
-description=Modified version of Mineek's tweak that lets you specify the minimum version and bypass installd version check.
+===== TWEAK DYLIB ARCHITECTURES / FILTERS =====
+DYLIB=/var/jb/usr/lib/TweakInject/0Hello3Q.dylib
+FILTER=/var/jb/usr/lib/TweakInject/0Hello3Q.plist
+DYLIB=/var/jb/usr/lib/TweakInject/AppList.dylib
+FILTER=/var/jb/usr/lib/TweakInject/AppList.plist
+DYLIB=/var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.dylib
+FILTER=/var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.plist
+DYLIB=/var/jb/usr/lib/TweakInject/AppSyncUnified-installd.dylib
+FILTER=/var/jb/usr/lib/TweakInject/AppSyncUnified-installd.plist
+DYLIB=/var/jb/usr/lib/TweakInject/ArthurBrowserPro.dylib
+FILTER=/var/jb/usr/lib/TweakInject/ArthurBrowserPro.plist
+DYLIB=/var/jb/usr/lib/TweakInject/AutoRevenueCat.dylib
+FILTER=/var/jb/usr/lib/TweakInject/AutoRevenueCat.plist
+DYLIB=/var/jb/usr/lib/TweakInject/FilzaCrack.dylib
+FILTER=/var/jb/usr/lib/TweakInject/FilzaCrack.plist
+DYLIB=/var/jb/usr/lib/TweakInject/GboardAll.dylib
+FILTER=/var/jb/usr/lib/TweakInject/GboardAll.plist
+DYLIB=/var/jb/usr/lib/TweakInject/PreferenceLoader.dylib
+FILTER=/var/jb/usr/lib/TweakInject/PreferenceLoader.plist
+DYLIB=/var/jb/usr/lib/TweakInject/RocketBootstrap.dylib
+FILTER=/var/jb/usr/lib/TweakInject/RocketBootstrap.plist
+DYLIB=/var/jb/usr/lib/TweakInject/afc2dService.dylib
+FILTER=/var/jb/usr/lib/TweakInject/afc2dService.plist
+DYLIB=/var/jb/usr/lib/TweakInject/appstoretroller.dylib
+FILTER=/var/jb/usr/lib/TweakInject/appstoretroller.plist
+DYLIB=/var/jb/usr/lib/TweakInject/iCleanerProCrack.dylib
+FILTER=/var/jb/usr/lib/TweakInject/iCleanerProCrack.plist
+DYLIB=/var/jb/usr/lib/TweakInject/mmaintenanced_hook.dylib
+FILTER=/var/jb/usr/lib/TweakInject/mmaintenanced_hook.plist
 
-package=xyz.cypwn.appsyncunified
-version=116.0
-status=ii 
-description=Enables the ability to install unsigned/fakesigned iOS applications.
+===== SETTINGS / SPRINGBOARD PROCESSES =====
+  347     1   0.0  3.3    14:15 Ss   /System/Library/CoreServices/SpringBoard.app/SpringBoard
+  359     1   0.0  0.1    14:15 Ss   /System/Library/PrivateFrameworks/NanoPreferencesSync.framework/nanoprefsyncd
+  440     1   0.0  0.4    14:04 Ss   /System/Library/PrivateFrameworks/IntlPreferences.framework/Support/localizationswitcherd
 
-package=com.rpetrich.rocketbootstrap
-version=1.1.1~rootless
-status=ii 
-description=Support library allowing tweaks to communicate with sandboxed processes
+===== ELLEKIT / PREFERENCELOADER FILE SEARCH =====
 
+===== DYNAMIC LIBRARY PATHS / SYMLINKS =====
+DIR=/var/jb/Library/MobileSubstrate/DynamicLibraries
+lrwxr-xr-x 1 root _installd 27 Aug 28 00:27 /var/jb/Library/MobileSubstrate/DynamicLibraries -> /var/jb/usr/lib/TweakInject
+DIR=/var/jb/usr/lib/TweakInject
+total 2528
+drwxr-xr-x 30 root      wheel        960 Aug 28 07:43 .
+drwxr-xr-x 92 root      wheel       2944 Aug 28 07:40 ..
+-rwxr-xr-x  1 _installd _installd 215216 Jun  3  2025 0Hello3Q.dylib
+-rw-r--r--  1 _installd _installd    134 Jun  3  2025 0Hello3Q.plist
+-rwxr-xr-x  1 _installd _installd 471888 Jun  6  2023 AppList.dylib
+-rw-r--r--  1 _installd _installd     93 May  9  2020 AppList.plist
+-rwxr-xr-x  1 root      wheel     231168 Nov 28  2024 AppSyncUnified-FrontBoard.dylib
+-rw-r--r--  1 root      wheel        356 Nov 28  2024 AppSyncUnified-FrontBoard.plist
+-rwxr-xr-x  1 root      wheel     234800 Nov 28  2024 AppSyncUnified-installd.dylib
+-rw-r--r--  1 root      wheel        299 Nov 28  2024 AppSyncUnified-installd.plist
+-rwxr-xr-x  1 root      wheel      84544 Dec 25  2024 ArthurBrowserPro.dylib
+-rw-r--r--  1 root      wheel         89 Dec 25  2024 ArthurBrowserPro.plist
+-rwxr-xr-x  1 root      wheel     202528 Apr 23  2025 AutoRevenueCat.dylib
+-rw-r--r--  1 root      wheel         87 Apr 23  2025 AutoRevenueCat.plist
+-rwxr-xr-x  1 _installd _installd 194816 Apr 30  2023 FilzaCrack.dylib
+-rw-r--r--  1 _installd _installd    125 Jan  8  2023 FilzaCrack.plist
+-rwxr-xr-x  1 root      wheel     132576 Dec  4  2024 GboardAll.dylib
+-rwxr-xr-x  1 root      wheel        133 Dec  4  2024 GboardAll.plist
+-rwxr-xr-x  1 root      wheel     170192 Jul 22  2024 PreferenceLoader.dylib
+-rw-r--r--  1 root      wheel         56 Jul 22  2024 PreferenceLoader.plist
+lrwxr-xr-x  1 root      wheel         40 Jun 29  2023 RocketBootstrap.dylib -> /var/jb/usr/lib/librocketbootstrap.dylib
+-rw-r--r--  1 root      wheel        174 May 27  2024 RocketBootstrap.plist
+-rwxr-xr-x  1 _installd _installd 166000 Feb 29  2024 afc2dService.dylib
+-rw-r--r--  1 _installd _installd    123 Feb 29  2024 afc2dService.plist
+-rwxr-xr-x  1 root      wheel     166576 Apr 16  2025 appstoretroller.dylib
+-rw-r--r--  1 root      wheel         94 Apr 16  2025 appstoretroller.plist
+-rwxr-xr-x  1 root      wheel     133040 Apr 30  2023 iCleanerProCrack.dylib
+-rw-r--r--  1 root      wheel         98 Jan  4  2023 iCleanerProCrack.plist
+-rwxr-xr-x  1 root      wheel      99312 Jun 19  2023 mmaintenanced_hook.dylib
+-rw-r--r--  1 root      wheel         87 Aug 18  2019 mmaintenanced_hook.plist
 
-===== THIRD PARTY LAUNCH DAEMONS =====
-daemon=/var/jb/Library/LaunchDaemons/com.apple.atrun.plist
-owner=system-cmds: /var/jb/Library/LaunchDaemons/com.apple.atrun.plist
-plist_strings:
+===== RELEVANT DPKG STATUS STANZAS =====
+129-Description: Allow unsupported emojis to show on Gboard keyboard.
+130-Name: GboardAll
+131-Author: PoomSmart
+132-
+133:Package: com.rpetrich.rocketbootstrap
+134-Status: install ok installed
+135-Section: Tweaks
+136-Maintainer: CyPwn
+137-Architecture: iphoneos-arm64
+138-Version: 1.1.1~rootless
+139-Depends: firmware (>= 15.0), mobilesubstrate
+140-Description: Support library allowing tweaks to communicate with sandboxed processes
+141-Depiction: https://repo.cypwn.xyz/depiction/2506
+142-SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/2506
+143-Icon: https://cypwn.xyz/cypwnblankicon.png
+144-Name: RocketBootstrap
+145-Author: Ryan Petrich
+146-
+147-Package: com.tigisoftware.filza
+148-Status: install ok installed
+149-Priority: optional
+--
+365-Pre-Depends: tar (>= 1.23), libintl8 (>= 0.20)
+366-Description: package maintainance tools from Debian
+367-Homepage: http://wiki.debian.org/Teams/Dpkg
+368-
+369:Package: ellekit
+370-Status: install ok installed
+371-Priority: optional
+372-Section: Tweak Injection
+373-Maintainer: Dhinak G <dhinak@dhinak.net>
+374-Architecture: iphoneos-arm64
+375-Version: 1.2
+376-Replaces: com.ex.libsubstitute, org.coolstar.libhooker, mobilesubstrate
+377-Provides: mobilesubstrate (= 99), org.coolstar.libhooker (= 1.6.9)
+378-Conflicts: com.ex.substitute, org.coolstar.libhooker, science.xnu.substitute, mobilesubstrate, com.saurik.substrate.safemode
+379-Description: ElleKit tweak injection libraries and loader
+380-Name: ElleKit
+381-Author: ElleKit Team
+382-Icon: https://ellekit.space/logos/logo.png
+383-
+384-Package: essential
+385-Essential: yes
+--
+4051-  - Unpacking only: APM, ARJ, CAB, CHM, CPIO, CramFS, DEB, DMG, FAT,
+4052-    HFS, ISO, LZH, LZMA, LZMA2, MBR, MSI, MSLZ, NSIS, NTFS, RPM, SquashFS, UDF,
+4053-    VHD, WIM, XAR and Z.
+4054-
+4055:Package: preferenceloader
+4056-Status: install ok installed
+4057-Section: System
+4058-Installed-Size: 386
+4059-Maintainer: BigBoss <bigboss@thebigboss.org>
+4060-Architecture: iphoneos-arm64
+4061-Version: 2.2.8
+4062-Depends: mobilesubstrate, firmware (>= 15.0)
+4063-Description: load preferences in style
+4064-Name: PreferenceLoader
+4065-Author: Dhinak G <dhinak@dhinak.net>
+4066-dev: dhinakg
+4067-Depiction: http://moreinfo.thebigboss.org/moreinfo/depiction.php?file=preferenceloader2Data
+4068-Homepage: http://moreinfo.thebigboss.org/moreinfo/depiction.php?file=preferenceloader2Data
+4069-Tag: role::hacker, purpose::library
+4070-
+4071-Package: procursus-keyring
 
-daemon=/var/jb/Library/LaunchDaemons/com.openssh.sshd.plist
-owner=openssh-server: /var/jb/Library/LaunchDaemons/com.openssh.sshd.plist
-plist_strings:
+===== RECENT TWEAK / SETTINGS CRASH REPORTS =====
 
-daemon=/var/jb/Library/LaunchDaemons/com.rpetrich.rocketbootstrapd.plist
-owner=com.rpetrich.rocketbootstrap: /var/jb/Library/LaunchDaemons/com.rpetrich.rocketbootstrapd.plist
-plist_strings:
-
-daemon=/var/jb/Library/LaunchDaemons/com.startup.op.plist
-owner=xyz.cypwn.startupoptimizations: /var/jb/Library/LaunchDaemons/com.startup.op.plist
-plist_strings:
-
-daemon=/var/jb/Library/LaunchDaemons/com.tigisoftware.filza.helper.plist
-owner=com.tigisoftware.filza: /var/jb/Library/LaunchDaemons/com.tigisoftware.filza.helper.plist
-plist_strings:
-
-daemon=/var/jb/Library/LaunchDaemons/us.diatr.shshd.plist
-owner=shshd: /var/jb/Library/LaunchDaemons/us.diatr.shshd.plist
-plist_strings:
-
-
-===== LAUNCHCTL FAILURES / RESTART CANDIDATES =====
+===== LAUNCHCTL JAILBREAK SERVICES =====
 391	0	com.rpetrich.rocketbootstrapd
 -	255	com.opa334.Dopamine.startup
 -	0	com.openssh.sshd
-1729	0	com.openssh.sshd.877ACD66-C112-4CA3-88D0-A1618EAF92C3
 -	0	com.startup.op
+2014	0	com.openssh.sshd.23B0C1C6-6C66-4C02-800E-6BF6B4C2378E
 -	1	us.diatr.shshd
 320	0	com.opa334.Dopamine.idownloadd
 -	0	com.tigisoftware.filza.helper
-/var/jb/usr/bin/sh: 53: awk: not found
-
-===== CURRENT CPU TOP =====
-  PID  PPID  %CPU %MEM  ELAPSED STAT COMM
- 1893  1734  16.0  0.2    00:00 R    ps
- 1895  1894  11.9  0.1    00:00 R    (head)
-  421     1   7.3  0.9    11:53 Rs   /usr/libexec/nsurlsessiond
-  407     1   6.1  1.2    11:56 Rs   /System/Library/PrivateFrameworks/CloudKitDaemon.framework/Support/cloudd
-  379     1   6.0  0.4    11:59 Ss   /usr/sbin/cfprefsd
- 1734  1731   4.8  0.2    00:19 S    /var/jb/usr/bin/sh
-  462     1   1.8  1.0    11:43 Rs   /System/Library/PrivateFrameworks/CloudDocsDaemon.framework/bird
-  528     1   1.3  0.5    10:38 Rs   /usr/libexec/rtcreportingd
-  393     1   1.2  0.8    11:58 Rs   /usr/libexec/dasd
-  950     1   0.7  1.7    04:58 Ss   /private/var/containers/Bundle/Application/4CD29918-8DA7-46FB-8B6E-400C029CC753/Tailscale.app/PlugIns/IPNExtension.appex/IPNExtension
-  370     1   0.7  0.2    12:00 Rs   /usr/sbin/notifyd
- 1894  1734   0.4  0.0    00:00 S    /var/jb/usr/bin/sh
-  336     1   0.3  0.8    12:00 Ss   /usr/sbin/wifid
- 1729     1   0.1  0.3    00:21 Ss   sshd: mobile@notty
-  392     1   0.1  0.4    11:58 Ss   /usr/libexec/mobileassetd
-  350     1   0.1  1.7    12:00 Ss   /usr/libexec/backboardd
- 1731  1729   0.0  0.3    00:20 Ss   sudo
- 1723     1   0.0  0.6    00:29 Ss   /System/Library/PrivateFrameworks/MobileBackup.framework/backupd
- 1722     1   0.0  0.2    01:33 Ss   /System/Library/PrivateFrameworks/CoreSymbolication.framework/coresymbolicationd
- 1721     1   0.0  0.4    01:34 Ss   /System/Library/CoreServices/ReportCrash
- 1720     1   0.0  0.6    01:34 Ss   /usr/libexec/routined
- 1315     1   0.0  0.4    04:28 Ss   /System/Library/Frameworks/Metal.framework/XPCServices/MTLCompilerService.xpc/MTLCompilerService
- 1310     1   0.0  0.9    04:31 Ss   /System/Library/Frameworks/MapKit.framework/XPCServices/com.apple.MapKit.SnapshotService.xpc/com.apple.MapKit.SnapshotService
- 1307     1   0.0  0.9    04:36 Ss   /private/var/containers/Bundle/Application/77473139-2B73-4470-BF34-6909B0239043/Maps.app/PlugIns/GeneralMapsWidget.appex/GeneralMapsWidget
- 1220     1   0.0  0.7    04:45 Ss   /System/Library/PrivateFrameworks/HealthRecordServices.framework/healthrecordsd
- 1195     1   0.0  0.2    04:47 Ss   /System/Library/PrivateFrameworks/DeviceCheckInternal.framework/devicecheckd
- 1086     1   0.0  0.3    04:52 Ss   /usr/libexec/biomesyncd
-  949     1   0.0  0.2    04:58 Ss   /System/Library/Frameworks/GSS.framework/Helpers/GSSCred
-  948     1   0.0  0.3    04:59 Ss   /usr/libexec/neagent
-  947     1   0.0  0.3    04:59 Ss   /System/Library/PrivateFrameworks/AppSSO.framework/Support/AppSSODaemon
-  938     1   0.0  0.1    04:59 Ss   /usr/libexec/metrickitd
-  773     1   0.0  0.4    05:07 Ss   /System/Library/PrivateFrameworks/AppleMediaDiscovery.framework/PlugIns/AMDEngagementExtension.appex/AMDEngagementExtension
-  772     1   0.0  0.3    05:07 Ss   /System/Library/PrivateFrameworks/ExtensionFoundation.framework/XPCServices/extensionkitservice.xpc/extensionkitservice
-  770     1   0.0  0.5    05:08 Ss   /usr/libexec/diagnosticextensionsd
-  768     1   0.0  0.3    05:08 Ss   /System/Library/PrivateFrameworks/UsageTracking.framework/UsageTrackingAgent
-
-===== RESOURCE REPORT COUNTS =====
-IPNExtension.wakeups_resource=1
-healthd.diskwrites_resource=1
-LowBatteryLog=5
-routined=3
-cloudd=1
-JetsamEvent=2
-
-===== TAILSCALE RESOURCE VIOLATION SUMMARY =====
-Wakeups:          45001 wakeups over the last 158 seconds (284 wakeups per second average), exceeding limit of 150 wakeups per second over 300 seconds
-Wakeups caused:   45001
-Duration:         158.22s
-Advisory levels:  Battery -> 2, User -> 3, ThermalPressure -> 0, Combined -> 2
-Power Source:     11 samples on Battery, 0 samples on AC
-
-===== LOW BATTERY DROOP SUMMARY =====
-{"timestamp":"2026-08-28 07:48:50.00 -0500","bug_type":"120","os_version":"iPhone OS 15.8.8 (19H422)","incident_id":"B324DBE2-914C-411E-B7DA-AECCA417FC18"}
-Voltage: 3569 mV
-Voltage Droop Time: 59421008
-Voltage Droop Transitions: 89
-=== END OWNER TRIAGE ===
+=== END TWEAK DIAGNOSTIC ===
 ssh_exit_code=0
