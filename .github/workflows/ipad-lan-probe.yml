@@ -56,7 +56,7 @@ jobs:
         env:
           TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
         run: |
-          set -uo pipefail
+          set -u
           sudo tailscale logout >/dev/null 2>&1 || true
           sudo systemctl restart tailscaled
           sleep 3
@@ -67,12 +67,17 @@ jobs:
             --accept-routes=false \
             --reset 2>&1 || true
           echo '--- tailscale status ---'
-          sudo tailscale status 2>&1 || true
-          if ! sudo tailscale status 2>/dev/null | grep -Fq "$IPAD_HOST"; then
-            echo "ipad_node_visible=no target=$IPAD_HOST"
-            exit 1
-          fi
-          echo "ipad_node_visible=yes target=$IPAD_HOST"
+          STATUS="$(sudo tailscale status 2>&1 || true)"
+          printf '%s\n' "$STATUS"
+          case "$STATUS" in
+            *"$IPAD_HOST"*)
+              echo "ipad_node_visible=yes target=$IPAD_HOST"
+              ;;
+            *)
+              echo "ipad_node_visible=no target=$IPAD_HOST"
+              exit 1
+              ;;
+          esac
           sudo tailscale ping --timeout=8s --c 1 "$IPAD_HOST" 2>&1 || true
 
       - name: Run LAN probe on iPad
