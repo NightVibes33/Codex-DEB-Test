@@ -1,232 +1,33 @@
 iPhone Tailscale SSH Bridge
-run_id=33193003837
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33193003837
-commit=29ac79e3cf030a392981893eda8f476cd70f222b
+run_id=33193181235
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33193181235
+commit=c0f07b94c08b8f5b5082749f60e59839966e406e
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
 tailscale=success
 install_ssh=success
-ssh=success
+ssh=cancelled
 
 --- sanitized SSH output ---
-PACKAGE=ellekit
-version=1.2
-arch=iphoneos-arm64
-status=ii 
-description=ElleKit tweak injection libraries and loader
-/.
-/var
-/var/jb
-/var/jb/Library
-/var/jb/Library/Frameworks
-/var/jb/Library/Frameworks/CydiaSubstrate.framework
-/var/jb/Library/MobileSubstrate
-/var/jb/etc
-/var/jb/etc/rc.d
-/var/jb/usr
-/var/jb/usr/lib
-/var/jb/usr/lib/TweakInject
-/var/jb/usr/lib/ellekit
-/var/jb/usr/lib/ellekit/MobileSafety.dylib
-/var/jb/usr/lib/ellekit/libinjector.dylib
-/var/jb/usr/lib/ellekit/pspawn.dylib
-/var/jb/usr/lib/libellekit.dylib
-/var/jb/usr/libexec
-/var/jb/usr/libexec/ellekit
-/var/jb/usr/libexec/ellekit/loader
-/var/jb/usr/share
-/var/jb/usr/share/doc
-/var/jb/usr/share/doc/ellekit
-/var/jb/usr/share/doc/ellekit/LICENSE
-/var/jb/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate
-/var/jb/Library/MobileSubstrate/DynamicLibraries
-/var/jb/etc/rc.d/ellekit-loader
-/var/jb/usr/lib/TweakInject.dylib
-/var/jb/usr/lib/TweakLoader.dylib
-/var/jb/usr/lib/libblackjack.dylib
-/var/jb/usr/lib/libhooker.dylib
-/var/jb/usr/lib/libsubstrate.dylib
+Waking and checking iPhone SSH port over Tailscale...
+SSH port attempt 1/18
+# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
+# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
+# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
+# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
+# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
+iphone_ssh_port_ready=success
+Running remote/iphone-command.sh on mobile@100.96.37.124:22 as root...
+=== IPHONE TWEAK PACKAGE / SETTINGS MAP ===
+captured_at=Fri Aug 28 12:07:46 CDT 2026
+whoami=root
 
-===== PREFERENCE DIRECTORIES =====
-DIR=/var/jb/Library/PreferenceBundles
-/var/jb/Library/PreferenceBundles
-/var/jb/Library/PreferenceBundles/AppList.bundle
-/var/jb/Library/PreferenceBundles/AppList.bundle/AppList
-/var/jb/Library/PreferenceBundles/AppList.bundle/Info.plist
-/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle
-/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/Info.plist
-/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/Root.plist
-/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/appstoretrollerPrefs
-/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon.png
-/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon@2x.png
-/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon@3x.png
-DIR=/var/jb/Library/PreferenceLoader/Preferences
-/var/jb/Library/PreferenceLoader/Preferences
-/var/jb/Library/PreferenceLoader/Preferences/appstoretrollerPrefs.plist
-DIR=/Library/PreferenceBundles
-MISSING
-DIR=/Library/PreferenceLoader/Preferences
-MISSING
+===== CORE STATUS =====
+com.rpetrich.rocketbootstrap	1.1.1~rootless	iphoneos-arm64	ii 	Support library allowing tweaks to communicate with sandboxed processes
+ellekit	1.2	iphoneos-arm64	ii 	ElleKit tweak injection libraries and loader
+preferenceloader	2.2.8	iphoneos-arm64	ii 	load preferences in style
+xyz.cypwn.applist	1.5.16	iphoneos-arm64	ii 	Allow extensions to read the list of installed apps
 
-===== PREFERENCE BUNDLE EXECUTABLES / OWNERS =====
-BUNDLE=/var/jb/Library/PreferenceBundles/AppList.bundle
-EXEC=/var/jb/Library/PreferenceBundles/AppList.bundle/AppList
-owner=NONE
-BUNDLE=/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle
-EXEC=/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/appstoretrollerPrefs
-owner=NONE
-
-===== TWEAK DYLIB ARCHITECTURES / FILTERS =====
-DYLIB=/var/jb/usr/lib/TweakInject/0Hello3Q.dylib
-FILTER=/var/jb/usr/lib/TweakInject/0Hello3Q.plist
-DYLIB=/var/jb/usr/lib/TweakInject/AppList.dylib
-FILTER=/var/jb/usr/lib/TweakInject/AppList.plist
-DYLIB=/var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.dylib
-FILTER=/var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.plist
-DYLIB=/var/jb/usr/lib/TweakInject/AppSyncUnified-installd.dylib
-FILTER=/var/jb/usr/lib/TweakInject/AppSyncUnified-installd.plist
-DYLIB=/var/jb/usr/lib/TweakInject/ArthurBrowserPro.dylib
-FILTER=/var/jb/usr/lib/TweakInject/ArthurBrowserPro.plist
-DYLIB=/var/jb/usr/lib/TweakInject/AutoRevenueCat.dylib
-FILTER=/var/jb/usr/lib/TweakInject/AutoRevenueCat.plist
-DYLIB=/var/jb/usr/lib/TweakInject/FilzaCrack.dylib
-FILTER=/var/jb/usr/lib/TweakInject/FilzaCrack.plist
-DYLIB=/var/jb/usr/lib/TweakInject/GboardAll.dylib
-FILTER=/var/jb/usr/lib/TweakInject/GboardAll.plist
-DYLIB=/var/jb/usr/lib/TweakInject/PreferenceLoader.dylib
-FILTER=/var/jb/usr/lib/TweakInject/PreferenceLoader.plist
-DYLIB=/var/jb/usr/lib/TweakInject/RocketBootstrap.dylib
-FILTER=/var/jb/usr/lib/TweakInject/RocketBootstrap.plist
-DYLIB=/var/jb/usr/lib/TweakInject/afc2dService.dylib
-FILTER=/var/jb/usr/lib/TweakInject/afc2dService.plist
-DYLIB=/var/jb/usr/lib/TweakInject/appstoretroller.dylib
-FILTER=/var/jb/usr/lib/TweakInject/appstoretroller.plist
-DYLIB=/var/jb/usr/lib/TweakInject/iCleanerProCrack.dylib
-FILTER=/var/jb/usr/lib/TweakInject/iCleanerProCrack.plist
-DYLIB=/var/jb/usr/lib/TweakInject/mmaintenanced_hook.dylib
-FILTER=/var/jb/usr/lib/TweakInject/mmaintenanced_hook.plist
-
-===== SETTINGS / SPRINGBOARD PROCESSES =====
-  347     1   0.0  3.3    14:15 Ss   /System/Library/CoreServices/SpringBoard.app/SpringBoard
-  359     1   0.0  0.1    14:15 Ss   /System/Library/PrivateFrameworks/NanoPreferencesSync.framework/nanoprefsyncd
-  440     1   0.0  0.4    14:04 Ss   /System/Library/PrivateFrameworks/IntlPreferences.framework/Support/localizationswitcherd
-
-===== ELLEKIT / PREFERENCELOADER FILE SEARCH =====
-
-===== DYNAMIC LIBRARY PATHS / SYMLINKS =====
-DIR=/var/jb/Library/MobileSubstrate/DynamicLibraries
-lrwxr-xr-x 1 root _installd 27 Aug 28 00:27 /var/jb/Library/MobileSubstrate/DynamicLibraries -> /var/jb/usr/lib/TweakInject
-DIR=/var/jb/usr/lib/TweakInject
-total 2528
-drwxr-xr-x 30 root      wheel        960 Aug 28 07:43 .
-drwxr-xr-x 92 root      wheel       2944 Aug 28 07:40 ..
--rwxr-xr-x  1 _installd _installd 215216 Jun  3  2025 0Hello3Q.dylib
--rw-r--r--  1 _installd _installd    134 Jun  3  2025 0Hello3Q.plist
--rwxr-xr-x  1 _installd _installd 471888 Jun  6  2023 AppList.dylib
--rw-r--r--  1 _installd _installd     93 May  9  2020 AppList.plist
--rwxr-xr-x  1 root      wheel     231168 Nov 28  2024 AppSyncUnified-FrontBoard.dylib
--rw-r--r--  1 root      wheel        356 Nov 28  2024 AppSyncUnified-FrontBoard.plist
--rwxr-xr-x  1 root      wheel     234800 Nov 28  2024 AppSyncUnified-installd.dylib
--rw-r--r--  1 root      wheel        299 Nov 28  2024 AppSyncUnified-installd.plist
--rwxr-xr-x  1 root      wheel      84544 Dec 25  2024 ArthurBrowserPro.dylib
--rw-r--r--  1 root      wheel         89 Dec 25  2024 ArthurBrowserPro.plist
--rwxr-xr-x  1 root      wheel     202528 Apr 23  2025 AutoRevenueCat.dylib
--rw-r--r--  1 root      wheel         87 Apr 23  2025 AutoRevenueCat.plist
--rwxr-xr-x  1 _installd _installd 194816 Apr 30  2023 FilzaCrack.dylib
--rw-r--r--  1 _installd _installd    125 Jan  8  2023 FilzaCrack.plist
--rwxr-xr-x  1 root      wheel     132576 Dec  4  2024 GboardAll.dylib
--rwxr-xr-x  1 root      wheel        133 Dec  4  2024 GboardAll.plist
--rwxr-xr-x  1 root      wheel     170192 Jul 22  2024 PreferenceLoader.dylib
--rw-r--r--  1 root      wheel         56 Jul 22  2024 PreferenceLoader.plist
-lrwxr-xr-x  1 root      wheel         40 Jun 29  2023 RocketBootstrap.dylib -> /var/jb/usr/lib/librocketbootstrap.dylib
--rw-r--r--  1 root      wheel        174 May 27  2024 RocketBootstrap.plist
--rwxr-xr-x  1 _installd _installd 166000 Feb 29  2024 afc2dService.dylib
--rw-r--r--  1 _installd _installd    123 Feb 29  2024 afc2dService.plist
--rwxr-xr-x  1 root      wheel     166576 Apr 16  2025 appstoretroller.dylib
--rw-r--r--  1 root      wheel         94 Apr 16  2025 appstoretroller.plist
--rwxr-xr-x  1 root      wheel     133040 Apr 30  2023 iCleanerProCrack.dylib
--rw-r--r--  1 root      wheel         98 Jan  4  2023 iCleanerProCrack.plist
--rwxr-xr-x  1 root      wheel      99312 Jun 19  2023 mmaintenanced_hook.dylib
--rw-r--r--  1 root      wheel         87 Aug 18  2019 mmaintenanced_hook.plist
-
-===== RELEVANT DPKG STATUS STANZAS =====
-129-Description: Allow unsupported emojis to show on Gboard keyboard.
-130-Name: GboardAll
-131-Author: PoomSmart
-132-
-133:Package: com.rpetrich.rocketbootstrap
-134-Status: install ok installed
-135-Section: Tweaks
-136-Maintainer: CyPwn
-137-Architecture: iphoneos-arm64
-138-Version: 1.1.1~rootless
-139-Depends: firmware (>= 15.0), mobilesubstrate
-140-Description: Support library allowing tweaks to communicate with sandboxed processes
-141-Depiction: https://repo.cypwn.xyz/depiction/2506
-142-SileoDepiction: https://repo.cypwn.xyz/sileo_depiction/2506
-143-Icon: https://cypwn.xyz/cypwnblankicon.png
-144-Name: RocketBootstrap
-145-Author: Ryan Petrich
-146-
-147-Package: com.tigisoftware.filza
-148-Status: install ok installed
-149-Priority: optional
---
-365-Pre-Depends: tar (>= 1.23), libintl8 (>= 0.20)
-366-Description: package maintainance tools from Debian
-367-Homepage: http://wiki.debian.org/Teams/Dpkg
-368-
-369:Package: ellekit
-370-Status: install ok installed
-371-Priority: optional
-372-Section: Tweak Injection
-373-Maintainer: Dhinak G <dhinak@dhinak.net>
-374-Architecture: iphoneos-arm64
-375-Version: 1.2
-376-Replaces: com.ex.libsubstitute, org.coolstar.libhooker, mobilesubstrate
-377-Provides: mobilesubstrate (= 99), org.coolstar.libhooker (= 1.6.9)
-378-Conflicts: com.ex.substitute, org.coolstar.libhooker, science.xnu.substitute, mobilesubstrate, com.saurik.substrate.safemode
-379-Description: ElleKit tweak injection libraries and loader
-380-Name: ElleKit
-381-Author: ElleKit Team
-382-Icon: https://ellekit.space/logos/logo.png
-383-
-384-Package: essential
-385-Essential: yes
---
-4051-  - Unpacking only: APM, ARJ, CAB, CHM, CPIO, CramFS, DEB, DMG, FAT,
-4052-    HFS, ISO, LZH, LZMA, LZMA2, MBR, MSI, MSLZ, NSIS, NTFS, RPM, SquashFS, UDF,
-4053-    VHD, WIM, XAR and Z.
-4054-
-4055:Package: preferenceloader
-4056-Status: install ok installed
-4057-Section: System
-4058-Installed-Size: 386
-4059-Maintainer: BigBoss <bigboss@thebigboss.org>
-4060-Architecture: iphoneos-arm64
-4061-Version: 2.2.8
-4062-Depends: mobilesubstrate, firmware (>= 15.0)
-4063-Description: load preferences in style
-4064-Name: PreferenceLoader
-4065-Author: Dhinak G <dhinak@dhinak.net>
-4066-dev: dhinakg
-4067-Depiction: http://moreinfo.thebigboss.org/moreinfo/depiction.php?file=preferenceloader2Data
-4068-Homepage: http://moreinfo.thebigboss.org/moreinfo/depiction.php?file=preferenceloader2Data
-4069-Tag: role::hacker, purpose::library
-4070-
-4071-Package: procursus-keyring
-
-===== RECENT TWEAK / SETTINGS CRASH REPORTS =====
-
-===== LAUNCHCTL JAILBREAK SERVICES =====
-391	0	com.rpetrich.rocketbootstrapd
--	255	com.opa334.Dopamine.startup
--	0	com.openssh.sshd
--	0	com.startup.op
-2014	0	com.openssh.sshd.23B0C1C6-6C66-4C02-800E-6BF6B4C2378E
--	1	us.diatr.shshd
-320	0	com.opa334.Dopamine.idownloadd
--	0	com.tigisoftware.filza.helper
-=== END TWEAK DIAGNOSTIC ===
-ssh_exit_code=0
+===== TWEAK FILE -> PACKAGE OWNER VIA DPKG .list =====
+FILE=0Hello3Q.dylib
