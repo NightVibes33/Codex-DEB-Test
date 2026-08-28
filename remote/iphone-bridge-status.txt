@@ -1,232 +1,232 @@
 iPhone Tailscale SSH Bridge
-run_id=33193734965
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33193734965
-commit=13fd16f5511afebb6090d57da4f8df7103b33999
+run_id=33194068742
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33194068742
+commit=6794e11b7a571c43596e47bfc86fabd43b4e559a
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
 tailscale=success
 install_ssh=success
-ssh=success
+ssh=cancelled
 
 --- sanitized SSH output ---
+ aircrack-ng is a fork of aircrack, as that project has been stopped by
+com.ps.gboardall	1.0.3	iphoneos-arm64	Tweaks	ii 	Allow unsupported emojis to show on Gboard keyboard.
+com.rpetrich.rocketbootstrap	1.1.1~rootless	iphoneos-arm64	Tweaks	ii 	Support library allowing tweaks to communicate with sandboxed processes
+ellekit	1.2	iphoneos-arm64	Tweak Injection	ii 	ElleKit tweak injection libraries and loader
+libkrw0	1.1.1-2	iphoneos-arm64	Libraries	ii 	A kernel R/W API for jailbreaks (Shared Library)
+ should use this library in preference to the older library.
+preferenceloader	2.2.8	iphoneos-arm64	System	ii 	load preferences in style
+xyz.cypwn.afc2d-arm64	1.2.0	iphoneos-arm64	System	ii 	Allow full file-system access over USB for all arm64 devices, especially useful for those on iOS 11 and above. Please install ldid as it is required for use. (except for the XinaA15 jailbreak)
+xyz.cypwn.appstoretrollern	0.1.1a	iphoneos-arm64	Tweaks	ii 	Modified version of Mineek's tweak that lets you specify the minimum version and bypass installd version check.
+xyz.cypwn.appsyncunified	116.0	iphoneos-arm64	Tweaks	ii 	Enables the ability to install unsigned/fakesigned iOS applications.
+xyz.cypwn.arthurbrowserpro	1.0.1	iphoneos-arm64	Cracks	ii 	Unlock Pro features and block jailbreak detection
+  - Only supports jailbreak and Bootstrap environments
+xyz.cypwn.autorc	1.3	iphoneos-arm64	Cracks	ii 	Crack for RevenueCat apps. Made by Blatant.
+xyz.cypwn.cracktool5	5.1	iphoneos-arm64	Utilities	ii 	Crack Tweaks on one click
+xyz.cypwn.filzacrackrootless	0.0.4	iphoneos-arm64	Cracks	ii 	Filza and AppsManager activation for free
+xyz.cypwn.icleanerprocrack	1.1	iphoneos-arm64	Tweaks	ii 	iCleaner Pro Crack
+  - Live preferences updates
+xyz.cypwn.startupoptimizations	2.3.6	iphoneos-arm64	System	ii 	Automatically optimize and clean your device after jailbreaking by removing unnecessary user-installed app data, system cache files, and performing additional system optimizations.
+xyz.cypwn.tweaksettings	1.0.9	iphoneos-arm64	Applications	ii 	Dedicated settings app for tweaks
 
-===== PREFERENCE BUNDLE METADATA =====
-BUNDLE=/var/jb/Library/PreferenceBundles/AppList.bundle
-
-BUNDLE=/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle
-
-
-===== TWEAKSETTINGS PACKAGE FILES =====
-xyz.cypwn.tweaksettings	1.0.9	iphoneos-arm64	ii 	Dedicated settings app for tweaks
-/.
-/var
-/var/jb
-/var/jb/Applications
-/var/jb/Applications/TweakSettings.app
-/var/jb/Applications/TweakSettings.app/AppIcon20x20@2x.png
-/var/jb/Applications/TweakSettings.app/AppIcon20x20@3x.png
-/var/jb/Applications/TweakSettings.app/AppIcon29x29@2x.png
-/var/jb/Applications/TweakSettings.app/AppIcon29x29@3x.png
-/var/jb/Applications/TweakSettings.app/AppIcon40x40@2x.png
-/var/jb/Applications/TweakSettings.app/AppIcon40x40@3x.png
-/var/jb/Applications/TweakSettings.app/AppIcon60x60@2x.png
-/var/jb/Applications/TweakSettings.app/AppIcon60x60@3x.png
-/var/jb/Applications/TweakSettings.app/AppIcon76x76.png
-/var/jb/Applications/TweakSettings.app/AppIcon76x76@2x.png
-/var/jb/Applications/TweakSettings.app/AppIcon83.5x83.5@2x.png
-/var/jb/Applications/TweakSettings.app/Info.plist
-/var/jb/Applications/TweakSettings.app/TweakSettings
-/var/jb/Applications/TweakSettings.app/changelog.plist
-/var/jb/Applications/TweakSettings.app/en.lproj
-/var/jb/Applications/TweakSettings.app/en.lproj/Localizable.strings
-/var/jb/Applications/TweakSettings.app/icon_large.png
-/var/jb/Applications/TweakSettings.app/libraries.plist
-/var/jb/Applications/TweakSettings.app/tweak.png
-/var/jb/Applications/TweakSettings.app/tweak@2x.png
-/var/jb/Applications/TweakSettings.app/tweak@3x.png
-/var/jb/usr
-/var/jb/usr/bin
-/var/jb/usr/bin/tweaksettings-utility
-
-===== SYSTEM TWEAK PACKAGE SCRIPTS =====
-PACKAGE=xyz.cypwn.startupoptimizations
-version=2.3.6
+===== PACKAGES OWNING TWEAK / PREFERENCE / JAILBREAK APP FILES =====
+--- PACKAGE base ---
+version=2
 arch=iphoneos-arm64
+section=System
 status=ii 
-description=Automatically optimize and clean your device after jailbreaking by removing unnecessary user-installed app data, system cache files, and performing additional system optimizations.
-  - ****`--- Optimizations ---`****
-  - Enhances multitasking via improved thread management.
-  - Optimizes memory handling for smoother performance.
-  - Prevents premature app termination under memory pressure.
-  - ****`--- Removed Cache ---`****
-  - /var/MobileAsset/AssetsV2
-  - /var/mobile/Media/PhotoData/Thumbnails/VideoKeyFrames/DCIM
-  - /var/mobile/Media/PhotoData/Thumbnails/V2/PhotoData/CPLAssets
-  - /var/mobile/Media/PhotoData/Thumbnails/V2/DCIM
-  - /var/mobile/Library/Mail/MessageData
-  - /var/mobile/Library/Mail/MessageData
-  - /var/mobile/Library/Mail/AttachmentData
-  - /var/mobile/Library/Caches
-  - /var/mobile/Containers/Data/Application/*/Library/Caches
-  - /var/db/uuidtext
-  - /var/db/diagnostics/Special
-  - /var/db/diagnostics/Signpost
-  - /var/db/diagnostics/Persist
-FILES:
-/.
-/var
-/var/jb
-/var/jb/Library
-/var/jb/Library/LaunchDaemons
-/var/jb/Library/LaunchDaemons/com.startup.op.plist
-/var/jb/usr
-/var/jb/usr/local
-/var/jb/usr/local/bin
-/var/jb/usr/local/bin/clean.sh
-/var/jb/usr/local/bin/startup.sh
-SCRIPT=/var/jb/var/lib/dpkg/info/xyz.cypwn.startupoptimizations.postinst
-#!/bin/sh -
-echo "This tweak was created by LF"
-echo "Setting permissions"
-sudo chmod 755 /var/jb/usr/local/bin/startup.sh
-sudo chown root:wheel /var/jb/usr/local/bin/startup.sh
-sudo chmod 644 /var/jb/Library/LaunchDaemons/com.startup.op.plist
-sudo chown root:wheel /var/jb/Library/LaunchDaemons/com.startup.op.plist
-
-echo "Loading configuration"
-sudo /var/jb/bin/launchctl load /var/jb/Library/LaunchDaemons/com.startup.op.plist
-
-echo "Enjoy!"
-echo "Please restart userspace!"
-
-PACKAGE=xyz.cypwn.stopautolaunchapps
-version=1.1
+description=underlying system directory structure
+interesting_files:
+/var/jb/System/Library/PreferenceBundles
+missing_interesting_files=0
+--- PACKAGE com.opa334.trollstorehelper ---
+version=2.1
 arch=iphoneos-arm64
+section=Applications
 status=ii 
-description=Disable iOS's neural engine from automatically starting, and prevent apps from pre-loading in the background! iOS 15 and above only.
- - Advantages: Saves memory, reduces app terminations in background. May decrease random reboots.
-FILES:
-/.
-/var
-/var/jb
-/var/jb/Library
-/var/jb/Library/MobileSubstrate
+description=Helper utility to install and manage TrollStore!
+interesting_files:
+/var/jb/Applications/TrollStorePersistenceHelper.app
+/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon29x29.png
+/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon29x29@2x.png
+/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon29x29@3x.png
+/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon40x40.png
+/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon40x40@2x.png
+/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon40x40@3x.png
+/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon50x50.png
+/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon50x50@2x.png
+/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon57x57.png
+/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon57x57@2x.png
+/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon57x57@3x.png
+/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon60x60.png
+/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon60x60@2x.png
+/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon60x60@3x.png
+/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon72x72.png
+/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon72x72@2x.png
+/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon76x76.png
+/var/jb/Applications/TrollStorePersistenceHelper.app/AppIcon76x76@2x.png
+/var/jb/Applications/TrollStorePersistenceHelper.app/Info.plist
+/var/jb/Applications/TrollStorePersistenceHelper.app/TrollStorePersistenceHelper
+/var/jb/Applications/TrollStorePersistenceHelper.app/trollstorehelper
+missing_interesting_files=0
+--- PACKAGE com.ps.gboardall ---
+version=1.0.3
+arch=iphoneos-arm64
+section=Tweaks
+status=ii 
+description=Allow unsupported emojis to show on Gboard keyboard.
+interesting_files:
 /var/jb/Library/MobileSubstrate/DynamicLibraries
-/var/jb/Library/MobileSubstrate/DynamicLibraries/0Hello3Q.dylib
-/var/jb/Library/MobileSubstrate/DynamicLibraries/0Hello3Q.plist
-SCRIPT=/var/jb/var/lib/dpkg/info/xyz.cypwn.stopautolaunchapps.preinst
-#!/bin/bash
-
-
-launchctl stop com.apple.dasd
-echo "stop dasd done"
-
-exit 0
-
-SCRIPT=/var/jb/var/lib/dpkg/info/xyz.cypwn.stopautolaunchapps.prerm
-#!/bin/bash
-
-
-launchctl stop com.apple.dasd
-echo "stop dasd done"
-
-exit 0
-
-
-
-
-PACKAGE=xyz.cypwn.systemmemoryresetfix
-version=2.0
+/var/jb/Library/MobileSubstrate/DynamicLibraries/GboardAll.dylib
+/var/jb/Library/MobileSubstrate/DynamicLibraries/GboardAll.plist
+missing_interesting_files=0
+--- PACKAGE com.rpetrich.rocketbootstrap ---
+version=1.1.1~rootless
 arch=iphoneos-arm64
+section=Tweaks
 status=ii 
-description=Prevent overnight userspace reboots triggered by maintenanced daemon when iCloud backup occurs. This is a must have for users with nightly reboots.
-FILES:
-/.
-/var
-/var/jb
-/var/jb/Library
-/var/jb/Library/MobileSubstrate
+description=Support library allowing tweaks to communicate with sandboxed processes
+interesting_files:
 /var/jb/Library/MobileSubstrate/DynamicLibraries
-/var/jb/Library/MobileSubstrate/DynamicLibraries/mmaintenanced_hook.dylib
-/var/jb/Library/MobileSubstrate/DynamicLibraries/mmaintenanced_hook.plist
-
-
-===== SHSHD LAUNCH DAEMON / OWNER =====
-/var/jb/Library/LaunchDaemons/us.diatr.shshd.plist
--	1	us.diatr.shshd
-OWNER_MANIFEST=/var/jb/var/lib/dpkg/info/shshd.list
-/var/jb/Library/LaunchDaemons/us.diatr.shshd.plist
-/var/jb/usr/libexec/shshd-wrapper
-/var/jb/usr/sbin/shshd
-/var/jb/usr/share/doc/shshd
-/var/jb/usr/share/doc/shshd/LICENSE
-
-===== ELLEKIT / INJECTION LOG SIGNALS =====
-
-===== RECENT SPRINGBOARD / SETTINGS REPORTS =====
-
-===== DYLIB LINK DEPENDENCY STRINGS =====
-DYLIB=0Hello3Q.dylib
-
-DYLIB=AppList.dylib
-
-DYLIB=AppSyncUnified-FrontBoard.dylib
-
-DYLIB=AppSyncUnified-installd.dylib
-
-DYLIB=ArthurBrowserPro.dylib
-
-DYLIB=AutoRevenueCat.dylib
-
-DYLIB=FilzaCrack.dylib
-
-DYLIB=GboardAll.dylib
-
-DYLIB=PreferenceLoader.dylib
-
-DYLIB=RocketBootstrap.dylib
-
-DYLIB=afc2dService.dylib
-
-DYLIB=appstoretroller.dylib
-
-DYLIB=iCleanerProCrack.dylib
-
-DYLIB=mmaintenanced_hook.dylib
-
-
-===== CURRENT TWEAK FILE PERMISSIONS =====
-total 2528
-drwxr-xr-x 30 root      wheel        960 Aug 28 07:43 .
-drwxr-xr-x 92 root      wheel       2944 Aug 28 07:40 ..
--rwxr-xr-x  1 _installd _installd 215216 Jun  3  2025 0Hello3Q.dylib
--rw-r--r--  1 _installd _installd    134 Jun  3  2025 0Hello3Q.plist
--rwxr-xr-x  1 _installd _installd 471888 Jun  6  2023 AppList.dylib
--rw-r--r--  1 _installd _installd     93 May  9  2020 AppList.plist
--rwxr-xr-x  1 root      wheel     231168 Nov 28  2024 AppSyncUnified-FrontBoard.dylib
--rw-r--r--  1 root      wheel        356 Nov 28  2024 AppSyncUnified-FrontBoard.plist
--rwxr-xr-x  1 root      wheel     234800 Nov 28  2024 AppSyncUnified-installd.dylib
--rw-r--r--  1 root      wheel        299 Nov 28  2024 AppSyncUnified-installd.plist
--rwxr-xr-x  1 root      wheel      84544 Dec 25  2024 ArthurBrowserPro.dylib
--rw-r--r--  1 root      wheel         89 Dec 25  2024 ArthurBrowserPro.plist
--rwxr-xr-x  1 root      wheel     202528 Apr 23  2025 AutoRevenueCat.dylib
--rw-r--r--  1 root      wheel         87 Apr 23  2025 AutoRevenueCat.plist
--rwxr-xr-x  1 _installd _installd 194816 Apr 30  2023 FilzaCrack.dylib
--rw-r--r--  1 _installd _installd    125 Jan  8  2023 FilzaCrack.plist
--rwxr-xr-x  1 root      wheel     132576 Dec  4  2024 GboardAll.dylib
--rwxr-xr-x  1 root      wheel        133 Dec  4  2024 GboardAll.plist
--rwxr-xr-x  1 root      wheel     170192 Jul 22  2024 PreferenceLoader.dylib
--rw-r--r--  1 root      wheel         56 Jul 22  2024 PreferenceLoader.plist
-lrwxr-xr-x  1 root      wheel         40 Jun 29  2023 RocketBootstrap.dylib -> /var/jb/usr/lib/librocketbootstrap.dylib
--rw-r--r--  1 root      wheel        174 May 27  2024 RocketBootstrap.plist
--rwxr-xr-x  1 _installd _installd 166000 Feb 29  2024 afc2dService.dylib
--rw-r--r--  1 _installd _installd    123 Feb 29  2024 afc2dService.plist
--rwxr-xr-x  1 root      wheel     166576 Apr 16  2025 appstoretroller.dylib
--rw-r--r--  1 root      wheel         94 Apr 16  2025 appstoretroller.plist
--rwxr-xr-x  1 root      wheel     133040 Apr 30  2023 iCleanerProCrack.dylib
--rw-r--r--  1 root      wheel         98 Jan  4  2023 iCleanerProCrack.plist
--rwxr-xr-x  1 root      wheel      99312 Jun 19  2023 mmaintenanced_hook.dylib
--rw-r--r--  1 root      wheel         87 Aug 18  2019 mmaintenanced_hook.plist
-=== END RUNTIME INJECTION DIAGNOSTIC ===
-ssh_exit_code=0
+/var/jb/Library/MobileSubstrate/DynamicLibraries/RocketBootstrap.plist
+/var/jb/Library/MobileSubstrate/DynamicLibraries/RocketBootstrap.dylib
+missing_interesting_files=0
+--- PACKAGE com.tigisoftware.filza ---
+version=4.0.1-3
+arch=iphoneos-arm64
+section=Utilities
+status=ii 
+description=File Manager for iPhone, iPad, iPod Touch. Supports iOS 7+
+interesting_files:
+/var/jb/Applications/Filza.app
+/var/jb/Applications/Filza.app/AppIcon29x29.png
+/var/jb/Applications/Filza.app/AppIcon29x29@2x.png
+/var/jb/Applications/Filza.app/AppIcon29x29@2x~ipad.png
+/var/jb/Applications/Filza.app/AppIcon29x29@3x.png
+/var/jb/Applications/Filza.app/AppIcon29x29~ipad.png
+/var/jb/Applications/Filza.app/AppIcon40x40@2x.png
+/var/jb/Applications/Filza.app/AppIcon40x40@2x~ipad.png
+/var/jb/Applications/Filza.app/AppIcon40x40@3x.png
+/var/jb/Applications/Filza.app/AppIcon40x40~ipad.png
+/var/jb/Applications/Filza.app/AppIcon60x60@2x.png
+/var/jb/Applications/Filza.app/AppIcon60x60@3x.png
+/var/jb/Applications/Filza.app/AppIcon76x76@2x~ipad.png
+/var/jb/Applications/Filza.app/AppIcon76x76~ipad.png
+/var/jb/Applications/Filza.app/AppIcon83.5x83.5@2x~ipad.png
+/var/jb/Applications/Filza.app/Assets.car
+/var/jb/Applications/Filza.app/Base.lproj
+/var/jb/Applications/Filza.app/Base.lproj/InfoPlist.strings
+/var/jb/Applications/Filza.app/ChangeLogViewController.nib
+/var/jb/Applications/Filza.app/DateTools.bundle
+/var/jb/Applications/Filza.app/DateTools.bundle/ar.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/ar.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/bg.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/bg.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/ca.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/ca.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/cs.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/cs.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/cy.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/cy.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/da.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/da.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/de.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/de.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/en.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/en.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/es.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/es.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/eu.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/eu.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/fi.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/fi.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/fr.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/fr.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/gre.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/gre.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/he.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/he.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/hu.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/hu.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/id.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/id.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/is.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/is.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/it.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/it.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/ja.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/ja.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/ko.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/ko.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/lv.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/lv.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/nb.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/nb.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/nl.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/nl.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/pl.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/pl.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/pt-PT.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/pt-PT.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/pt.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/pt.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/ro.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/ro.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/ru.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/ru.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/sv.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/sv.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/th.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/th.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/tr.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/tr.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/uk.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/uk.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/vi.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/vi.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/zh-Hans.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/zh-Hans.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/DateTools.bundle/zh-Hant.lproj
+/var/jb/Applications/Filza.app/DateTools.bundle/zh-Hant.lproj/DateTools.strings
+/var/jb/Applications/Filza.app/ExtensionIcon60x60@2x.png
+/var/jb/Applications/Filza.app/ExtensionIcon76x76@2x~ipad.png
+/var/jb/Applications/Filza.app/FTPServerForm.json
+/var/jb/Applications/Filza.app/Filza
+/var/jb/Applications/Filza.app/Filza.signature
+/var/jb/Applications/Filza.app/GDFileManagerDataCache.mom
+/var/jb/Applications/Filza.app/GDFileManagerMetadataCache.mom
+/var/jb/Applications/Filza.app/GoogleSignIn.bundle
+/var/jb/Applications/Filza.app/GoogleSignIn.bundle/Info.plist
+/var/jb/Applications/Filza.app/GoogleSignIn.bundle/Roboto-Bold.ttf
+/var/jb/Applications/Filza.app/GoogleSignIn.bundle/ar.lproj
+/var/jb/Applications/Filza.app/GoogleSignIn.bundle/ar.lproj/GoogleSignIn.strings
+/var/jb/Applications/Filza.app/GoogleSignIn.bundle/ca.lproj
+/var/jb/Applications/Filza.app/GoogleSignIn.bundle/ca.lproj/GoogleSignIn.strings
+/var/jb/Applications/Filza.app/GoogleSignIn.bundle/cs.lproj
+/var/jb/Applications/Filza.app/GoogleSignIn.bundle/cs.lproj/GoogleSignIn.strings
+/var/jb/Applications/Filza.app/GoogleSignIn.bundle/da.lproj
+/var/jb/Applications/Filza.app/GoogleSignIn.bundle/da.lproj/GoogleSignIn.strings
+/var/jb/Applications/Filza.app/GoogleSignIn.bundle/de.lproj
+/var/jb/Applications/Filza.app/GoogleSignIn.bundle/de.lproj/GoogleSignIn.strings
+/var/jb/Applications/Filza.app/GoogleSignIn.bundle/el.lproj
+/var/jb/Applications/Filza.app/GoogleSignIn.bundle/el.lproj/GoogleSignIn.strings
+/var/jb/Applications/Filza.app/GoogleSignIn.bundle/en.lproj
+/var/jb/Applications/Filza.app/GoogleSignIn.bundle/en.lproj/GoogleSignIn.strings
+/var/jb/Applications/Filza.app/GoogleSignIn.bundle/en_GB.lproj
+/var/jb/Applications/Filza.app/GoogleSignIn.bundle/en_GB.lproj/GoogleSignIn.strings
+/var/jb/Applications/Filza.app/GoogleSignIn.bundle/es.lproj
+/var/jb/Applications/Filza.app/GoogleSignIn.bundle/es.lproj/GoogleSignIn.strings
+/var/jb/Applications/Filza.app/GoogleSignIn.bundle/es_MX.lproj
+/var/jb/Applications/Filza.app/GoogleSignIn.bundle/es_MX.lproj/GoogleSignIn.strings
+missing_interesting_files=0
+--- PACKAGE ellekit ---
+version=1.2
+arch=iphoneos-arm64
+section=Tweak Injection
+status=ii 
+description=ElleKit tweak injection libraries and loader
+interesting_files:
+/var/jb/usr/lib/TweakInject
+/var/jb/Library/MobileSubstrate/DynamicLibraries
+missing_interesting_files=0
