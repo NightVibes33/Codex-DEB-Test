@@ -1,3 +1,4 @@
+# Dedicated iPhone SSH bridge
 name: iPhone Tailscale SSH Bridge
 
 on:
