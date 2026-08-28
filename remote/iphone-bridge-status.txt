@@ -7,83 +7,226 @@ target=100.96.37.124:22
 validate=success
 tailscale=success
 install_ssh=success
-ssh=failure
+ssh=success
 
 --- sanitized SSH output ---
-Waking and checking iPhone SSH port over Tailscale...
-SSH port attempt 1/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 2/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 3/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 4/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 5/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 6/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 7/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 8/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 9/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 10/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 11/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 12/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 13/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 14/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 15/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 16/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 17/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 18/18
-ping "100.96.37.124" timed out
-no reply
-Could not reach iPhone TCP port 22 after wake and retry attempts.
-100.91.121.83    github-iphone-33170638893-1          NightVibes33@  linux    -                                                               
-100.116.117.65   bobbys-ipad                          NightVibes33@  iOS      offline, last seen 12h ago                                      
-100.127.94.70    desktop-o56xs                        NightVibes33@  windows  offline, last seen 34d ago                                      
-100.80.212.102   github-ipad-33169677825-1            NightVibes33@  linux    offline, last seen 21m ago                                      
-100.109.40.14    github-ipad-33169718049-1            NightVibes33@  linux    offline, last seen 17m ago                                      
-100.73.152.2     github-ipad-33169925337-3            NightVibes33@  linux    offline, last seen 16m ago                                      
-100.111.111.120  github-ipad-33170449705-3            NightVibes33@  linux    offline, last seen 8m ago                                       
-100.122.202.62   github-ipad-33170638787-3            NightVibes33@  linux    offline, last seen 7m ago                                       
-100.70.169.26    github-iphone-33169558882-1          NightVibes33@  linux    offline, last seen 22m ago                                      
-100.121.162.113  github-iphone-33169609016-1          NightVibes33@  linux    offline, last seen 21m ago                                      
-100.123.223.80   github-iphone-33169677825            NightVibes33@  linux    offline, last seen 21m ago                                      
-100.80.207.6     github-iphone-33169718049            NightVibes33@  linux    offline, last seen 19m ago                                      
-100.64.82.127    github-iphone-33169718105-1          NightVibes33@  linux    offline, last seen 18m ago                                      
-100.118.202.50   github-iphone-33169925314-1          NightVibes33@  linux    offline, last seen 10m ago                                      
-100.95.107.30    github-iphone-33169925337            NightVibes33@  linux    offline, last seen 16m ago                                      
-100.86.142.60    github-iphone-33170449705            NightVibes33@  linux    offline, last seen 9m ago                                       
-100.114.170.100  github-iphone-33170449732-1          NightVibes33@  linux    offline, last seen 7m ago                                       
-100.84.192.40    github-iphone-33170638787            NightVibes33@  linux    offline, last seen 7m ago                                       
-100.85.224.37    github-iphone-discovery-33169477534  NightVibes33@  linux    offline, last seen 23m ago                                      
-100.96.37.124    iphone                               NightVibes33@  iOS      active; relay "dfw"; offline, last seen 42m ago, tx 12636 rx 0  
-100.79.177.16    iphone173                            NightVibes33@  iOS      offline, last seen 8d ago                                       
+/var/mobile/Library/Logs/CrashReporter/CloudServicesTopic-2026-08-28-064513.ips
+/var/mobile/Library/Logs/CrashReporter/SiriSearchFeedback-2026-08-28-070334.ips
+/var/mobile/Library/Logs/CrashReporter/SiriSearchFeedback-2026-08-28-000412.ips
+/var/mobile/Library/Logs/CrashReporter/healthd.diskwrites_resource-2026-08-28-021727.ips
+/var/mobile/Library/Logs/CrashReporter/SiriSearchFeedback-2026-08-27-235415.ips
+/var/mobile/Library/Logs/CrashReporter/SiriSearchFeedback-2026-08-28-003226.ips
+/var/mobile/Library/Logs/CrashReporter/routined-2026-08-28-020759.ips
+/var/mobile/Library/Logs/CrashReporter/SiriSearchFeedback-2026-08-27-235436.ips
+/var/mobile/Library/Logs/CrashReporter/IPNExtension.wakeups_resource-2026-08-28-052946.ips
+/var/mobile/Library/Logs/CrashReporter/routined-2026-08-28-005500.ips
+/var/mobile/Library/Logs/CrashReporter/SiriSearchFeedback-2026-08-27-235554.ips
+/var/mobile/Library/Logs/CrashReporter/Retired/SiriSearchFeedback-2026-08-27-235058.ips
+/var/mobile/Library/Logs/CrashReporter/Retired/Analytics-Never-2026-08-27-234915.ips.ca.synced
+/var/mobile/Library/Logs/CrashReporter/Retired/Analytics-Journal-90Day-2026-08-27-234912.ips.ca.synced
+/var/mobile/Library/Logs/CrashReporter/Retired/Analytics-Daily-2026-08-27-234914.000.ips.ca.synced
+/var/mobile/Library/Logs/CrashReporter/Retired/Analytics-90Day-2026-08-27-234914.ips.ca.synced
+/var/mobile/Library/Logs/CrashReporter/Retired/Analytics-Journal-Daily-2026-08-27-234913.ips.ca.synced
+/var/mobile/Library/Logs/CrashReporter/Retired/rtcreportingd_2026-08-28-03-54-23_messageLog.ips
+/var/mobile/Library/Logs/CrashReporter/Retired/calaccessd-2026-08-27-235245.ips
+/var/mobile/Library/Logs/CrashReporter/Retired/Analytics-Journal-Never-2026-08-27-234913.000.ips.ca.synced
+/var/mobile/Library/Logs/CrashReporter/Retired/SiriSearchFeedback-2026-08-27-235058.000.ips
+/var/mobile/Library/Logs/CrashReporter/LowBatteryLog-2026-08-28-010420.ips
+/var/mobile/Library/Logs/CrashReporter/SiriSearchFeedback-2026-08-27-235419.ips
+/var/mobile/Library/Logs/CrashReporter/LowBatteryLog-2026-08-28-000050.ips
+/var/mobile/Library/Logs/CrashReporter/SiriSearchFeedback-2026-08-28-020334.ips
+/var/mobile/Library/Logs/CrashReporter/SiriSearchFeedback-2026-08-28-020334.000.ips
+/var/mobile/Library/Logs/CrashReporter/SiriSearchFeedback-2026-08-28-001306.ips
+/var/mobile/Library/Logs/CrashReporter/SiriSearchFeedback-2026-08-28-020109.ips
+/var/mobile/Library/Logs/CrashReporter/SiriSearchFeedback-2026-08-27-235721.ips
+/var/mobile/Library/Logs/CrashReporter/SiriSearchFeedback-2026-08-28-020735.ips
+crash_root=/Library/Logs/CrashReporter
+
+===== NETWORK / RADIO STATE =====
+
+===== CPU / MEMORY SNAPSHOT 2 AFTER 5S =====
+  PID  PPID  %CPU %MEM  ELAPSED STAT COMM
+    1     0   1.1  0.7 06:31:08 Ss   /sbin/launchd
+  422     1   0.0  0.7 05:34:32 Ss   /usr/libexec/UserEventAgent
+  423     1   0.2  0.6 05:34:32 Ss   /usr/libexec/logd
+  424     1   0.0  1.0 05:34:32 Ss   /System/Library/PrivateFrameworks/AssistantServices.framework/assistantd
+  425     1   0.0  0.5 05:34:32 Ss   /usr/libexec/runningboardd
+  426     1   0.0  0.2 05:34:32 Ss   /System/Library/PrivateFrameworks/People.framework/peopled
+  427     1   0.0  0.2 05:34:32 Ss   /usr/libexec/fseventsd
+  428     1   0.0  1.0 05:34:32 Ss   /usr/sbin/mediaserverd
+  429     1   0.0  0.0 05:34:32 Us   /private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus//basebin/idownloadd
+  430     1   0.0  0.3 05:34:32 Ss   /System/Library/PrivateFrameworks/MediaRemote.framework/Support/mediaremoted
+  432     1   0.0  0.1 05:34:32 Ss   /usr/libexec/misd
+  433     1   0.0  0.4 05:34:32 Ss   /usr/libexec/configd
+  434     1   0.0  0.7 05:34:32 Ss   /System/Library/Frameworks/HealthKit.framework/healthd
+  436     1   0.0  0.3 05:34:32 Ss   /System/Library/CoreServices/powerd.bundle/powerd
+  437     1   0.0  0.4 05:34:32 Ss   /System/Library/PrivateFrameworks/TCC.framework/Support/tccd
+  438     1   0.0  0.5 05:34:32 Ss   /usr/libexec/atc
+  439     1   0.0  0.3 05:34:32 Ss   /usr/sbin/WirelessRadioManagerd
+  440     1   0.0  0.2 05:34:32 Ss   /System/Library/PrivateFrameworks/BiomeStreams.framework/Support/biomed
+  441     1   0.0  0.2 05:34:32 Ss   /usr/libexec/keybagd
+  442     1   0.0  0.0 05:34:32 Ss   /usr/libexec/remoted
+  444     1   0.0  0.2 05:34:32 Ss   /System/Library/PrivateFrameworks/FamilyNotification.framework/familynotificationd
+  445     1   0.0  0.8 05:34:32 Ss   /usr/sbin/wifid
+  446     1   0.0  0.2 05:34:32 Ss   /System/Library/PrivateFrameworks/MobileSoftwareUpdate.framework/Support/softwareupdated
+  447     1   0.0  0.2 05:34:32 Ss   /System/Library/PrivateFrameworks/MobileTimer.framework/Executables/mobiletimerd
+  448     1   0.0  0.2 05:34:32 Ss   /usr/libexec/seld
+  449     1   0.0  0.9 05:34:32 Ss   /System/Library/PrivateFrameworks/IDS.framework/identityservicesd.app/identityservicesd
+  450     1   0.0  0.1 05:34:32 Ss   /usr/libexec/watchdogd
+  452     1   0.0  0.4 05:34:32 Ss   /usr/libexec/nfcd
+  454     1   0.0  0.3 05:34:32 Ss   /usr/libexec/wcd
+  455     1   0.0  0.7 05:34:32 Ss   /System/Library/PrivateFrameworks/CoreDuetContext.framework/Resources/contextstored
+  456     1   0.0  0.2 05:34:32 Ss   /usr/libexec/thermalmonitord
+  457     1   0.9  3.2 05:34:32 Ss   /System/Library/CoreServices/SpringBoard.app/SpringBoard
+  458     1   0.0  0.1 05:34:32 Ss   /System/Library/PrivateFrameworks/AskPermission.framework/Support/askpermissiond
+  459     1  10.2  1.7 05:34:32 Ss   /usr/libexec/backboardd
+  461     1   0.1  0.6 05:34:32 Ss   /usr/libexec/sharingd
+  462     1   0.0  0.1 05:34:32 Ss   /System/Library/Frameworks/ManagedSettings.framework/ManagedSettingsAgent
+  463     1   0.0  0.2 05:34:32 Ss   /usr/libexec/timed
+  464     1   0.2  1.8 05:34:32 Ss   /usr/libexec/locationd
+  465     1   0.0  0.4 05:34:32 Ss   /usr/libexec/cloudpaird
+  466     1   0.0  0.2 05:34:32 Ss   /usr/libexec/containermanagerd
+  467     1   0.0  0.4 05:34:32 Ss   /System/Library/PrivateFrameworks/IMCore.framework/imagent.app/imagent
+  468     1   0.0  0.1 05:34:32 Ss   /System/Library/PrivateFrameworks/NanoPreferencesSync.framework/nanoprefsyncd
+  469     1   0.0  0.0 05:34:32 Ss   /usr/libexec/driverkitd
+  470     1   0.0  0.3 05:34:32 Ss   /usr/libexec/lockdownd
+  471     1   0.0  0.3 05:34:32 Ss   /System/Library/PrivateFrameworks/SleepDaemon.framework/sleepd
+  472     1   1.2  0.7 05:34:32 Ss   /System/Library/PrivateFrameworks/AggregateDictionary.framework/Support/aggregated
+  473     1   0.0  0.1 05:34:32 Ss   OTACrashCopier
+  474     1   0.0  0.1 05:34:32 Ss   /usr/sbin/distnoted
+  476     1   0.0  0.0 05:34:32 Ss   /System/Library/PrivateFrameworks/AppleCredentialManager.framework/AppleCredentialManagerDaemon
+  477     1   0.0  0.4 05:34:32 Ss   /System/Library/PrivateFrameworks/MapsSupport.framework/navd
+  479     1   1.9  0.1 05:34:32 Ss   /usr/sbin/notifyd
+  480     1   0.0  0.5 05:34:32 Ss   /usr/libexec/rapportd
+  481     1   0.1  0.7 05:34:32 Ss   /usr/sbin/bluetoothd
+  483     1   0.0  0.5 05:34:32 Ss   /System/Library/PrivateFrameworks/AppleMediaServices.framework/amsaccountsd
+  485     1   0.0  0.1 05:34:32 Ss   /usr/sbin/fairplayd.H2
+  486     1   0.0  1.2 05:34:32 Ss   /System/Library/Frameworks/CoreTelephony.framework/Support/CommCenter
+  487     1   0.0  0.0 05:34:31 Ss   /System/Library/PrivateFrameworks/CoreAccessories.framework/XPCServices/ACCHWComponentAuthService.xpc/ACCHWComponentAuthService
+  489     1   0.0  0.6 05:34:31 Ss   /usr/libexec/lsd
+  490     1   0.0  0.3 05:34:31 Ss   /System/Library/PrivateFrameworks/WirelessDiagnostics.framework/Support/awdd
+  491     1   0.0  0.2 05:34:30 Ss   /System/Library/PrivateFrameworks/CoreAnalytics.framework/Support/analyticsd
+  492     1   0.0  0.4 05:34:30 Ss   /System/Library/Frameworks/Metal.framework/XPCServices/MTLCompilerService.xpc/MTLCompilerService
+  493     1   0.0  0.6 05:34:29 Ss   /usr/libexec/dasd
+  494     1   0.0  0.0 05:34:29 Ss   /var/jb/usr/libexec/rocketd
+  495     1   0.0  0.0 05:34:29 Ss   /usr/libexec/logd_helper
+  496     1   0.0  0.2 05:34:29 Ss   /usr/libexec/mobileassetd
+  497     1   0.0  0.8 05:34:29 Ss   /usr/libexec/securityd
+  499     1   0.8  0.9 05:34:29 Ss   /System/Library/PrivateFrameworks/ChronoCore.framework/Support/chronod
+  500     1   0.0  0.2 05:34:29 Ss   /usr/libexec/biometrickitd
+  501     1   0.0  0.0 05:34:29 Ss   /System/Library/Filesystems/apfs.fs/apfs_iosd
+  502     1   0.0  0.3 05:34:29 Ss   /usr/libexec/PowerUIAgent
+  503     1   0.0  0.0 05:34:28 Ss   /usr/libexec/misagent
+  504     1   0.6  0.1 05:34:28 Ss   /System/Library/PrivateFrameworks/WallpaperKit.framework/XPCServices/WallpaperMigrator.xpc/WallpaperMigrator
+  505     1   0.0  0.0 05:34:28 Ss   /usr/sbin/BlueTool
+  506     1   0.0  0.3 05:34:28 Ss   /usr/libexec/findmydeviced
+  507     1   0.0  0.1 05:34:28 Ss   /System/Library/PrivateFrameworks/TouchRemote.framework/Support/touchsetupd
+  508     1   0.0  0.4 05:34:28 Ss   /usr/libexec/networkserviceproxy
+  509     1   0.0  0.4 05:34:28 Ss   /usr/libexec/nehelper
+  510     1   0.0  0.5 05:34:27 Ss   /System/Library/PrivateFrameworks/ApplePushService.framework/apsd
+  511     1   0.0  0.9 05:34:27 Ss   /System/Library/Frameworks/Accounts.framework/accountsd
+  512     1   0.0  0.2 05:34:27 Ss   /usr/libexec/nanoregistryd
+  514     1   0.0  0.3 05:34:27 Ss   /System/Library/Frameworks/CoreTelephony.framework/Support/CommCenterMobileHelper
+  515     1   0.0  0.0 05:34:27 Ss   /usr/libexec/pfd
+  516     1   0.0  0.0 05:34:27 Ss   /usr/libexec/nanoregistrylaunchd
+  517     1   0.0  0.3 05:34:26 Ss   /System/Library/PrivateFrameworks/CarKit.framework/Support/carkitd
+  518     1   0.0  0.4 05:34:26 Ss   /System/Library/PrivateFrameworks/GeoServices.framework/geod
+  519     1   0.0  0.1 05:34:26 Ss   /usr/libexec/mobilerepaird
+  520     1   0.0  0.6 05:34:26 Ss   /System/Library/PrivateFrameworks/SyncedDefaults.framework/Support/syncdefaultsd
+  521     1   0.0  0.3 05:34:25 Ss   /usr/libexec/dmd
+  522     1   0.0  0.6 05:34:25 Ss   /usr/libexec/coreduetd
+  523     1   0.0  0.5 05:34:25 Ss   /usr/libexec/trustd
+  524     1   0.0  0.3 05:34:25 Ss   /usr/libexec/mobileactivationd
+  525     1   0.0  0.7 05:34:25 Ss   /System/Library/PrivateFrameworks/CoreSpeech.framework/corespeechd
+  526     1   0.0  0.5 05:34:24 Ss   /System/Library/PrivateFrameworks/TelephonyUtilities.framework/callservicesd
+  527     1   0.0  0.3 05:34:24 Ss   /System/Library/PrivateFrameworks/CacheDelete.framework/deleted
+  528     1   0.0  0.1 05:34:24 Ss   /System/Library/Frameworks/AudioToolbox.framework/XPCServices/CAReportingService.xpc/CAReportingService
+  530     1   0.0  0.3 05:34:23 Ss   /System/Library/PrivateFrameworks/IntlPreferences.framework/Support/localizationswitcherd
+  531     1   0.0  0.4 05:34:23 Ss   /usr/libexec/pkd
+  532     1   0.0  0.1 05:34:23 Ss   /System/Library/PrivateFrameworks/CoreFollowUp.framework/followupd
+  533     1   0.0  0.7 05:34:22 Ss   /System/Library/PrivateFrameworks/PassKitCore.framework/passd
+  534     1   0.0  0.4 05:34:22 Ss   /System/Library/PrivateFrameworks/DoNotDisturbServer.framework/Support/donotdisturbd
+  535     1   0.0  0.3 05:34:22 Ss   /usr/libexec/profiled
+  536     1   0.0  0.3 05:34:22 Ss   /System/Library/PrivateFrameworks/WatchListKit.framework/Support/watchlistd
+  538     1   0.0  0.4 05:34:22 Ss   /usr/libexec/coreidvd
+  539     1   0.0  0.4 05:34:22 Ss   /usr/libexec/fmflocatord
+  540     1   0.0  0.6 05:34:22 Ss   /System/Library/PrivateFrameworks/iTunesCloud.framework/Support/itunescloudd
+  542     1   0.0  0.1 05:34:22 Ss   /usr/libexec/languageassetd
+  543     1   0.0  0.2 05:34:22 Ss   /System/Library/CoreServices/iconservicesagent
+  544     1   0.0  0.1 05:34:22 Ss   /usr/libexec/MobileGestaltHelper
+  545     1   0.0  0.4 05:34:22 Ss   /usr/libexec/seserviced
+  546     1   0.0  1.1 05:34:22 Ss   /usr/libexec/duetexpertd
+  547     1   0.0  0.4 05:34:21 Ss   /System/Library/PrivateFrameworks/AuthKit.framework/akd
+  548     1   0.0  0.4 05:34:20 Ss   /usr/sbin/mDNSResponder
+  549     1   0.0  0.2 05:34:19 Ss   /usr/libexec/webbookmarksd
+  550     1   0.0  0.4 05:34:19 Ss   /System/Library/PrivateFrameworks/CalendarDaemon.framework/Support/calaccessd
+  551     1   0.0  0.5 05:34:19 Ss   /System/Library/PrivateFrameworks/UserActivity.framework/Agents/useractivityd
+  552     1   0.0  0.9 05:34:19 Ss   /usr/libexec/searchpartyd
+  553     1   0.0  1.0 05:34:17 Ss   /usr/libexec/nsurlsessiond
+  554     1   0.0  0.3 05:34:17 Ss   /usr/libexec/symptomsd-diag
+  557     1   0.0  0.5 05:34:15 Ss   /System/Library/PrivateFrameworks/ScreenTimeCore.framework/ScreenTimeAgent
+  558     1   0.0  0.1 05:34:14 Ss   /usr/libexec/nearbyd
+  559     1   0.0  0.5 05:34:12 Ss   /System/Library/Frameworks/Security.framework/XPCServices/TrustedPeersHelper.xpc/TrustedPeersHelper
+  560     1   0.0  0.2 05:34:12 Ss   /System/Library/Frameworks/CryptoTokenKit.framework/ctkd
+  561     1   0.0  0.0 05:34:12 Ss   /System/Library/DriverExtensions/com.apple.AppleUserHIDDrivers.dext/com.apple.AppleUserHIDDrivers
+  562     1   0.6  0.6 05:34:11 Ss   /usr/libexec/symptomsd
+  563     1   0.0  0.3 05:34:11 Ss   /System/Library/Frameworks/LocalAuthentication.framework/Support/coreauthd
+  565     1   0.0  0.6 05:34:08 Ss   /System/Library/PrivateFrameworks/FamilyCircle.framework/familycircled
+  566     1   0.0  0.3 05:34:08 Ss   /System/Library/PrivateFrameworks/AXAssetLoader.framework/Support/axassetsd
+  567     1   0.0  0.6 05:34:08 Ss   /System/Library/PrivateFrameworks/HomeKitDaemon.framework/Support/homed
+  568     1   0.0  0.8 05:34:07 Ss   /Applications/Spotlight.app/Spotlight
+  570     1   0.0  0.2 05:34:07 Ss   /System/Library/Frameworks/Security.framework/CloudKeychainProxy.bundle/CloudKeychainProxy
+  572     1   0.0  0.1 05:34:06 Ss   /usr/libexec/amfid
+  574     1   0.0  0.6 05:34:05 Ss   /System/Library/PrivateFrameworks/iTunesStore.framework/Support/itunesstored
+  575     1   0.0  0.1 05:34:04 Ss   /System/Library/PrivateFrameworks/WiFiPolicy.framework/XPCServices/WiFiCloudAssetsXPCService.xpc/WiFiCloudAssetsXPCService
+  576     1   0.0  0.1 05:34:04 Ss   /System/Library/PrivateFrameworks/InstallCoordination.framework/Support/installcoordinationd
+  577     1   0.0  0.1 05:34:04 Ss   /System/Library/PrivateFrameworks/AppSSO.framework/Support/AppSSODaemon
+  578     1   0.0  0.0 05:34:04 Ss   /System/Library/Frameworks/GSS.framework/Helpers/GSSCred
+  579     1   0.0  0.1 05:34:04 Ss   /System/Library/PrivateFrameworks/MusicLibrary.framework/Support/medialibraryd
+  580     1   0.0  0.3 05:34:03 Ss   /usr/libexec/announced
+  581     1   0.0  0.2 05:34:03 Ss   /System/Library/PrivateFrameworks/CoreEmbeddedSpeechRecognition.framework/XPCServices/com.apple.siri.embeddedspeech.xpc/com.apple.siri.embeddedspeech
+  582     1   0.0  0.2 05:34:02 Ss   /System/Library/PrivateFrameworks/IMDPersistence.framework/XPCServices/IMDPersistenceAgent.xpc/IMDPersistenceAgent
+  583     1   0.0  0.3 05:34:02 Ss   /System/Library/PrivateFrameworks/CoreCDP.framework/cdpd
+  584     1   0.0  0.3 05:34:01 Ss   /System/Library/PrivateFrameworks/UsageTracking.framework/UsageTrackingAgent
+  585     1   0.0  0.1 05:34:01 Ss   /usr/libexec/adid
+  586     1   0.0  0.4 05:34:01 Ss   /usr/libexec/fmfd
+  587     1   0.0  0.5 05:34:00 Ss   /usr/libexec/wifianalyticsd
+  588     1   0.0  0.1 05:34:00 Ss   /usr/libexec/videosubscriptionsd
+  589     1   0.0  1.0 05:34:00 Ss   /System/Library/PrivateFrameworks/ContextKit.framework/XPCServices/ContextService.xpc/ContextService
+  590     1   0.0  0.1 05:33:59 Ss   /System/Library/PrivateFrameworks/FontServices.framework/Support/fontservicesd
+  591     1   0.0  0.1 05:33:59 Ss   /usr/libexec/captiveagent
+  592     1   0.0  0.2 05:33:58 Ss   /usr/libexec/triald
+  595     1   0.0  0.4 05:33:56 Ss   /System/Library/PrivateFrameworks/MapsSupport.framework/mapspushd
+  596     1   0.0  0.7 05:33:56 Ss   /System/Library/PrivateFrameworks/AppleMediaServicesUI.framework/amsengagementd
+  597     1   0.0  0.4 05:33:56 Ss   /usr/libexec/promotedcontentd
+  598     1   0.0  0.3 05:33:55 Ss   /System/Library/PrivateFrameworks/VisualVoicemail.framework/vmd
+  600     1   0.0  0.2 05:33:55 Ss   /usr/libexec/online-auth-agent
+  601     1   0.0  0.2 05:33:55 Ss   /usr/libexec/swcd
+  602     1   0.0  0.7 05:33:55 Ss   /System/Library/PrivateFrameworks/CloudDocsDaemon.framework/bird
+  603     1   0.0  0.3 05:33:54 Ss   /usr/libexec/nesessionmanager
+  604     1   0.0  0.2 05:33:54 Ss   /System/Library/PrivateFrameworks/SiriInference.framework/Support/siriinferenced
+  605     1   0.0  0.2 05:33:54 Ss   /System/Library/PrivateFrameworks/ClipServices.framework/clipserviced
+  606     1   0.0  0.1 05:33:54 Ss   /System/Library/PrivateFrameworks/TVRemoteCore.framework/Support/TVRemoteConnectionService
+  607     1   0.0  0.4 05:33:54 Ss   /usr/libexec/siriknowledged
+  608     1   0.0  0.3 05:33:54 Ss   /System/Library/Frameworks/FamilyControls.framework/FamilyControlsAgent
+  609     1   0.0  0.4 05:33:54 Ss   /System/Library/PrivateFrameworks/VoiceShortcuts.framework/Support/siriactionsd
+  610     1   0.0  0.2 05:33:52 Ss   /System/Library/PrivateFrameworks/VoiceServices.framework/Support/voiced
+  612     1   0.0  0.2 05:33:52 Ss   /System/Library/PrivateFrameworks/ProtectedCloudStorage.framework/Helpers/ProtectedCloudKeySyncing
+  613     1   0.0  0.4 05:33:51 Ss   /usr/libexec/rtcreportingd
+  614     1   0.0  0.2 05:33:51 Ss   /System/Library/Frameworks/Speech.framework/XPCServices/localspeechrecognition.xpc/localspeechrecognition
+  615     1   0.0  0.1 05:33:50 Ss   /System/Library/PrivateFrameworks/FontServices.framework/XPCServices/com.apple.FontServices.UserFontManager.xpc/com.apple.FontServices.UserFontManager
+  616     1   0.6  0.5 05:33:50 Ss   /usr/libexec/proximitycontrold
+  617     1   0.0  0.1 05:33:49 Ss   /usr/libexec/coordinated
+  618     1   0.0  0.2 05:33:49 Ss   /System/Library/PrivateFrameworks/CloudKitDaemon.framework/Support/ckdiscretionaryd
+  619     1   0.0  0.2 05:33:48 Ss   /usr/libexec/wifivelocityd
+  620     1   0.6  0.2 05:33:48 Ss   /usr/libexec/splashboardd
+  621     1   0.0  0.2 05:33:45 Ss   /System/Library/PrivateFrameworks/CommunicationsFilter.framework/CMFSyncAgent
+  622     1   0.0  0.3 05:33:45 Ss   /System/Library/Frameworks/Contacts.framework/Support/contactsd
+  623     1   0.0  0.4 05:33:45 Ss   /System/Library/PrivateFrameworks/StatusKit.framework/StatusKitAgent
+  624     1   0.0  0.3 05:33:44 Ss   /System/Library/PrivateFrameworks/BookLibraryCore.framework/Support/bookassetd
+  626     1   0.0  0.3 05:33:43 Ss   /usr/libexec/wifip2pd
+
+===== FINAL BATTERY SAMPLE =====
+
+=== END IPHONE BATTERY DRAIN FORENSICS ===
+ssh_exit_code=0
