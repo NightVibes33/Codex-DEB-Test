@@ -14,13 +14,6 @@ for b in aircrack-ng airodump-ng aireplay-ng airmon-ng airbase-ng packetforge-ng
   p=$(command -v "$b" 2>/dev/null)
   [ -n "$p" ] && echo "$b=$p" || echo "$b=NOT_FOUND"
 done
-aircrack-ng --help 2>&1 | head -n 8 || true
-
-printf '\n===== NETWORK INTERFACES =====\n'
-command -v ifconfig 2>/dev/null || true
-ifconfig -l 2>/dev/null || true
-ifconfig en0 2>/dev/null | head -n 80 || true
-ipconfig getifaddr en0 2>/dev/null || true
 
 printf '\n===== BUILD TARGETED WORDLIST FOR OWN SSID =====\n'
 TMP="/tmp/bootybandit-wordlist.$$"
@@ -31,37 +24,21 @@ for base in bootybandit BootyBandit Bootybandit BOOTYBANDIT bootybandit1 BootyBa
     printf '%s%s\n' "$base" "$y" >> "$TMP"
     printf '%s%s!\n' "$base" "$y" >> "$TMP"
   done
-  for n in $(seq 0 999 2>/dev/null); do
+  for n in $(seq 0 99 2>/dev/null); do
     printf '%s%s\n' "$base" "$n" >> "$TMP"
   done
   for s in '!' '@' '#' '$' '!!' '123' '1234' '12345' '01' '007'; do
     printf '%s%s\n' "$base" "$s" >> "$TMP"
   done
 done
-# Every generated candidate is already within WPA/WPA2's 8..63 character range.
 sort -u "$TMP" > "$WORDLIST"
 rm -f "$TMP"
 chmod 600 "$WORDLIST" 2>/dev/null || true
 wc -l "$WORDLIST" 2>/dev/null || true
 printf 'wordlist_path=%s\n' "$WORDLIST"
-printf 'sample:\n'
 head -n 20 "$WORDLIST" 2>/dev/null || true
 
-printf '\n===== PASSIVE AIRODUMP PROBE ON EN0 =====\n'
-rm -f /tmp/airodump-en0.out /var/mobile/bootybandit-passive-*.cap /var/mobile/bootybandit-passive-*.csv 2>/dev/null || true
-if command -v airodump-ng >/dev/null 2>&1; then
-  airodump-ng --write /var/mobile/bootybandit-passive --output-format pcap en0 > /tmp/airodump-en0.out 2>&1 &
-  apid=$!
-  sleep 8
-  kill "$apid" >/dev/null 2>&1 || true
-  wait "$apid" >/dev/null 2>&1 || true
-  echo 'airodump_output:'
-  tail -n 80 /tmp/airodump-en0.out 2>/dev/null || true
-else
-  echo 'airodump-ng not installed'
-fi
-
-printf '\n===== SEARCH FOR CAPTURES =====\n'
+printf '\n===== SEARCH FOR EXISTING CAPTURES =====\n'
 CAPS='/tmp/aircrack-caps.txt'
 : > "$CAPS"
 for root in /var/mobile /var/root /var/jb/var/mobile /var/jb/tmp /tmp; do
@@ -78,7 +55,7 @@ if ! command -v aircrack-ng >/dev/null 2>&1; then
   echo 'result=aircrack-ng-not-installed'
 elif [ ! -s "$CAPS" ]; then
   echo 'result=no-existing-capture-found'
-  echo 'note=No offline crack can be attempted without a WPA/WPA2 handshake/PMKID capture.'
+  echo 'note=Need a WPA/WPA2 handshake or PMKID capture before an offline password test can run.'
 else
   while IFS= read -r cap; do
     [ -f "$cap" ] || continue
@@ -88,4 +65,4 @@ else
   done < "$CAPS"
 fi
 
-printf '\n===== END OWNED WIFI AIRCRACK AUDIT =====\n'
+echo '=== END OWNED WIFI AIRCRACK AUDIT ==='
