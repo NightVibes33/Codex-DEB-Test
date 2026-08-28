@@ -1,7 +1,7 @@
 iPhone Tailscale SSH Bridge
-run_id=33194939470
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33194939470
-commit=5cd4d2671482a646df0dec49a756bb780e47f631
+run_id=33195102490
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33195102490
+commit=64a7da12db65109ceb6e0acb91b550abc7a1ac02
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
@@ -19,119 +19,99 @@ SSH port attempt 1/18
 # 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
 iphone_ssh_port_ready=success
 Running remote/iphone-command.sh on mobile@100.96.37.124:22 as root...
-=== IPHONE TWEAK FILTER TARGET DIAGNOSTIC ===
-captured_at=Fri Aug 28 12:30:34 CDT 2026
+=== IPHONE TWEAK FILTER RAW DIAGNOSTIC ===
+captured_at=Fri Aug 28 12:32:20 CDT 2026
 whoami=root
 model=iPhone8,1 ios=15.8.8
 
-===== FILTER TARGETS =====
+===== AVAILABLE TOOLS =====
+base64=/var/jb/usr/bin/base64
+strings=MISSING
+file=MISSING
+otool=MISSING
+lipo=MISSING
+jtool=MISSING
+jtool2=MISSING
+nm=MISSING
+defaults=MISSING
+plutil=MISSING
 
---- FILTER=0Hello3Q.plist ---
-/var/jb/usr/bin/sh: 16: plutil: not found
+===== FILTER PLISTS BASE64 =====
+FILTER_BEGIN=0Hello3Q.plist
+YnBsaXN0MDDRAQJWRmlsdGVy0gMEBQhXQnVuZGxlc1tFeGVjdXRhYmxlc6IGB15jb20uYXBwbGUuZGFzZF8QFWNvbS5hcHBsZS5zcHJpbmdib2FyZKEJVGRhc2QICxIXHysuPVVXAAAAAAAAAQEAAAAAAAAACgAAAAAAAAAAAAAAAAAAAFw=
+FILTER_END=0Hello3Q.plist
+FILTER_BEGIN=AppList.plist
+YnBsaXN0MDDRAQJWRmlsdGVy0QMEV0J1bmRsZXOhBV8QFWNvbS5hcHBsZS5zcHJpbmdib2FyZAgLEhUdHwAAAAAAAAEBAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAA3
+FILTER_END=AppList.plist
+FILTER_BEGIN=AppSyncUnified-FrontBoard.plist
+PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPCFET0NUWVBFIHBsaXN0IFBVQkxJQyAiLS8vQXBwbGUvL0RURCBQTElTVCAxLjAvL0VOIiAiaHR0cDovL3d3dy5hcHBsZS5jb20vRFREcy9Qcm9wZXJ0eUxpc3QtMS4wLmR0ZCI+CjxwbGlzdCB2ZXJzaW9uPSIxLjAiPgo8ZGljdD4KCTxrZXk+RmlsdGVyPC9rZXk+Cgk8ZGljdD4KCQk8a2V5PkJ1bmRsZXM8L2tleT4KCQk8YXJyYXk+CgkJCTxzdHJpbmc+Y29tLmFwcGxlLkZyb250Qm9hcmQ8L3N0cmluZz4KCQkJPHN0cmluZz5jb20uYXBwbGUuRnJvbnRCb2FyZFNlcnZpY2VzPC9zdHJpbmc+CgkJPC9hcnJheT4KCTwvZGljdD4KPC9kaWN0Pgo8L3BsaXN0Pgo=
+FILTER_END=AppSyncUnified-FrontBoard.plist
+FILTER_BEGIN=AppSyncUnified-installd.plist
+PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPCFET0NUWVBFIHBsaXN0IFBVQkxJQyAiLS8vQXBwbGUvL0RURCBQTElTVCAxLjAvL0VOIiAiaHR0cDovL3d3dy5hcHBsZS5jb20vRFREcy9Qcm9wZXJ0eUxpc3QtMS4wLmR0ZCI+CjxwbGlzdCB2ZXJzaW9uPSIxLjAiPgo8ZGljdD4KCTxrZXk+RmlsdGVyPC9rZXk+Cgk8ZGljdD4KCQk8a2V5PkV4ZWN1dGFibGVzPC9rZXk+CgkJPGFycmF5PgoJCQk8c3RyaW5nPmluc3RhbGxkPC9zdHJpbmc+CgkJPC9hcnJheT4KCTwvZGljdD4KPC9kaWN0Pgo8L3BsaXN0Pgo=
+FILTER_END=AppSyncUnified-installd.plist
+FILTER_BEGIN=ArthurBrowserPro.plist
+YnBsaXN0MDDRAQJWRmlsdGVy0QMEV0J1bmRsZXOhBV8QEWNvbS5seG0ueXNicm93c2VyCAsSFR0fAAAAAAAAAQEAAAAAAAAABgAAAAAAAAAAAAAAAAAAADM=
+FILTER_END=ArthurBrowserPro.plist
+FILTER_BEGIN=AutoRevenueCat.plist
+YnBsaXN0MDDRAQJWRmlsdGVy0QMEV0J1bmRsZXOhBV8QD2NvbS5hcHBsZS5VSUtpdAgLEhUdHwAAAAAAAAEBAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAx
+FILTER_END=AutoRevenueCat.plist
+FILTER_BEGIN=FilzaCrack.plist
+YnBsaXN0MDDRAQJWRmlsdGVy0QMEV0J1bmRsZXOiBQZfEBZjb20udGlnaXNvZnR3YXJlLkZpbHphXxAaY29tLnRpZ2lzb2Z0d2FyZS5BRE1hbmFnZXIICxIVHSA5AAAAAAAAAQEAAAAAAAAABwAAAAAAAAAAAAAAAAAAAFY=
+FILTER_END=FilzaCrack.plist
+FILTER_BEGIN=GboardAll.plist
+YnBsaXN0MDDRAQJWRmlsdGVy0QMEV0J1bmRsZXOiBQZfECVjb20uZ29vZ2xlLmtleWJvYXJkLktleWJvYXJkRXh0ZW5zaW9uXxATY29tLmdvb2dsZS5rZXlib2FyZAgLEhUdIEgAAAAAAAABAQAAAAAAAAAHAAAAAAAAAAAAAAAAAAAAXg==
+FILTER_END=GboardAll.plist
+FILTER_BEGIN=PreferenceLoader.plist
+RmlsdGVyID0gewogICAgQnVuZGxlcyA9ICggImNvbS5hcHBsZS5QcmVmZXJlbmNlcyIgKTsKfTs=
+FILTER_END=PreferenceLoader.plist
+FILTER_BEGIN=RocketBootstrap.plist
+YnBsaXN0MDDRAQJWRmlsdGVy0wMEBQYICldCdW5kbGVzXxAVQ29yZUZvdW5kYXRpb25WZXJzaW9uW0V4ZWN1dGFibGVzoQdfEBVjb20uYXBwbGUuc3ByaW5nYm9hcmShCSNAiQAAAAAAAKELXxATTW9iaWxlR2VzdGFsdEhlbHBlcggLEhkhOUVHX2FqbAAAAAAAAAEBAAAAAAAAAAwAAAAAAAAAAAAAAAAAAACC
+FILTER_END=RocketBootstrap.plist
+FILTER_BEGIN=afc2dService.plist
+YnBsaXN0MDDRAQJWRmlsdGVy0gMEBQdfEBVDb3JlRm91bmRhdGlvblZlcnNpb25bRXhlY3V0YWJsZXOhBiNAj0AAAAAAAKEIWWxvY2tkb3duZAgLEhcvOz1GSAAAAAAAAAEBAAAAAAAAAAkAAAAAAAAAAAAAAAAAAABS
+FILTER_END=afc2dService.plist
+FILTER_BEGIN=appstoretroller.plist
+YnBsaXN0MDDRAQJWRmlsdGVy0QMEW0V4ZWN1dGFibGVzogUGWWFwcHN0b3JlZFhpbnN0YWxsZAgLEhUhJC4AAAAAAAABAQAAAAAAAAAHAAAAAAAAAAAAAAAAAAAANw==
+FILTER_END=appstoretroller.plist
+FILTER_BEGIN=iCleanerProCrack.plist
+YnBsaXN0MDDRAQJWRmlsdGVy0QMEV0J1bmRsZXOhBV8QGmNvbS5pdmFub2JpbGVuY2hpLmljbGVhbmVyCAsSFR0fAAAAAAAAAQEAAAAAAAAABgAAAAAAAAAAAAAAAAAAADw=
+FILTER_END=iCleanerProCrack.plist
+FILTER_BEGIN=mmaintenanced_hook.plist
+YnBsaXN0MDDRAQJWRmlsdGVy0QMEW0V4ZWN1dGFibGVzoQVdbW1haW50ZW5hbmNlZAgLEhUhIwAAAAAAAAEBAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAx
+FILTER_END=mmaintenanced_hook.plist
 
---- FILTER=AppList.plist ---
-/var/jb/usr/bin/sh: 16: plutil: not found
+===== DYLIB MACH-O ARCHITECTURE =====
+DYLIB=0Hello3Q.dylib
+DYLIB=AppList.dylib
+DYLIB=AppSyncUnified-FrontBoard.dylib
+DYLIB=AppSyncUnified-installd.dylib
+DYLIB=ArthurBrowserPro.dylib
+DYLIB=AutoRevenueCat.dylib
+DYLIB=FilzaCrack.dylib
+DYLIB=GboardAll.dylib
+DYLIB=PreferenceLoader.dylib
+DYLIB=RocketBootstrap.dylib
+DYLIB=afc2dService.dylib
+DYLIB=appstoretroller.dylib
+DYLIB=iCleanerProCrack.dylib
+DYLIB=mmaintenanced_hook.dylib
 
---- FILTER=AppSyncUnified-FrontBoard.plist ---
-/var/jb/usr/bin/sh: 16: plutil: not found
+===== DOPAMINE / ELLEKIT PREFS BASE64 =====
 
---- FILTER=AppSyncUnified-installd.plist ---
-/var/jb/usr/bin/sh: 16: plutil: not found
-
---- FILTER=ArthurBrowserPro.plist ---
-/var/jb/usr/bin/sh: 16: plutil: not found
-
---- FILTER=AutoRevenueCat.plist ---
-/var/jb/usr/bin/sh: 16: plutil: not found
-
---- FILTER=FilzaCrack.plist ---
-/var/jb/usr/bin/sh: 16: plutil: not found
-
---- FILTER=GboardAll.plist ---
-/var/jb/usr/bin/sh: 16: plutil: not found
-
---- FILTER=PreferenceLoader.plist ---
-/var/jb/usr/bin/sh: 16: plutil: not found
-
---- FILTER=RocketBootstrap.plist ---
-/var/jb/usr/bin/sh: 16: plutil: not found
-
---- FILTER=afc2dService.plist ---
-/var/jb/usr/bin/sh: 16: plutil: not found
-
---- FILTER=appstoretroller.plist ---
-/var/jb/usr/bin/sh: 16: plutil: not found
-
---- FILTER=iCleanerProCrack.plist ---
-/var/jb/usr/bin/sh: 16: plutil: not found
-
---- FILTER=mmaintenanced_hook.plist ---
-/var/jb/usr/bin/sh: 16: plutil: not found
-
-===== INJECTION FILE PAIRS =====
-DYLIB=0Hello3Q.dylib plist=yes
--rwxr-xr-x 1 _installd _installd 215216 Jun  3  2025 /var/jb/usr/lib/TweakInject/0Hello3Q.dylib
--rw-r--r-- 1 _installd _installd    134 Jun  3  2025 /var/jb/usr/lib/TweakInject/0Hello3Q.plist
-DYLIB=AppList.dylib plist=yes
--rwxr-xr-x 1 _installd _installd 471888 Jun  6  2023 /var/jb/usr/lib/TweakInject/AppList.dylib
--rw-r--r-- 1 _installd _installd     93 May  9  2020 /var/jb/usr/lib/TweakInject/AppList.plist
-DYLIB=AppSyncUnified-FrontBoard.dylib plist=yes
--rwxr-xr-x 1 root wheel 231168 Nov 28  2024 /var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.dylib
--rw-r--r-- 1 root wheel    356 Nov 28  2024 /var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.plist
-DYLIB=AppSyncUnified-installd.dylib plist=yes
--rwxr-xr-x 1 root wheel 234800 Nov 28  2024 /var/jb/usr/lib/TweakInject/AppSyncUnified-installd.dylib
--rw-r--r-- 1 root wheel    299 Nov 28  2024 /var/jb/usr/lib/TweakInject/AppSyncUnified-installd.plist
-DYLIB=ArthurBrowserPro.dylib plist=yes
--rwxr-xr-x 1 root wheel 84544 Dec 25  2024 /var/jb/usr/lib/TweakInject/ArthurBrowserPro.dylib
--rw-r--r-- 1 root wheel    89 Dec 25  2024 /var/jb/usr/lib/TweakInject/ArthurBrowserPro.plist
-DYLIB=AutoRevenueCat.dylib plist=yes
--rwxr-xr-x 1 root wheel 202528 Apr 23  2025 /var/jb/usr/lib/TweakInject/AutoRevenueCat.dylib
--rw-r--r-- 1 root wheel     87 Apr 23  2025 /var/jb/usr/lib/TweakInject/AutoRevenueCat.plist
-DYLIB=FilzaCrack.dylib plist=yes
--rwxr-xr-x 1 _installd _installd 194816 Apr 30  2023 /var/jb/usr/lib/TweakInject/FilzaCrack.dylib
--rw-r--r-- 1 _installd _installd    125 Jan  8  2023 /var/jb/usr/lib/TweakInject/FilzaCrack.plist
-DYLIB=GboardAll.dylib plist=yes
--rwxr-xr-x 1 root wheel 132576 Dec  4  2024 /var/jb/usr/lib/TweakInject/GboardAll.dylib
--rwxr-xr-x 1 root wheel    133 Dec  4  2024 /var/jb/usr/lib/TweakInject/GboardAll.plist
-DYLIB=PreferenceLoader.dylib plist=yes
--rwxr-xr-x 1 root wheel 170192 Jul 22  2024 /var/jb/usr/lib/TweakInject/PreferenceLoader.dylib
--rw-r--r-- 1 root wheel     56 Jul 22  2024 /var/jb/usr/lib/TweakInject/PreferenceLoader.plist
-DYLIB=RocketBootstrap.dylib plist=yes
-lrwxr-xr-x 1 root wheel  40 Jun 29  2023 /var/jb/usr/lib/TweakInject/RocketBootstrap.dylib -> /var/jb/usr/lib/librocketbootstrap.dylib
--rw-r--r-- 1 root wheel 174 May 27  2024 /var/jb/usr/lib/TweakInject/RocketBootstrap.plist
-DYLIB=afc2dService.dylib plist=yes
--rwxr-xr-x 1 _installd _installd 166000 Feb 29  2024 /var/jb/usr/lib/TweakInject/afc2dService.dylib
--rw-r--r-- 1 _installd _installd    123 Feb 29  2024 /var/jb/usr/lib/TweakInject/afc2dService.plist
-DYLIB=appstoretroller.dylib plist=yes
--rwxr-xr-x 1 root wheel 166576 Apr 16  2025 /var/jb/usr/lib/TweakInject/appstoretroller.dylib
--rw-r--r-- 1 root wheel     94 Apr 16  2025 /var/jb/usr/lib/TweakInject/appstoretroller.plist
-DYLIB=iCleanerProCrack.dylib plist=yes
--rwxr-xr-x 1 root wheel 133040 Apr 30  2023 /var/jb/usr/lib/TweakInject/iCleanerProCrack.dylib
--rw-r--r-- 1 root wheel     98 Jan  4  2023 /var/jb/usr/lib/TweakInject/iCleanerProCrack.plist
-DYLIB=mmaintenanced_hook.dylib plist=yes
--rwxr-xr-x 1 root wheel 99312 Jun 19  2023 /var/jb/usr/lib/TweakInject/mmaintenanced_hook.dylib
--rw-r--r-- 1 root wheel    87 Aug 18  2019 /var/jb/usr/lib/TweakInject/mmaintenanced_hook.plist
-
-===== TARGET PROCESS SNAPSHOT =====
-  316     1   0.0  0.5 /usr/libexec/runningboardd
-  346     1   0.0  0.9 /System/Library/PrivateFrameworks/CoreDuetContext.framework/Resources/contextstored
-  347     1   1.3  3.3 /System/Library/CoreServices/SpringBoard.app/SpringBoard
-  359     1   0.0  0.1 /System/Library/PrivateFrameworks/NanoPreferencesSync.framework/nanoprefsyncd
-  393     1   0.0  0.8 /usr/libexec/dasd
-  440     1   0.0  0.4 /System/Library/PrivateFrameworks/IntlPreferences.framework/Support/localizationswitcherd
-  450     1   0.0  1.0 /System/Library/PrivateFrameworks/AppStoreDaemon.framework/Support/appstored
-  466     1   0.0  0.8 /System/Library/PrivateFrameworks/iTunesStore.framework/Support/itunesstored
-  535     1   0.0  0.2 /usr/libexec/mmaintenanced
-
-===== INSTALLED USER APP BUNDLE IDS =====
-
-===== JAILBREAK APP BUNDLE IDS =====
-
-===== ELLEKIT / ROCKETBOOTSTRAP SERVICES =====
+===== ACTIVE SERVICES =====
 391	0	com.rpetrich.rocketbootstrapd
 -	255	com.opa334.Dopamine.startup
 320	0	com.opa334.Dopamine.idownloadd
 
-===== RECENT RELEVANT CRASH REPORT NAMES =====
-=== END IPHONE TWEAK FILTER TARGET DIAGNOSTIC ===
+===== TARGET PROCESSES =====
+  316     1   0.0  0.5 /usr/libexec/runningboardd
+  346     1   0.0  0.9 /System/Library/PrivateFrameworks/CoreDuetContext.framework/Resources/contextstored
+  347     1   0.0  3.3 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+  359     1   0.0  0.1 /System/Library/PrivateFrameworks/NanoPreferencesSync.framework/nanoprefsyncd
+  393     1   0.0  0.8 /usr/libexec/dasd
+  440     1   0.0  0.4 /System/Library/PrivateFrameworks/IntlPreferences.framework/Support/localizationswitcherd
+  450     1   0.0  0.9 /System/Library/PrivateFrameworks/AppStoreDaemon.framework/Support/appstored
+  466     1   0.0  0.8 /System/Library/PrivateFrameworks/iTunesStore.framework/Support/itunesstored
+  535     1   0.0  0.2 /usr/libexec/mmaintenanced
+=== END IPHONE TWEAK FILTER RAW DIAGNOSTIC ===
 ssh_exit_code=0
