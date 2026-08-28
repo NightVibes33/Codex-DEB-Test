@@ -1,0 +1,223 @@
+name: iPhone Tailscale Discovery Bridge
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/iphone-tailscale-discover.yml"
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: iphone-tailscale-discover
+  cancel-in-progress: true
+
+jobs:
+  resolve-environment:
+    name: Resolve secret environment
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+
+    steps:
+      - name: Resolve environment ID
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" \
+            > environments.json
+
+          environment_name="$({
+            python3 - "$TARGET_ENVIRONMENT_ID" <<'PY'
+          import json, sys
+          target_id = int(sys.argv[1])
+          payload = json.load(open("environments.json", encoding="utf-8"))
+          for environment in payload.get("environments", []):
+              if int(environment.get("id", -1)) == target_id:
+                  print(environment["name"])
+                  raise SystemExit(0)
+          raise SystemExit(1)
+          PY
+          } || true)"
+
+          if [ -z "$environment_name" ]; then
+            echo "Could not resolve GitHub environment ID $TARGET_ENVIRONMENT_ID" >&2
+            exit 1
+          fi
+          echo "environment_name=$environment_name" >> "$GITHUB_OUTPUT"
+
+  discover:
+    name: Discover iPhone on Tailscale
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate Tailscale secret
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$TAILSCALE_AUTHKEY" ]; then
+            echo "Missing environment secret: TAILSCALE_AUTHKEY" >&2
+            exit 1
+          fi
+
+      - name: Install Tailscale and network tools
+        run: |
+          set -euo pipefail
+          sudo install -d -m 0755 /usr/share/keyrings
+          curl --fail --silent --show-error --retry 3 --connect-timeout 20 \
+            https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg \
+            | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
+          curl --fail --silent --show-error --retry 3 --connect-timeout 20 \
+            https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list \
+            | sudo tee /etc/apt/sources.list.d/tailscale.list >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends tailscale openssh-client netcat-openbsd
+          sudo systemctl enable --now tailscaled
+
+      - name: Join tailnet and discover iPhone
+        id: discover
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+          KNOWN_IPAD_IP: "100.116.117.65"
+        run: |
+          set -euo pipefail
+          : > iphone-tailscale-output.txt
+
+          sudo tailscale logout >/dev/null 2>&1 || true
+          sudo systemctl restart tailscaled
+          sleep 2
+          sudo tailscale up \
+            --auth-key="$TAILSCALE_AUTHKEY" \
+            --hostname="github-iphone-discovery-${GITHUB_RUN_ID}" \
+            --accept-dns=false \
+            --accept-routes=false \
+            --reset
+
+          sudo tailscale status --json > tailscale-status.json
+
+          python3 - "$KNOWN_IPAD_IP" <<'PY' | tee -a iphone-tailscale-output.txt
+          import json, sys
+          ipad_ip = sys.argv[1]
+          data = json.load(open("tailscale-status.json", encoding="utf-8"))
+          peers = data.get("Peer", {}) or {}
+          rows = []
+          for peer in peers.values():
+              ips = peer.get("TailscaleIPs") or []
+              if ipad_ip in ips:
+                  continue
+              host = peer.get("HostName") or ""
+              dns = peer.get("DNSName") or ""
+              os_name = peer.get("OS") or ""
+              online = bool(peer.get("Online"))
+              ip = next((x for x in ips if ":" not in x), ips[0] if ips else "")
+              score = 0
+              label = f"{host} {dns} {os_name}".lower()
+              if os_name.lower() == "ios": score += 100
+              if "iphone" in label: score += 80
+              if online: score += 20
+              if ip.startswith("100."): score += 5
+              rows.append((score, online, host, dns, os_name, ip))
+
+          rows.sort(reverse=True)
+          print("Visible non-iPad peers:")
+          for score, online, host, dns, os_name, ip in rows:
+              print(f"peer host={host or '-'} dns={dns or '-'} os={os_name or '-'} ip={ip or '-'} online={online} score={score}")
+
+          candidates = [r for r in rows if r[0] >= 80 and r[5]]
+          if not candidates:
+              print("iphone_detected=no")
+              raise SystemExit(2)
+
+          best = candidates[0]
+          _, online, host, dns, os_name, ip = best
+          print(f"iphone_detected=yes")
+          print(f"iphone_host={host}")
+          print(f"iphone_dns={dns}")
+          print(f"iphone_os={os_name}")
+          print(f"iphone_ip={ip}")
+          print(f"iphone_online={online}")
+
+          with open("iphone.env", "w", encoding="utf-8") as f:
+              f.write(f"IPHONE_IP={ip}\n")
+              f.write(f"IPHONE_HOSTNAME={host}\n")
+          PY
+
+          test -s iphone.env
+          source iphone.env
+          echo "iphone_ip=$IPHONE_IP" >> "$GITHUB_OUTPUT"
+          echo "iphone_hostname=$IPHONE_HOSTNAME" >> "$GITHUB_OUTPUT"
+
+          echo "Testing Tailscale reachability to $IPHONE_IP..." | tee -a iphone-tailscale-output.txt
+          sudo tailscale ping --timeout=8s --c 2 "$IPHONE_IP" 2>&1 | tee -a iphone-tailscale-output.txt || true
+
+          if nc -zvw8 "$IPHONE_IP" 22 2>&1 | tee -a iphone-tailscale-output.txt; then
+            echo "iphone_ssh_port_22=OPEN" | tee -a iphone-tailscale-output.txt
+          else
+            echo "iphone_ssh_port_22=CLOSED_OR_UNREACHABLE" | tee -a iphone-tailscale-output.txt
+          fi
+
+      - name: Upload discovery output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iphone-tailscale-discovery-${{ github.run_id }}
+          path: |
+            iphone-tailscale-output.txt
+            iphone.env
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Publish iPhone discovery status
+        if: always()
+        env:
+          ENVIRONMENT_NAME: ${{ needs.resolve-environment.outputs.environment_name }}
+          DISCOVER_OUTCOME: ${{ steps.discover.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+
+          mkdir -p remote
+          {
+            echo "iPhone Tailscale Discovery Bridge"
+            echo "run_id=$GITHUB_RUN_ID"
+            echo "run_url=https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo "commit=$GITHUB_SHA"
+            echo "environment=$ENVIRONMENT_NAME"
+            echo "discover=$DISCOVER_OUTCOME"
+            echo
+            echo "--- discovery output ---"
+            if [ -f iphone-tailscale-output.txt ]; then
+              tail -n 200 iphone-tailscale-output.txt
+            else
+              echo "No discovery output was created."
+            fi
+          } > remote/iphone-tailscale-status.txt
+
+          git add remote/iphone-tailscale-status.txt
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Record iPhone Tailscale discovery status [skip ci]"
+          git push origin HEAD:main
