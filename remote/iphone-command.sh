@@ -1,91 +1,83 @@
 #!/bin/sh
 set +e
 export PATH="/var/jb/usr/bin:/var/jb/bin:/var/jb/usr/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+export DEBIAN_FRONTEND=noninteractive
+PKG=com.spark.snowboard
+SOURCE=/var/jb/etc/apt/sources.list.d/sparkdev.list
 
-echo '=== IPHONE THEME TWEAK / SETTINGS PANE AUDIT ==='
+echo '=== IPHONE SNOWBOARD ROOTLESS REPAIR ==='
 echo "captured_at=$(date 2>/dev/null)"
 echo "whoami=$(whoami 2>/dev/null)"
 echo "model=$(sysctl -n hw.machine 2>/dev/null) ios=$(sw_vers -productVersion 2>/dev/null)"
 
-printf '\n===== CORE JAILBREAK PACKAGES =====\n'
-for pkg in preferenceloader ellekit com.rpetrich.rocketbootstrap xyz.cypwn.applist xyz.cypwn.tweaksettings; do
-  dpkg-query -W -f='${Status}\t${Package}\t${Version}\t${Architecture}\tDepends=${Depends}\n' "$pkg" 2>/dev/null || true
-done
+printf '\n===== BEFORE =====\n'
+dpkg-query -W -f='${Status}\t${Package}\t${Version}\t${Architecture}\n' "$PKG" 2>/dev/null || echo 'snowboard=not-installed'
+echo '-- SparkDev source entries --'
+grep -RHi 'sparkdev\.me' /var/jb/etc/apt/sources.list /var/jb/etc/apt/sources.list.d 2>/dev/null || echo 'sparkdev_source=not-present'
+echo '-- package candidate before source repair --'
+apt-cache policy "$PKG" 2>/dev/null || true
 
-printf '\n===== INSTALLED PACKAGES LIKELY RELATED TO THEMING/UI =====\n'
-dpkg-query -W -f='${Package}\t${Version}\t${Architecture}\t${Status}\t${Description}\n' 2>/dev/null \
- | grep -Ei 'theme|snowboard|anemone|icon|dock|springboard|wallpaper|widget|status bar|control center|lockscreen|homescreen|ui tweak|customi|appearance|aesthetic|font|badge|folder|designer|atria|velvet|solstice|felicity|viola|miso|echo|lynx|jade|nicebar|dress|color' \
- | head -n 250 || true
-
-printf '\n===== ALL TWEAKINJECT FILES + PACKAGE OWNERS =====\n'
-TI=/var/jb/usr/lib/TweakInject
-if [ -d "$TI" ]; then
-  for f in "$TI"/*; do
-    [ -e "$f" ] || continue
-    case "$f" in *.dylib|*.plist)
-      echo "FILE=$f"
-      dpkg-query -S "$f" 2>/dev/null || dpkg-query -S "${f#/var/jb}" 2>/dev/null || echo 'owner=UNKNOWN'
-      ;;
-    esac
-  done
+printf '\n===== ENSURE OFFICIAL SPARKDEV SOURCE =====\n'
+if ! grep -Rqi 'sparkdev\.me' /var/jb/etc/apt/sources.list /var/jb/etc/apt/sources.list.d 2>/dev/null; then
+  mkdir -p /var/jb/etc/apt/sources.list.d
+  printf '%s\n' 'deb https://sparkdev.me/ ./' > "$SOURCE"
+  chmod 0644 "$SOURCE"
+  chown root:wheel "$SOURCE" 2>/dev/null || true
+  echo "added_source=$SOURCE"
 else
-  echo 'TweakInject=MISSING'
+  echo 'sparkdev_source=already-present'
 fi
 
-printf '\n===== ROOTLESS SETTINGS FILES =====\n'
-for d in /var/jb/Library/PreferenceBundles /var/jb/Library/PreferenceLoader/Preferences; do
-  echo "DIR=$d"
-  if [ -d "$d" ]; then
-    find "$d" -maxdepth 3 -mindepth 1 -print 2>/dev/null | sort | head -n 400
-  else
-    echo MISSING
-  fi
-done
+printf '\n===== REFRESH PACKAGE INDEX =====\n'
+apt-get update 2>&1
+UPDATE_RC=$?
+echo "apt_update_rc=$UPDATE_RC"
 
-printf '\n===== SEARCH FOR PREF FILES OUTSIDE EXPECTED ROOTLESS PATH =====\n'
-for d in /Library/PreferenceBundles /Library/PreferenceLoader/Preferences /usr/lib/TweakInject; do
-  echo "DIR=$d"
-  if [ -d "$d" ]; then
-    find "$d" -maxdepth 3 -mindepth 1 -print 2>/dev/null | sort | head -n 250
-  else
-    echo MISSING
-  fi
-done
+echo '-- package candidate after update --'
+apt-cache policy "$PKG" 2>/dev/null || true
+CANDIDATE=$(apt-cache policy "$PKG" 2>/dev/null | sed -n 's/^[[:space:]]*Candidate:[[:space:]]*//p' | head -n 1)
+echo "candidate=${CANDIDATE:-none}"
 
-printf '\n===== PACKAGES WHOSE MANIFESTS CLAIM SETTINGS FILES =====\n'
-for list in /var/jb/var/lib/dpkg/info/*.list; do
-  [ -f "$list" ] || continue
-  hits=$(grep -Ei 'PreferenceBundles|PreferenceLoader/Preferences|prefs\.bundle|preferences.*\.plist' "$list" 2>/dev/null)
-  [ -n "$hits" ] || continue
-  pkg=$(basename "$list" .list)
-  meta=$(dpkg-query -W -f='${Package}\t${Version}\t${Architecture}\t${Status}\tDepends=${Depends}' "$pkg" 2>/dev/null)
-  echo "PKG_META=$meta"
-  printf '%s\n' "$hits" | head -n 60
-  echo '-- existence --'
-  printf '%s\n' "$hits" | head -n 60 | while IFS= read -r p; do
-    if [ -e "$p" ]; then echo "EXISTS $p"; else echo "MISSING $p"; fi
-  done
-  echo
- done
+if [ -z "$CANDIDATE" ] || [ "$CANDIDATE" = '(none)' ]; then
+  echo 'ERROR=no SnowBoard candidate from configured sources'
+  exit 2
+fi
 
-printf '\n===== PACKAGE ARCHITECTURE COUNTS =====\n'
-dpkg-query -W -f='${Architecture}\n' 2>/dev/null | sort | uniq -c | sort -nr || true
+printf '\n===== INSTALL ROOTLESS SNOWBOARD =====\n'
+apt-get install -y "$PKG" 2>&1
+INSTALL_RC=$?
+echo "apt_install_rc=$INSTALL_RC"
+if [ "$INSTALL_RC" -ne 0 ]; then
+  exit "$INSTALL_RC"
+fi
 
-echo '-- rootful-looking iphoneos-arm packages --'
-dpkg-query -W -f='${Package}\t${Version}\t${Architecture}\t${Status}\n' 2>/dev/null | awk -F '\t' '$3=="iphoneos-arm" {print}' | head -n 250 || true
+printf '\n===== VERIFY PACKAGE =====\n'
+dpkg-query -W -f='${Status}\t${Package}\t${Version}\t${Architecture}\tDepends=${Depends}\n' "$PKG" 2>/dev/null || true
+LIST="/var/jb/var/lib/dpkg/info/${PKG}.list"
+if [ -f "$LIST" ]; then
+  echo '-- SnowBoard installed files relevant to prefs/injection/themes --'
+  grep -Ei 'Preference|TweakInject|SnowBoard|Themes|Applications' "$LIST" 2>/dev/null | head -n 250 || true
+else
+  echo 'snowboard_dpkg_list=MISSING'
+fi
 
-printf '\n===== DPKG AUDIT / BROKEN DEPENDENCIES =====\n'
-dpkg --audit 2>&1 || true
-if command -v apt-get >/dev/null 2>&1; then apt-get check 2>&1 || true; fi
+echo '-- rootless preference panes now --'
+find /var/jb/Library/PreferenceLoader/Preferences -maxdepth 1 -type f -print 2>/dev/null | sort || true
+find /var/jb/Library/PreferenceBundles -maxdepth 1 -type d -print 2>/dev/null | sort || true
 
-printf '\n===== THEMES DIRECTORIES =====\n'
-for d in /var/jb/Library/Themes /Library/Themes /var/mobile/Library/SnowBoard /var/mobile/Library/Designer; do
-  echo "DIR=$d"
-  if [ -d "$d" ]; then find "$d" -maxdepth 2 -mindepth 1 -print 2>/dev/null | head -n 250; else echo MISSING; fi
-done
+echo '-- SnowBoard injection files --'
+find /var/jb/usr/lib/TweakInject -maxdepth 1 \( -iname '*snowboard*' -o -iname '*snow*' \) -print 2>/dev/null | sort || true
 
-printf '\n===== SETTINGS / SPRINGBOARD STATE =====\n'
-ps -A -o pid=,ppid=,%cpu=,%mem=,comm= 2>/dev/null | grep -Ei 'Preferences|SpringBoard' || true
-launchctl list 2>/dev/null | grep -Ei 'ellekit|rocketbootstrap|dopamine' || true
+echo '-- installed themes remain present --'
+find /var/jb/Library/Themes -maxdepth 1 -mindepth 1 -type d -print 2>/dev/null | head -n 80 || true
 
-echo '=== END IPHONE THEME TWEAK / SETTINGS PANE AUDIT ==='
+printf '\n===== RELOAD SETTINGS + SPRINGBOARD =====\n'
+OLD_SB=$(ps -A -o pid=,comm= 2>/dev/null | grep '/SpringBoard$' | head -n1 | tr -s ' ' | cut -d' ' -f2)
+echo "springboard_pid_before=${OLD_SB:-unknown}"
+killall Preferences 2>/dev/null || true
+killall SpringBoard 2>/dev/null || true
+sleep 5
+NEW_SB=$(ps -A -o pid=,comm= 2>/dev/null | grep '/SpringBoard$' | head -n1 | tr -s ' ' | cut -d' ' -f2)
+echo "springboard_pid_after=${NEW_SB:-unknown}"
+
+echo '=== END IPHONE SNOWBOARD ROOTLESS REPAIR ==='
