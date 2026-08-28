@@ -1,0 +1,118 @@
+name: iPad LAN Recovery Probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "remote/ipad-command.sh"
+      - ".github/workflows/ipad-lan-probe.yml"
+
+permissions:
+  contents: read
+
+env:
+  IPAD_HOST: 100.116.117.65
+  IPAD_PORT: "22"
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    environment: TAILSCALE_AUTHKEY-
+    steps:
+      - name: Checkout probe command only
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            remote/ipad-command.sh
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+
+      - name: Validate secrets
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$TAILSCALE_AUTHKEY"
+          test -n "$IPAD_PASSWORD"
+
+      - name: Install Tailscale SSH tools
+        run: |
+          set -euo pipefail
+          sudo install -d -m 0755 /usr/share/keyrings
+          curl --fail --silent --show-error --retry 3 --connect-timeout 20 \
+            https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg \
+            | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
+          curl --fail --silent --show-error --retry 3 --connect-timeout 20 \
+            https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list \
+            | sudo tee /etc/apt/sources.list.d/tailscale.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends tailscale openssh-client sshpass netcat-openbsd >/dev/null
+          sudo systemctl enable --now tailscaled
+
+      - name: Join tailnet without false-negative gate
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+        run: |
+          set -uo pipefail
+          sudo tailscale logout >/dev/null 2>&1 || true
+          sudo systemctl restart tailscaled
+          sleep 3
+          sudo tailscale up \
+            --auth-key="$TAILSCALE_AUTHKEY" \
+            --hostname="github-ipad-lan-${GITHUB_RUN_ID}" \
+            --accept-dns=false \
+            --accept-routes=false \
+            --reset 2>&1 || true
+          echo '--- tailscale status ---'
+          sudo tailscale status 2>&1 || true
+          if ! sudo tailscale status 2>/dev/null | grep -Fq "$IPAD_HOST"; then
+            echo "ipad_node_visible=no target=$IPAD_HOST"
+            exit 1
+          fi
+          echo "ipad_node_visible=yes target=$IPAD_HOST"
+          sudo tailscale ping --timeout=8s --c 1 "$IPAD_HOST" 2>&1 || true
+
+      - name: Run LAN probe on iPad
+        env:
+          IPAD_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -uo pipefail
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          ready=0
+          for n in $(seq 1 12); do
+            rm -f "$HOME/.ssh/known_hosts"
+            if ssh-keyscan -T 8 -H -p "$IPAD_PORT" "$IPAD_HOST" > "$HOME/.ssh/known_hosts" 2>/dev/null && [ -s "$HOME/.ssh/known_hosts" ]; then
+              ready=1
+              break
+            fi
+            sudo tailscale ping --timeout=4s --c 1 "$IPAD_HOST" >/dev/null 2>&1 || true
+            sleep 5
+          done
+          if [ "$ready" != 1 ]; then
+            echo 'ipad_ssh_port_ready=no'
+            exit 1
+          fi
+          chmod 600 "$HOME/.ssh/known_hosts"
+          echo 'ipad_ssh_port_ready=yes'
+          set +e
+          {
+            printf '%s\n' "$IPAD_PASSWORD"
+            cat remote/ipad-command.sh
+          } | sshpass -e ssh \
+              -p "$IPAD_PORT" \
+              -o BatchMode=no \
+              -o ConnectTimeout=20 \
+              -o ServerAliveInterval=15 \
+              -o ServerAliveCountMax=2 \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              "mobile@$IPAD_HOST" \
+              'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s'
+          rc=${PIPESTATUS[1]}
+          echo "ipad_probe_ssh_rc=$rc"
+          exit "$rc"
