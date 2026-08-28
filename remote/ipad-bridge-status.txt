@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=33204597539
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33204597539
-commit=164a0cad1a1aa2505bfc3e5014fec97dc09f7612
+run_id=33204824774
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33204824774
+commit=bc3fbc2fc74bd89840293683b0d1fc75b3bf91f3
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -11,36 +11,26 @@ ssh=cancelled
 --- sanitized SSH output ---
 Waking and checking iPad SSH port over Tailscale...
 SSH port attempt 1/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 64ms
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 65ms
 SSH port attempt 2/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 63ms
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 69ms
 SSH port attempt 3/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 64ms
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 69ms
 SSH port attempt 4/18
 pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 64ms
 SSH port attempt 5/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 64ms
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 65ms
 SSH port attempt 6/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 64ms
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 65ms
 SSH port attempt 7/18
 pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 65ms
 SSH port attempt 8/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 64ms
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 70ms
 SSH port attempt 9/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 63ms
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 64ms
 SSH port attempt 10/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 63ms
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 64ms
 SSH port attempt 11/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 63ms
-SSH port attempt 12/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 63ms
-SSH port attempt 13/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 64ms
-SSH port attempt 14/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 64ms
-SSH port attempt 15/18
 pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 66ms
-SSH port attempt 16/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 63ms
-SSH port attempt 17/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 65ms
+SSH port attempt 12/18
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 66ms
