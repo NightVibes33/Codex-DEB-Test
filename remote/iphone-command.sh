@@ -4,10 +4,9 @@ export PATH="/var/jb/usr/bin:/var/jb/bin:/var/jb/usr/sbin:/var/jb/usr/local/bin:
 RFMON=/var/jb/usr/local/bin/rfmonctl
 LDID=$(command -v ldid 2>/dev/null)
 ENT=/tmp/rfmon-wifi-entitlements.plist
-OUT=/tmp/rfmon-capture-result.txt
-PCAP=/var/mobile/bootybandit1-rfmon.pcap
+TRACE=/tmp/rfmon-interface-trace.txt
 
-echo '=== IOS NATIVE RADIOTAP MONITOR CAPTURE ==='
+echo '=== IOS MONITOR INTERFACE + CHANNEL TRACE ==='
 echo "captured_at=$(date 2>/dev/null)"
 echo "whoami=$(whoami 2>/dev/null)"
 echo "model=$(sysctl -n hw.machine 2>/dev/null) ios=$(sw_vers -productVersion 2>/dev/null)"
@@ -28,77 +27,59 @@ cat > "$ENT" <<'PLIST'
 </dict></plist>
 PLIST
 
-printf '\n===== SIGN NATIVE TOOL =====\n'
 "$LDID" -S"$ENT" "$RFMON" 2>&1
-SIGN_RC=$?
-echo "ldid_sign_rc=$SIGN_RC"
-if [ "$SIGN_RC" -ne 0 ]; then exit 0; fi
+echo "ldid_sign_rc=$?"
 
-printf '\n===== FORCE CLEAN BASELINE =====\n'
-"$RFMON" en0 off 2>&1 || true
+snapshot() {
+  label="$1"
+  echo "===== $label ====="
+  echo "date=$(date 2>/dev/null)"
+  echo '-- monitor value --'
+  "$RFMON" en0 get 2>&1 || true
+  echo '-- interface names --'
+  ifconfig -l 2>&1 || true
+  echo '-- ifconfig en0 --'
+  ifconfig en0 2>&1 || true
+  echo '-- all interfaces (trimmed) --'
+  ifconfig -a 2>&1 | head -n 260 || true
+  echo '-- netstat interfaces --'
+  netstat -i 2>&1 | head -n 120 || true
+  echo '-- IO80211Interface registry --'
+  if command -v ioreg >/dev/null 2>&1; then
+    ioreg -r -c IO80211Interface -l -w 0 2>&1 | grep -Ei 'IO80211|BSD Name|BSDName|Channel|SSID|BSSID|Monitor|IOInterface|IOName' | head -n 180 || true
+    echo '-- IO80211InterfaceMonitor registry --'
+    ioreg -r -c IO80211InterfaceMonitor -l -w 0 2>&1 | head -n 180 || true
+  else
+    echo 'ioreg=not-installed'
+  fi
+  echo '-- likely wifi/capture binaries --'
+  find /usr/bin /usr/sbin /usr/libexec /var/jb/usr/bin /var/jb/usr/sbin -maxdepth 1 -type f 2>/dev/null | grep -Ei '/(wifi|airport|80211|corecapture|capture|tcpdump|wdutil|skywalk)' | head -n 120 || true
+}
+
+rm -f "$TRACE" /tmp/rfmon-hard-recovery.txt 2>/dev/null || true
+"$RFMON" en0 off >/dev/null 2>&1 || true
 sleep 1
-"$RFMON" en0 get 2>&1
-BASE_RC=$?
-echo "baseline_get_rc=$BASE_RC"
-if [ "$BASE_RC" -ne 0 ]; then
-  echo 'capture_skipped=baseline-get-failed'
-  exit 0
-fi
+snapshot BASELINE | tee -a "$TRACE"
 
-printf '\n===== BPF DEVICES =====\n'
-ls -la /dev/bpf* 2>&1 | head -n 80 || true
-
-printf '\n===== GUARDED MODE-2 RADIOTAP CAPTURE =====\n'
-rm -f "$OUT" "$PCAP" /tmp/rfmon-hard-recovery.txt 2>/dev/null || true
-
-# Recovery runs independently of SSH in case mode 2 temporarily interrupts Wi-Fi.
+# Recovery is independent of this SSH process.
 nohup sh -c '
-  sleep 16
+  sleep 12
   /var/jb/usr/local/bin/rfmonctl en0 off >>/tmp/rfmon-hard-recovery.txt 2>&1 || true
   killall wifid >>/tmp/rfmon-hard-recovery.txt 2>&1 || true
 ' >/dev/null 2>&1 </dev/null &
 
-# rfmonctl now performs the complete atomic sequence itself:
-# BPF bind -> DLT 127 -> WLC monitor mode 2 -> read -> mode 0 -> DLT 1.
-nohup sh -c '
-  RF=/var/jb/usr/local/bin/rfmonctl
-  OUT=/tmp/rfmon-capture-result.txt
-  PCAP=/var/mobile/bootybandit1-rfmon.pcap
-  : > "$OUT"
-  date >> "$OUT" 2>&1
-  "$RF" en0 capture "$PCAP" 8 >> "$OUT" 2>&1
-  RC=$?
-  echo "capture_command_rc=$RC" >> "$OUT"
-  ls -l "$PCAP" >> "$OUT" 2>&1 || true
-' >/dev/null 2>&1 </dev/null &
-CAP_PID=$!
-echo "capture_worker_pid=$CAP_PID"
+printf '\n===== ENTER MODE 2 =====\n' | tee -a "$TRACE"
+"$RFMON" en0 mode 2 2>&1 | tee -a "$TRACE"
+echo "mode2_set_rc=$?" | tee -a "$TRACE"
+sleep 1
+snapshot MODE2 | tee -a "$TRACE"
 
-sleep 12
-printf '\n===== CAPTURE RESULT =====\n'
-cat "$OUT" 2>/dev/null || echo 'capture_result_not_yet-readable'
+printf '\n===== LEAVE MODE 2 =====\n' | tee -a "$TRACE"
+"$RFMON" en0 off 2>&1 | tee -a "$TRACE"
+sleep 1
+snapshot RESTORED | tee -a "$TRACE"
 
-printf '\n===== PCAP FILE =====\n'
-ls -l "$PCAP" 2>&1 || true
-if [ -s "$PCAP" ]; then
-  bytes=$(wc -c < "$PCAP" 2>/dev/null | tr -d ' ')
-  echo "pcap_bytes=${bytes:-0}"
-else
-  echo 'pcap_created=no'
-fi
-
-printf '\n===== AIRCRACK 802.11 PARSE CHECK =====\n'
-if [ -s "$PCAP" ] && command -v aircrack-ng >/dev/null 2>&1; then
-  aircrack-ng "$PCAP" 2>&1 | tail -n 120
-  echo "aircrack_parse_rc=$?"
-else
-  echo 'aircrack_parse_skipped=no-pcap-or-aircrack'
-fi
-
-printf '\n===== FINAL RADIO STATE =====\n'
-"$RFMON" en0 off 2>&1 || true
-"$RFMON" en0 get 2>&1
-echo "final_get_rc=$?"
+printf '\n===== HARD RECOVERY LOG =====\n'
 cat /tmp/rfmon-hard-recovery.txt 2>/dev/null || true
 
-echo '=== END IOS NATIVE RADIOTAP MONITOR CAPTURE ==='
+echo '=== END IOS MONITOR INTERFACE + CHANNEL TRACE ==='
