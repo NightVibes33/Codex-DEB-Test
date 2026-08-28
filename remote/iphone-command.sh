@@ -3,49 +3,38 @@ set +e
 export PATH="/var/jb/usr/bin:/var/jb/bin:/var/jb/usr/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
 SSID='bootybandit1'
 WORDLIST='/var/mobile/bootybandit1-wordlist.txt'
-CAPBASE='/var/mobile/bootybandit1-monitor-test'
+AIRMON='/var/jb/usr/sbin/airmon-ng'
 
-echo '=== OWNED WIFI AIRMON/AIRCRACK TEST ==='
+echo '=== OWNED WIFI AIRMON INSTALL + TEST ==='
 echo "captured_at=$(date 2>/dev/null)"
 echo "whoami=$(whoami 2>/dev/null)"
 echo "model=$(sysctl -n hw.machine 2>/dev/null) ios=$(sw_vers -productVersion 2>/dev/null)"
 
-printf '\n===== CURRENT AIRCRACK INSTALL =====\n'
-for b in aircrack-ng airodump-ng aireplay-ng airmon-ng airbase-ng packetforge-ng curl apt-get apt-cache dpkg; do
-  p=$(command -v "$b" 2>/dev/null)
-  [ -n "$p" ] && echo "$b=$p" || echo "$b=NOT_FOUND"
-done
+printf '\n===== INSTALL CURL IF NEEDED =====\n'
+if ! command -v curl >/dev/null 2>&1; then
+  apt-get update 2>&1 | tail -n 60
+  apt-get install -y curl 2>&1 | tail -n 100
+  echo "apt_install_curl_rc=$?"
+fi
+command -v curl 2>/dev/null || true
 
-printf '\n===== PACKAGE CONTENTS / REPO CHECK =====\n'
-dpkg -L aircrack-ng 2>/dev/null | grep -i 'airmon' || echo 'aircrack-ng package contains no airmon-ng'
-apt-cache search airmon-ng 2>/dev/null | head -n 20 || true
-apt-cache search aircrack 2>/dev/null | head -n 30 || true
-
-printf '\n===== INSTALL UPSTREAM AIRMON-NG SCRIPT =====\n'
-AIRMON='/var/jb/usr/sbin/airmon-ng'
-if [ ! -x "$AIRMON" ]; then
-  if command -v curl >/dev/null 2>&1; then
-    curl -fL --connect-timeout 15 --max-time 45 \
-      'https://raw.githubusercontent.com/aircrack-ng/aircrack-ng/master/scripts/airmon-ng.linux' \
-      -o "$AIRMON" 2>&1
-    crc=$?
-    echo "curl_rc=$crc"
-    if [ "$crc" -eq 0 ] && [ -s "$AIRMON" ]; then
-      chmod 755 "$AIRMON"
-      echo "installed_airmon_ng=$AIRMON"
-    else
-      rm -f "$AIRMON" 2>/dev/null || true
-      echo 'install_result=download-failed'
-    fi
-  else
-    echo 'install_result=curl-not-found'
+printf '\n===== INSTALL UPSTREAM AIRMON-NG =====\n'
+if command -v curl >/dev/null 2>&1; then
+  curl -fL --connect-timeout 15 --max-time 45 \
+    'https://raw.githubusercontent.com/aircrack-ng/aircrack-ng/master/scripts/airmon-ng.linux' \
+    -o "$AIRMON" 2>&1
+  crc=$?
+  echo "airmon_download_rc=$crc"
+  if [ "$crc" -eq 0 ] && [ -s "$AIRMON" ]; then
+    chmod 755 "$AIRMON"
+    echo "airmon_installed=$AIRMON"
   fi
 else
-  echo "airmon_ng_already_present=$AIRMON"
+  echo 'airmon_install_result=curl-still-missing'
 fi
 ls -l "$AIRMON" 2>/dev/null || true
 
-printf '\n===== PLATFORM PREREQUISITES =====\n'
+printf '\n===== AIRMON PREREQUISITES =====\n'
 for p in /sys /sys/class /sys/class/net /sys/class/ieee80211 /proc; do
   if [ -e "$p" ]; then echo "$p=PRESENT"; else echo "$p=MISSING"; fi
 done
@@ -54,7 +43,7 @@ for b in iw ethtool awk grep ifconfig ip; do
   [ -n "$q" ] && echo "$b=$q" || echo "$b=NOT_FOUND"
 done
 
-printf '\n===== TRY MONITOR MODE ON EN0 =====\n'
+printf '\n===== TRY AIRMON-NG START EN0 =====\n'
 MON_OK=0
 if [ -x "$AIRMON" ]; then
   "$AIRMON" start en0 > /tmp/airmon-start.txt 2>&1
@@ -66,22 +55,21 @@ else
   echo 'airmon_start_result=not-installed'
 fi
 
-echo 'interfaces_after_airmon:'
+printf '\n===== INTERFACES AFTER TEST =====\n'
+for cmd in ifconfig ipconfig networksetup; do command -v "$cmd" 2>/dev/null || true; done
 ifconfig -l 2>/dev/null || true
 ifconfig en0 2>/dev/null | head -n 60 || true
 
-printf '\n===== PASSIVE CAPTURE IF MONITOR MODE ACTUALLY SUCCEEDED =====\n'
-rm -f "${CAPBASE}"-* 2>/dev/null || true
+printf '\n===== PASSIVE CAPTURE ONLY IF MONITOR MODE SUCCEEDED =====\n'
 if [ "$MON_OK" -eq 1 ]; then
-  MON_IF=''
+  rm -f /var/mobile/bootybandit1-monitor-* 2>/dev/null || true
+  MON_IF='en0'
   for i in en0mon wlan0mon wlan1mon mon0; do
     if ifconfig "$i" >/dev/null 2>&1; then MON_IF="$i"; break; fi
   done
-  [ -z "$MON_IF" ] && MON_IF='en0'
   echo "monitor_interface=$MON_IF"
-  airodump-ng --write "$CAPBASE" --output-format pcap "$MON_IF" > /tmp/airodump-monitor.txt 2>&1 &
+  airodump-ng --write /var/mobile/bootybandit1-monitor --output-format pcap "$MON_IF" > /tmp/airodump-monitor.txt 2>&1 &
   APID=$!
-  echo "airodump_pid=$APID"
   sleep 10
   kill -9 "$APID" >/dev/null 2>&1 || true
   sleep 1
@@ -90,7 +78,7 @@ else
   echo 'capture_skipped=monitor-mode-not-available'
 fi
 
-printf '\n===== SEARCH FOR WPA CAPTURES =====\n'
+printf '\n===== SEARCH + OFFLINE WORDLIST TEST =====\n'
 CAPS='/tmp/aircrack-caps.txt'
 : > "$CAPS"
 for root in /var/mobile /var/root /var/jb/var/mobile /var/jb/tmp /tmp; do
@@ -101,19 +89,15 @@ sort -u "$CAPS" -o "$CAPS" 2>/dev/null || true
 cat "$CAPS" 2>/dev/null || true
 cap_count=$(wc -l < "$CAPS" 2>/dev/null | tr -d ' ')
 echo "capture_count=${cap_count:-0}"
-
-printf '\n===== OFFLINE PASSWORD TEST =====\n'
-if [ ! -s "$WORDLIST" ]; then
-  echo 'result=wordlist-missing'
-elif [ ! -s "$CAPS" ]; then
-  echo 'result=no-capture-to-crack'
-else
+if [ -s "$WORDLIST" ] && [ -s "$CAPS" ]; then
   while IFS= read -r cap; do
     [ -f "$cap" ] || continue
     echo "--- testing_capture=$cap ---"
     aircrack-ng -w "$WORDLIST" -e "$SSID" "$cap" 2>&1 | tail -n 120
     echo "aircrack_rc=$?"
   done < "$CAPS"
+else
+  echo 'result=no-capture-to-crack'
 fi
 
-echo '=== END OWNED WIFI AIRMON/AIRCRACK TEST ==='
+echo '=== END OWNED WIFI AIRMON INSTALL + TEST ==='
