@@ -51,28 +51,47 @@ printf '\n===== BPF DEVICES =====\n'
 ls -la /dev/bpf* 2>&1 | head -n 80 || true
 
 printf '\n===== ARM LOCAL RECOVERY + DETACHED PASSIVE CAPTURE =====\n'
-rm -f "$OUT" "$PCAP" /tmp/rfmon-hard-recovery.txt 2>/dev/null || true
+rm -f "$OUT" "$PCAP" /tmp/rfmon-hard-recovery.txt /tmp/rfmon-monitor-transition.txt 2>/dev/null || true
 # Fallback restores monitor-off locally even if monitor mode interrupts SSH.
 nohup sh -c '
-  sleep 10
+  sleep 14
   /var/jb/usr/local/bin/rfmonctl en0 off >>/tmp/rfmon-hard-recovery.txt 2>&1 || true
   killall wifid >>/tmp/rfmon-hard-recovery.txt 2>&1 || true
 ' >/dev/null 2>&1 </dev/null &
 
+# Start BPF first so DLT 127 is selected while the interface is still in station mode.
 nohup sh -c '
   RF=/var/jb/usr/local/bin/rfmonctl
   OUT=/tmp/rfmon-capture-result.txt
   PCAP=/var/mobile/bootybandit1-rfmon.pcap
   : > "$OUT"
   date >> "$OUT" 2>&1
-  "$RF" en0 capture "$PCAP" 4 >> "$OUT" 2>&1
+  "$RF" en0 capture "$PCAP" 8 >> "$OUT" 2>&1
   RC=$?
   echo "capture_command_rc=$RC" >> "$OUT"
   ls -l "$PCAP" >> "$OUT" 2>&1 || true
 ' >/dev/null 2>&1 </dev/null &
-echo "capture_worker_pid=$!"
+CAP_PID=$!
+echo "capture_worker_pid=$CAP_PID"
 
-sleep 7
+# DLT 127 alone does not flip Broadcom WLC monitor state on iOS 15.8.8.
+# Give capture time to bind en0/select radiotap, then enable monitor explicitly.
+sleep 2
+printf '\n===== EXPLICIT WLC MONITOR AFTER DLT 127 =====\n' | tee -a /tmp/rfmon-monitor-transition.txt
+"$RFMON" en0 get 2>&1 | tee -a /tmp/rfmon-monitor-transition.txt
+"$RFMON" en0 on 2>&1 | tee -a /tmp/rfmon-monitor-transition.txt
+MON_ON_RC=$?
+echo "monitor_after_dlt_on_rc=$MON_ON_RC" | tee -a /tmp/rfmon-monitor-transition.txt
+"$RFMON" en0 get 2>&1 | tee -a /tmp/rfmon-monitor-transition.txt
+sleep 4
+"$RFMON" en0 off 2>&1 | tee -a /tmp/rfmon-monitor-transition.txt
+MON_OFF_RC=$?
+echo "monitor_after_capture_off_rc=$MON_OFF_RC" | tee -a /tmp/rfmon-monitor-transition.txt
+"$RFMON" en0 get 2>&1 | tee -a /tmp/rfmon-monitor-transition.txt
+
+sleep 4
+printf '\n===== MONITOR TRANSITION =====\n'
+cat /tmp/rfmon-monitor-transition.txt 2>/dev/null || true
 printf '\n===== CAPTURE RESULT =====\n'
 cat "$OUT" 2>/dev/null || echo 'capture_result_not_yet-readable'
 printf '\n===== PCAP FILE =====\n'
@@ -101,6 +120,7 @@ else
 fi
 
 printf '\n===== FINAL RADIO STATE =====\n'
+"$RFMON" en0 off 2>&1 || true
 "$RFMON" en0 get 2>&1
 echo "final_get_rc=$?"
 cat /tmp/rfmon-hard-recovery.txt 2>/dev/null || true
