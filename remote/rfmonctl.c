@@ -15,6 +15,7 @@
 
 #define IFNAMSIZ_LOCAL 16
 #define APPLE80211_IOC_CARD_SPECIFIC 0xffffffffu
+#define WLC_DISASSOC 52
 #define WLC_GET_MONITOR 107
 #define WLC_SET_MONITOR 108
 
@@ -124,6 +125,32 @@ static int broadcom_ioctl(const char *ifname, int command, int *value) {
     return rc;
 }
 
+static int broadcom_ioctl_noarg(const char *ifname, int command) {
+    int fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd < 0) {
+        fprintf(stderr, "socket failed: errno=%d (%s)\n", errno, strerror(errno));
+        return -1;
+    }
+
+    struct apple80211req req;
+    memset(&req, 0, sizeof(req));
+    strlcpy(req.req_if_name, ifname, sizeof(req.req_if_name));
+    req.req_type = (int32_t)APPLE80211_IOC_CARD_SPECIFIC;
+    req.req_val = command;
+    req.req_len = 0;
+    req.req_data = NULL;
+
+    errno = 0;
+    int rc = ioctl(fd, SIOCSA80211, &req);
+    int saved_errno = errno;
+    close(fd);
+
+    printf("ioctl_noarg command=%d request=0x%lx rc=%d errno=%d (%s)\n",
+           command, (unsigned long)SIOCSA80211, rc, saved_errno,
+           saved_errno ? strerror(saved_errno) : "ok");
+    return rc;
+}
+
 static int get_monitor_value(const char *ifname, int *out_value) {
     int value = 0;
     int rc = broadcom_ioctl(ifname, WLC_GET_MONITOR, &value);
@@ -138,6 +165,12 @@ static int set_monitor_value(const char *ifname, int mode) {
     int value = mode;
     int rc = broadcom_ioctl(ifname, WLC_SET_MONITOR, &value);
     if (rc == 0) printf("monitor_set=%d\n", mode);
+    return rc;
+}
+
+static int disassociate(const char *ifname) {
+    int rc = broadcom_ioctl_noarg(ifname, WLC_DISASSOC);
+    if (rc == 0) printf("disassociate=sent\n");
     return rc;
 }
 
@@ -466,7 +499,7 @@ cleanup_bpf:
 
 static void usage(const char *p) {
     fprintf(stderr,
-            "usage: %s [en0] get|off|on|raw|mode <value>\n"
+            "usage: %s [en0] get|off|on|raw|disassoc|mode <value>\n"
             "       %s [en0] pulse [seconds] [mode]\n"
             "       %s [en0] capture <output.pcap> [seconds]\n",
             p, p, p);
@@ -500,6 +533,9 @@ int main(int argc, char **argv) {
     }
     if (!strcmp(cmd, "raw")) {
         return set_monitor_value(ifname, MONITOR_IEEE80211) == 0 ? 0 : 1;
+    }
+    if (!strcmp(cmd, "disassoc")) {
+        return disassociate(ifname) == 0 ? 0 : 1;
     }
     if (!strcmp(cmd, "mode")) {
         if (argc <= argi + 1) {
