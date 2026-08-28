@@ -1,13 +1,13 @@
 iPhone Tailscale SSH Bridge
-run_id=33170449732
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33170449732
-commit=a4226f66f377e9715d2c4afe436a5c610e464687
+run_id=33170638893
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33170638893
+commit=75698902a28d0260d9171eeb73ba7f038ef8fe01
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
 tailscale=success
 install_ssh=success
-ssh=cancelled
+ssh=failure
 
 --- sanitized SSH output ---
 Waking and checking iPhone SSH port over Tailscale...
@@ -29,3 +29,61 @@ no reply
 SSH port attempt 6/18
 ping "100.96.37.124" timed out
 no reply
+SSH port attempt 7/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 8/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 9/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 10/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 11/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 12/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 13/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 14/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 15/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 16/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 17/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 18/18
+ping "100.96.37.124" timed out
+no reply
+Could not reach iPhone TCP port 22 after wake and retry attempts.
+100.91.121.83    github-iphone-33170638893-1          NightVibes33@  linux    -                                                               
+100.116.117.65   bobbys-ipad                          NightVibes33@  iOS      offline, last seen 12h ago                                      
+100.127.94.70    desktop-o56xs                        NightVibes33@  windows  offline, last seen 34d ago                                      
+100.80.212.102   github-ipad-33169677825-1            NightVibes33@  linux    offline, last seen 21m ago                                      
+100.109.40.14    github-ipad-33169718049-1            NightVibes33@  linux    offline, last seen 17m ago                                      
+100.73.152.2     github-ipad-33169925337-3            NightVibes33@  linux    offline, last seen 16m ago                                      
+100.111.111.120  github-ipad-33170449705-3            NightVibes33@  linux    offline, last seen 8m ago                                       
+100.122.202.62   github-ipad-33170638787-3            NightVibes33@  linux    offline, last seen 7m ago                                       
+100.70.169.26    github-iphone-33169558882-1          NightVibes33@  linux    offline, last seen 22m ago                                      
+100.121.162.113  github-iphone-33169609016-1          NightVibes33@  linux    offline, last seen 21m ago                                      
+100.123.223.80   github-iphone-33169677825            NightVibes33@  linux    offline, last seen 21m ago                                      
+100.80.207.6     github-iphone-33169718049            NightVibes33@  linux    offline, last seen 19m ago                                      
+100.64.82.127    github-iphone-33169718105-1          NightVibes33@  linux    offline, last seen 18m ago                                      
+100.118.202.50   github-iphone-33169925314-1          NightVibes33@  linux    offline, last seen 10m ago                                      
+100.95.107.30    github-iphone-33169925337            NightVibes33@  linux    offline, last seen 16m ago                                      
+100.86.142.60    github-iphone-33170449705            NightVibes33@  linux    offline, last seen 9m ago                                       
+100.114.170.100  github-iphone-33170449732-1          NightVibes33@  linux    offline, last seen 7m ago                                       
+100.84.192.40    github-iphone-33170638787            NightVibes33@  linux    offline, last seen 7m ago                                       
+100.85.224.37    github-iphone-discovery-33169477534  NightVibes33@  linux    offline, last seen 23m ago                                      
+100.96.37.124    iphone                               NightVibes33@  iOS      active; relay "dfw"; offline, last seen 42m ago, tx 12636 rx 0  
+100.79.177.16    iphone173                            NightVibes33@  iOS      offline, last seen 8d ago                                       
