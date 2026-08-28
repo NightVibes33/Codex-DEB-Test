@@ -2,104 +2,103 @@
 set +e
 export PATH="/var/jb/usr/bin:/var/jb/bin:/var/jb/usr/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
 
-echo '=== IOS APPLE WIFI CAPTURE PROBE ==='
+echo '=== IOS WIFI CAPTURE CONTROL-PLANE INVENTORY ==='
 echo "captured_at=$(date 2>/dev/null)"
 echo "whoami=$(whoami 2>/dev/null)"
 echo "model=$(sysctl -n hw.machine 2>/dev/null) ios=$(sw_vers -productVersion 2>/dev/null)"
 
-printf '\n===== WIFI / CAPTURE PROCESSES =====\n'
-ps aux 2>/dev/null | grep -Ei 'wifid|airportd|corecapture|wireless|bluetoothd' | grep -v grep | head -n 80 || true
+printf '\n===== BPF / PACKET CAPTURE DEVICES =====\n'
+ls -la /dev/bpf* 2>&1 | head -n 120 || true
+ls -la /dev/pktap* 2>&1 | head -n 80 || true
 
-printf '\n===== AVAILABLE NETWORK TOOLS =====\n'
-for b in apple80211 tcpdump pktap rvictl ioreg scutil ipconfig networksetup ifconfig netstat lsof log strings nm otool; do
-  q=$(command -v "$b" 2>/dev/null)
-  [ -n "$q" ] && echo "$b=$q" || echo "$b=NOT_FOUND"
+printf '\n===== PACKAGE CACHE: PCAP / TCPDUMP / NETWORK TOOLS =====\n'
+for q in tcpdump libpcap network-cmds inetutils adv-cmds; do
+  echo "--- apt-cache search: $q ---"
+  apt-cache search "$q" 2>&1 | head -n 80 || true
 done
+printf '\n--- installed related packages ---\n'
+dpkg -l 2>/dev/null | grep -Ei 'tcpdump|libpcap|network-cmds|inetutils|adv-cmds|corecapture|apple80211' | head -n 120 || true
 
-printf '\n===== APPLE80211 / CORECATURE FILE SEARCH =====\n'
-for p in \
-  /usr/local/bin/apple80211 \
-  /usr/bin/apple80211 \
-  /usr/sbin/apple80211 \
-  /System/Library/PrivateFrameworks/Apple80211.framework/apple80211 \
-  /System/Library/PrivateFrameworks/Apple80211.framework/Versions/A/Resources/airport \
-  /System/Library/PrivateFrameworks/Apple80211.framework/Resources/airport \
-  /System/Library/PrivateFrameworks/CoreCaptureControl.framework \
+printf '\n===== PRIVATE FRAMEWORK CONTENTS =====\n'
+for fw in \
+  /System/Library/PrivateFrameworks/Apple80211.framework \
   /System/Library/PrivateFrameworks/CoreCapture.framework \
-  /System/Library/Frameworks/CoreCapture.framework; do
-  if [ -e "$p" ]; then
-    ls -ld "$p" 2>/dev/null || echo "FOUND $p"
-  else
-    echo "MISSING $p"
+  /System/Library/PrivateFrameworks/CoreCaptureControl.framework \
+  /System/Library/PrivateFrameworks/WiFiKit.framework \
+  /System/Library/PrivateFrameworks/WiFiPolicy.framework \
+  /System/Library/PrivateFrameworks/WirelessDiagnostics.framework; do
+  if [ -e "$fw" ]; then
+    echo "--- $fw ---"
+    ls -la "$fw" 2>&1 | head -n 100
+    find "$fw" -maxdepth 5 -type f -print 2>/dev/null | head -n 160
   fi
 done
 
-printf '\n===== BROADER APPLE WIFI BINARIES =====\n'
-for root in /usr/bin /usr/sbin /usr/local/bin /System/Library/PrivateFrameworks/Apple80211.framework /System/Library/PrivateFrameworks/CoreCaptureControl.framework /System/Library/PrivateFrameworks/CoreCapture.framework; do
-  [ -e "$root" ] || continue
-  find "$root" -maxdepth 4 -type f \( -iname '*apple80211*' -o -iname '*airport*' -o -iname '*corecapture*' -o -iname '*wifi*' \) -print 2>/dev/null | head -n 100
-done
-
-printf '\n===== IOREG WIFI DRIVER =====\n'
-if command -v ioreg >/dev/null 2>&1; then
-  ioreg -l -w0 2>/dev/null | grep -Ei 'AppleBCMWLAN|IO80211|BCM43|WiFi|wlan' | head -n 120 || true
-else
-  echo 'ioreg_unavailable'
-fi
-
-printf '\n===== APPLE80211 READ-ONLY QUERIES =====\n'
-APPLE80211=''
-for p in "$(command -v apple80211 2>/dev/null)" /usr/local/bin/apple80211 /usr/bin/apple80211 /usr/sbin/apple80211; do
-  [ -n "$p" ] || continue
-  if [ -x "$p" ]; then APPLE80211="$p"; break; fi
-done
-if [ -n "$APPLE80211" ]; then
-  echo "apple80211_selected=$APPLE80211"
-  "$APPLE80211" en0 -driver_ver 2>&1 | head -n 60
-  echo "driver_ver_rc=$?"
-  "$APPLE80211" en0 -hardware_ver 2>&1 | head -n 60
-  echo "hardware_ver_rc=$?"
-  "$APPLE80211" en0 -cardcap 2>&1 | head -n 120
-  echo "cardcap_rc=$?"
-else
-  echo 'apple80211_selected=NONE'
-fi
-
-printf '\n===== BEFORE CORECATURE FILES =====\n'
-BEFORE=/tmp/corecapture-before.txt
-AFTER=/tmp/corecapture-after.txt
-: > "$BEFORE"
-for root in /var/mobile/Library/Logs/CrashReporter /var/root/Library/Logs/CrashReporter /Library/Logs/CrashReporter /var/mobile/Library/Logs /var/root/Library/Logs; do
+printf '\n===== WIFI / CAPTURE EXECUTABLES =====\n'
+for root in /usr/bin /usr/sbin /usr/libexec /System/Library/PrivateFrameworks /System/Library/CoreServices; do
   [ -d "$root" ] || continue
-  find "$root" -maxdepth 7 -type f \( -iname '*.pcap' -o -iname '*.pcapng' -o -iname '*.pcap.gz' -o -iname '*.pcapng.gz' \) -print 2>/dev/null >> "$BEFORE"
+  find "$root" -maxdepth 4 -type f \( \
+    -iname '*wifi*' -o -iname '*wireless*' -o -iname '*80211*' -o \
+    -iname '*corecapture*' -o -iname '*capture*' -o -iname '*airport*' \
+  \) -print 2>/dev/null | head -n 240
 done
-sort -u "$BEFORE" -o "$BEFORE" 2>/dev/null || true
-wc -l "$BEFORE" 2>/dev/null || true
-tail -n 40 "$BEFORE" 2>/dev/null || true
 
-printf '\n===== REQUEST APPLE CORECATURE =====\n'
-if [ -n "$APPLE80211" ]; then
-  "$APPLE80211" en0 -capture=ChatGPTWiFiDiagnostic 2>&1 | head -n 120
-  echo "capture_request_rc=$?"
-  sleep 5
-else
-  echo 'capture_request_skipped=no-apple80211-binary'
-fi
-
-printf '\n===== AFTER CORECATURE FILES =====\n'
-: > "$AFTER"
-for root in /var/mobile/Library/Logs/CrashReporter /var/root/Library/Logs/CrashReporter /Library/Logs/CrashReporter /var/mobile/Library/Logs /var/root/Library/Logs; do
+printf '\n===== WIFI / CORECATURE LAUNCHD PLISTS =====\n'
+PLISTS=/tmp/wifi-launchd-plists.txt
+: > "$PLISTS"
+for root in /System/Library/LaunchDaemons /System/Library/LaunchAgents /Library/LaunchDaemons /var/jb/Library/LaunchDaemons; do
   [ -d "$root" ] || continue
-  find "$root" -maxdepth 7 -type f \( -iname '*.pcap' -o -iname '*.pcapng' -o -iname '*.pcap.gz' -o -iname '*.pcapng.gz' \) -print 2>/dev/null >> "$AFTER"
+  find "$root" -maxdepth 1 -type f -print 2>/dev/null | grep -Ei 'wifi|wireless|80211|corecapture|capture' >> "$PLISTS"
 done
-sort -u "$AFTER" -o "$AFTER" 2>/dev/null || true
-wc -l "$AFTER" 2>/dev/null || true
-comm -13 "$BEFORE" "$AFTER" 2>/dev/null | head -n 80 || true
+sort -u "$PLISTS" -o "$PLISTS" 2>/dev/null || true
+cat "$PLISTS" 2>/dev/null | head -n 160
+while IFS= read -r p; do
+  [ -f "$p" ] || continue
+  sz=$(stat -f %z "$p" 2>/dev/null || wc -c < "$p" 2>/dev/null)
+  echo "--- plist=$p size=${sz:-?} ---"
+  if [ "${sz:-999999}" -le 32768 ] 2>/dev/null; then
+    base64 "$p" 2>/dev/null | tr -d '\n'
+    echo
+  fi
+done < "$PLISTS"
 
-printf '\n===== CORECATURE DIRECTORIES =====\n'
-for root in /var/mobile/Library/Logs/CrashReporter /var/root/Library/Logs/CrashReporter /Library/Logs/CrashReporter /var/mobile/Library/Logs /var/root/Library/Logs; do
-  [ -d "$root" ] || continue
-  find "$root" -maxdepth 5 -type d -iname '*CoreCapture*' -print 2>/dev/null | head -n 80
+printf '\n===== WIFI DAEMONS / HELP OUTPUT =====\n'
+for p in \
+  /usr/sbin/wifid \
+  /usr/libexec/wifianalyticsd \
+  /usr/libexec/wifivelocityd \
+  /usr/libexec/wifip2pd \
+  /usr/libexec/wifid \
+  /System/Library/PrivateFrameworks/WirelessDiagnostics.framework/Support/awdd; do
+  [ -x "$p" ] || continue
+  echo "--- $p ---"
+  ls -l "$p"
+  "$p" -h </dev/null 2>&1 | head -n 80 || true
+  "$p" --help </dev/null 2>&1 | head -n 80 || true
 done
 
-echo '=== END IOS APPLE WIFI CAPTURE PROBE ==='
+printf '\n===== DYLD / FRAMEWORK BINARY PRESENCE =====\n'
+for p in \
+  /System/Library/PrivateFrameworks/Apple80211.framework/Apple80211 \
+  /System/Library/PrivateFrameworks/CoreCapture.framework/CoreCapture \
+  /System/Library/PrivateFrameworks/CoreCaptureControl.framework/CoreCaptureControl; do
+  if [ -e "$p" ]; then
+    echo "FOUND $p"
+    ls -l "$p"
+  else
+    echo "MISSING_ON_DISK $p (may be dyld-cache-backed)"
+  fi
+done
+ls -l /System/Library/Caches/com.apple.dyld/* 2>/dev/null | head -n 60 || true
+
+printf '\n===== IOKIT MONITOR / USERCLIENT SUMMARY =====\n'
+ioreg -l -w0 2>/dev/null | grep -Ei 'IO80211InterfaceMonitor|IO80211ControllerMonitor|IO80211APIUserClient|AppleBCMWLANUserClient|CCCapture|CoreCapture|AppleBCMWLAN.BuildTag|IO80211Family.BuildTag' | head -n 220 || true
+
+printf '\n===== INTERFACE SUMMARY =====\n'
+ipconfig getiflist 2>&1 || true
+for i in en0 awdl0 llw0 ap1; do
+  echo "--- $i ---"
+  ipconfig getsummary "$i" 2>&1 | head -n 80 || true
+done
+
+echo '=== END IOS WIFI CAPTURE CONTROL-PLANE INVENTORY ==='
