@@ -121,6 +121,17 @@ jobs:
           sudo systemctl enable --now tailscaled
           tailscale version
 
+      - name: Download upstream airmon-ng for staging
+        id: stage_airmon
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error --retry 3 --connect-timeout 20 \
+            https://raw.githubusercontent.com/aircrack-ng/aircrack-ng/master/scripts/airmon-ng.linux \
+            -o /tmp/airmon-ng
+          test -s /tmp/airmon-ng
+          head -n 1 /tmp/airmon-ng
+          wc -c /tmp/airmon-ng
+
       - name: Join the Tailscale network with retries
         id: tailscale
         shell: bash
@@ -176,6 +187,10 @@ jobs:
             echo "remote/iphone-command.sh is missing or empty" | tee -a iphone-output.txt
             exit 1
           fi
+          if [ ! -s /tmp/airmon-ng ]; then
+            echo "upstream airmon-ng staging file is missing" | tee -a iphone-output.txt
+            exit 1
+          fi
 
           mkdir -p "$HOME/.ssh"
           chmod 700 "$HOME/.ssh"
@@ -202,10 +217,14 @@ jobs:
           chmod 600 "$HOME/.ssh/known_hosts"
           echo 'iphone_ssh_port_ready=success' | tee -a iphone-output.txt
 
-          echo "Running remote/iphone-command.sh on $IPHONE_USER@$IPHONE_HOST:$IPHONE_PORT as root..." | tee -a iphone-output.txt
+          AIRMON_B64="$(base64 -w 0 /tmp/airmon-ng)"
+          echo "Staging upstream airmon-ng and running remote/iphone-command.sh on $IPHONE_USER@$IPHONE_HOST:$IPHONE_PORT as root..." | tee -a iphone-output.txt
           set +e
           {
             printf '%s\n' "$IPHONE_PASSWORD"
+            printf '%s\n' 'mkdir -p /var/jb/usr/sbin'
+            printf "printf '%%s' '%s' | base64 -d > /var/jb/usr/sbin/airmon-ng\n" "$AIRMON_B64"
+            printf '%s\n' 'chmod 755 /var/jb/usr/sbin/airmon-ng'
             cat remote/iphone-command.sh
           } | sshpass -e ssh \
                 -p "$IPHONE_PORT" \
