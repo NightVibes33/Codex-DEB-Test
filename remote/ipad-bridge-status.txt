@@ -1,36 +1,66 @@
 iPad Tailscale SSH Bridge
-run_id=33204824774
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33204824774
-commit=bc3fbc2fc74bd89840293683b0d1fc75b3bf91f3
+run_id=33205001601
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33205001601
+commit=ec038b6f989b4e741c6ddb1b8911a9c54a42e92d
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
 install_ssh=success
-ssh=cancelled
+ssh=failure
 
 --- sanitized SSH output ---
 Waking and checking iPad SSH port over Tailscale...
 SSH port attempt 1/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 65ms
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 33ms
 SSH port attempt 2/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 69ms
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 34ms
 SSH port attempt 3/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 69ms
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 33ms
 SSH port attempt 4/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 64ms
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 36ms
 SSH port attempt 5/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 65ms
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 33ms
 SSH port attempt 6/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 65ms
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 36ms
 SSH port attempt 7/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 65ms
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 34ms
 SSH port attempt 8/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 70ms
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 33ms
 SSH port attempt 9/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 64ms
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 33ms
 SSH port attempt 10/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 64ms
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 35ms
 SSH port attempt 11/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 66ms
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 35ms
 SSH port attempt 12/18
-pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 66ms
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 32ms
+SSH port attempt 13/18
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 34ms
+SSH port attempt 14/18
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 34ms
+SSH port attempt 15/18
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 33ms
+SSH port attempt 16/18
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 33ms
+SSH port attempt 17/18
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 34ms
+SSH port attempt 18/18
+pong from bobbys-ipad (100.116.117.65) via 67.60.72.18:9216 in 33ms
+Could not reach iPad TCP port 22 after wake and retry attempts.
+100.107.44.106  github-ipad-33205001601-1    NightVibes33@  linux    -                                      
+100.116.117.65  bobbys-ipad                  NightVibes33@  iOS      active; relay "dfw", tx 12208 rx 7384  
+100.127.94.70   desktop-o56xs                NightVibes33@  windows  offline, last seen 34d ago             
+100.76.145.84   github-ipad-33203095474-1    NightVibes33@  linux    offline, last seen 25m ago             
+100.103.25.92   github-ipad-33204597539-1    NightVibes33@  linux    offline, last seen 5m ago              
+100.105.169.24  github-ipad-33204824774-1    NightVibes33@  linux    offline, last seen 5m ago              
+100.115.221.93  github-iphone-33203095413-1  NightVibes33@  linux    offline, last seen 8m ago              
+100.69.237.72   github-iphone-33203095474    NightVibes33@  linux    offline, last seen 8m ago              
+100.88.4.39     github-iphone-33204597525-1  NightVibes33@  linux    offline, last seen 7m ago              
+100.108.25.46   github-iphone-33204597539    NightVibes33@  linux    offline, last seen 5m ago              
+100.76.174.113  github-iphone-33204666494-1  NightVibes33@  linux    offline, last seen 6m ago              
+100.98.130.90   github-iphone-33204824774    NightVibes33@  linux    offline, last seen 3m ago              
+100.98.3.119    github-iphone-33204873471-1  NightVibes33@  linux    offline, last seen 3m ago              
+100.115.230.78  github-iphone-33205001564-1  NightVibes33@  linux    offline, last seen 5m ago              
+100.65.141.55   github-iphone-33205001601    NightVibes33@  linux    offline, last seen 5m ago              
+100.96.37.124   iphone                       NightVibes33@  iOS      -                                      
+100.79.177.16   iphone173                    NightVibes33@  iOS      offline, last seen 8d ago              
