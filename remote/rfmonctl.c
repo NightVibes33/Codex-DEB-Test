@@ -19,6 +19,7 @@
 #define WLC_GET_MONITOR 107
 #define WLC_SET_MONITOR 108
 #define DLT_EN10MB 1u
+#define DLT_RAW 12u
 #define DLT_IEEE802_11 105u
 #define DLT_IEEE802_11_RADIO 127u
 
@@ -30,7 +31,6 @@ struct bpf_hdr_local {
     uint32_t bh_datalen;
     uint16_t bh_hdrlen;
 };
-
 #pragma pack(push, 4)
 struct bpf_dltlist_local {
     uint32_t bfl_len;
@@ -145,70 +145,52 @@ static int bpf_get_dlt(int fd, unsigned int *dlt) {
     return 0;
 }
 
-static int bpf_choose_wireless_dlt(int fd, unsigned int *selected_out) {
+static int bpf_get_dlt_list(int fd, uint32_t **list_out, uint32_t *count_out) {
     struct bpf_dltlist_local dl;
     memset(&dl, 0, sizeof(dl));
-    uint32_t *list = NULL;
-    int have_list = 0;
-
-    errno = 0;
-    if (ioctl(fd, BIOCGDLTLIST, &dl) == 0 && dl.bfl_len > 0 && dl.bfl_len <= 256) {
-        list = calloc(dl.bfl_len, sizeof(uint32_t));
-        if (list) {
-            uint32_t capacity = dl.bfl_len;
-            dl.bfl_list = list;
-            dl.bfl_len = capacity;
-            if (ioctl(fd, BIOCGDLTLIST, &dl) == 0) {
-                have_list = 1;
-                printf("bpf_available_dlt_count=%u bpf_available_dlts=", dl.bfl_len);
-                for (uint32_t i = 0; i < dl.bfl_len; i++) {
-                    printf("%s%u", i ? "," : "", list[i]);
-                }
-                printf("\n");
-            } else {
-                fprintf(stderr, "BIOCGDLTLIST(data) failed: errno=%d (%s)\n", errno, strerror(errno));
-            }
-        }
-    } else {
-        fprintf(stderr, "BIOCGDLTLIST(count) unavailable: errno=%d (%s) len=%u\n",
+    if (ioctl(fd, BIOCGDLTLIST, &dl) < 0 || dl.bfl_len == 0 || dl.bfl_len > 256) {
+        fprintf(stderr, "BIOCGDLTLIST(count) failed: errno=%d (%s) len=%u\n",
                 errno, strerror(errno), dl.bfl_len);
+        return -1;
     }
-
-    const unsigned int preferred[] = { DLT_IEEE802_11_RADIO, DLT_IEEE802_11 };
-    for (size_t p = 0; p < sizeof(preferred)/sizeof(preferred[0]); p++) {
-        int candidate_allowed = !have_list;
-        if (have_list) {
-            for (uint32_t i = 0; i < dl.bfl_len; i++) {
-                if (list[i] == preferred[p]) { candidate_allowed = 1; break; }
-            }
-        }
-        if (!candidate_allowed) continue;
-        unsigned int want = preferred[p];
-        errno = 0;
-        int rc = ioctl(fd, BIOCSDLT, &want);
-        printf("BIOCSDLT candidate=%u rc=%d errno=%d (%s)\n",
-               want, rc, errno, errno ? strerror(errno) : "ok");
-        if (rc == 0) {
-            unsigned int got = 0;
-            if (bpf_get_dlt(fd, &got) == 0) {
-                printf("bpf_selected_dlt=%u\n", got);
-                if (got == DLT_IEEE802_11_RADIO || got == DLT_IEEE802_11) {
-                    free(list);
-                    *selected_out = got;
-                    return 0;
-                }
-            }
-        }
+    uint32_t *list = calloc(dl.bfl_len, sizeof(uint32_t));
+    if (!list) return -1;
+    uint32_t capacity = dl.bfl_len;
+    dl.bfl_list = list;
+    dl.bfl_len = capacity;
+    if (ioctl(fd, BIOCGDLTLIST, &dl) < 0) {
+        fprintf(stderr, "BIOCGDLTLIST(data) failed: errno=%d (%s)\n", errno, strerror(errno));
+        free(list);
+        return -1;
     }
-
-    unsigned int current = 0;
-    if (bpf_get_dlt(fd, &current) == 0) printf("bpf_wireless_dlt_selection_failed_current=%u\n", current);
-    free(list);
-    errno = EPROTONOSUPPORT;
-    return -1;
+    printf("bpf_available_dlt_count=%u bpf_available_dlts=", dl.bfl_len);
+    for (uint32_t i = 0; i < dl.bfl_len; i++) printf("%s%u", i ? "," : "", list[i]);
+    printf("\n");
+    *list_out = list;
+    *count_out = dl.bfl_len;
+    return 0;
 }
 
-static int bind_bpf(int fd, const char *ifname, unsigned int *dlt_out, unsigned int *buflen_out) {
+static int dlt_in_list(const uint32_t *list, uint32_t count, uint32_t dlt) {
+    for (uint32_t i = 0; i < count; i++) if (list[i] == dlt) return 1;
+    return 0;
+}
+
+static int bpf_set_dlt(int fd, unsigned int dlt) {
+    unsigned int value = dlt;
+    errno = 0;
+    int rc = ioctl(fd, BIOCSDLT, &value);
+    printf("BIOCSDLT candidate=%u rc=%d errno=%d (%s)\n",
+           value, rc, errno, errno ? strerror(errno) : "ok");
+    if (rc < 0) return -1;
+    unsigned int got = 0;
+    if (bpf_get_dlt(fd, &got) < 0) return -1;
+    printf("bpf_selected_dlt=%u\n", got);
+    return got == dlt ? 0 : -1;
+}
+
+static int bind_bpf_station(int fd, const char *ifname, uint32_t **dlts_out,
+                            uint32_t *dlt_count_out, unsigned int *blen_out) {
     struct ifreq ifr;
     memset(&ifr, 0, sizeof(ifr));
     strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
@@ -216,17 +198,9 @@ static int bind_bpf(int fd, const char *ifname, unsigned int *dlt_out, unsigned 
         fprintf(stderr, "BIOCSETIF(%s) failed: errno=%d (%s)\n", ifname, errno, strerror(errno));
         return -1;
     }
-
     unsigned int initial = 0;
     if (bpf_get_dlt(fd, &initial) == 0) printf("bpf_initial_dlt=%u\n", initial);
-
-    unsigned int dlt = initial;
-    if (initial != DLT_IEEE802_11 && initial != DLT_IEEE802_11_RADIO) {
-        if (bpf_choose_wireless_dlt(fd, &dlt) != 0) {
-            fprintf(stderr, "No selectable raw 802.11 BPF DLT was exposed by en0 in monitor mode.\n");
-            return -1;
-        }
-    }
+    if (bpf_get_dlt_list(fd, dlts_out, dlt_count_out) < 0) return -1;
 
     unsigned int one = 1;
     if (ioctl(fd, BIOCIMMEDIATE, &one) < 0)
@@ -237,11 +211,11 @@ static int bind_bpf(int fd, const char *ifname, unsigned int *dlt_out, unsigned 
     unsigned int blen = 0;
     if (ioctl(fd, BIOCGBLEN, &blen) < 0 || blen == 0) {
         fprintf(stderr, "BIOCGBLEN failed: errno=%d (%s)\n", errno, strerror(errno));
+        free(*dlts_out);
+        *dlts_out = NULL;
         return -1;
     }
-    printf("bpf_dlt=%u bpf_buffer_length=%u\n", dlt, blen);
-    *dlt_out = dlt;
-    *buflen_out = blen;
+    *blen_out = blen;
     return 0;
 }
 
@@ -253,51 +227,65 @@ static int write_pcap_header(FILE *fp, unsigned int dlt) {
 static int capture_monitor(const char *ifname, const char *outfile, int seconds) {
     if (seconds < 1) seconds = 1;
     if (seconds > 20) seconds = 20;
+    printf("capture_sequence=apple-bpf-dlt-activates-monitor\n");
     printf("capture_interface=%s capture_file=%s capture_seconds=%d\n", ifname, outfile, seconds);
 
+    /* Apple/libpcap sequence: start in station mode, bind BPF, then selecting
+       an 802.11 DLT activates rfmon.  Do not pre-enable WLC monitor. */
     int initial_monitor = 0;
     if (get_monitor_value(ifname, &initial_monitor) != 0) return 1;
     if (initial_monitor != 0) {
-        printf("capture_preflight=monitor-was-on-forcing-off\n");
+        printf("capture_preflight=forcing-monitor-off\n");
         if (set_monitor(ifname, 0) != 0) return 1;
-        usleep(250000);
-    }
-    if (set_monitor(ifname, 1) != 0) return 1;
-    usleep(250000);
-    int live_monitor = -1;
-    if (get_monitor_value(ifname, &live_monitor) != 0 || live_monitor == 0) {
-        fprintf(stderr, "capture_preflight=monitor-did-not-latch\n");
-        set_monitor(ifname, 0);
-        return 1;
+        usleep(300000);
     }
 
     char bpf_path[32] = {0};
     int bpf = open_bpf_device(bpf_path, sizeof(bpf_path));
     if (bpf < 0) {
         fprintf(stderr, "open_bpf_device failed: errno=%d (%s)\n", errno, strerror(errno));
-        set_monitor(ifname, 0);
         return 1;
     }
     printf("bpf_device=%s\n", bpf_path);
 
-    unsigned int dlt = 0, blen = 0;
-    if (bind_bpf(bpf, ifname, &dlt, &blen) != 0) {
+    uint32_t *dlts = NULL, dlt_count = 0;
+    unsigned int blen = 0;
+    if (bind_bpf_station(bpf, ifname, &dlts, &dlt_count, &blen) != 0) {
         close(bpf);
-        set_monitor(ifname, 0);
         return 1;
     }
 
+    unsigned int wireless_dlt = 0;
+    if (dlt_in_list(dlts, dlt_count, DLT_IEEE802_11_RADIO)) wireless_dlt = DLT_IEEE802_11_RADIO;
+    else if (dlt_in_list(dlts, dlt_count, DLT_IEEE802_11)) wireless_dlt = DLT_IEEE802_11;
+    if (!wireless_dlt) {
+        fprintf(stderr, "No raw 802.11 BPF DLT exposed.\n");
+        free(dlts); close(bpf); return 1;
+    }
+
+    printf("capture_monitor_activation=select-dlt-%u\n", wireless_dlt);
+    if (bpf_set_dlt(bpf, wireless_dlt) != 0) {
+        free(dlts); close(bpf); set_monitor(ifname, 0); return 1;
+    }
+    usleep(500000);
+
+    int monitor_after_dlt = -1;
+    if (get_monitor_value(ifname, &monitor_after_dlt) == 0)
+        printf("monitor_after_biocsdlt=%d\n", monitor_after_dlt);
+    printf("bpf_dlt=%u bpf_buffer_length=%u\n", wireless_dlt, blen);
+
     FILE *fp = fopen(outfile, "wb");
-    if (!fp || write_pcap_header(fp, dlt) != 0) {
+    if (!fp || write_pcap_header(fp, wireless_dlt) != 0) {
         fprintf(stderr, "pcap open/header failed: %s\n", strerror(errno));
         if (fp) fclose(fp);
-        close(bpf);
-        set_monitor(ifname, 0);
-        return 1;
+        if (dlt_in_list(dlts, dlt_count, DLT_EN10MB)) bpf_set_dlt(bpf, DLT_EN10MB);
+        free(dlts); close(bpf); set_monitor(ifname, 0); return 1;
     }
     unsigned char *buf = malloc(blen);
     if (!buf) {
-        fclose(fp); close(bpf); set_monitor(ifname, 0); return 1;
+        fclose(fp);
+        if (dlt_in_list(dlts, dlt_count, DLT_EN10MB)) bpf_set_dlt(bpf, DLT_EN10MB);
+        free(dlts); close(bpf); set_monitor(ifname, 0); return 1;
     }
 
     signal(SIGINT, stop_handler);
@@ -340,16 +328,35 @@ static int capture_monitor(const char *ifname, const char *outfile, int seconds)
         fflush(fp);
     }
 
-    free(buf); fclose(fp); close(bpf);
+    free(buf); fclose(fp);
     printf("capture_packets=%llu capture_payload_bytes=%llu capture_dlt=%u\n",
-           (unsigned long long)packets, (unsigned long long)bytes, dlt);
-    int off_rc = set_monitor(ifname, 0);
-    printf("capture_monitor_off_rc=%d\n", off_rc);
-    if (off_rc != 0) result = 1;
+           (unsigned long long)packets, (unsigned long long)bytes, wireless_dlt);
+
+    /* Selecting a non-802.11 DLT is Apple/libpcap's normal way back to
+       non-monitor mode. WLC_SET_MONITOR=0 remains a recovery fallback. */
+    if (dlt_in_list(dlts, dlt_count, DLT_EN10MB)) {
+        printf("capture_monitor_restore=select-dlt-1\n");
+        bpf_set_dlt(bpf, DLT_EN10MB);
+    } else if (dlt_in_list(dlts, dlt_count, DLT_RAW)) {
+        printf("capture_monitor_restore=select-dlt-12\n");
+        bpf_set_dlt(bpf, DLT_RAW);
+    }
+    free(dlts);
+    close(bpf);
+    usleep(300000);
+
     int final_monitor = -1;
-    if (get_monitor_value(ifname, &final_monitor) == 0) {
-        printf("capture_final_monitor=%d\n", final_monitor);
-        if (final_monitor != 0) result = 1;
+    if (get_monitor_value(ifname, &final_monitor) == 0)
+        printf("capture_monitor_after_dlt_restore=%d\n", final_monitor);
+    if (final_monitor != 0) {
+        int off_rc = set_monitor(ifname, 0);
+        printf("capture_wlc_monitor_off_fallback_rc=%d\n", off_rc);
+        if (off_rc != 0) result = 1;
+    }
+    int verify = -1;
+    if (get_monitor_value(ifname, &verify) == 0) {
+        printf("capture_final_monitor=%d\n", verify);
+        if (verify != 0) result = 1;
     }
     return result;
 }
@@ -371,7 +378,8 @@ int main(int argc, char **argv) {
     if (!strcmp(cmd, "off")) return set_monitor(ifname, 0) == 0 ? 0 : 1;
     if (!strcmp(cmd, "pulse")) {
         int s = argc > argi + 1 ? atoi(argv[argi + 1]) : 2;
-        if (s < 1) s = 1; if (s > 10) s = 10;
+        if (s < 1) s = 1;
+        if (s > 10) s = 10;
         if (set_monitor(ifname, 1) != 0) return 1;
         sleep((unsigned)s);
         return set_monitor(ifname, 0) == 0 ? 0 : 1;
