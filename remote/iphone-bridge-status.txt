@@ -1,7 +1,7 @@
 iPhone Tailscale SSH Bridge
-run_id=33195786789
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33195786789
-commit=968f0d3b0e85720aec112c8483bd5626b4f8155f
+run_id=33199384511
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33199384511
+commit=c90ce56c7c5be9a7f554320bbafe3127b0fe5510
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
@@ -10,170 +10,223 @@ install_ssh=success
 ssh=success
 
 --- sanitized SSH output ---
-Waking and checking iPhone SSH port over Tailscale...
-SSH port attempt 1/18
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-iphone_ssh_port_ready=success
-Running remote/iphone-command.sh on mobile@100.96.37.124:22 as root...
-=== IPHONE TWEAK REPAIR + PREFERENCE AUDIT ===
-captured_at=Fri Aug 28 12:41:27 CDT 2026
-whoami=root
-model=iPhone8,1 ios=15.8.8
+ gsc.siri-gesture     virtual GraphicsServices dependency
+ gsc.siri-offline-capability virtual GraphicsServices dependency
+ gsc.sms              virtual GraphicsServices dependency
+ gsc.stand-alone-contacts virtual GraphicsServices dependency
+ gsc.stark-capability virtual GraphicsServices dependency
+ gsc.still-camera     virtual GraphicsServices dependency
+ gsc.supports-force-touch virtual GraphicsServices dependency
+ gsc.supports-iris-capture virtual GraphicsServices dependency
+ gsc.supports-low-power-mode virtual GraphicsServices dependency
+ gsc.supports-rotate-to-wake virtual GraphicsServices dependency
+ gsc.supports-s-o-s   virtual GraphicsServices dependency
+ gsc.telephony        virtual GraphicsServices dependency
+ gsc.touch-id         virtual GraphicsServices dependency
+ gsc.tv-out-crossfade virtual GraphicsServices dependency
+ gsc.u-i-background-quality virtual GraphicsServices dependency
+ gsc.u-i-parallax-capability virtual GraphicsServices dependency
+ gsc.u-i-procedural-wallpaper-capability virtual GraphicsServices dependency
+ gsc.u-i-reachability virtual GraphicsServices dependency
+ gsc.unified-ipod     virtual GraphicsServices dependency
+ gsc.venice           virtual GraphicsServices dependency
+ gsc.vibrator-capability virtual GraphicsServices dependency
+ gsc.video-camera     virtual GraphicsServices dependency
+ gsc.video-stills     virtual GraphicsServices dependency
+ gsc.voice-control    virtual GraphicsServices dependency
+ gsc.voip             virtual GraphicsServices dependency
+ gsc.volume-buttons   virtual GraphicsServices dependency
+ gsc.w-a-graphic-quality virtual GraphicsServices dependency
+ gsc.w-l-a-n-bkg-scan-cache virtual GraphicsServices dependency
+ gsc.wi-fi            virtual GraphicsServices dependency
+ gsc.wifi             virtual GraphicsServices dependency
+ gsc.wifi-chipset     virtual GraphicsServices dependency
 
-===== REPAIR SYSTEMMEMORYRESETFIX FILTER =====
-backup=/var/mobile/Library/ChatGPT-Tweak-Backups/mmaintenanced_hook.plist.20260828-124127.bak
-original_base64:
-YnBsaXN0MDDRAQJWRmlsdGVy0QMEW0V4ZWN1dGFibGVzoQVdbW1haW50ZW5hbmNlZAgLEhUhIwAAAAAAAAEBAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAx
-replacement_text:
-Filter = {
-    Executables = (
-        "mmaintenanced"
-    );
-};
+Reading package lists...
+Building dependency tree...
+Reading state information...
 
-===== APPSYNC FILTER VALIDATION =====
-5:	<key>Filter</key>
-7:		<key>Executables</key>
-9:			<string>installd</string>
-11:	</dict>
-12:</dict>
-13:</plist>
+===== THEMES DIRECTORIES =====
+DIR=/var/jb/Library/Themes
+/var/jb/Library/Themes/LucentBlack.theme
+/var/jb/Library/Themes/LucentBlack.theme/IconBundles
+/var/jb/Library/Themes/LucentBlack.theme/icon.png
+/var/jb/Library/Themes/LucentBlack.theme/Info.plist
+/var/jb/Library/Themes/LucentBlack.theme/Bundles
+/var/jb/Library/Themes/Glass Border.theme
+/var/jb/Library/Themes/Glass Border.theme/AnemoneEffects
+/var/jb/Library/Themes/Glass Border.theme/Info.plist
+/var/jb/Library/Themes/Lucent Settings.theme
+/var/jb/Library/Themes/Lucent Settings.theme/IconBundles
+/var/jb/Library/Themes/Lucent Settings.theme/icon.png
+/var/jb/Library/Themes/Lucent Settings.theme/Info.plist
+/var/jb/Library/Themes/Lucent Settings.theme/Bundles
+/var/jb/Library/Themes/Lucent Badges.theme
+/var/jb/Library/Themes/Lucent Badges.theme/IconBundles
+/var/jb/Library/Themes/Lucent Badges.theme/icon.png
+/var/jb/Library/Themes/Lucent Badges.theme/Info.plist
+/var/jb/Library/Themes/Lucent Badges.theme/Bundles
+/var/jb/Library/Themes/LucentWhite Badges.theme
+/var/jb/Library/Themes/LucentWhite Badges.theme/IconBundles
+/var/jb/Library/Themes/LucentWhite Badges.theme/icon.png
+/var/jb/Library/Themes/LucentWhite Badges.theme/Info.plist
+/var/jb/Library/Themes/LucentWhite Badges.theme/Bundles
+/var/jb/Library/Themes/Glass Alt.theme
+/var/jb/Library/Themes/Glass Alt.theme/IconBundles
+/var/jb/Library/Themes/Glass Alt.theme/Info.plist
+/var/jb/Library/Themes/Solstice Home.theme
+/var/jb/Library/Themes/Solstice Home.theme/IconBundles
+/var/jb/Library/Themes/Solstice Home.theme/Info.plist
+/var/jb/Library/Themes/Solstice Home.theme/Bundles
+/var/jb/Library/Themes/Solstice Folder Effect.theme
+/var/jb/Library/Themes/Solstice Folder Effect.theme/IconBundles
+/var/jb/Library/Themes/Solstice Folder Effect.theme/Info.plist
+/var/jb/Library/Themes/Solstice Folder Effect.theme/Bundles
+/var/jb/Library/Themes/LucentWhite Settings.theme
+/var/jb/Library/Themes/LucentWhite Settings.theme/IconBundles
+/var/jb/Library/Themes/LucentWhite Settings.theme/icon.png
+/var/jb/Library/Themes/LucentWhite Settings.theme/Info.plist
+/var/jb/Library/Themes/LucentWhite Settings.theme/Bundles
+/var/jb/Library/Themes/LucentGlyphs.theme
+/var/jb/Library/Themes/LucentGlyphs.theme/IconBundles
+/var/jb/Library/Themes/LucentGlyphs.theme/icon.png
+/var/jb/Library/Themes/LucentGlyphs.theme/Info.plist
+/var/jb/Library/Themes/LucentGlyphs.theme/Bundles
+/var/jb/Library/Themes/LucentGlyph Badges alts.theme
+/var/jb/Library/Themes/LucentGlyph Badges alts.theme/IconBundles
+/var/jb/Library/Themes/LucentGlyph Badges alts.theme/icon.png
+/var/jb/Library/Themes/LucentGlyph Badges alts.theme/Info.plist
+/var/jb/Library/Themes/LucentGlyph Badges alts.theme/Bundles
+/var/jb/Library/Themes/macOS Spinner.theme
+/var/jb/Library/Themes/macOS Spinner.theme/Info.plist
+/var/jb/Library/Themes/macOS Spinner.theme/Bundles
+/var/jb/Library/Themes/Lucent Badges alts.theme
+/var/jb/Library/Themes/Lucent Badges alts.theme/IconBundles
+/var/jb/Library/Themes/Lucent Badges alts.theme/icon.png
+/var/jb/Library/Themes/Lucent Badges alts.theme/Info.plist
+/var/jb/Library/Themes/Lucent Badges alts.theme/Bundles
+/var/jb/Library/Themes/Glass Shadow.theme
+/var/jb/Library/Themes/Glass Shadow.theme/AnemoneEffects
+/var/jb/Library/Themes/Glass Shadow.theme/Info.plist
+/var/jb/Library/Themes/Solstice Badge Red.theme
+/var/jb/Library/Themes/Solstice Badge Red.theme/IconBundles
+/var/jb/Library/Themes/Solstice Badge Red.theme/UIImages
+/var/jb/Library/Themes/Solstice Badge Red.theme/Info.plist
+/var/jb/Library/Themes/Solstice Badge Red.theme/Bundles
+/var/jb/Library/Themes/LucentBlack Badges alts.theme
+/var/jb/Library/Themes/LucentBlack Badges alts.theme/IconBundles
+/var/jb/Library/Themes/LucentBlack Badges alts.theme/icon.png
+/var/jb/Library/Themes/LucentBlack Badges alts.theme/Info.plist
+/var/jb/Library/Themes/LucentBlack Badges alts.theme/Bundles
+/var/jb/Library/Themes/LucentBlack Mask.theme
+/var/jb/Library/Themes/LucentBlack Mask.theme/Info.plist
+/var/jb/Library/Themes/LucentBlack Mask.theme/Bundles
+/var/jb/Library/Themes/ViolaBlack.theme
+/var/jb/Library/Themes/ViolaBlack.theme/IconBundles
+/var/jb/Library/Themes/ViolaBlack.theme/Info.plist
+/var/jb/Library/Themes/ViolaBlack.theme/Bundles
+/var/jb/Library/Themes/LucentWhite Mask.theme
+/var/jb/Library/Themes/LucentWhite Mask.theme/Info.plist
+/var/jb/Library/Themes/LucentWhite Mask.theme/Bundles
+/var/jb/Library/Themes/Solstice Badge.theme
+/var/jb/Library/Themes/Solstice Badge.theme/IconBundles
+/var/jb/Library/Themes/Solstice Badge.theme/UIImages
+/var/jb/Library/Themes/Solstice Badge.theme/Info.plist
+/var/jb/Library/Themes/Solstice Badge.theme/Bundles
+/var/jb/Library/Themes/LucentGlyphs Mask.theme
+/var/jb/Library/Themes/LucentGlyphs Mask.theme/Info.plist
+/var/jb/Library/Themes/LucentGlyphs Mask.theme/Bundles
+/var/jb/Library/Themes/LucentWhite Badges alts.theme
+/var/jb/Library/Themes/LucentWhite Badges alts.theme/IconBundles
+/var/jb/Library/Themes/LucentWhite Badges alts.theme/icon.png
+/var/jb/Library/Themes/LucentWhite Badges alts.theme/Info.plist
+/var/jb/Library/Themes/LucentWhite Badges alts.theme/Bundles
+/var/jb/Library/Themes/Solstice Settings.theme
+/var/jb/Library/Themes/Solstice Settings.theme/IconBundles
+/var/jb/Library/Themes/Solstice Settings.theme/Info.plist
+/var/jb/Library/Themes/Solstice Settings.theme/Bundles
+/var/jb/Library/Themes/Lucent alts.theme
+/var/jb/Library/Themes/Lucent alts.theme/IconBundles
+/var/jb/Library/Themes/Lucent alts.theme/icon.png
+/var/jb/Library/Themes/Lucent alts.theme/Info.plist
+/var/jb/Library/Themes/ViolaBlack alts
+/var/jb/Library/Themes/ViolaBlack alts/IconBundles
+/var/jb/Library/Themes/ViolaBlack alts/Info.plist
+/var/jb/Library/Themes/Solstice Alt Home.theme
+/var/jb/Library/Themes/Solstice Alt Home.theme/IconBundles
+/var/jb/Library/Themes/Solstice Alt Home.theme/Info.plist
+/var/jb/Library/Themes/LucentGlyphs Badges.theme
+/var/jb/Library/Themes/LucentGlyphs Badges.theme/IconBundles
+/var/jb/Library/Themes/LucentGlyphs Badges.theme/icon.png
+/var/jb/Library/Themes/LucentGlyphs Badges.theme/Info.plist
+/var/jb/Library/Themes/LucentGlyphs Badges.theme/Bundles
+/var/jb/Library/Themes/LucentBlack Badges.theme
+/var/jb/Library/Themes/LucentBlack Badges.theme/IconBundles
+/var/jb/Library/Themes/LucentBlack Badges.theme/icon.png
+/var/jb/Library/Themes/LucentBlack Badges.theme/Info.plist
+/var/jb/Library/Themes/LucentBlack Badges.theme/Bundles
+/var/jb/Library/Themes/SolsticeIcon.theme
+/var/jb/Library/Themes/SolsticeIcon.theme/IconBundles
+/var/jb/Library/Themes/SolsticeIcon.theme/Info.plist
+/var/jb/Library/Themes/LucentWhite.theme
+/var/jb/Library/Themes/LucentWhite.theme/IconBundles
+/var/jb/Library/Themes/LucentWhite.theme/icon.png
+/var/jb/Library/Themes/LucentWhite.theme/Info.plist
+/var/jb/Library/Themes/LucentWhite.theme/Bundles
+/var/jb/Library/Themes/Solstice Tweaked IOS 18 Icons.theme
+/var/jb/Library/Themes/Solstice Tweaked IOS 18 Icons.theme/IconBundles
+/var/jb/Library/Themes/Solstice Tweaked IOS 18 Icons.theme/Info.plist
+/var/jb/Library/Themes/Glass Badge.theme
+/var/jb/Library/Themes/Glass Badge.theme/UIImages
+/var/jb/Library/Themes/Glass Badge.theme/Info.plist
+/var/jb/Library/Themes/Glass Badge.theme/Bundles
+/var/jb/Library/Themes/Lucent Mask.theme
+/var/jb/Library/Themes/Lucent Mask.theme/Info.plist
+/var/jb/Library/Themes/Lucent Mask.theme/Bundles
+/var/jb/Library/Themes/LucentBlack alts.theme
+/var/jb/Library/Themes/LucentBlack alts.theme/IconBundles
+/var/jb/Library/Themes/LucentBlack alts.theme/icon.png
+/var/jb/Library/Themes/LucentBlack alts.theme/Info.plist
+/var/jb/Library/Themes/Lucent.theme
+/var/jb/Library/Themes/Lucent.theme/IconBundles
+/var/jb/Library/Themes/Lucent.theme/icon.png
+/var/jb/Library/Themes/Lucent.theme/Info.plist
+/var/jb/Library/Themes/Lucent.theme/Bundles
+/var/jb/Library/Themes/LucentWhite alts.theme
+/var/jb/Library/Themes/LucentWhite alts.theme/IconBundles
+/var/jb/Library/Themes/LucentWhite alts.theme/icon.png
+/var/jb/Library/Themes/LucentWhite alts.theme/Info.plist
+/var/jb/Library/Themes/Glass.theme
+/var/jb/Library/Themes/Glass.theme/IconBundles
+/var/jb/Library/Themes/Glass.theme/Info.plist
+/var/jb/Library/Themes/Glass.theme/Bundles
+/var/jb/Library/Themes/LucentBlack Settings.theme
+/var/jb/Library/Themes/LucentBlack Settings.theme/IconBundles
+/var/jb/Library/Themes/LucentBlack Settings.theme/icon.png
+/var/jb/Library/Themes/LucentBlack Settings.theme/Info.plist
+/var/jb/Library/Themes/LucentBlack Settings.theme/Bundles
+/var/jb/Library/Themes/LucentGlyphs Settings.theme
+/var/jb/Library/Themes/LucentGlyphs Settings.theme/IconBundles
+/var/jb/Library/Themes/LucentGlyphs Settings.theme/icon.png
+/var/jb/Library/Themes/LucentGlyphs Settings.theme/Info.plist
+/var/jb/Library/Themes/LucentGlyphs Settings.theme/Bundles
+/var/jb/Library/Themes/LucentGlyphs alts.theme
+/var/jb/Library/Themes/LucentGlyphs alts.theme/IconBundles
+/var/jb/Library/Themes/LucentGlyphs alts.theme/icon.png
+/var/jb/Library/Themes/LucentGlyphs alts.theme/Info.plist
+DIR=/Library/Themes
+MISSING
+DIR=/var/mobile/Library/SnowBoard
+MISSING
+DIR=/var/mobile/Library/Designer
+MISSING
 
-===== PREFERENCELOADER CORE PACKAGES =====
-install ok installed	preferenceloader	2.2.8	iphoneos-arm64
-unknown ok not-installed	applist		
-install ok installed	ellekit	1.2	iphoneos-arm64
--- fuzzy package names --
-com.rpetrich.rocketbootstrap	1.1.1~rootless	iphoneos-arm64	install ok installed
-ellekit	1.2	iphoneos-arm64	install ok installed
-preferenceloader	2.2.8	iphoneos-arm64	install ok installed
-xyz.cypwn.applist	1.5.16	iphoneos-arm64	install ok installed
-xyz.cypwn.tweaksettings	1.0.9	iphoneos-arm64	install ok installed
-
-===== PREFERENCE BUNDLES =====
-DIR=/var/jb/Library/PreferenceBundles
-/var/jb/Library/PreferenceBundles/AppList.bundle
-/var/jb/Library/PreferenceBundles/AppList.bundle/AppList
-/var/jb/Library/PreferenceBundles/AppList.bundle/Info.plist
-/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle
-/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/Info.plist
-/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/Root.plist
-/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/appstoretrollerPrefs
-/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon.png
-/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon@2x.png
-/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon@3x.png
-DIR=/var/jb/Library/PreferenceLoader/Preferences
-/var/jb/Library/PreferenceLoader/Preferences/appstoretrollerPrefs.plist
-
-===== PREFERENCE FILE OWNERS =====
-ITEM=/var/jb/Library/PreferenceBundles/AppList.bundle
-xyz.cypwn.applist: /var/jb/Library/PreferenceBundles/AppList.bundle
-ITEM=/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle
-xyz.cypwn.appstoretrollern: /var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle
-ITEM=/var/jb/Library/PreferenceLoader/Preferences/appstoretrollerPrefs.plist
-xyz.cypwn.appstoretrollern: /var/jb/Library/PreferenceLoader/Preferences/appstoretrollerPrefs.plist
-
-===== TWEAK PACKAGE MANIFEST PREFERENCE CONTENT =====
-PKG=base
-/var/jb/System/Library/PreferenceBundles
-PKG=com.tigisoftware.filza
-/var/jb/Applications/Filza.app/DateTools.bundle/ar.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/ar.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/bg.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/bg.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/ca.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/ca.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/cs.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/cs.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/cy.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/cy.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/da.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/da.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/de.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/de.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/en.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/en.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/es.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/es.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/eu.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/eu.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/fi.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/fi.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/fr.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/fr.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/gre.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/gre.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/he.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/he.lproj/DateTools.strings
-/var/jb/Applications/Filza.app/DateTools.bundle/hu.lproj
-/var/jb/Applications/Filza.app/DateTools.bundle/hu.lproj/DateTools.strings
-PKG=org.coolstar.sileo
-/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView (macOS).bundle
-/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView (macOS).bundle/css
-/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView (macOS).bundle/css/down.min.css
-/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView (macOS).bundle/index.html
-/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView (macOS).bundle/js
-/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView (macOS).bundle/js/down.js
-/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView (macOS).bundle/js/highlight.min.js
-/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView.bundle
-/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView.bundle/css
-/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView.bundle/css/down.min.css
-/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView.bundle/index.html
-/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView.bundle/js
-/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView.bundle/js/down.js
-/var/jb/Applications/Sileo.app/Down_Down.bundle/DownView.bundle/js/highlight.min.js
-/var/jb/Applications/Sileo.app/Down_Down.bundle/Info.plist
-PKG=preferenceloader
-/var/jb/Library/PreferenceBundles
-/var/jb/Library/PreferenceLoader/Preferences
-PKG=xyz.cypwn.applist
-/var/jb/Library/PreferenceBundles
-/var/jb/Library/PreferenceBundles/AppList.bundle
-/var/jb/Library/PreferenceBundles/AppList.bundle/AppList
-/var/jb/Library/PreferenceBundles/AppList.bundle/Info.plist
-PKG=xyz.cypwn.appstoretrollern
-/var/jb/Library/PreferenceBundles
-/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle
-/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/Info.plist
-/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/Root.plist
-/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/appstoretrollerPrefs
-/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon.png
-/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon@2x.png
-/var/jb/Library/PreferenceBundles/appstoretrollerPrefs.bundle/icon@3x.png
-/var/jb/Library/PreferenceLoader/Preferences
-/var/jb/Library/PreferenceLoader/Preferences/appstoretrollerPrefs.plist
-PKG=xyz.cypwn.cydiaclassic
-/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView (macOS).bundle
-/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView (macOS).bundle/css
-/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView (macOS).bundle/css/down.min.css
-/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView (macOS).bundle/index.html
-/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView (macOS).bundle/js
-/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView (macOS).bundle/js/down.js
-/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView (macOS).bundle/js/highlight.min.js
-/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView.bundle
-/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView.bundle/css
-/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView.bundle/css/down.min.css
-/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView.bundle/index.html
-/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView.bundle/js
-/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView.bundle/js/down.js
-/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/DownView.bundle/js/highlight.min.js
-/var/jb/Applications/CydiaClassic.app/Down_Down.bundle/Info.plist
-PKG=xyz.cypwn.icleanerpro
-/var/jb/Applications/iCleaner.app/PreferenceBundlesIcon.png
-/var/jb/Applications/iCleaner.app/PreferenceBundlesIcon@2x.png
-
-===== SETTINGS / INJECTION STATE =====
-  347     1   0.0  3.1 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+===== SETTINGS / SPRINGBOARD STATE =====
+  347     1   0.0  2.6 /System/Library/CoreServices/SpringBoard.app/SpringBoard
   359     1   0.0  0.1 /System/Library/PrivateFrameworks/NanoPreferencesSync.framework/nanoprefsyncd
   440     1   0.0  0.5 /System/Library/PrivateFrameworks/IntlPreferences.framework/Support/localizationswitcherd
-  535     1   0.0  0.2 /usr/libexec/mmaintenanced
 391	0	com.rpetrich.rocketbootstrapd
 -	255	com.opa334.Dopamine.startup
 320	0	com.opa334.Dopamine.idownloadd
--- restarting only affected processes --
-=== END IPHONE TWEAK REPAIR + PREFERENCE AUDIT ===
+=== END IPHONE THEME TWEAK / SETTINGS PANE AUDIT ===
 ssh_exit_code=0
