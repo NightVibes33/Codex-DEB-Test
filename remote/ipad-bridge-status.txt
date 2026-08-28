@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=33208059792
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33208059792
-commit=24d0712206d30ce34a97b55497641f3af0661311
+run_id=33208261822
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33208261822
+commit=136c9dcf67e31183f02ebff59c36b1ff22a66e96
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=failure
@@ -10,169 +10,170 @@ ssh=skipped
 
 --- sanitized SSH output ---
 Tailscale connection attempt 1/3
-100.123.200.29  github-ipad-33208059792-1    NightVibes33@  linux    -                           
+100.86.81.11    github-ipad-33208261822-1    NightVibes33@  linux    -                           
 100.116.117.65  bobbys-ipad                  NightVibes33@  iOS      -                           
 100.127.94.70   desktop-o56xs                NightVibes33@  windows  offline, last seen 34d ago  
-100.76.145.84   github-ipad-33203095474-1    NightVibes33@  linux    offline, last seen 1h ago   
-100.103.25.92   github-ipad-33204597539-1    NightVibes33@  linux    offline, last seen 44m ago  
-100.105.169.24  github-ipad-33204824774-1    NightVibes33@  linux    offline, last seen 41m ago  
-100.107.44.106  github-ipad-33205001601-1    NightVibes33@  linux    offline, last seen 38m ago  
-100.97.21.31    github-ipad-33206522872-3    NightVibes33@  linux    offline, last seen 19m ago  
-100.107.113.32  github-ipad-33206625747-3    NightVibes33@  linux    offline, last seen 18m ago  
-100.74.158.63   github-ipad-33206882963-1    NightVibes33@  linux    offline, last seen 12m ago  
-100.127.127.69  github-ipad-33207611676-3    NightVibes33@  linux    offline, last seen 5m ago   
-100.87.236.12   github-ipad-33207815411-3    NightVibes33@  linux    offline, last seen 2m ago   
-100.76.157.24   github-ipad-33207946199-3    NightVibes33@  linux    offline, last seen 1m ago   
-100.115.221.93  github-iphone-33203095413-1  NightVibes33@  linux    offline, last seen 48m ago  
-100.69.237.72   github-iphone-33203095474    NightVibes33@  linux    offline, last seen 48m ago  
-100.88.4.39     github-iphone-33204597525-1  NightVibes33@  linux    offline, last seen 46m ago  
-100.108.25.46   github-iphone-33204597539    NightVibes33@  linux    offline, last seen 45m ago  
-100.76.174.113  github-iphone-33204666494-1  NightVibes33@  linux    offline, last seen 45m ago  
-100.98.130.90   github-iphone-33204824774    NightVibes33@  linux    offline, last seen 42m ago  
-100.98.3.119    github-iphone-33204873471-1  NightVibes33@  linux    offline, last seen 42m ago  
-100.115.230.78  github-iphone-33205001564-1  NightVibes33@  linux    offline, last seen 41m ago  
-100.65.141.55   github-iphone-33205001601    NightVibes33@  linux    offline, last seen 41m ago  
-100.103.127.98  github-iphone-33206522872    NightVibes33@  linux    offline, last seen 20m ago  
-100.74.241.14   github-iphone-33206522944-1  NightVibes33@  linux    offline, last seen 20m ago  
-100.72.64.81    github-iphone-33206625663-1  NightVibes33@  linux    offline, last seen 16m ago  
-100.112.149.88  github-iphone-33206625747    NightVibes33@  linux    offline, last seen 16m ago  
-100.69.82.70    github-iphone-33206882963    NightVibes33@  linux    offline, last seen 15m ago  
-100.73.69.27    github-iphone-33206929549-1  NightVibes33@  linux    offline, last seen 15m ago  
-100.74.111.94   github-iphone-33207211362-1  NightVibes33@  linux    offline, last seen 11m ago  
-100.65.27.117   github-iphone-33207211386    NightVibes33@  linux    offline, last seen 9m ago   
-100.67.214.33   github-iphone-33207436092-1  NightVibes33@  linux    offline, last seen 6m ago   
-100.81.210.23   github-iphone-33207611676    NightVibes33@  linux    offline, last seen 5m ago   
-100.101.81.112  github-iphone-33207657485-1  NightVibes33@  linux    offline, last seen 5m ago   
-100.102.182.33  github-iphone-33207815411    NightVibes33@  linux    offline, last seen 3m ago   
-100.112.47.110  github-iphone-33207815412-1  NightVibes33@  linux    offline, last seen 2m ago   
-100.126.233.30  github-iphone-33207946199    NightVibes33@  linux    offline, last seen 1m ago   
-100.92.50.106   github-iphone-33207946228-1  NightVibes33@  linux    offline, last seen 1m ago   
-100.77.164.11   github-iphone-33208059792    NightVibes33@  linux    -                           
-100.85.11.52    github-iphone-33208059799-1  NightVibes33@  linux    -                           
+100.103.25.92   github-ipad-33204597539-1    NightVibes33@  linux    offline, last seen 47m ago  
+100.105.169.24  github-ipad-33204824774-1    NightVibes33@  linux    offline, last seen 44m ago  
+100.107.44.106  github-ipad-33205001601-1    NightVibes33@  linux    offline, last seen 41m ago  
+100.97.21.31    github-ipad-33206522872-3    NightVibes33@  linux    offline, last seen 22m ago  
+100.107.113.32  github-ipad-33206625747-3    NightVibes33@  linux    offline, last seen 21m ago  
+100.74.158.63   github-ipad-33206882963-1    NightVibes33@  linux    offline, last seen 14m ago  
+100.127.127.69  github-ipad-33207611676-3    NightVibes33@  linux    offline, last seen 7m ago   
+100.87.236.12   github-ipad-33207815411-3    NightVibes33@  linux    offline, last seen 5m ago   
+100.76.157.24   github-ipad-33207946199-3    NightVibes33@  linux    offline, last seen 3m ago   
+100.108.18.82   github-ipad-33208059792-3    NightVibes33@  linux    offline, last seen 1m ago   
+100.115.221.93  github-iphone-33203095413-1  NightVibes33@  linux    offline, last seen 50m ago  
+100.69.237.72   github-iphone-33203095474    NightVibes33@  linux    offline, last seen 50m ago  
+100.88.4.39     github-iphone-33204597525-1  NightVibes33@  linux    offline, last seen 49m ago  
+100.108.25.46   github-iphone-33204597539    NightVibes33@  linux    offline, last seen 47m ago  
+100.76.174.113  github-iphone-33204666494-1  NightVibes33@  linux    offline, last seen 48m ago  
+100.98.130.90   github-iphone-33204824774    NightVibes33@  linux    offline, last seen 45m ago  
+100.98.3.119    github-iphone-33204873471-1  NightVibes33@  linux    offline, last seen 45m ago  
+100.115.230.78  github-iphone-33205001564-1  NightVibes33@  linux    offline, last seen 44m ago  
+100.65.141.55   github-iphone-33205001601    NightVibes33@  linux    offline, last seen 44m ago  
+100.103.127.98  github-iphone-33206522872    NightVibes33@  linux    offline, last seen 23m ago  
+100.74.241.14   github-iphone-33206522944-1  NightVibes33@  linux    offline, last seen 23m ago  
+100.72.64.81    github-iphone-33206625663-1  NightVibes33@  linux    offline, last seen 19m ago  
+100.112.149.88  github-iphone-33206625747    NightVibes33@  linux    offline, last seen 19m ago  
+100.69.82.70    github-iphone-33206882963    NightVibes33@  linux    offline, last seen 18m ago  
+100.73.69.27    github-iphone-33206929549-1  NightVibes33@  linux    offline, last seen 17m ago  
+100.74.111.94   github-iphone-33207211362-1  NightVibes33@  linux    offline, last seen 14m ago  
+100.65.27.117   github-iphone-33207211386    NightVibes33@  linux    offline, last seen 12m ago  
+100.67.214.33   github-iphone-33207436092-1  NightVibes33@  linux    offline, last seen 9m ago   
+100.81.210.23   github-iphone-33207611676    NightVibes33@  linux    offline, last seen 8m ago   
+100.101.81.112  github-iphone-33207657485-1  NightVibes33@  linux    offline, last seen 7m ago   
+100.102.182.33  github-iphone-33207815411    NightVibes33@  linux    offline, last seen 5m ago   
+100.112.47.110  github-iphone-33207815412-1  NightVibes33@  linux    offline, last seen 5m ago   
+100.126.233.30  github-iphone-33207946199    NightVibes33@  linux    offline, last seen 4m ago   
+100.92.50.106   github-iphone-33207946228-1  NightVibes33@  linux    offline, last seen 4m ago   
+100.77.164.11   github-iphone-33208059792    NightVibes33@  linux    offline, last seen 2m ago   
+100.85.11.52    github-iphone-33208059799-1  NightVibes33@  linux    offline, last seen 2m ago   
 100.96.37.124   iphone                       NightVibes33@  iOS      -                           
 100.79.177.16   iphone173                    NightVibes33@  iOS      offline, last seen 8d ago   
 Tailscale connection attempt 2/3
-100.127.254.11  github-ipad-33208059792-2    NightVibes33@  linux    -                           
+100.116.219.38  github-ipad-33208261822-2    NightVibes33@  linux    -                           
 100.116.117.65  bobbys-ipad                  NightVibes33@  iOS      -                           
 100.127.94.70   desktop-o56xs                NightVibes33@  windows  offline, last seen 34d ago  
-100.76.145.84   github-ipad-33203095474-1    NightVibes33@  linux    offline, last seen 1h ago   
-100.103.25.92   github-ipad-33204597539-1    NightVibes33@  linux    offline, last seen 45m ago  
-100.105.169.24  github-ipad-33204824774-1    NightVibes33@  linux    offline, last seen 42m ago  
-100.107.44.106  github-ipad-33205001601-1    NightVibes33@  linux    offline, last seen 39m ago  
-100.97.21.31    github-ipad-33206522872-3    NightVibes33@  linux    offline, last seen 20m ago  
-100.107.113.32  github-ipad-33206625747-3    NightVibes33@  linux    offline, last seen 18m ago  
-100.74.158.63   github-ipad-33206882963-1    NightVibes33@  linux    offline, last seen 12m ago  
-100.127.127.69  github-ipad-33207611676-3    NightVibes33@  linux    offline, last seen 5m ago   
-100.87.236.12   github-ipad-33207815411-3    NightVibes33@  linux    offline, last seen 2m ago   
-100.76.157.24   github-ipad-33207946199-3    NightVibes33@  linux    offline, last seen 1m ago   
-100.115.221.93  github-iphone-33203095413-1  NightVibes33@  linux    offline, last seen 48m ago  
-100.69.237.72   github-iphone-33203095474    NightVibes33@  linux    offline, last seen 48m ago  
-100.88.4.39     github-iphone-33204597525-1  NightVibes33@  linux    offline, last seen 47m ago  
-100.108.25.46   github-iphone-33204597539    NightVibes33@  linux    offline, last seen 45m ago  
-100.76.174.113  github-iphone-33204666494-1  NightVibes33@  linux    offline, last seen 46m ago  
-100.98.130.90   github-iphone-33204824774    NightVibes33@  linux    offline, last seen 43m ago  
-100.98.3.119    github-iphone-33204873471-1  NightVibes33@  linux    offline, last seen 43m ago  
-100.115.230.78  github-iphone-33205001564-1  NightVibes33@  linux    offline, last seen 42m ago  
-100.65.141.55   github-iphone-33205001601    NightVibes33@  linux    offline, last seen 41m ago  
-100.103.127.98  github-iphone-33206522872    NightVibes33@  linux    offline, last seen 20m ago  
-100.74.241.14   github-iphone-33206522944-1  NightVibes33@  linux    offline, last seen 21m ago  
-100.72.64.81    github-iphone-33206625663-1  NightVibes33@  linux    offline, last seen 16m ago  
-100.112.149.88  github-iphone-33206625747    NightVibes33@  linux    offline, last seen 16m ago  
-100.69.82.70    github-iphone-33206882963    NightVibes33@  linux    offline, last seen 15m ago  
-100.73.69.27    github-iphone-33206929549-1  NightVibes33@  linux    offline, last seen 15m ago  
-100.74.111.94   github-iphone-33207211362-1  NightVibes33@  linux    offline, last seen 11m ago  
-100.65.27.117   github-iphone-33207211386    NightVibes33@  linux    offline, last seen 10m ago  
-100.67.214.33   github-iphone-33207436092-1  NightVibes33@  linux    offline, last seen 6m ago   
-100.81.210.23   github-iphone-33207611676    NightVibes33@  linux    offline, last seen 5m ago   
-100.101.81.112  github-iphone-33207657485-1  NightVibes33@  linux    offline, last seen 5m ago   
-100.102.182.33  github-iphone-33207815411    NightVibes33@  linux    offline, last seen 3m ago   
-100.112.47.110  github-iphone-33207815412-1  NightVibes33@  linux    offline, last seen 3m ago   
-100.126.233.30  github-iphone-33207946199    NightVibes33@  linux    offline, last seen 1m ago   
-100.92.50.106   github-iphone-33207946228-1  NightVibes33@  linux    offline, last seen 1m ago   
-100.77.164.11   github-iphone-33208059792    NightVibes33@  linux    -                           
-100.85.11.52    github-iphone-33208059799-1  NightVibes33@  linux    -                           
+100.103.25.92   github-ipad-33204597539-1    NightVibes33@  linux    offline, last seen 47m ago  
+100.105.169.24  github-ipad-33204824774-1    NightVibes33@  linux    offline, last seen 44m ago  
+100.107.44.106  github-ipad-33205001601-1    NightVibes33@  linux    offline, last seen 41m ago  
+100.97.21.31    github-ipad-33206522872-3    NightVibes33@  linux    offline, last seen 22m ago  
+100.107.113.32  github-ipad-33206625747-3    NightVibes33@  linux    offline, last seen 21m ago  
+100.74.158.63   github-ipad-33206882963-1    NightVibes33@  linux    offline, last seen 15m ago  
+100.127.127.69  github-ipad-33207611676-3    NightVibes33@  linux    offline, last seen 7m ago   
+100.87.236.12   github-ipad-33207815411-3    NightVibes33@  linux    offline, last seen 5m ago   
+100.76.157.24   github-ipad-33207946199-3    NightVibes33@  linux    offline, last seen 3m ago   
+100.108.18.82   github-ipad-33208059792-3    NightVibes33@  linux    offline, last seen 1m ago   
+100.115.221.93  github-iphone-33203095413-1  NightVibes33@  linux    offline, last seen 51m ago  
+100.69.237.72   github-iphone-33203095474    NightVibes33@  linux    offline, last seen 51m ago  
+100.88.4.39     github-iphone-33204597525-1  NightVibes33@  linux    offline, last seen 49m ago  
+100.108.25.46   github-iphone-33204597539    NightVibes33@  linux    offline, last seen 48m ago  
+100.76.174.113  github-iphone-33204666494-1  NightVibes33@  linux    offline, last seen 48m ago  
+100.98.130.90   github-iphone-33204824774    NightVibes33@  linux    offline, last seen 45m ago  
+100.98.3.119    github-iphone-33204873471-1  NightVibes33@  linux    offline, last seen 45m ago  
+100.115.230.78  github-iphone-33205001564-1  NightVibes33@  linux    offline, last seen 44m ago  
+100.65.141.55   github-iphone-33205001601    NightVibes33@  linux    offline, last seen 44m ago  
+100.103.127.98  github-iphone-33206522872    NightVibes33@  linux    offline, last seen 23m ago  
+100.74.241.14   github-iphone-33206522944-1  NightVibes33@  linux    offline, last seen 23m ago  
+100.72.64.81    github-iphone-33206625663-1  NightVibes33@  linux    offline, last seen 19m ago  
+100.112.149.88  github-iphone-33206625747    NightVibes33@  linux    offline, last seen 19m ago  
+100.69.82.70    github-iphone-33206882963    NightVibes33@  linux    offline, last seen 18m ago  
+100.73.69.27    github-iphone-33206929549-1  NightVibes33@  linux    offline, last seen 18m ago  
+100.74.111.94   github-iphone-33207211362-1  NightVibes33@  linux    offline, last seen 14m ago  
+100.65.27.117   github-iphone-33207211386    NightVibes33@  linux    offline, last seen 12m ago  
+100.67.214.33   github-iphone-33207436092-1  NightVibes33@  linux    offline, last seen 9m ago   
+100.81.210.23   github-iphone-33207611676    NightVibes33@  linux    offline, last seen 8m ago   
+100.101.81.112  github-iphone-33207657485-1  NightVibes33@  linux    offline, last seen 7m ago   
+100.102.182.33  github-iphone-33207815411    NightVibes33@  linux    offline, last seen 5m ago   
+100.112.47.110  github-iphone-33207815412-1  NightVibes33@  linux    offline, last seen 5m ago   
+100.126.233.30  github-iphone-33207946199    NightVibes33@  linux    offline, last seen 4m ago   
+100.92.50.106   github-iphone-33207946228-1  NightVibes33@  linux    offline, last seen 4m ago   
+100.77.164.11   github-iphone-33208059792    NightVibes33@  linux    offline, last seen 2m ago   
+100.85.11.52    github-iphone-33208059799-1  NightVibes33@  linux    offline, last seen 2m ago   
 100.96.37.124   iphone                       NightVibes33@  iOS      -                           
 100.79.177.16   iphone173                    NightVibes33@  iOS      offline, last seen 8d ago   
 Tailscale connection attempt 3/3
-100.108.18.82   github-ipad-33208059792-3    NightVibes33@  linux    -                           
+100.123.84.86   github-ipad-33208261822-3    NightVibes33@  linux    -                           
 100.116.117.65  bobbys-ipad                  NightVibes33@  iOS      -                           
 100.127.94.70   desktop-o56xs                NightVibes33@  windows  offline, last seen 34d ago  
-100.76.145.84   github-ipad-33203095474-1    NightVibes33@  linux    offline, last seen 1h ago   
-100.103.25.92   github-ipad-33204597539-1    NightVibes33@  linux    offline, last seen 45m ago  
-100.105.169.24  github-ipad-33204824774-1    NightVibes33@  linux    offline, last seen 42m ago  
-100.107.44.106  github-ipad-33205001601-1    NightVibes33@  linux    offline, last seen 39m ago  
-100.97.21.31    github-ipad-33206522872-3    NightVibes33@  linux    offline, last seen 20m ago  
-100.107.113.32  github-ipad-33206625747-3    NightVibes33@  linux    offline, last seen 18m ago  
-100.74.158.63   github-ipad-33206882963-1    NightVibes33@  linux    offline, last seen 12m ago  
-100.127.127.69  github-ipad-33207611676-3    NightVibes33@  linux    offline, last seen 5m ago   
-100.87.236.12   github-ipad-33207815411-3    NightVibes33@  linux    offline, last seen 2m ago   
-100.76.157.24   github-ipad-33207946199-3    NightVibes33@  linux    offline, last seen 1m ago   
-100.115.221.93  github-iphone-33203095413-1  NightVibes33@  linux    offline, last seen 48m ago  
-100.69.237.72   github-iphone-33203095474    NightVibes33@  linux    offline, last seen 48m ago  
-100.88.4.39     github-iphone-33204597525-1  NightVibes33@  linux    offline, last seen 47m ago  
-100.108.25.46   github-iphone-33204597539    NightVibes33@  linux    offline, last seen 45m ago  
-100.76.174.113  github-iphone-33204666494-1  NightVibes33@  linux    offline, last seen 46m ago  
-100.98.130.90   github-iphone-33204824774    NightVibes33@  linux    offline, last seen 43m ago  
-100.98.3.119    github-iphone-33204873471-1  NightVibes33@  linux    offline, last seen 43m ago  
-100.115.230.78  github-iphone-33205001564-1  NightVibes33@  linux    offline, last seen 42m ago  
-100.65.141.55   github-iphone-33205001601    NightVibes33@  linux    offline, last seen 42m ago  
-100.103.127.98  github-iphone-33206522872    NightVibes33@  linux    offline, last seen 21m ago  
-100.74.241.14   github-iphone-33206522944-1  NightVibes33@  linux    offline, last seen 21m ago  
-100.72.64.81    github-iphone-33206625663-1  NightVibes33@  linux    offline, last seen 17m ago  
-100.112.149.88  github-iphone-33206625747    NightVibes33@  linux    offline, last seen 17m ago  
-100.69.82.70    github-iphone-33206882963    NightVibes33@  linux    offline, last seen 16m ago  
-100.73.69.27    github-iphone-33206929549-1  NightVibes33@  linux    offline, last seen 15m ago  
-100.74.111.94   github-iphone-33207211362-1  NightVibes33@  linux    offline, last seen 12m ago  
-100.65.27.117   github-iphone-33207211386    NightVibes33@  linux    offline, last seen 10m ago  
-100.67.214.33   github-iphone-33207436092-1  NightVibes33@  linux    offline, last seen 7m ago   
-100.81.210.23   github-iphone-33207611676    NightVibes33@  linux    offline, last seen 6m ago   
-100.101.81.112  github-iphone-33207657485-1  NightVibes33@  linux    offline, last seen 5m ago   
-100.102.182.33  github-iphone-33207815411    NightVibes33@  linux    offline, last seen 3m ago   
-100.112.47.110  github-iphone-33207815412-1  NightVibes33@  linux    offline, last seen 3m ago   
-100.126.233.30  github-iphone-33207946199    NightVibes33@  linux    offline, last seen 1m ago   
-100.92.50.106   github-iphone-33207946228-1  NightVibes33@  linux    offline, last seen 1m ago   
-100.77.164.11   github-iphone-33208059792    NightVibes33@  linux    -                           
-100.85.11.52    github-iphone-33208059799-1  NightVibes33@  linux    -                           
+100.103.25.92   github-ipad-33204597539-1    NightVibes33@  linux    offline, last seen 48m ago  
+100.105.169.24  github-ipad-33204824774-1    NightVibes33@  linux    offline, last seen 45m ago  
+100.107.44.106  github-ipad-33205001601-1    NightVibes33@  linux    offline, last seen 42m ago  
+100.97.21.31    github-ipad-33206522872-3    NightVibes33@  linux    offline, last seen 23m ago  
+100.107.113.32  github-ipad-33206625747-3    NightVibes33@  linux    offline, last seen 21m ago  
+100.74.158.63   github-ipad-33206882963-1    NightVibes33@  linux    offline, last seen 15m ago  
+100.127.127.69  github-ipad-33207611676-3    NightVibes33@  linux    offline, last seen 8m ago   
+100.87.236.12   github-ipad-33207815411-3    NightVibes33@  linux    offline, last seen 5m ago   
+100.76.157.24   github-ipad-33207946199-3    NightVibes33@  linux    offline, last seen 3m ago   
+100.108.18.82   github-ipad-33208059792-3    NightVibes33@  linux    offline, last seen 1m ago   
+100.115.221.93  github-iphone-33203095413-1  NightVibes33@  linux    offline, last seen 51m ago  
+100.69.237.72   github-iphone-33203095474    NightVibes33@  linux    offline, last seen 51m ago  
+100.88.4.39     github-iphone-33204597525-1  NightVibes33@  linux    offline, last seen 50m ago  
+100.108.25.46   github-iphone-33204597539    NightVibes33@  linux    offline, last seen 48m ago  
+100.76.174.113  github-iphone-33204666494-1  NightVibes33@  linux    offline, last seen 49m ago  
+100.98.130.90   github-iphone-33204824774    NightVibes33@  linux    offline, last seen 46m ago  
+100.98.3.119    github-iphone-33204873471-1  NightVibes33@  linux    offline, last seen 46m ago  
+100.115.230.78  github-iphone-33205001564-1  NightVibes33@  linux    offline, last seen 45m ago  
+100.65.141.55   github-iphone-33205001601    NightVibes33@  linux    offline, last seen 44m ago  
+100.103.127.98  github-iphone-33206522872    NightVibes33@  linux    offline, last seen 23m ago  
+100.74.241.14   github-iphone-33206522944-1  NightVibes33@  linux    offline, last seen 24m ago  
+100.72.64.81    github-iphone-33206625663-1  NightVibes33@  linux    offline, last seen 19m ago  
+100.112.149.88  github-iphone-33206625747    NightVibes33@  linux    offline, last seen 19m ago  
+100.69.82.70    github-iphone-33206882963    NightVibes33@  linux    offline, last seen 18m ago  
+100.73.69.27    github-iphone-33206929549-1  NightVibes33@  linux    offline, last seen 18m ago  
+100.74.111.94   github-iphone-33207211362-1  NightVibes33@  linux    offline, last seen 14m ago  
+100.65.27.117   github-iphone-33207211386    NightVibes33@  linux    offline, last seen 13m ago  
+100.67.214.33   github-iphone-33207436092-1  NightVibes33@  linux    offline, last seen 9m ago   
+100.81.210.23   github-iphone-33207611676    NightVibes33@  linux    offline, last seen 8m ago   
+100.101.81.112  github-iphone-33207657485-1  NightVibes33@  linux    offline, last seen 8m ago   
+100.102.182.33  github-iphone-33207815411    NightVibes33@  linux    offline, last seen 6m ago   
+100.112.47.110  github-iphone-33207815412-1  NightVibes33@  linux    offline, last seen 6m ago   
+100.126.233.30  github-iphone-33207946199    NightVibes33@  linux    offline, last seen 4m ago   
+100.92.50.106   github-iphone-33207946228-1  NightVibes33@  linux    offline, last seen 4m ago   
+100.77.164.11   github-iphone-33208059792    NightVibes33@  linux    offline, last seen 2m ago   
+100.85.11.52    github-iphone-33208059799-1  NightVibes33@  linux    offline, last seen 2m ago   
 100.96.37.124   iphone                       NightVibes33@  iOS      -                           
 100.79.177.16   iphone173                    NightVibes33@  iOS      offline, last seen 8d ago   
 Tailscale login succeeded inconsistently or the iPad node was not visible.
-100.108.18.82   github-ipad-33208059792-3    NightVibes33@  linux    -                           
+100.123.84.86   github-ipad-33208261822-3    NightVibes33@  linux    -                           
 100.116.117.65  bobbys-ipad                  NightVibes33@  iOS      -                           
 100.127.94.70   desktop-o56xs                NightVibes33@  windows  offline, last seen 34d ago  
-100.103.25.92   github-ipad-33204597539-1    NightVibes33@  linux    offline, last seen 45m ago  
-100.105.169.24  github-ipad-33204824774-1    NightVibes33@  linux    offline, last seen 42m ago  
-100.107.44.106  github-ipad-33205001601-1    NightVibes33@  linux    offline, last seen 39m ago  
-100.97.21.31    github-ipad-33206522872-3    NightVibes33@  linux    offline, last seen 20m ago  
-100.107.113.32  github-ipad-33206625747-3    NightVibes33@  linux    offline, last seen 19m ago  
-100.74.158.63   github-ipad-33206882963-1    NightVibes33@  linux    offline, last seen 13m ago  
-100.127.127.69  github-ipad-33207611676-3    NightVibes33@  linux    offline, last seen 5m ago   
-100.87.236.12   github-ipad-33207815411-3    NightVibes33@  linux    offline, last seen 3m ago   
-100.76.157.24   github-ipad-33207946199-3    NightVibes33@  linux    offline, last seen 1m ago   
-100.115.221.93  github-iphone-33203095413-1  NightVibes33@  linux    offline, last seen 49m ago  
-100.69.237.72   github-iphone-33203095474    NightVibes33@  linux    offline, last seen 49m ago  
-100.88.4.39     github-iphone-33204597525-1  NightVibes33@  linux    offline, last seen 47m ago  
-100.108.25.46   github-iphone-33204597539    NightVibes33@  linux    offline, last seen 46m ago  
-100.76.174.113  github-iphone-33204666494-1  NightVibes33@  linux    offline, last seen 46m ago  
-100.98.130.90   github-iphone-33204824774    NightVibes33@  linux    offline, last seen 43m ago  
-100.98.3.119    github-iphone-33204873471-1  NightVibes33@  linux    offline, last seen 43m ago  
-100.115.230.78  github-iphone-33205001564-1  NightVibes33@  linux    offline, last seen 42m ago  
-100.65.141.55   github-iphone-33205001601    NightVibes33@  linux    offline, last seen 42m ago  
-100.103.127.98  github-iphone-33206522872    NightVibes33@  linux    offline, last seen 21m ago  
-100.74.241.14   github-iphone-33206522944-1  NightVibes33@  linux    offline, last seen 21m ago  
-100.72.64.81    github-iphone-33206625663-1  NightVibes33@  linux    offline, last seen 17m ago  
-100.112.149.88  github-iphone-33206625747    NightVibes33@  linux    offline, last seen 17m ago  
-100.69.82.70    github-iphone-33206882963    NightVibes33@  linux    offline, last seen 16m ago  
-100.73.69.27    github-iphone-33206929549-1  NightVibes33@  linux    offline, last seen 16m ago  
-100.74.111.94   github-iphone-33207211362-1  NightVibes33@  linux    offline, last seen 12m ago  
-100.65.27.117   github-iphone-33207211386    NightVibes33@  linux    offline, last seen 10m ago  
-100.67.214.33   github-iphone-33207436092-1  NightVibes33@  linux    offline, last seen 7m ago   
-100.81.210.23   github-iphone-33207611676    NightVibes33@  linux    offline, last seen 6m ago   
-100.101.81.112  github-iphone-33207657485-1  NightVibes33@  linux    offline, last seen 5m ago   
-100.102.182.33  github-iphone-33207815411    NightVibes33@  linux    offline, last seen 3m ago   
-100.112.47.110  github-iphone-33207815412-1  NightVibes33@  linux    offline, last seen 3m ago   
-100.126.233.30  github-iphone-33207946199    NightVibes33@  linux    offline, last seen 2m ago   
-100.92.50.106   github-iphone-33207946228-1  NightVibes33@  linux    offline, last seen 2m ago   
-100.77.164.11   github-iphone-33208059792    NightVibes33@  linux    -                           
-100.85.11.52    github-iphone-33208059799-1  NightVibes33@  linux    -                           
+100.103.25.92   github-ipad-33204597539-1    NightVibes33@  linux    offline, last seen 48m ago  
+100.105.169.24  github-ipad-33204824774-1    NightVibes33@  linux    offline, last seen 45m ago  
+100.107.44.106  github-ipad-33205001601-1    NightVibes33@  linux    offline, last seen 42m ago  
+100.97.21.31    github-ipad-33206522872-3    NightVibes33@  linux    offline, last seen 23m ago  
+100.107.113.32  github-ipad-33206625747-3    NightVibes33@  linux    offline, last seen 22m ago  
+100.74.158.63   github-ipad-33206882963-1    NightVibes33@  linux    offline, last seen 15m ago  
+100.127.127.69  github-ipad-33207611676-3    NightVibes33@  linux    offline, last seen 8m ago   
+100.87.236.12   github-ipad-33207815411-3    NightVibes33@  linux    offline, last seen 6m ago   
+100.76.157.24   github-ipad-33207946199-3    NightVibes33@  linux    offline, last seen 4m ago   
+100.108.18.82   github-ipad-33208059792-3    NightVibes33@  linux    offline, last seen 2m ago   
+100.115.221.93  github-iphone-33203095413-1  NightVibes33@  linux    offline, last seen 51m ago  
+100.69.237.72   github-iphone-33203095474    NightVibes33@  linux    offline, last seen 51m ago  
+100.88.4.39     github-iphone-33204597525-1  NightVibes33@  linux    offline, last seen 50m ago  
+100.108.25.46   github-iphone-33204597539    NightVibes33@  linux    offline, last seen 48m ago  
+100.76.174.113  github-iphone-33204666494-1  NightVibes33@  linux    offline, last seen 49m ago  
+100.98.130.90   github-iphone-33204824774    NightVibes33@  linux    offline, last seen 46m ago  
+100.98.3.119    github-iphone-33204873471-1  NightVibes33@  linux    offline, last seen 46m ago  
+100.115.230.78  github-iphone-33205001564-1  NightVibes33@  linux    offline, last seen 45m ago  
+100.65.141.55   github-iphone-33205001601    NightVibes33@  linux    offline, last seen 45m ago  
+100.103.127.98  github-iphone-33206522872    NightVibes33@  linux    offline, last seen 24m ago  
+100.74.241.14   github-iphone-33206522944-1  NightVibes33@  linux    offline, last seen 24m ago  
+100.72.64.81    github-iphone-33206625663-1  NightVibes33@  linux    offline, last seen 20m ago  
+100.112.149.88  github-iphone-33206625747    NightVibes33@  linux    offline, last seen 20m ago  
+100.69.82.70    github-iphone-33206882963    NightVibes33@  linux    offline, last seen 19m ago  
+100.73.69.27    github-iphone-33206929549-1  NightVibes33@  linux    offline, last seen 18m ago  
+100.74.111.94   github-iphone-33207211362-1  NightVibes33@  linux    offline, last seen 15m ago  
+100.65.27.117   github-iphone-33207211386    NightVibes33@  linux    offline, last seen 13m ago  
+100.67.214.33   github-iphone-33207436092-1  NightVibes33@  linux    offline, last seen 10m ago  
+100.81.210.23   github-iphone-33207611676    NightVibes33@  linux    offline, last seen 9m ago   
+100.101.81.112  github-iphone-33207657485-1  NightVibes33@  linux    offline, last seen 8m ago   
+100.102.182.33  github-iphone-33207815411    NightVibes33@  linux    offline, last seen 6m ago   
+100.112.47.110  github-iphone-33207815412-1  NightVibes33@  linux    offline, last seen 6m ago   
+100.126.233.30  github-iphone-33207946199    NightVibes33@  linux    offline, last seen 5m ago   
+100.92.50.106   github-iphone-33207946228-1  NightVibes33@  linux    offline, last seen 5m ago   
+100.77.164.11   github-iphone-33208059792    NightVibes33@  linux    offline, last seen 3m ago   
+100.85.11.52    github-iphone-33208059799-1  NightVibes33@  linux    offline, last seen 3m ago   
 100.96.37.124   iphone                       NightVibes33@  iOS      -                           
 100.79.177.16   iphone173                    NightVibes33@  iOS      offline, last seen 8d ago   
