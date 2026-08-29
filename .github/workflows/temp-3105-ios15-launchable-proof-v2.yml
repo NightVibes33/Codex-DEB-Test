@@ -1,0 +1,178 @@
+name: Temp 3105 iOS15 launchable proof v2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/temp-3105-ios15-launchable-proof-v2.yml"
+
+permissions:
+  actions: read
+  contents: read
+
+env:
+  IPA_ARTIFACT_ID: "9709015542"
+  IPA_SHA256: "9944eaec3c8ab6ea17b962b89bafafd0cbeae1fe7117563bdf09cb420867a2a2"
+  BUNDLE_ID: "com.nightvibes.app.threeoneosfive1"
+
+jobs:
+  env:
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.r.outputs.name }}
+    steps:
+      - id: r
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" >/tmp/e.json
+          n="$(python3 - <<'PY'
+          import json
+          for e in json.load(open('/tmp/e.json')).get('environments',[]):
+              if int(e.get('id',-1))==18728387881: print(e['name']); break
+          PY
+          )"
+          test -n "$n"
+          echo "name=$n" >> "$GITHUB_OUTPUT"
+
+  prove:
+    needs: env
+    environment:
+      name: ${{ needs.env.outputs.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Download exact launchable IPA artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/x /tmp/a.zip
+          mkdir -p /tmp/x
+          curl -fL --retry 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/$IPA_ARTIFACT_ID/zip" \
+            -o /tmp/a.zip
+          unzip -q /tmp/a.zip -d /tmp/x
+          IPA="$(find /tmp/x -type f -name '3105-dopamine-launchable.ipa' -print -quit)"
+          test -n "$IPA"
+          cp "$IPA" /tmp/3105-dopamine-launchable.ipa
+          echo "$IPA_SHA256  /tmp/3105-dopamine-launchable.ipa" | sha256sum -c -
+          echo EXACT_IPA_READY=1
+
+      - name: Prepare SSH bridge
+        run: |
+          set -euo pipefail
+          sudo install -d -m0755 /usr/share/keyrings
+          curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
+          curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list | sudo tee /etc/apt/sources.list.d/tailscale.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends tailscale openssh-client sshpass
+          sudo systemctl enable --now tailscaled
+
+      - name: Install and prove SpringBoard process for 90 seconds
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+          IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          HOST: "100.96.37.124"
+        run: |
+          set -euo pipefail
+          LOCAL=/tmp/3105-dopamine-launchable.ipa
+          sudo tailscale up --auth-key="$TAILSCALE_AUTHKEY" --hostname="gh-3105-proof2-${GITHUB_RUN_ID}" --accept-dns=false --accept-routes=false --reset
+          mkdir -p ~/.ssh; chmod 700 ~/.ssh
+          ready=0
+          for n in $(seq 1 18); do
+            rm -f ~/.ssh/known_hosts
+            if ssh-keyscan -T8 -H "$HOST" >~/.ssh/known_hosts 2>/dev/null && [ -s ~/.ssh/known_hosts ]; then ready=1; break; fi
+            sudo tailscale ping --timeout=5s --c 1 "$HOST" || true
+            sleep 8
+          done
+          test "$ready" = 1
+          chmod 600 ~/.ssh/known_hosts
+          REMOTE=/var/mobile/Media/3105-dopamine-launchable.ipa
+          sshpass -e scp -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "$LOCAL" "mobile@$HOST:$REMOTE"
+          {
+            printf '%s\n' "$IPHONE_PASSWORD"
+            cat <<EOS
+          set -e
+          export PATH="/var/jb/usr/bin:/var/jb/bin:/var/jb/usr/sbin:/var/jb/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:\$PATH"
+          IPA='$REMOTE'; EXPECT='$IPA_SHA256'; BUNDLE='$BUNDLE_ID'
+          echo "device_time=\$(date 2>/dev/null)"
+          if command -v sha256sum >/dev/null 2>&1; then set -- \$(sha256sum "\$IPA"); else set -- \$(shasum -a 256 "\$IPA"); fi
+          [ "\$1" = "\$EXPECT" ]
+          echo "device_ipa_sha=\$1"
+          echo TRANSFER_HASH_MATCH=1
+
+          H=''
+          for p in /var/jb/usr/bin/trollstorehelper /var/jb/Applications/TrollStore.app/trollstorehelper /Applications/TrollStore.app/trollstorehelper; do [ -x "\$p" ] && H="\$p" && break; done
+          if [ -z "\$H" ]; then
+            for p in /var/containers/Bundle/Application/*/*.app/trollstorehelper; do [ -x "\$p" ] && H="\$p" && break; done
+          fi
+          [ -n "\$H" ] || exit 51
+          killall 3105 2>/dev/null || true
+          sleep 2
+          set +e
+          "\$H" install force "\$IPA"
+          rc=\$?
+          set -e
+          [ "\$rc" -eq 0 ] || "\$H" install force installd "\$IPA"
+          "\$H" refresh || true
+          sleep 5
+
+          APP=''
+          for p in /var/containers/Bundle/Application/*/3105.app; do
+            [ -d "\$p" ] || continue
+            if plutil -p "\$p/Info.plist" 2>/dev/null | grep -Fq "\$BUNDLE"; then APP="\$p"; break; fi
+          done
+          [ -n "\$APP" ] || { echo LAUNCHABLE_APP_NOT_LOCATED; for p in /var/containers/Bundle/Application/*/3105.app; do echo "candidate=\$p"; plutil -p "\$p/Info.plist" 2>/dev/null | grep -E 'CFBundleIdentifier|MinimumOSVersion' || true; done; exit 52; }
+          echo "installed_app=\$APP"
+          plutil -p "\$APP/Info.plist" 2>/dev/null | grep -E 'CFBundleIdentifier|MinimumOSVersion|ThreeOneOSFiveJBCompatibility' || true
+
+          C=''
+          for p in /var/jb/usr/bin/uicache /usr/bin/uicache; do [ -x "\$p" ] && C="\$p" && break; done
+          [ -z "\$C" ] || { "\$C" -p "\$APP" 2>/dev/null || "\$C" -a 2>/dev/null || true; sleep 3; }
+          U=''
+          for p in /var/jb/usr/bin/uiopen /usr/bin/uiopen /bin/uiopen; do [ -x "\$p" ] && U="\$p" && break; done
+          [ -n "\$U" ] || exit 53
+
+          find_pid() {
+            if command -v pidof >/dev/null 2>&1; then
+              P="\$(pidof 3105 2>/dev/null || true)"; set -- \$P
+              [ -n "\${1:-}" ] && { echo "\$1"; return; }
+            fi
+            ps ax 2>/dev/null | while read pid rest; do case "\$rest" in *'/3105.app/3105'*) echo "\$pid"; break;; esac; done
+          }
+
+          echo "launch_bundle=\$BUNDLE"
+          "\$U" --bundleid "\$BUNDLE" || true
+          PID=''; n=0
+          while [ "\$n" -lt 20 ]; do PID="\$(find_pid)"; [ -n "\$PID" ] && break; n=\$((n+1)); sleep 1; done
+          [ -n "\$PID" ] || { echo NO_PROCESS_AFTER_SPRINGBOARD_LAUNCH; exit 54; }
+          echo "launch_pid=\$PID"
+          n=0
+          while [ "\$n" -lt 18 ]; do
+            kill -0 "\$PID" 2>/dev/null || { echo "PROCESS_DIED_CHECK=\$n"; exit 55; }
+            n=\$((n+1)); echo "ALIVE_\$n pid=\$PID"; sleep 5
+          done
+          PID2="\$(find_pid)"
+          echo "final_pid=\$PID2"
+          [ "\$PID2" = "\$PID" ] || { echo "PID_CHANGED old=\$PID new=\$PID2"; exit 56; }
+          echo alive_after_90_seconds=1
+          echo "stable_pid=\$PID"
+          echo RUNTIME_PROOF_SUCCESS=1
+          rm -f "\$IPA"
+          EOS
+          } | sshpass -e ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh||true)"; [ -n "$S" ] || S=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$S" -s' | tee /tmp/proof.log
+          grep -Fq RUNTIME_PROOF_SUCCESS=1 /tmp/proof.log
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: 3105-ios15-launchable-proof-v2-${{ github.run_id }}
+          path: /tmp/proof.log
+          if-no-files-found: warn
+          retention-days: 7
