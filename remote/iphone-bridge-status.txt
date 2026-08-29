@@ -1,13 +1,13 @@
 iPhone Tailscale SSH Bridge
-run_id=33234464066
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33234464066
-commit=36325869870152e68f42421806700ae5e8237f5d
+run_id=33234601286
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33234601286
+commit=9ecfb1f2b471181c58947bb7b90dc40002537a55
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
 tailscale=success
 install_ssh=success
-ssh=success
+ssh=failure
 
 --- sanitized SSH output ---
 Waking and checking iPhone SSH port over Tailscale...
@@ -19,94 +19,8 @@ SSH port attempt 1/18
 # 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
 iphone_ssh_port_ready=success
 Staging native rfmonctl and running probe as root...
-=== 3105 IOS15 POST-LAUNCH CRASH POSTMORTEM ===
-device_time=Fri Aug 28 23:43:17 CDT 2026
+=== 3105 IOS15 HYBRID ENTITLEMENT PROOF ===
+device_time=Fri Aug 28 23:47:05 CDT 2026
 Darwin iPhone 21.6.0 Darwin Kernel Version 21.6.0: Fri Mar  6 21:01:24 PST 2026; root:xnu-8020.241.44~1/RELEASE_ARM64_S8000 iPhone8,1 arm Darwin
-registration=com.nightvibes.app.threeoneosfive1 : /private/var/containers/Bundle/Application/F6556AA2-80E2-4539-B418-D62019EFF287/3105.app
-registered_path=/private/var/containers/Bundle/Application/F6556AA2-80E2-4539-B418-D62019EFF287/3105.app
-
-===== INSTALLED ENTITLEMENTS =====
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key>application-identifier</key>
-	<string>TROLLTROLL.*</string>
-	<key>com.apple.developer.team-identifier</key>
-	<string>TROLLTROLL</string>
-	<key>com.apple.private.MobileContainerManager.allowed</key>
-	<true/>
-	<key>com.apple.private.security.container-manager</key>
-	<true/>
-	<key>com.apple.private.security.container-required</key>
-	<string>com.nightvibes.app.threeoneosfive1</string>
-	<key>com.apple.private.security.no-sandbox</key>
-	<true/>
-	<key>com.apple.private.security.storage.MobileDocuments</key>
-	<true/>
-	<key>com.apple.security.exception.files.absolute-path.read-write</key>
-	<array>
-		<string>/</string>
-	</array>
-	<key>get-task-allow</key>
-	<true/>
-	<key>keychain-access-groups</key>
-	<array>
-		<string>TROLLTROLL.*</string>
-		<string>com.apple.token</string>
-	</array>
-	<key>platform-application</key>
-	<true/>
-</dict>
-</plist>
-
-===== CRASH REPORTS BEFORE LAUNCH =====
-launch_start_epoch=1787978602
-launch_start=Fri Aug 28 23:43:22 CDT 2026
-
-===== SPRINGBOARD LAUNCH AS MOBILE =====
-uiopen_rc=0
-NO_PID_AFTER_LAUNCH=1
-
-===== CRASH REPORTS AFTER LAUNCH =====
-
-===== RUNNINGBOARD / SPRINGBOARD / AMFID LOGS =====
-LOG_TOOL_NOT_AVAILABLE=1
-
-===== ROOT DIRECT CONTROL =====
-root_direct_pid=4776
-ROOT_DIRECT_ALIVE_SECOND_0=1
-ROOT_DIRECT_ALIVE_SECOND_1=1
-ROOT_DIRECT_ALIVE_SECOND_2=1
-ROOT_DIRECT_ALIVE_SECOND_3=1
-ROOT_DIRECT_ALIVE_SECOND_4=1
-ROOT_DIRECT_ALIVE_SECOND_5=1
-ROOT_DIRECT_ALIVE_SECOND_6=1
-ROOT_DIRECT_ALIVE_SECOND_7=1
-ROOT_DIRECT_ALIVE_SECOND_8=1
-ROOT_DIRECT_ALIVE_SECOND_9=1
-ROOT_DIRECT_ALIVE_SECOND_10=1
-ROOT_DIRECT_ALIVE_SECOND_11=1
-2026-08-28 23:44:07.892 3105[4776:85196] [SnowBoard Launcher] Loader check passed. Loading SnowBoard...
-2026-08-28 23:44:07.926 3105[4776:85196] Initialising Snowboard (Version: 1.5.37-Beta4-rootless Compiled: Jul  9 2024 : 00:24:46) in app: 3105...
-
-===== MOBILE DIRECT CONTROL =====
-mobile_direct_wrapper_pid=4823
-MOBILE_DIRECT_ALIVE_SECOND_0=1
-MOBILE_DIRECT_ALIVE_SECOND_1=1
-MOBILE_DIRECT_ALIVE_SECOND_2=1
-MOBILE_DIRECT_ALIVE_SECOND_3=1
-MOBILE_DIRECT_ALIVE_SECOND_4=1
-MOBILE_DIRECT_ALIVE_SECOND_5=1
-MOBILE_DIRECT_ALIVE_SECOND_6=1
-MOBILE_DIRECT_ALIVE_SECOND_7=1
-MOBILE_DIRECT_ALIVE_SECOND_8=1
-MOBILE_DIRECT_ALIVE_SECOND_9=1
-MOBILE_DIRECT_ALIVE_SECOND_10=1
-MOBILE_DIRECT_ALIVE_SECOND_11=1
-2026-08-28 23:44:31.288 3105[4825:85782] [SnowBoard Launcher] Loader check passed. Loading SnowBoard...
-2026-08-28 23:44:31.293 3105[4825:85782] Initialising Snowboard (Version: 1.5.37-Beta4-rootless Compiled: Jul  9 2024 : 00:24:46) in app: 3105...
-
-===== FINAL PROCESS STATE =====
-POSTMORTEM_COMPLETE=1
-ssh_exit_code=0
+HYBRID_IPA_MISSING=1
+ssh_exit_code=70
