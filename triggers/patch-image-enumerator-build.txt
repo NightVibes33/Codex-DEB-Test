@@ -1,6 +1,6 @@
-patch=iphone-3105-entitlement-matrix-posix-parser
-requested_at=2026-08-29T01:26:00-05:00
-reason=run-four-variant-entitlement-bisection-with-pure-posix-manifest-parser
+patch=iphone-3105-early-window-full-entitlements
+requested_at=2026-08-29T01:34:00-05:00
+reason=create-window-during-delegate-init-before-didFinish-stall
 target=100.96.37.124
-payload=4-ipa-entitlement-matrix+remote/iphone-command.sh
-attempt=19
+payload=3105-ios15-early-window+full-entitlements
+attempt=20
