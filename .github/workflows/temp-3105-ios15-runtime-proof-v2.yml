@@ -1,0 +1,170 @@
+name: Temp 3105 iOS15 runtime proof v2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/temp-3105-ios15-runtime-proof-v2.yml"
+
+permissions:
+  actions: read
+  contents: read
+
+env:
+  BASE_ARTIFACT_ID: "9707500776"
+  BASE_IPA_SHA256: "21dd62c7f11133be0cf12a72d63a1344bf74f94861b9f17972456048d9dac6d9"
+  PATCHED_BINARY_SHA256: "41ae16f59b0a655bc6b94d19b524a60c74a53ebb7c3aa00b4ee087fef87da356"
+  PATCHED_INFO_SHA256: "773bc29c61bbe8d76d79339a59a343bdb671e4f6b21ced479a171177393d8df9"
+  BUNDLE_ID: "com.apple.mobile.MobileHouseArrest"
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.e.outputs.name }}
+    steps:
+      - id: e
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" >/tmp/e.json
+          n="$(python3 - <<'PY'
+          import json
+          for e in json.load(open('/tmp/e.json')).get('environments',[]):
+              if int(e.get('id',-1))==18728387881: print(e['name']); break
+          PY
+          )"
+          test -n "$n"; echo "name=$n" >> "$GITHUB_OUTPUT"
+
+  prove:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            remote/3105-ios15-textro.b64
+            remote/3105-ios15-info.b64
+            remote/patch-3105-ios15.py
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+
+      - name: Recreate exact patched app payload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/base /tmp/w /tmp/base.zip /tmp/patched.ipa
+          mkdir -p /tmp/base /tmp/w
+          curl -fL --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/$BASE_ARTIFACT_ID/zip" -o /tmp/base.zip
+          unzip -q /tmp/base.zip -d /tmp/base
+          BASE=/tmp/base/3105-2.0-build8-unsigned.ipa
+          echo "$BASE_IPA_SHA256  $BASE" | sha256sum -c -
+          unzip -q "$BASE" -d /tmp/w
+          base64 -d remote/3105-ios15-textro.b64 >/tmp/textro.bin
+          base64 -d remote/3105-ios15-info.b64 >/tmp/info.plist
+          echo "$PATCHED_INFO_SHA256  /tmp/info.plist" | sha256sum -c -
+          python3 remote/patch-3105-ios15.py /tmp/w/Payload/3105.app /tmp/textro.bin /tmp/info.plist
+          echo "$PATCHED_BINARY_SHA256  /tmp/w/Payload/3105.app/3105" | sha256sum -c -
+          echo "$PATCHED_INFO_SHA256  /tmp/w/Payload/3105.app/Info.plist" | sha256sum -c -
+          cd /tmp/w && zip -qry /tmp/patched.ipa Payload
+          sha256sum /tmp/patched.ipa | tee /tmp/patched.sha256
+          echo EXACT_PATCHED_APP_PAYLOAD=1
+
+      - name: Prepare Tailscale SSH bridge
+        run: |
+          set -euo pipefail
+          sudo install -d -m0755 /usr/share/keyrings
+          curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
+          curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list | sudo tee /etc/apt/sources.list.d/tailscale.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends tailscale openssh-client sshpass
+          sudo systemctl enable --now tailscaled
+
+      - name: Install launch and hold PID
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+          IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          IPHONE_HOST: "100.96.37.124"
+        run: |
+          set -euo pipefail
+          IPA=/tmp/patched.ipa
+          SHA="$(sha256sum "$IPA" | awk '{print $1}')"
+          sudo tailscale up --auth-key="$TAILSCALE_AUTHKEY" --hostname="gh-3105-proof2-${GITHUB_RUN_ID}" --accept-dns=false --accept-routes=false --reset
+          mkdir -p ~/.ssh; chmod 700 ~/.ssh
+          ok=0
+          for n in $(seq 1 18); do
+            rm -f ~/.ssh/known_hosts
+            if ssh-keyscan -T8 -H "$IPHONE_HOST" >~/.ssh/known_hosts 2>/dev/null && [ -s ~/.ssh/known_hosts ]; then ok=1; break; fi
+            sudo tailscale ping --timeout=5s --c 1 "$IPHONE_HOST" || true; sleep 8
+          done
+          test "$ok" = 1; chmod 600 ~/.ssh/known_hosts
+          REMOTE=/var/mobile/Media/3105-ios15-patched.ipa
+          sshpass -e scp -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "$IPA" "mobile@$IPHONE_HOST:$REMOTE"
+          {
+            printf '%s\n' "$IPHONE_PASSWORD"
+            cat <<REMOTE_SCRIPT
+          set -e
+          export PATH="/var/jb/usr/bin:/var/jb/bin:/var/jb/usr/sbin:/var/jb/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:\$PATH"
+          IPA='$REMOTE'; EXPECTED='$SHA'; BUNDLE='$BUNDLE_ID'
+          echo '=== DEVICE ==='; uname -a || true
+          plutil -p /System/Library/CoreServices/SystemVersion.plist 2>/dev/null | head -20 || true
+          GOT="\$(sha256sum "\$IPA" 2>/dev/null | awk '{print \$1}' || shasum -a256 "\$IPA" | awk '{print \$1}')"
+          echo "runner_sha=\$EXPECTED"; echo "device_sha=\$GOT"; [ "\$GOT" = "\$EXPECTED" ]; echo TRANSFER_HASH_MATCH=1
+          H=''; for p in /var/jb/usr/bin/trollstorehelper /var/jb/Applications/TrollStore.app/trollstorehelper /Applications/TrollStore.app/trollstorehelper; do [ -x "\$p" ] && H="\$p" && break; done
+          [ -n "\$H" ] || H="\$(find /var/containers/Bundle/Application -maxdepth 4 -type f -name trollstorehelper 2>/dev/null | head -1 || true)"
+          [ -n "\$H" ] || { echo NO_TROLLSTORE_HELPER; exit 41; }; echo "helper=\$H"
+          killall 3105 2>/dev/null || true; sleep 2
+          set +e; "\$H" install force "\$IPA"; rc=\$?; set -e
+          [ "\$rc" -eq 0 ] || "\$H" install force installd "\$IPA"
+          "\$H" refresh || true; sleep 5
+          APP="\$(find /var/containers/Bundle/Application -maxdepth 3 -type d -name 3105.app 2>/dev/null | head -1 || true)"
+          [ -n "\$APP" ] || { echo APP_NOT_INSTALLED; exit 42; }
+          echo "app=\$APP"; sha256sum "\$APP/3105" 2>/dev/null || shasum -a256 "\$APP/3105" || true
+          plutil -p "\$APP/Info.plist" 2>/dev/null | grep -E 'CFBundleIdentifier|MinimumOSVersion|ThreeOneOSFiveJBCompatibility' || true
+          strings "\$APP/3105" | grep -F 'Dopamine iOS 15 JB Mode' | head -1 || true
+          U=''; for p in /var/jb/usr/bin/uiopen /usr/bin/uiopen /bin/uiopen; do [ -x "\$p" ] && U="\$p" && break; done; [ -n "\$U" ] || U="\$(command -v uiopen 2>/dev/null || true)"
+          [ -n "\$U" ] || { echo UIOPEN_NOT_FOUND; exit 43; }; echo "uiopen=\$U"
+          set +e
+          "\$U" --bundleid "\$BUNDLE"; lrc=\$?
+          [ "\$lrc" -eq 0 ] || "\$U" -b "\$BUNDLE"; lrc=\$?
+          set -e; echo "launch_rc=\$lrc"
+          PID=''; for n in \$(seq 1 20); do PID="\$(pgrep -x 3105 2>/dev/null | head -1 || true)"; [ -n "\$PID" ] && break; sleep 1; done
+          if [ -z "\$PID" ]; then
+            echo NO_PROCESS_AFTER_LAUNCH
+            find /var/mobile/Library/Logs/CrashReporter -type f -mmin -5 -print 2>/dev/null | tail -40 || true
+            exit 44
+          fi
+          echo "launch_pid=\$PID"
+          for n in \$(seq 1 18); do
+            if ! kill -0 "\$PID" 2>/dev/null; then
+              echo "PROCESS_DIED_CHECK=\$n"
+              find /var/mobile/Library/Logs/CrashReporter -type f -mmin -5 -print 2>/dev/null | tail -50 || true
+              exit 45
+            fi
+            echo "ALIVE_\$n pid=\$PID"; sleep 5
+          done
+          PID2="\$(pgrep -x 3105 2>/dev/null | head -1 || true)"; [ "\$PID2" = "\$PID" ] || { echo PID_CHANGED; exit 46; }
+          echo alive_after_90_seconds=1; echo "stable_pid=\$PID"; echo RUNTIME_PROOF_SUCCESS=1
+          rm -f "\$IPA"
+          REMOTE_SCRIPT
+          } | sshpass -e ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$IPHONE_HOST" 'S="$(command -v sh || true)"; [ -n "$S" ] || S=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$S" -s' | tee /tmp/proof.log
+          grep -Fq RUNTIME_PROOF_SUCCESS=1 /tmp/proof.log
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: 3105-ios15-proof-v2-${{ github.run_id }}
+          path: |
+            /tmp/proof.log
+            /tmp/patched.sha256
+          if-no-files-found: warn
+          retention-days: 7
