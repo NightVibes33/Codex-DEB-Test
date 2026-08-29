@@ -1,6 +1,6 @@
-patch=iphone-3105-visible-ui-proof
-requested_at=2026-08-29T00:06:00-05:00
-reason=replace-black-screen-raw-fallback-with-retained-uikit-window
+patch=iphone-3105-ui-postmortem
+requested_at=2026-08-29T00:18:00-05:00
+reason=diagnose-no-process-after-retained-uikit-build
 target=100.96.37.124
 payload=remote/ThreeOneOSFiveJB15.m+remote/iphone-command.sh
-attempt=8
+attempt=9
