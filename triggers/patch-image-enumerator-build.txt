@@ -1,6 +1,6 @@
-patch=iphone-3105-runtime-proof
-requested_at=2026-08-29T01:03:00-05:00
-reason=force-clean-stale-processes-then-test-asuser-bsexec
+patch=iphone-3105-visible-ui-proof
+requested_at=2026-08-29T00:06:00-05:00
+reason=replace-black-screen-raw-fallback-with-retained-uikit-window
 target=100.96.37.124
-payload=remote/iphone-command.sh
-attempt=7
+payload=remote/ThreeOneOSFiveJB15.m+remote/iphone-command.sh
+attempt=8
