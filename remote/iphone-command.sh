@@ -11,7 +11,7 @@ LOG='/var/mobile/Media/3105-uiopen.log'
 UICACHE=/var/jb/usr/bin/uicache
 UIOPEN=/var/jb/usr/bin/uiopen
 
-echo '=== 3105 IOS15 EARLY WINDOW PROOF ==='
+echo '=== 3105 IOS15 EARLY WINDOW ASUSER PROOF ==='
 echo "device_time=$(date 2>/dev/null)"
 uname -a 2>/dev/null || true
 
@@ -51,8 +51,8 @@ echo "app=$APP"
 
 cleanup
 rm -f "$MARKER" "$PHASE"
-echo '--- launching through SpringBoard bootstrap ---'
-launchctl bsexec "$SBPID" "$UIOPEN" --bundleid "$BUNDLE" > "$LOG" 2>&1 &
+echo '--- launching in UID 501 GUI bootstrap ---'
+launchctl asuser 501 "$UIOPEN" --bundleid "$BUNDLE" > "$LOG" 2>&1 &
 LP=$!
 echo "uiopen_launcher=$LP"
 
@@ -101,6 +101,7 @@ echo "stable_pid=$PID"
 echo "alive_after_60_seconds=$STABLE"
 [ "$STABLE" -eq 1 ] || exit 100
 
+echo "launch_method=ASUSER"
 echo EARLY_WINDOW_UI_SUCCESS=1
 echo RUNTIME_PROOF_SUCCESS=1
 exit 0
