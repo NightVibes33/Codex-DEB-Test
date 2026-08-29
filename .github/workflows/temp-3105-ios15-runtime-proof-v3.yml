@@ -98,14 +98,15 @@ jobs:
         run: |
           set -euo pipefail
           LOCAL=/tmp/3105-patched.ipa
-          SHA="$(sha256sum "$LOCAL"|awk '{print $1}')"
+          SHA="$(sha256sum "$LOCAL" | cut -d' ' -f1)"
           sudo tailscale up --auth-key="$TAILSCALE_AUTHKEY" --hostname="gh-3105-proof3-${GITHUB_RUN_ID}" --accept-dns=false --accept-routes=false --reset
           mkdir -p ~/.ssh; chmod 700 ~/.ssh
           ready=0
           for n in $(seq 1 18); do
             rm -f ~/.ssh/known_hosts
             if ssh-keyscan -T8 -H "$HOST" >~/.ssh/known_hosts 2>/dev/null && [ -s ~/.ssh/known_hosts ]; then ready=1; break; fi
-            sudo tailscale ping --timeout=5s --c 1 "$HOST" || true; sleep 8
+            sudo tailscale ping --timeout=5s --c 1 "$HOST" || true
+            sleep 8
           done
           test "$ready" = 1; chmod 600 ~/.ssh/known_hosts
           REMOTE=/var/mobile/Media/3105-ios15-patched.ipa
@@ -116,48 +117,128 @@ jobs:
           set -e
           export PATH="/var/jb/usr/bin:/var/jb/bin:/var/jb/usr/sbin:/var/jb/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:\$PATH"
           IPA='$REMOTE'; EXPECT='$SHA'; BUNDLE='$BUNDLE_ID'
-          echo '=== DEVICE ==='; uname -a || true
-          plutil -p /System/Library/CoreServices/SystemVersion.plist 2>/dev/null | head -20 || true
+          echo '=== DEVICE ==='
+          uname -a || true
+          plutil -p /System/Library/CoreServices/SystemVersion.plist 2>/dev/null || true
+
           if command -v sha256sum >/dev/null 2>&1; then
             set -- \$(sha256sum "\$IPA")
-            GOT="\$1"
           else
             set -- \$(shasum -a 256 "\$IPA")
-            GOT="\$1"
           fi
-          echo "runner_ipa_sha=\$EXPECT"; echo "device_ipa_sha=\$GOT"; [ "\$EXPECT" = "\$GOT" ]; echo TRANSFER_HASH_MATCH=1
-          H=''; for p in /var/jb/usr/bin/trollstorehelper /var/jb/Applications/TrollStore.app/trollstorehelper /Applications/TrollStore.app/trollstorehelper; do [ -x "\$p" ] && H="\$p" && break; done
-          [ -n "\$H" ] || H="\$(find /var/containers/Bundle/Application -maxdepth 4 -type f -name trollstorehelper 2>/dev/null | head -1 || true)"
-          [ -n "\$H" ] || { echo NO_TROLLSTORE_HELPER; exit 51; }; echo "helper=\$H"
-          killall 3105 2>/dev/null || true; sleep 2
-          set +e; "\$H" install force "\$IPA"; rc=\$?; set -e
-          [ "\$rc" -eq 0 ] || "\$H" install force installd "\$IPA"
-          "\$H" refresh || true; sleep 5
-          APP="\$(find /var/containers/Bundle/Application -maxdepth 3 -type d -name 3105.app 2>/dev/null | head -1 || true)"
+          GOT="\$1"
+          echo "runner_ipa_sha=\$EXPECT"
+          echo "device_ipa_sha=\$GOT"
+          [ "\$EXPECT" = "\$GOT" ]
+          echo TRANSFER_HASH_MATCH=1
+
+          H=''
+          for p in /var/jb/usr/bin/trollstorehelper /var/jb/Applications/TrollStore.app/trollstorehelper /Applications/TrollStore.app/trollstorehelper; do
+            if [ -x "\$p" ]; then H="\$p"; break; fi
+          done
+          if [ -z "\$H" ]; then
+            for p in /var/containers/Bundle/Application/*/*.app/trollstorehelper; do
+              if [ -x "\$p" ]; then H="\$p"; break; fi
+            done
+          fi
+          [ -n "\$H" ] || { echo NO_TROLLSTORE_HELPER; exit 51; }
+          echo "helper=\$H"
+
+          killall 3105 2>/dev/null || true
+          sleep 2
+          set +e
+          "\$H" install force "\$IPA"
+          rc=\$?
+          set -e
+          if [ "\$rc" -ne 0 ]; then
+            "\$H" install force installd "\$IPA"
+          fi
+          "\$H" refresh || true
+          sleep 5
+
+          APP=''
+          for p in /var/containers/Bundle/Application/*/3105.app; do
+            if [ -d "\$p" ]; then APP="\$p"; break; fi
+          done
           [ -n "\$APP" ] || { echo APP_NOT_INSTALLED; exit 52; }
           echo "installed_app=\$APP"
-          plutil -p "\$APP/Info.plist" 2>/dev/null | grep -E 'CFBundleIdentifier|MinimumOSVersion|ThreeOneOSFiveJBCompatibility' || true
-          strings "\$APP/3105" 2>/dev/null | grep -F 'Dopamine iOS 15 JB Mode' | head -1 || true
-          U=''; for p in /var/jb/usr/bin/uiopen /usr/bin/uiopen /bin/uiopen; do [ -x "\$p" ] && U="\$p" && break; done; [ -n "\$U" ] || U="\$(command -v uiopen 2>/dev/null || true)"
-          [ -n "\$U" ] || { echo UIOPEN_NOT_FOUND; exit 53; }; echo "uiopen=\$U"
-          set +e; "\$U" --bundleid "\$BUNDLE"; rc=\$?; [ "\$rc" -eq 0 ] || "\$U" -b "\$BUNDLE"; rc=\$?; set -e; echo "launch_rc=\$rc"
-          PID=''; for n in \$(seq 1 20); do PID="\$(pgrep -x 3105 2>/dev/null|head -1||true)"; [ -n "\$PID" ] && break; sleep 1; done
+          if command -v sha256sum >/dev/null 2>&1; then
+            set -- \$(sha256sum "\$APP/3105")
+          else
+            set -- \$(shasum -a 256 "\$APP/3105")
+          fi
+          echo "installed_binary_sha=\$1"
+          plutil -p "\$APP/Info.plist" 2>/dev/null || true
+
+          U=''
+          for p in /var/jb/usr/bin/uiopen /usr/bin/uiopen /bin/uiopen; do
+            if [ -x "\$p" ]; then U="\$p"; break; fi
+          done
+          [ -n "\$U" ] || U="\$(command -v uiopen 2>/dev/null || true)"
+          [ -n "\$U" ] || { echo UIOPEN_NOT_FOUND; exit 53; }
+          echo "uiopen=\$U"
+
+          find_pid() {
+            ps ax 2>/dev/null | while read pid rest; do
+              case "\$rest" in
+                *'/3105.app/3105'*|*' 3105') echo "\$pid"; break ;;
+              esac
+            done
+          }
+
+          set +e
+          "\$U" --bundleid "\$BUNDLE"
+          rc=\$?
+          if [ "\$rc" -ne 0 ]; then
+            "\$U" -b "\$BUNDLE"
+            rc=\$?
+          fi
+          set -e
+          echo "launch_rc=\$rc"
+
+          PID=''
+          n=0
+          while [ "\$n" -lt 20 ]; do
+            PID="\$(find_pid)"
+            [ -n "\$PID" ] && break
+            n=\$((n + 1))
+            sleep 1
+          done
           if [ -z "\$PID" ]; then
             echo NO_PROCESS_AFTER_LAUNCH
-            F="\$(find /var/mobile/Library/Logs/CrashReporter -type f -mmin -5 2>/dev/null | tail -1 || true)"; echo "fresh_crash=\$F"; [ -z "\$F" ] || sed -n '1,260p' "\$F" || true
+            echo '=== CRASH CANDIDATES ==='
+            for f in /var/mobile/Library/Logs/CrashReporter/*3105* /var/mobile/Library/Logs/CrashReporter/*MobileHouseArrest*; do
+              [ -f "\$f" ] || continue
+              echo "crash_file=\$f"
+              if command -v sed >/dev/null 2>&1; then sed -n '1,320p' "\$f" || true; fi
+            done
             exit 54
           fi
           echo "launch_pid=\$PID"
-          for n in \$(seq 1 18); do
+
+          n=0
+          while [ "\$n" -lt 18 ]; do
             if ! kill -0 "\$PID" 2>/dev/null; then
               echo "PROCESS_DIED_CHECK=\$n"
-              F="\$(find /var/mobile/Library/Logs/CrashReporter -type f -mmin -5 2>/dev/null | tail -1 || true)"; echo "fresh_crash=\$F"; [ -z "\$F" ] || sed -n '1,300p' "\$F" || true
+              echo '=== CRASH CANDIDATES ==='
+              for f in /var/mobile/Library/Logs/CrashReporter/*3105* /var/mobile/Library/Logs/CrashReporter/*MobileHouseArrest*; do
+                [ -f "\$f" ] || continue
+                echo "crash_file=\$f"
+                if command -v sed >/dev/null 2>&1; then sed -n '1,320p' "\$f" || true; fi
+              done
               exit 55
             fi
-            echo "ALIVE_\$n pid=\$PID"; sleep 5
+            n=\$((n + 1))
+            echo "ALIVE_\$n pid=\$PID"
+            sleep 5
           done
-          PID2="\$(pgrep -x 3105 2>/dev/null|head -1||true)"; [ "\$PID2" = "\$PID" ] || { echo PID_CHANGED; exit 56; }
-          echo alive_after_90_seconds=1; echo "stable_pid=\$PID"; echo RUNTIME_PROOF_SUCCESS=1; rm -f "\$IPA"
+
+          PID2="\$(find_pid)"
+          [ "\$PID2" = "\$PID" ] || { echo "PID_CHANGED old=\$PID new=\$PID2"; exit 56; }
+          echo alive_after_90_seconds=1
+          echo "stable_pid=\$PID"
+          echo RUNTIME_PROOF_SUCCESS=1
+          rm -f "\$IPA"
           EOS
           } | sshpass -e ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh||true)"; [ -n "$S" ] || S=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$S" -s' | tee /tmp/proof.log
           grep -Fq RUNTIME_PROOF_SUCCESS=1 /tmp/proof.log
