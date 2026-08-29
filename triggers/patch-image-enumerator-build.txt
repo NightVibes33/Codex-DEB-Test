@@ -1,6 +1,6 @@
 patch=iphone-3105-runtime-proof
-requested_at=2026-08-29T00:49:00-05:00
-reason=test-hybrid-entitlements-without-platform-application
+requested_at=2026-08-29T00:54:00-05:00
+reason=launch-full-3105-through-gui501-bootstrap-namespace
 target=100.96.37.124
 payload=remote/iphone-command.sh
-attempt=4
+attempt=5
