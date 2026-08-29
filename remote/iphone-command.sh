@@ -37,6 +37,28 @@ find_pid() {
   ps ax 2>/dev/null | while read pid rest; do case "$rest" in *'/3105.app/3105'*) echo "$pid"; break;; esac; done
 }
 
+cleanup_3105() {
+  pass=0
+  while [ "$pass" -lt 4 ]; do
+    killall -9 3105 2>/dev/null || true
+    PIDS="$(pidof 3105 2>/dev/null || true)"
+    for p in $PIDS; do kill -9 "$p" 2>/dev/null || true; done
+    ps ax 2>/dev/null | while read pid rest; do
+      case "$rest" in
+        *'/3105.app/3105'*) kill -9 "$pid" 2>/dev/null || true ;;
+      esac
+    done
+    sleep 1
+    [ -z "$(find_pid)" ] && return 0
+    pass=$((pass+1))
+  done
+  echo '=== STALE PROCESS LIST ==='
+  ps ax 2>/dev/null | while read pid rest; do
+    case "$pid $rest" in *3105*) echo "STALE_PS $pid $rest";; esac
+  done
+  return 1
+}
+
 find_springboard_pid() {
   if command -v pidof >/dev/null 2>&1; then
     P="$(pidof SpringBoard 2>/dev/null || true)"; set -- $P; [ -n "${1:-}" ] && { echo "$1"; return; }
@@ -87,8 +109,7 @@ echo FULL_IPA_HASH_MATCH=1
 H="$(find_helper)"
 echo "trollstorehelper=$H"
 [ -n "$H" ] || exit 81
-killall 3105 2>/dev/null || true
-sleep 2
+cleanup_3105 || true
 "$H" install force "$FULL_IPA" 2>&1
 IRC=$?
 echo "install_rc=$IRC"
@@ -116,10 +137,14 @@ SBPID="$(find_springboard_pid)"
 echo "springboard_pid=$SBPID"
 launchctl print gui/501 2>&1 | grep -E 'type =|state =|SpringBoard' | head -n 40 || true
 
-# Ensure no process from a previous direct-control test can fool the PID detector.
-killall 3105 2>/dev/null || true
-sleep 3
-[ -z "$(find_pid)" ] || { echo STALE_3105_PROCESS_REMAINS=1; exit 84; }
+printf '\n===== CLEAN ZERO-PROCESS BASELINE =====\n'
+if cleanup_3105; then
+  echo CLEAN_BASELINE=1
+else
+  echo STALE_3105_PROCESS_REMAINS=1
+  exit 84
+fi
+[ -z "$(find_pid)" ] || { echo ZERO_BASELINE_VERIFY_FAILED=1; exit 84; }
 
 printf '\n===== METHOD 1: LAUNCHCTL ASUSER 501 =====\n'
 launchctl asuser 501 "$UIOPEN" --bundleid "$BUNDLE" 2>&1
@@ -129,8 +154,7 @@ if [ -n "$PID" ]; then
   if monitor_90 "$PID" ASUSER; then exit 0; fi
 fi
 
-killall 3105 2>/dev/null || true
-sleep 3
+cleanup_3105 || true
 
 printf '\n===== METHOD 2: SPRINGBOARD BSEXEC =====\n'
 if [ -n "$SBPID" ]; then
@@ -144,8 +168,7 @@ else
   echo SPRINGBOARD_PID_NOT_FOUND=1
 fi
 
-killall 3105 2>/dev/null || true
-sleep 3
+cleanup_3105 || true
 
 printf '\n===== METHOD 3: MOBILE + SPRINGBOARD BSEXEC =====\n'
 if [ -n "$SBPID" ]; then
@@ -157,9 +180,12 @@ if [ -n "$SBPID" ]; then
   fi
 fi
 
+cleanup_3105 || true
+
 printf '\n===== FAILURE CONTROL =====\n'
 sudo -u mobile "$APP/3105" >/var/mobile/Media/3105-bootstrap-direct.log 2>&1 &
 WP=$!
+echo "direct_wrapper_pid=$WP"
 sleep 12
 if kill -0 "$WP" 2>/dev/null; then echo DIRECT_WRAPPER_ALIVE_AFTER_12S=1; else echo DIRECT_WRAPPER_ALIVE_AFTER_12S=0; fi
 ACTUAL="$(find_pid)"
