@@ -1,4 +1,4 @@
-name: Temp 3105 iOS15 LaunchServices probe
+name: Temp 3105 iOS15 mobile SpringBoard proof
 
 on:
   workflow_dispatch:
@@ -25,168 +25,178 @@ jobs:
           n="$(python3 - <<'PY'
           import json
           for e in json.load(open('/tmp/e.json')).get('environments',[]):
-              if int(e.get('id',-1))==18728387881: print(e['name']); break
+              if int(e.get('id',-1))==18728387881:
+                  print(e['name'])
+                  break
           PY
           )"
-          test -n "$n"; echo "name=$n" >> "$GITHUB_OUTPUT"
+          test -n "$n"
+          echo "name=$n" >> "$GITHUB_OUTPUT"
 
-  build-probe:
-    runs-on: macos-15
-    timeout-minutes: 8
-    steps:
-      - name: Build arm64 iOS 15 LaunchServices probe
-        shell: bash
-        run: |
-          set -euo pipefail
-          cat >/tmp/lsprobe.m <<'EOF'
-          #import <Foundation/Foundation.h>
-          #import <objc/message.h>
-          #import <objc/runtime.h>
-          #import <unistd.h>
-
-          static id sendId(id obj, const char *name) {
-              SEL s = sel_registerName(name);
-              if (!obj || ![obj respondsToSelector:s]) return nil;
-              return ((id(*)(id,SEL))objc_msgSend)(obj,s);
-          }
-          static id sendIdObj(id obj, const char *name, id arg) {
-              SEL s = sel_registerName(name);
-              if (!obj || ![obj respondsToSelector:s]) return nil;
-              return ((id(*)(id,SEL,id))objc_msgSend)(obj,s,arg);
-          }
-          static BOOL sendBoolObj(id obj, const char *name, id arg, BOOL *supported) {
-              SEL s = sel_registerName(name);
-              if (!obj || ![obj respondsToSelector:s]) { if (supported) *supported=NO; return NO; }
-              if (supported) *supported=YES;
-              return ((BOOL(*)(id,SEL,id))objc_msgSend)(obj,s,arg);
-          }
-          static void p(NSString *key, id value) {
-              printf("%s=%s\n", key.UTF8String, value ? [[value description] UTF8String] : "<nil>");
-              fflush(stdout);
-          }
-          int main(int argc, char **argv) {
-              @autoreleasepool {
-                  NSString *bid = argc > 1 ? [NSString stringWithUTF8String:argv[1]] : @"com.nightvibes.app.threeoneosfive1";
-                  Class W = NSClassFromString(@"LSApplicationWorkspace");
-                  Class P = NSClassFromString(@"LSApplicationProxy");
-                  printf("workspace_class=%s\n", W ? "yes":"no");
-                  printf("proxy_class=%s\n", P ? "yes":"no");
-                  id ws = sendId((id)W, "defaultWorkspace");
-                  p(@"workspace", ws);
-                  BOOL supported=NO;
-                  BOOL installed=sendBoolObj(ws,"applicationIsInstalled:",bid,&supported);
-                  printf("applicationIsInstalled_supported=%d\n", supported);
-                  printf("applicationIsInstalled=%d\n", installed);
-                  id proxy = sendIdObj((id)P,"applicationProxyForIdentifier:",bid);
-                  p(@"proxy",proxy);
-                  const char *sels[] = {"applicationIdentifier","bundleIdentifier","bundleURL","bundleExecutable","dataContainerURL","localizedName","applicationType","teamID","signerIdentity","vendorName","sdkVersion","minimumSystemVersion"};
-                  for (unsigned i=0;i<sizeof(sels)/sizeof(sels[0]);i++) {
-                      NSString *k=[NSString stringWithUTF8String:sels[i]];
-                      p(k,sendId(proxy,sels[i]));
-                  }
-                  BOOL openSupported=NO;
-                  BOOL opened=sendBoolObj(ws,"openApplicationWithBundleID:",bid,&openSupported);
-                  printf("open_supported=%d\n",openSupported);
-                  printf("open_result=%d\n",opened);
-                  fflush(stdout);
-                  sleep(3);
-              }
-              return 0;
-          }
-          EOF
-          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
-          xcrun --sdk iphoneos clang -arch arm64 -miphoneos-version-min=15.0 -isysroot "$SDK" -fobjc-arc /tmp/lsprobe.m -framework Foundation -lobjc -o /tmp/lsprobe
-          codesign --force --sign - /tmp/lsprobe
-          file /tmp/lsprobe
-          shasum -a 256 /tmp/lsprobe
-      - uses: actions/upload-artifact@v4
-        with:
-          name: lsprobe-${{ github.run_id }}
-          path: /tmp/lsprobe
-          if-no-files-found: error
-          retention-days: 2
-
-  probe:
-    needs: [env, build-probe]
+  prove:
+    needs: env
     environment:
       name: ${{ needs.env.outputs.name }}
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 20
     steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: lsprobe-${{ github.run_id }}
-          path: /tmp/p
       - name: Prepare bridge
         run: |
           set -euo pipefail
-          chmod 755 /tmp/p/lsprobe
           sudo install -d -m0755 /usr/share/keyrings
           curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
           curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list | sudo tee /etc/apt/sources.list.d/tailscale.list >/dev/null
           sudo apt-get update -qq
           sudo apt-get install -y -qq --no-install-recommends tailscale openssh-client sshpass
           sudo systemctl enable --now tailscaled
-      - name: Query LS and launch result on device
+
+      - name: Launch as uid 501 and require same PID for 90 seconds
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+          IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          HOST: "100.96.37.124"
+          BUNDLE: "com.nightvibes.app.threeoneosfive1"
+        run: |
+          set -euo pipefail
+          sudo tailscale up --auth-key="$TAILSCALE_AUTHKEY" --hostname="gh-3105-mobile-${GITHUB_RUN_ID}" --accept-dns=false --accept-routes=false --reset
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ready=0
+          for n in $(seq 1 18); do
+            rm -f ~/.ssh/known_hosts
+            if ssh-keyscan -T8 -H "$HOST" >~/.ssh/known_hosts 2>/dev/null && [ -s ~/.ssh/known_hosts ]; then
+              ready=1
+              break
+            fi
+            sudo tailscale ping --timeout=5s --c 1 "$HOST" || true
+            sleep 8
+          done
+          test "$ready" = 1
+          chmod 600 ~/.ssh/known_hosts
+
+          # Kill stale copies as root, but DO NOT launch from the root shell.
+          {
+            printf '%s\n' "$IPHONE_PASSWORD"
+            printf '%s\n' 'set +e' 'export PATH="/var/jb/usr/bin:/var/jb/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"' 'killall 3105 2>/dev/null || true' 'exit 0'
+          } | sshpass -e ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" \
+              'S="$(command -v sh||true)"; [ -n "$S" ] || S=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$S" -s'
+          sleep 2
+
+          # Launch from the actual mobile account (uid 501), which owns the SpringBoard app session.
+          cat <<EOS | sshpass -e ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'sh -s' | tee /tmp/mobile-launch.log
+          set +e
+          export PATH="/var/jb/usr/bin:/var/jb/bin:/var/jb/usr/sbin:/var/jb/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:\$PATH"
+          BUNDLE='$BUNDLE'
+          echo "uid=\$(id -u 2>/dev/null)"
+          echo "user=\$(id -un 2>/dev/null)"
+          echo "device_time=\$(date 2>/dev/null)"
+          echo '=== UICACHE INFO ==='
+          /var/jb/usr/bin/uicache -i "\$BUNDLE" 2>&1 || true
+          echo '=== REGISTRATION ==='
+          LINE="\$(/var/jb/usr/bin/uicache -l 2>&1 | grep -F "\$BUNDLE" | head -n 1)"
+          echo "registration=\$LINE"
+          APP="\${LINE#* : }"
+          echo "registered_path=\$APP"
+          [ -d "\$APP" ] && echo REGISTERED_PATH_EXISTS=1 || echo REGISTERED_PATH_EXISTS=0
+
+          find_pid() {
+            P="\$(pidof 3105 2>/dev/null || true)"
+            set -- \$P
+            [ -n "\${1:-}" ] && { echo "\$1"; return; }
+            ps ax 2>/dev/null | while read pid rest; do
+              case "\$rest" in *'/3105.app/3105'*) echo "\$pid"; break;; esac
+            done
+          }
+
+          wait_pid() {
+            n=0
+            while [ "\$n" -lt 20 ]; do
+              P="\$(find_pid)"
+              [ -n "\$P" ] && { echo "\$P"; return 0; }
+              n=\$((n+1))
+              sleep 1
+            done
+            return 1
+          }
+
+          PID=''
+          echo '=== BUNDLE-ID LAUNCH AS MOBILE ==='
+          /var/jb/usr/bin/uiopen --bundleid "\$BUNDLE" 2>&1
+          echo "uiopen_bundle_rc=\$?"
+          PID="\$(wait_pid)"
+
+          if [ -z "\$PID" ] && [ -n "\$APP" ]; then
+            echo '=== PRIVATE-VAR PATH LAUNCH AS MOBILE ==='
+            /var/jb/usr/bin/uiopen --path "\$APP" 2>&1
+            echo "uiopen_path_rc=\$?"
+            PID="\$(wait_pid)"
+          fi
+
+          if [ -z "\$PID" ]; then
+            echo NO_PROCESS_AFTER_MOBILE_SESSION_LAUNCH=1
+            echo '=== LAUNCHCTL GUI/501 MATCHES ==='
+            launchctl print gui/501 2>&1 | grep -Ei '3105|threeoneosfive|nightvibes' || true
+            echo '=== PROCESS MATCHES ==='
+            ps ax 2>/dev/null | while read pid rest; do
+              case "\$pid \$rest" in *3105*|*threeoneosfive*|*nightvibes*) echo "PS_MATCH \$pid \$rest";; esac
+            done
+            exit 54
+          fi
+
+          echo "launch_pid=\$PID"
+          n=0
+          while [ "\$n" -lt 18 ]; do
+            kill -0 "\$PID" 2>/dev/null || { echo "PROCESS_DIED_CHECK=\$n"; exit 55; }
+            n=\$((n+1))
+            echo "ALIVE_\$n pid=\$PID"
+            sleep 5
+          done
+          PID2="\$(find_pid)"
+          echo "final_pid=\$PID2"
+          [ "\$PID2" = "\$PID" ] || { echo "PID_CHANGED old=\$PID new=\$PID2"; exit 56; }
+          echo alive_after_90_seconds=1
+          echo "stable_pid=\$PID"
+          echo RUNTIME_PROOF_SUCCESS=1
+          EOS
+
+          grep -Fq RUNTIME_PROOF_SUCCESS=1 /tmp/mobile-launch.log
+
+      - name: Root diagnostics if mobile launch fails
+        if: failure()
         env:
           TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
           IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
           SSHPASS: ${{ secrets.IPAD_PASSWORD }}
           HOST: "100.96.37.124"
         run: |
-          set -euo pipefail
-          sudo tailscale up --auth-key="$TAILSCALE_AUTHKEY" --hostname="gh-lsprobe-${GITHUB_RUN_ID}" --accept-dns=false --accept-routes=false --reset
-          mkdir -p ~/.ssh; chmod 700 ~/.ssh
-          ready=0
-          for n in $(seq 1 18); do
-            rm -f ~/.ssh/known_hosts
-            if ssh-keyscan -T8 -H "$HOST" >~/.ssh/known_hosts 2>/dev/null && [ -s ~/.ssh/known_hosts ]; then ready=1; break; fi
-            sudo tailscale ping --timeout=5s --c 1 "$HOST" || true; sleep 8
-          done
-          test "$ready" = 1; chmod 600 ~/.ssh/known_hosts
-          sshpass -e scp -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" /tmp/p/lsprobe "mobile@$HOST:/var/mobile/Media/lsprobe"
+          set +e
           {
             printf '%s\n' "$IPHONE_PASSWORD"
             cat <<'EOS'
           set +e
-          export PATH="/var/jb/usr/bin:/var/jb/bin:/var/jb/usr/sbin:/var/jb/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
-          PROBE=/var/mobile/Media/lsprobe
-          chmod 755 "$PROBE"
-          echo '=== DEVICE / APP ==='
-          uname -a || true
-          APP=''
-          for p in /var/containers/Bundle/Application/*/3105.app; do
-            [ -d "$p" ] || continue
-            if grep -a -Fq 'com.nightvibes.app.threeoneosfive1' "$p/Info.plist" 2>/dev/null; then APP="$p"; break; fi
-          done
-          echo "app=$APP"
-          echo '=== UICACHE HELP ==='
-          /var/jb/usr/bin/uicache --help 2>&1 || true
-          echo '=== UICACHE LIST MATCH ==='
+          export PATH="/var/jb/usr/bin:/var/jb/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+          echo '=== ROOT DIAGNOSTICS ==='
+          /var/jb/usr/bin/uicache -i com.nightvibes.app.threeoneosfive1 2>&1 || true
           /var/jb/usr/bin/uicache -l 2>&1 | grep -E '3105|threeoneosfive|nightvibes' || true
-          echo '=== LS PROBE ==='
-          "$PROBE" com.nightvibes.app.threeoneosfive1 2>&1
-          echo "lsprobe_rc=$?"
-          echo '=== PROCESS AFTER LS OPEN ==='
-          ps ax 2>/dev/null | while read pid rest; do case "$pid $rest" in *3105*|*threeoneosfive*) echo "PS_MATCH $pid $rest";; esac; done
-          echo '=== UIOPEN PATH ==='
-          if [ -n "$APP" ]; then /var/jb/usr/bin/uiopen --path "$APP" 2>&1 || true; fi
-          sleep 2
-          ps ax 2>/dev/null | while read pid rest; do case "$pid $rest" in *3105*|*threeoneosfive*) echo "PS2_MATCH $pid $rest";; esac; done
-          echo '=== RECENT CRASH FILE NAMES ==='
+          echo '=== CRASH REPORTS ==='
           ls -lT /var/mobile/Library/Logs/CrashReporter/3105-*.ips 2>/dev/null || true
-          echo '=== SYSTEM LOG FILTER ==='
+          echo '=== LOG SHOW ==='
           if [ -x /usr/bin/log ]; then
-            /usr/bin/log show --last 3m --style compact --predicate 'process == "SpringBoard" OR process == "runningboardd" OR process == "lsd" OR process == "amfid"' 2>&1 | grep -Ei '3105|threeoneosfive|nightvibes|F6556AA2|launch|denied|invalid|entitlement|signature' | tail -n 300 || true
+            /usr/bin/log show --last 5m --style compact --predicate 'process == "SpringBoard" OR process == "runningboardd" OR process == "lsd" OR process == "amfid"' 2>&1 \
+              | grep -Ei '3105|threeoneosfive|nightvibes|launch|denied|invalid|entitlement|signature|F6556AA2' \
+              | tail -n 500 || true
           fi
-          rm -f "$PROBE"
-          echo LS_DIAG_COMPLETE=1
           EOS
-          } | sshpass -e ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh||true)"; [ -n "$S" ] || S=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$S" -s' | tee /tmp/lsdiag.log
+          } | sshpass -e ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" \
+              'S="$(command -v sh||true)"; [ -n "$S" ] || S=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$S" -s' | tee /tmp/root-diag.log
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: lsdiag-${{ github.run_id }}
-          path: /tmp/lsdiag.log
+          name: 3105-mobile-proof-${{ github.run_id }}
+          path: |
+            /tmp/mobile-launch.log
+            /tmp/root-diag.log
           if-no-files-found: warn
           retention-days: 3
