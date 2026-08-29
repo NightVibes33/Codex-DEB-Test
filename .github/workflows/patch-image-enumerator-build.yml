@@ -15,8 +15,8 @@ jobs:
     runs-on: macos-26-intel
     timeout-minutes: 20
     env:
-      BASE_ARTIFACT_ID: "9707500776"
-      BASE_IPA_SHA256: "21dd62c7f11133be0cf12a72d63a1344bf74f94861b9f17972456048d9dac6d9"
+      BASE_ARTIFACT_ID: "9709015542"
+      BASE_IPA_SHA256: "9944eaec3c8ab6ea17b962b89bafafd0cbeae1fe7117563bdf09cb420867a2a2"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,13 +25,13 @@ jobs:
           sparse-checkout-cone-mode: false
           fetch-depth: 1
 
-      - name: Build early-window iOS 15 IPA
+      - name: Build scene and classic iOS 15 variants from proven IPA
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          rm -rf /tmp/base-artifact /tmp/work /tmp/base.zip /tmp/3105-ios15-windowfix.ipa /tmp/3105-ios15-windowfix.sha256
-          mkdir -p /tmp/base-artifact /tmp/work
+          rm -rf /tmp/base-artifact /tmp/base.zip /tmp/raw-ui /tmp/work-scene /tmp/work-classic /tmp/3105-ios15-*.ipa /tmp/3105-ios15-*.sha256
+          mkdir -p /tmp/base-artifact
 
           curl -fL --retry 5 --retry-all-errors --connect-timeout 20 \
             -H "Accept: application/vnd.github+json" \
@@ -43,11 +43,8 @@ jobs:
           BASE="$(find /tmp/base-artifact -type f -name '*.ipa' | head -n 1)"
           test -n "$BASE"
           GOT="$(shasum -a 256 "$BASE" | awk '{print $1}')"
-          echo "base_ipa_sha=$GOT"
+          echo "proven_base_sha=$GOT"
           test "$GOT" = "$BASE_IPA_SHA256"
-          unzip -q "$BASE" -d /tmp/work
-          APP=/tmp/work/Payload/3105.app
-          test -d "$APP"
 
           xcrun --sdk iphoneos clang \
             -arch arm64 \
@@ -58,44 +55,9 @@ jobs:
             -framework Foundation \
             -framework QuartzCore \
             remote/ThreeOneOSFiveJB15.m \
-            -o "$APP/3105"
-          chmod 0755 "$APP/3105"
-          file "$APP/3105"
-
-          python3 - "$APP/Info.plist" <<'PY'
-          import plistlib, sys
-          p = sys.argv[1]
-          info = {
-              'CFBundleDevelopmentRegion': 'en',
-              'CFBundleDisplayName': '3105',
-              'CFBundleExecutable': '3105',
-              'CFBundleIdentifier': 'com.nightvibes.app.threeoneosfive1',
-              'CFBundleInfoDictionaryVersion': '6.0',
-              'CFBundleName': '3105',
-              'CFBundlePackageType': 'APPL',
-              'CFBundleShortVersionString': '2.0-jb15',
-              'CFBundleVersion': '20',
-              'LSRequiresIPhoneOS': True,
-              'MinimumOSVersion': '15.0',
-              'UIDeviceFamily': [1, 2],
-              'UILaunchScreen': {},
-              'UISupportedInterfaceOrientations': [
-                  'UIInterfaceOrientationPortrait',
-                  'UIInterfaceOrientationLandscapeLeft',
-                  'UIInterfaceOrientationLandscapeRight'
-              ],
-              'UISupportedInterfaceOrientations~ipad': [
-                  'UIInterfaceOrientationPortrait',
-                  'UIInterfaceOrientationPortraitUpsideDown',
-                  'UIInterfaceOrientationLandscapeLeft',
-                  'UIInterfaceOrientationLandscapeRight'
-              ],
-              'ThreeOneOSFiveJBCompatibility': 'Dopamine iOS 15 early-window runtime'
-          }
-          with open(p, 'wb') as f:
-              plistlib.dump(info, f, fmt=plistlib.FMT_BINARY, sort_keys=False)
-          print('EARLY_WINDOW_PLIST=1')
-          PY
+            -o /tmp/raw-ui
+          chmod 0755 /tmp/raw-ui
+          file /tmp/raw-ui
 
           cat > /tmp/3105-ios15.entitlements <<'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
@@ -115,30 +77,59 @@ jobs:
           </dict></plist>
           PLIST
 
-          /usr/bin/codesign --force --sign - --timestamp=none \
-            --entitlements /tmp/3105-ios15.entitlements \
-            --generate-entitlement-der "$APP/3105"
-          /usr/bin/codesign -d --entitlements :- "$APP/3105" 2>&1 | tee /tmp/signed-entitlements.txt
-          grep -q 'platform-application' /tmp/signed-entitlements.txt
-          grep -q 'security.no-sandbox' /tmp/signed-entitlements.txt
-          grep -q 'MobileContainerManager.allowed' /tmp/signed-entitlements.txt
-          /usr/bin/otool -l "$APP/3105" | grep -A6 LC_BUILD_VERSION | head -n 20
+          for V in scene classic; do
+            WORK="/tmp/work-$V"
+            rm -rf "$WORK"; mkdir -p "$WORK"
+            unzip -q "$BASE" -d "$WORK"
+            APP="$WORK/Payload/3105.app"
+            test -d "$APP"
+            cp /tmp/raw-ui "$APP/3105"
+            chmod 0755 "$APP/3105"
 
-          cd /tmp/work
-          zip -qry /tmp/3105-ios15-windowfix.ipa Payload
-          cd - >/dev/null
-          shasum -a 256 /tmp/3105-ios15-windowfix.ipa | awk '{print $1}' > /tmp/3105-ios15-windowfix.sha256
-          echo "ipa_sha=$(cat /tmp/3105-ios15-windowfix.sha256)"
-          echo EARLY_WINDOW_IPA_READY=1
+            python3 - "$APP/Info.plist" "$V" <<'PY'
+          import plistlib, sys
+          p, variant = sys.argv[1], sys.argv[2]
+          with open(p, 'rb') as f: info = plistlib.load(f)
+          assert info['CFBundleIdentifier'] == 'com.nightvibes.app.threeoneosfive1'
+          assert info['MinimumOSVersion'] == '15.0'
+          if variant == 'classic':
+              info.pop('UIApplicationSceneManifest', None)
+          else:
+              assert 'UIApplicationSceneManifest' in info
+          info['ThreeOneOSFiveJBCompatibility'] = 'Dopamine iOS 15 ' + variant + ' lifecycle'
+          with open(p, 'wb') as f: plistlib.dump(info, f, fmt=plistlib.FMT_BINARY, sort_keys=False)
+          print(variant + '_bundle=' + info['CFBundleIdentifier'])
+          print(variant + '_scene_manifest=' + str('UIApplicationSceneManifest' in info))
+          PY
 
-      - name: Upload early-window IPA
+            /usr/bin/codesign --force --sign - --timestamp=none \
+              --entitlements /tmp/3105-ios15.entitlements \
+              --generate-entitlement-der "$APP/3105"
+            /usr/bin/codesign -d --entitlements :- "$APP/3105" 2>&1 > "/tmp/$V-entitlements.txt"
+            grep -q 'platform-application' "/tmp/$V-entitlements.txt"
+            grep -q 'MobileContainerManager.allowed' "/tmp/$V-entitlements.txt"
+
+            cd "$WORK"
+            zip -qry "/tmp/3105-ios15-$V.ipa" Payload
+            cd - >/dev/null
+            shasum -a 256 "/tmp/3105-ios15-$V.ipa" | awk '{print $1}' > "/tmp/3105-ios15-$V.sha256"
+            echo "$V ipa sha=$(cat /tmp/3105-ios15-$V.sha256)"
+          done
+
+          /usr/bin/otool -l /tmp/raw-ui | grep -A6 LC_BUILD_VERSION | head -n 20
+          echo TWO_LIFECYCLE_VARIANTS_READY=1
+
+      - name: Upload lifecycle variants
         uses: actions/upload-artifact@v4
         with:
-          name: 3105-ios15-windowfix
+          name: 3105-ios15-lifecycle-variants
           path: |
-            /tmp/3105-ios15-windowfix.ipa
-            /tmp/3105-ios15-windowfix.sha256
-            /tmp/signed-entitlements.txt
+            /tmp/3105-ios15-scene.ipa
+            /tmp/3105-ios15-scene.sha256
+            /tmp/3105-ios15-classic.ipa
+            /tmp/3105-ios15-classic.sha256
+            /tmp/scene-entitlements.txt
+            /tmp/classic-entitlements.txt
           if-no-files-found: error
           retention-days: 7
 
@@ -158,19 +149,15 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" \
-            > /tmp/environments.json
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > /tmp/environments.json
           environment_name="$(python3 - "$TARGET_ENVIRONMENT_ID" <<'PY'
-          import json, sys
-          target = int(sys.argv[1])
-          payload = json.load(open('/tmp/environments.json', encoding='utf-8'))
-          for env in payload.get('environments', []):
-              if int(env.get('id', -1)) == target:
-                  print(env['name']); raise SystemExit(0)
+          import json,sys
+          target=int(sys.argv[1]); payload=json.load(open('/tmp/environments.json'))
+          for e in payload.get('environments',[]):
+              if int(e.get('id',-1))==target: print(e['name']); raise SystemExit(0)
           raise SystemExit('environment not found')
           PY
           )"
-          test -n "$environment_name"
           echo "environment_name=$environment_name" >> "$GITHUB_OUTPUT"
 
   iphone-proof:
@@ -187,29 +174,29 @@ jobs:
           sparse-checkout-cone-mode: false
           fetch-depth: 1
 
-      - name: Download early-window IPA
+      - name: Download lifecycle variants
         uses: actions/download-artifact@v4
         with:
-          name: 3105-ios15-windowfix
-          path: /tmp/windowfix
+          name: 3105-ios15-lifecycle-variants
+          path: /tmp/variants
 
-      - name: Verify IPA locally
+      - name: Verify variants locally
         run: |
           set -euo pipefail
-          test -s /tmp/windowfix/3105-ios15-windowfix.ipa
-          test -s /tmp/windowfix/3105-ios15-windowfix.sha256
-          EXPECTED="$(tr -d ' \r\n' < /tmp/windowfix/3105-ios15-windowfix.sha256)"
-          GOT="$(sha256sum /tmp/windowfix/3105-ios15-windowfix.ipa | awk '{print $1}')"
-          echo "expected=$EXPECTED"
-          echo "got=$GOT"
-          test "$EXPECTED" = "$GOT"
+          for V in scene classic; do
+            test -s "/tmp/variants/3105-ios15-$V.ipa"
+            test -s "/tmp/variants/3105-ios15-$V.sha256"
+            E="$(tr -d ' \r\n' < /tmp/variants/3105-ios15-$V.sha256)"
+            G="$(sha256sum /tmp/variants/3105-ios15-$V.ipa | awk '{print $1}')"
+            echo "$V expected=$E got=$G"
+            test "$E" = "$G"
+          done
 
       - name: Install Tailscale and SSH tools
         env:
           TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
         run: |
           set -euo pipefail
-          test -n "$TAILSCALE_AUTHKEY"
           sudo install -d -m0755 /usr/share/keyrings
           curl -fL --retry 5 --retry-all-errors --connect-timeout 15 https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg -o /tmp/tailscale.gpg
           sudo install -m0644 /tmp/tailscale.gpg /usr/share/keyrings/tailscale-archive-keyring.gpg
@@ -225,7 +212,7 @@ jobs:
           IPHONE_HOST: "100.96.37.124"
         run: |
           set -euo pipefail
-          sudo tailscale up --auth-key="$TAILSCALE_AUTHKEY" --hostname="gh-3105-earlywin-${GITHUB_RUN_ID}" --accept-dns=false --accept-routes=false --reset
+          sudo tailscale up --auth-key="$TAILSCALE_AUTHKEY" --hostname="gh-3105-lifecycle-${GITHUB_RUN_ID}" --accept-dns=false --accept-routes=false --reset
           ready=0
           for n in $(seq 1 18); do
             if nc -zvw8 "$IPHONE_HOST" 22; then ready=1; break; fi
@@ -234,7 +221,7 @@ jobs:
           done
           test "$ready" = 1
 
-      - name: Install and prove visible runtime
+      - name: Install variants and prove visible runtime
         env:
           IPHONE_HOST: "100.96.37.124"
           IPHONE_PORT: "22"
@@ -246,16 +233,16 @@ jobs:
           mkdir -p "$HOME/.ssh"; chmod 700 "$HOME/.ssh"
           ssh-keyscan -T10 -H -p "$IPHONE_PORT" "$IPHONE_HOST" > "$HOME/.ssh/known_hosts" 2>/dev/null
           chmod 600 "$HOME/.ssh/known_hosts"
-          sshpass -e scp -P "$IPHONE_PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-            /tmp/windowfix/3105-ios15-windowfix.ipa "$IPHONE_USER@$IPHONE_HOST:/var/mobile/Media/3105-ios15-windowfix.ipa"
-          sshpass -e scp -P "$IPHONE_PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-            /tmp/windowfix/3105-ios15-windowfix.sha256 "$IPHONE_USER@$IPHONE_HOST:/var/mobile/Media/3105-ios15-windowfix.sha256"
+          for V in scene classic; do
+            sshpass -e scp -P "$IPHONE_PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              "/tmp/variants/3105-ios15-$V.ipa" "$IPHONE_USER@$IPHONE_HOST:/var/mobile/Media/3105-ios15-$V.ipa"
+            sshpass -e scp -P "$IPHONE_PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              "/tmp/variants/3105-ios15-$V.sha256" "$IPHONE_USER@$IPHONE_HOST:/var/mobile/Media/3105-ios15-$V.sha256"
+          done
           set +e
           { printf '%s\n' "$IPHONE_PASSWORD"; cat remote/iphone-command.sh; } | \
-            sshpass -e ssh -p "$IPHONE_PORT" \
-              -o BatchMode=no -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=3 \
-              -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-              "$IPHONE_USER@$IPHONE_HOST" \
+            sshpass -e ssh -p "$IPHONE_PORT" -o BatchMode=no -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=3 \
+              -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "$IPHONE_USER@$IPHONE_HOST" \
               'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
               2>&1 | tee /tmp/iphone-output.txt
           rc=${PIPESTATUS[1]}
@@ -267,7 +254,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: 3105-ios15-early-window-proof-${{ github.run_id }}
+          name: 3105-ios15-lifecycle-proof-${{ github.run_id }}
           path: /tmp/iphone-output.txt
           if-no-files-found: warn
           retention-days: 7
