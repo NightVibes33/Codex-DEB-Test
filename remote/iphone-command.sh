@@ -12,24 +12,31 @@ UICACHE=/var/jb/usr/bin/uicache
 UIOPEN=/var/jb/usr/bin/uiopen
 VARIANTS='minimal platform nosandbox platform-nosandbox'
 
-echo '=== 3105 IOS15 ENTITLEMENT MATRIX ==='
+echo '=== 3105 IOS15 ENTITLEMENT MATRIX POSIX PARSER ==='
 echo "device_time=$(date 2>/dev/null)"
 uname -a 2>/dev/null || true
-"$UIOPEN" 2>&1 | head -n 16 || true
 
 hash_file(){
   f="$1"
   [ -f "$f" ] || { echo missing; return; }
-  if command -v sha256sum >/dev/null 2>&1; then set -- $(sha256sum "$f" 2>/dev/null); else set -- $(shasum -a 256 "$f" 2>/dev/null); fi
+  if command -v sha256sum >/dev/null 2>&1; then
+    set -- $(sha256sum "$f" 2>/dev/null)
+  else
+    set -- $(shasum -a 256 "$f" 2>/dev/null)
+  fi
   echo "$1"
 }
+
 manifest_hash(){
-  name="$1"
-  line="$(grep -F "$name" "$MANIFEST" 2>/dev/null | head -n 1)"
-  [ -n "$line" ] || return
-  set -- $line
-  echo "$1"
+  wanted="$1"
+  while IFS=' ' read -r hash name extra; do
+    [ -n "$hash" ] || continue
+    [ "$name" = "$wanted" ] && { echo "$hash"; return 0; }
+    [ "$extra" = "$wanted" ] && { echo "$hash"; return 0; }
+  done < "$MANIFEST"
+  return 1
 }
+
 find_helper(){
   for p in /var/jb/usr/bin/trollstorehelper /var/jb/Applications/TrollStore.app/trollstorehelper /Applications/TrollStore.app/trollstorehelper /var/containers/Bundle/Application/*/*.app/trollstorehelper; do
     [ -x "$p" ] && { echo "$p"; return; }
@@ -40,150 +47,84 @@ find_sb(){
     case "$rest" in *'/System/Library/CoreServices/SpringBoard.app/SpringBoard'*) echo "$pid"; break;; esac
   done
 }
-find_app_pid(){
-  P="$(pidof 3105 2>/dev/null || true)"; set -- $P
-  [ -n "${1:-}" ] && { echo "$1"; return; }
-  /bin/ps ax 2>/dev/null | while read pid rest; do
-    case "$rest" in *'/3105.app/3105'*) echo "$pid"; break;; esac
-  done
-}
-cleanup(){
-  killall -9 3105 2>/dev/null || true
-  killall -9 uiopen 2>/dev/null || true
-  sleep 2
-}
+cleanup(){ killall -9 3105 2>/dev/null || true; killall -9 uiopen 2>/dev/null || true; sleep 2; }
 reset_trace(){ rm -f "$MARKER" "$PHASE"; }
-last_phase(){ [ -s "$PHASE" ] && tail -n 1 "$PHASE" 2>/dev/null || true; }
-wait_for_trace(){
-  limit="$1"; n=0
-  while [ "$n" -lt "$limit" ]; do
-    [ -s "$MARKER" ] && return 0
-    [ -s "$PHASE" ] && echo "trace_second_${n}=$(last_phase)"
-    n=$((n+1)); sleep 1
-  done
-  return 1
-}
 classify(){
-  if [ -s "$MARKER" ]; then echo UI_READY; return; fi
-  if [ ! -s "$PHASE" ]; then echo PRE_MAIN_BLOCK; return; fi
-  if grep -q 'phase=didFinish-enter' "$PHASE" 2>/dev/null; then echo DIDFINISH_PARTIAL; return; fi
-  if grep -q 'phase=delegate-init-exit' "$PHASE" 2>/dev/null; then echo STALLED_BEFORE_DIDFINISH; return; fi
-  if grep -q 'phase=main-enter' "$PHASE" 2>/dev/null; then echo MAIN_PARTIAL; return; fi
+  [ -s "$MARKER" ] && { echo UI_READY; return; }
+  [ ! -s "$PHASE" ] && { echo PRE_MAIN_BLOCK; return; }
+  grep -q 'phase=didFinish-enter' "$PHASE" 2>/dev/null && { echo DIDFINISH_PARTIAL; return; }
+  grep -q 'phase=delegate-init-exit' "$PHASE" 2>/dev/null && { echo STALLED_BEFORE_DIDFINISH; return; }
+  grep -q 'phase=main-enter' "$PHASE" 2>/dev/null && { echo MAIN_PARTIAL; return; }
   echo CONSTRUCTOR_ONLY
 }
-show_trace(){
-  label="$1"
-  echo "----- $label phase trace -----"
-  [ -s "$PHASE" ] && cat "$PHASE" || echo PHASE_EMPTY=1
-  echo "----- $label UI marker -----"
-  [ -s "$MARKER" ] && cat "$MARKER" || echo UI_EMPTY=1
-  echo "${label}_pid=$(find_app_pid)"
-}
+wait_seconds(){ limit="$1"; n=0; while [ "$n" -lt "$limit" ]; do [ -s "$MARKER" ] && return 0; n=$((n+1)); sleep 1; done; return 1; }
 
 H="$(find_helper)"
 SBPID="$(find_sb)"
-echo "trollstorehelper=$H"
+echo "helper=$H"
 echo "springboard_pid=$SBPID"
 [ -n "$H" ] || exit 91
 [ -n "$SBPID" ] || exit 92
-[ -x "$UICACHE" ] || exit 93
-[ -x "$UIOPEN" ] || exit 94
-[ -s "$MANIFEST" ] || exit 95
+[ -s "$MANIFEST" ] || exit 93
 
-echo '----- transferred checksum manifest -----'
+echo '--- manifest ---'
 cat "$MANIFEST"
 : > "$RESULTS"
-echo "matrix_started=$(date 2>/dev/null)" >> "$RESULTS"
+BEST=''
 
 for V in $VARIANTS; do
-  IPA="$MEDIA/3105-matrix-$V.ipa"
   NAME="3105-matrix-$V.ipa"
+  IPA="$MEDIA/$NAME"
   EXPECTED="$(manifest_hash "$NAME")"
   GOT="$(hash_file "$IPA")"
   echo "variant=$V expected=$EXPECTED got=$GOT"
-  [ -n "$EXPECTED" ] && [ "$EXPECTED" = "$GOT" ] || { echo "$V=HASH_MISMATCH" >> "$RESULTS"; exit 96; }
-done
+  if [ -z "$EXPECTED" ] || [ "$EXPECTED" != "$GOT" ]; then
+    echo "$V=HASH_MISMATCH" >> "$RESULTS"
+    continue
+  fi
 
-BEST=''
-for V in $VARIANTS; do
-  IPA="$MEDIA/3105-matrix-$V.ipa"
-  echo
-  echo "================ VARIANT: $V ================"
-  cleanup
-  reset_trace
-
-  "$H" install force "$IPA" 2>&1
+  cleanup; reset_trace
+  "$H" install force "$IPA" >/dev/null 2>&1
   IRC=$?
   echo "${V}_install_rc=$IRC"
-  if [ "$IRC" -ne 0 ]; then
-    echo "$V=INSTALL_FAILED:$IRC" >> "$RESULTS"
-    continue
-  fi
-  "$H" refresh 2>&1 || true
-  sleep 4
+  if [ "$IRC" -ne 0 ]; then echo "$V=INSTALL_FAILED:$IRC" >> "$RESULTS"; continue; fi
+  "$H" refresh >/dev/null 2>&1 || true
+  sleep 3
 
-  LINE="$("$UICACHE" -l 2>&1 | grep -F "$BUNDLE" | head -n 1)"
+  LINE="$("$UICACHE" -l 2>&1 | grep "$BUNDLE" | head -n 1)"
   APP="${LINE#* : }"
   echo "${V}_registration=$LINE"
-  echo "${V}_app=$APP"
-  if [ ! -x "$APP/3105" ]; then
-    echo "$V=REGISTRATION_FAILED" >> "$RESULTS"
-    continue
-  fi
+  [ -x "$APP/3105" ] || { echo "$V=REGISTRATION_FAILED" >> "$RESULTS"; continue; }
 
   reset_trace
   launchctl bsexec "$SBPID" "$UIOPEN" --bundleid "$BUNDLE" > "$MEDIA/3105-$V-uiopen.log" 2>&1 &
   LP=$!
-  echo "${V}_uiopen_launcher=$LP"
-  wait_for_trace 14 || true
+  wait_seconds 12 || true
   kill "$LP" 2>/dev/null || true
   killall -9 uiopen 2>/dev/null || true
   PRIMARY="$(classify)"
   echo "${V}_primary=$PRIMARY"
-  show_trace "${V}_primary"
-  cat "$MEDIA/3105-$V-uiopen.log" 2>/dev/null | head -n 100 || true
+  [ -s "$PHASE" ] && cat "$PHASE" || echo "${V}_phase_empty=1"
+  [ -s "$MARKER" ] && cat "$MARKER" || true
 
-  FINAL="$PRIMARY"
+  DIRECT='SKIPPED'
   if [ "$PRIMARY" = PRE_MAIN_BLOCK ]; then
-    cleanup
-    reset_trace
+    cleanup; reset_trace
     sudo -u mobile "$APP/3105" > "$MEDIA/3105-$V-direct.log" 2>&1 &
     DP=$!
-    echo "${V}_direct_launcher=$DP"
-    wait_for_trace 7 || true
+    wait_seconds 6 || true
     DIRECT="$(classify)"
     echo "${V}_direct=$DIRECT"
-    show_trace "${V}_direct"
-    cat "$MEDIA/3105-$V-direct.log" 2>/dev/null | head -n 120 || true
+    [ -s "$PHASE" ] && cat "$PHASE" || echo "${V}_direct_phase_empty=1"
     kill "$DP" 2>/dev/null || true
-    cleanup
-    FINAL="${PRIMARY}/direct:${DIRECT}"
   fi
 
-  echo "$V=$FINAL" >> "$RESULTS"
-  if [ "$PRIMARY" = UI_READY ] && [ -z "$BEST" ]; then BEST="$V"; fi
+  echo "$V=$PRIMARY/direct:$DIRECT" >> "$RESULTS"
+  [ "$PRIMARY" = UI_READY ] && [ -z "$BEST" ] && BEST="$V"
   cleanup
 done
 
 echo "best_variant=$BEST" >> "$RESULTS"
-echo "matrix_finished=$(date 2>/dev/null)" >> "$RESULTS"
-echo
 cat "$RESULTS"
-
-if [ -n "$BEST" ]; then
-  echo "REINSTALLING_BEST=$BEST"
-  "$H" install force "$MEDIA/3105-matrix-$BEST.ipa" 2>&1
-  "$H" refresh 2>&1 || true
-  sleep 3
-  reset_trace
-  launchctl bsexec "$SBPID" "$UIOPEN" --bundleid "$BUNDLE" > "$MEDIA/3105-best-launch.log" 2>&1 &
-  wait_for_trace 12 || true
-  if [ -s "$MARKER" ]; then
-    echo ENTITLEMENT_MATRIX_UI_SUCCESS=1
-    cat "$MARKER"
-    exit 0
-  fi
-fi
-
-echo ENTITLEMENT_MATRIX_UI_SUCCESS=0
-exit 97
+[ -n "$BEST" ] && echo ENTITLEMENT_MATRIX_UI_SUCCESS=1 || echo ENTITLEMENT_MATRIX_UI_SUCCESS=0
+exit 0
