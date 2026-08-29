@@ -25,13 +25,13 @@ jobs:
           sparse-checkout-cone-mode: false
           fetch-depth: 1
 
-      - name: Build retained UIKit iOS 15 executable
+      - name: Build four entitlement variants
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          rm -rf /tmp/base-artifact /tmp/work /tmp/base.zip /tmp/3105-ios15-windowfix.ipa /tmp/3105-ios15-windowfix.sha256
-          mkdir -p /tmp/base-artifact /tmp/work
+          rm -rf /tmp/base-artifact /tmp/template /tmp/matrix /tmp/base.zip /tmp/3105-compiled
+          mkdir -p /tmp/base-artifact /tmp/template /tmp/matrix
 
           curl -fL --retry 5 --retry-all-errors --connect-timeout 20 \
             -H "Accept: application/vnd.github+json" \
@@ -45,8 +45,8 @@ jobs:
           GOT="$(shasum -a 256 "$BASE" | awk '{print $1}')"
           echo "base_ipa_sha=$GOT"
           test "$GOT" = "$BASE_IPA_SHA256"
-          unzip -q "$BASE" -d /tmp/work
-          APP=/tmp/work/Payload/3105.app
+          unzip -q "$BASE" -d /tmp/template
+          APP=/tmp/template/Payload/3105.app
           test -d "$APP"
 
           SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
@@ -60,9 +60,9 @@ jobs:
             -framework Foundation \
             -framework QuartzCore \
             remote/ThreeOneOSFiveJB15.m \
-            -o "$APP/3105"
-          chmod 0755 "$APP/3105"
-          file "$APP/3105"
+            -o /tmp/3105-compiled
+          chmod 0755 /tmp/3105-compiled
+          file /tmp/3105-compiled
 
           python3 - "$APP/Info.plist" <<'PY'
           import plistlib, sys
@@ -76,7 +76,7 @@ jobs:
               'CFBundleName': '3105',
               'CFBundlePackageType': 'APPL',
               'CFBundleShortVersionString': '2.0-test',
-              'CFBundleVersion': '15',
+              'CFBundleVersion': '16',
               'LSRequiresIPhoneOS': True,
               'MinimumOSVersion': '15.0',
               'UIDeviceFamily': [1, 2],
@@ -92,55 +92,92 @@ jobs:
                   'UIInterfaceOrientationLandscapeLeft',
                   'UIInterfaceOrientationLandscapeRight'
               ],
-              'ThreeOneOSFiveJBCompatibility': 'Dopamine iOS 15 minimal foreground app identity'
+              'ThreeOneOSFiveJBCompatibility': 'Dopamine iOS 15 entitlement matrix'
           }
           with open(p, 'wb') as f:
               plistlib.dump(info, f, fmt=plistlib.FMT_BINARY, sort_keys=False)
           print('MINIMAL_PLIST_WRITTEN=1')
           print('bundle_id=' + info['CFBundleIdentifier'])
           print('package_type=' + info['CFBundlePackageType'])
-          print('minimum_os=' + info['MinimumOSVersion'])
           print('scene_manifest_present=' + str('UIApplicationSceneManifest' in info))
           PY
 
-          # Keep the compatibility binary a normal app. TrollStore performs the
-          # CoreTrust/application-identifier signing during device installation.
-          /usr/bin/codesign --force --sign - --timestamp=none "$APP/3105"
-          (/usr/bin/codesign -d --entitlements :- "$APP/3105" 2>&1 || true) | tee /tmp/signed-entitlements.txt
-          if grep -Eq 'platform-application|MobileContainerManager|security.no-sandbox|container-manager|absolute-path.read-write' /tmp/signed-entitlements.txt; then
-            echo PRIVATE_ENTITLEMENTS_STILL_PRESENT=1
-            cat /tmp/signed-entitlements.txt
-            exit 32
-          fi
-          echo MINIMAL_APP_ENTITLEMENTS=1
+          make_entitlements() {
+            variant="$1"
+            out="$2"
+            python3 - "$variant" "$out" <<'PY'
+          import plistlib, sys
+          variant, out = sys.argv[1], sys.argv[2]
+          ent = {}
+          if variant in ('platform', 'platform-nosandbox'):
+              ent['platform-application'] = True
+          if variant in ('nosandbox', 'platform-nosandbox'):
+              ent['com.apple.private.security.no-sandbox'] = True
+          with open(out, 'wb') as f:
+              plistlib.dump(ent, f, fmt=plistlib.FMT_XML, sort_keys=True)
+          print(variant, ent)
+          PY
+          }
 
-          /usr/bin/otool -l "$APP/3105" | grep -A6 LC_BUILD_VERSION | head -n 20 || true
-          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist"
-          /usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "$APP/Info.plist"
-          /usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP/Info.plist"
-          if /usr/libexec/PlistBuddy -c 'Print :UIApplicationSceneManifest' "$APP/Info.plist" >/dev/null 2>&1; then
-            echo SCENE_MANIFEST_STILL_PRESENT=1
-            exit 31
-          fi
-          echo CLASSIC_APP_LIFECYCLE=1
+          : > /tmp/matrix/3105-matrix-sha256.txt
+          for variant in minimal platform nosandbox platform-nosandbox; do
+            WORK="/tmp/work-$variant"
+            rm -rf "$WORK"
+            cp -a /tmp/template "$WORK"
+            VAPP="$WORK/Payload/3105.app"
+            cp /tmp/3105-compiled "$VAPP/3105"
+            chmod 0755 "$VAPP/3105"
+            printf '%s\n' "$variant" > "$VAPP/EntitlementVariant.txt"
 
-          cd /tmp/work
-          zip -qry /tmp/3105-ios15-windowfix.ipa Payload
-          cd - >/dev/null
-          shasum -a 256 /tmp/3105-ios15-windowfix.ipa | awk '{print $1}' > /tmp/3105-ios15-windowfix.sha256
-          echo "windowfix_ipa_sha=$(cat /tmp/3105-ios15-windowfix.sha256)"
-          test -s /tmp/3105-ios15-windowfix.ipa
-          test -s /tmp/3105-ios15-windowfix.sha256
-          echo IOS15_WINDOWFIX_IPA_READY=1
+            if [ "$variant" = minimal ]; then
+              /usr/bin/codesign --force --sign - --timestamp=none "$VAPP/3105"
+            else
+              make_entitlements "$variant" "/tmp/$variant.entitlements.plist"
+              /usr/bin/codesign --force --sign - --timestamp=none \
+                --entitlements "/tmp/$variant.entitlements.plist" \
+                --generate-entitlement-der \
+                "$VAPP/3105"
+            fi
 
-      - name: Upload retained UIKit IPA
+            (/usr/bin/codesign -d --entitlements :- "$VAPP/3105" 2>&1 || true) \
+              > "/tmp/matrix/entitlements-$variant.txt"
+            echo "===== $variant ====="
+            cat "/tmp/matrix/entitlements-$variant.txt"
+
+            case "$variant" in
+              minimal)
+                ! grep -q 'platform-application' "/tmp/matrix/entitlements-$variant.txt"
+                ! grep -q 'security.no-sandbox' "/tmp/matrix/entitlements-$variant.txt"
+                ;;
+              platform)
+                grep -q 'platform-application' "/tmp/matrix/entitlements-$variant.txt"
+                ! grep -q 'security.no-sandbox' "/tmp/matrix/entitlements-$variant.txt"
+                ;;
+              nosandbox)
+                ! grep -q 'platform-application' "/tmp/matrix/entitlements-$variant.txt"
+                grep -q 'security.no-sandbox' "/tmp/matrix/entitlements-$variant.txt"
+                ;;
+              platform-nosandbox)
+                grep -q 'platform-application' "/tmp/matrix/entitlements-$variant.txt"
+                grep -q 'security.no-sandbox' "/tmp/matrix/entitlements-$variant.txt"
+                ;;
+            esac
+
+            (cd "$WORK" && zip -qry "/tmp/matrix/3105-matrix-$variant.ipa" Payload)
+            SHA="$(shasum -a 256 "/tmp/matrix/3105-matrix-$variant.ipa" | awk '{print $1}')"
+            echo "$SHA  3105-matrix-$variant.ipa" >> /tmp/matrix/3105-matrix-sha256.txt
+            echo "variant=$variant sha256=$SHA"
+          done
+
+          cat /tmp/matrix/3105-matrix-sha256.txt
+          test "$(find /tmp/matrix -maxdepth 1 -name '3105-matrix-*.ipa' | wc -l | tr -d ' ')" = 4
+          echo ENTITLEMENT_MATRIX_READY=1
+
+      - name: Upload entitlement matrix
         uses: actions/upload-artifact@v4
         with:
-          name: 3105-ios15-windowfix
-          path: |
-            /tmp/3105-ios15-windowfix.ipa
-            /tmp/3105-ios15-windowfix.sha256
-            /tmp/signed-entitlements.txt
+          name: 3105-ios15-entitlement-matrix
+          path: /tmp/matrix/
           if-no-files-found: error
           retention-days: 7
 
@@ -190,22 +227,19 @@ jobs:
           sparse-checkout-cone-mode: false
           fetch-depth: 1
 
-      - name: Download retained UIKit IPA
+      - name: Download entitlement matrix
         uses: actions/download-artifact@v4
         with:
-          name: 3105-ios15-windowfix
-          path: /tmp/windowfix
+          name: 3105-ios15-entitlement-matrix
+          path: /tmp/matrix
 
-      - name: Verify local test payload
+      - name: Verify matrix locally
         run: |
           set -euo pipefail
-          test -s /tmp/windowfix/3105-ios15-windowfix.ipa
-          test -s /tmp/windowfix/3105-ios15-windowfix.sha256
-          EXPECTED="$(tr -d ' \r\n' < /tmp/windowfix/3105-ios15-windowfix.sha256)"
-          GOT="$(sha256sum /tmp/windowfix/3105-ios15-windowfix.ipa | awk '{print $1}')"
-          echo "expected=$EXPECTED"
-          echo "got=$GOT"
-          test "$EXPECTED" = "$GOT"
+          cd /tmp/matrix
+          test -s 3105-matrix-sha256.txt
+          sha256sum -c 3105-matrix-sha256.txt
+          test "$(find . -maxdepth 1 -name '3105-matrix-*.ipa' | wc -l | tr -d ' ')" = 4
 
       - name: Install Tailscale and SSH tools with retries
         env:
@@ -236,7 +270,7 @@ jobs:
           set -euo pipefail
           sudo tailscale up \
             --auth-key="$TAILSCALE_AUTHKEY" \
-            --hostname="gh-3105-ui-${GITHUB_RUN_ID}" \
+            --hostname="gh-3105-matrix-${GITHUB_RUN_ID}" \
             --accept-dns=false \
             --accept-routes=false \
             --reset
@@ -248,7 +282,7 @@ jobs:
           done
           test "$ready" = 1
 
-      - name: Transfer IPA and prove active visible window
+      - name: Transfer and run entitlement matrix
         env:
           IPHONE_HOST: "100.96.37.124"
           IPHONE_PORT: "22"
@@ -265,14 +299,11 @@ jobs:
           test -s "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/known_hosts"
 
-          sshpass -e scp -P "$IPHONE_PORT" \
-            -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-            /tmp/windowfix/3105-ios15-windowfix.ipa \
-            "$IPHONE_USER@$IPHONE_HOST:/var/mobile/Media/3105-ios15-windowfix.ipa"
-          sshpass -e scp -P "$IPHONE_PORT" \
-            -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-            /tmp/windowfix/3105-ios15-windowfix.sha256 \
-            "$IPHONE_USER@$IPHONE_HOST:/var/mobile/Media/3105-ios15-windowfix.sha256"
+          for f in /tmp/matrix/3105-matrix-*.ipa /tmp/matrix/3105-matrix-sha256.txt; do
+            sshpass -e scp -P "$IPHONE_PORT" \
+              -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              "$f" "$IPHONE_USER@$IPHONE_HOST:/var/mobile/Media/$(basename "$f")"
+          done
 
           set +e
           {
@@ -292,14 +323,14 @@ jobs:
           ssh_status=${PIPESTATUS[1]}
           set -e
           echo "iphone_ssh_exit_code=$ssh_status" | tee -a /tmp/iphone-output.txt
-          grep -E 'UI_READY|phase=|key=|hidden=|root_view_loaded=|CORRECT_UIOPEN_UI_SUCCESS|RUNTIME_PROOF_SUCCESS|stable_pid|alive_after_60_seconds' /tmp/iphone-output.txt || true
+          grep -E 'variant=|_primary=|_direct=|UI_READY|STALLED_BEFORE_DIDFINISH|PRE_MAIN_BLOCK|best_variant|ENTITLEMENT_MATRIX_UI_SUCCESS' /tmp/iphone-output.txt || true
           exit "$ssh_status"
 
-      - name: Upload visible UI proof
+      - name: Upload matrix proof
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: 3105-ios15-visible-ui-proof-${{ github.run_id }}
+          name: 3105-ios15-entitlement-matrix-proof-${{ github.run_id }}
           path: /tmp/iphone-output.txt
           if-no-files-found: warn
           retention-days: 7
