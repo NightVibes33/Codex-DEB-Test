@@ -1,13 +1,13 @@
 iPhone Tailscale SSH Bridge
-run_id=33237691057
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33237691057
-commit=d4dfd35eb6eefcb6cd17350bd4a5c6b41bd4fee3
+run_id=33238561353
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33238561353
+commit=236ba018c3b99ecaa98affb8abbaeeb909178138
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
 tailscale=success
 install_ssh=success
-ssh=failure
+ssh=success
 
 --- sanitized SSH output ---
 Waking and checking iPhone SSH port over Tailscale...
@@ -19,132 +19,53 @@ SSH port attempt 1/18
 # 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
 iphone_ssh_port_ready=success
 Staging native rfmonctl and running probe as root...
-=== 3105 IOS15 ENTITLEMENT MATRIX ===
-device_time=Sat Aug 29 01:07:26 CDT 2026
+=== 3105 IOS15 ENTITLEMENT MATRIX POSIX PARSER ===
+device_time=Sat Aug 29 01:29:41 CDT 2026
 Darwin iPhone 21.6.0 Darwin Kernel Version 21.6.0: Fri Mar  6 21:01:24 PST 2026; root:xnu-8020.241.44~1/RELEASE_ARM64_S8000 iPhone8,1 arm Darwin
-Usage: uiopen [OPTION...]
-Open URLs and open iOS applications by bundle ID
-
-  --url <URL>     Open the specified URL
-  --bundleid <id> Open application with the
-                     specified bundle id.
-  --app <app>     Open application with the
-                     specified name.
-  --path <path>   Open application at the specified path
-  --help          Give this help list.
-trollstorehelper=/var/containers/Bundle/Application/37A1E069-9D65-484C-8622-662A1DE8BB68/Tips.app/trollstorehelper
-springboard_pid=318
------ transferred checksum manifest -----
+helper=/var/containers/Bundle/Application/37A1E069-9D65-484C-8622-662A1DE8BB68/Tips.app/trollstorehelper
+springboard_pid=328
+--- manifest ---
 4d20133f957e3138876bfaf3451de1d30bfa2bf38ace7adc51cbfb9d9afe20b1  3105-matrix-minimal.ipa
 826003cea5ac7094c8b016a16f35841471f4ffc4746bf3a9baac2a3a66136aa8  3105-matrix-platform.ipa
 9f9a1eaf10cb3c2676e4c2c13f8cc0bc394e5823fe5578cb83ee45636195cafb  3105-matrix-nosandbox.ipa
 b1d75c81d4a4868d99b082bee24f2993eac02c26a69d62bfe991cfe178d42eb4  3105-matrix-platform-nosandbox.ipa
 variant=minimal expected=4d20133f957e3138876bfaf3451de1d30bfa2bf38ace7adc51cbfb9d9afe20b1 got=4d20133f957e3138876bfaf3451de1d30bfa2bf38ace7adc51cbfb9d9afe20b1
-variant=platform expected=826003cea5ac7094c8b016a16f35841471f4ffc4746bf3a9baac2a3a66136aa8 got=826003cea5ac7094c8b016a16f35841471f4ffc4746bf3a9baac2a3a66136aa8
-variant=nosandbox expected=9f9a1eaf10cb3c2676e4c2c13f8cc0bc394e5823fe5578cb83ee45636195cafb got=9f9a1eaf10cb3c2676e4c2c13f8cc0bc394e5823fe5578cb83ee45636195cafb
-variant=platform-nosandbox expected=b1d75c81d4a4868d99b082bee24f2993eac02c26a69d62bfe991cfe178d42eb4 got=b1d75c81d4a4868d99b082bee24f2993eac02c26a69d62bfe991cfe178d42eb4
-
-================ VARIANT: minimal ================
-2026-08-29 01:07:33.998 trollstorehelper[10886:149413] [SnowBoard Launcher] Loader check passed. Loading SnowBoard...
-2026-08-29 01:07:34.026 trollstorehelper[10886:149413] Initialising Snowboard (Version: 1.5.37-Beta4-rootless Compiled: Jul  9 2024 : 00:24:46) in app: trollstorehelper...
-2026-08-29 01:07:34.239 trollstorehelper[10886:149413] trollstorehelper invoked with arguments: (
-    install,
-    force,
-    "/var/mobile/Media/3105-matrix-minimal.ipa"
-)
-2026-08-29 01:07:34.403 trollstorehelper[10886:149413] [installApp force = 1]
-2026-08-29 01:07:34.635 trollstorehelper[10886:149413] [dumpEntitlements] no entitlements specified
-2026-08-29 01:07:34.650 trollstorehelper[10886:149413] About to spawn ldid (/private/var/containers/Bundle/Application/BE9B476F-4FAE-44CE-974D-44EC5A57CE39/TrollStore.app/ldid) with args (
-    "-S/var/tmp/38DB0F09-B0C8-428E-B388-32171B33412B.plist",
-    "/private/var/tmp/0C12B9CB-7019-426C-9308-4B8E26965C9E/Payload/3105.app/3105"
-)
-2026-08-29 01:07:34.830 trollstorehelper[10886:149413] ldid exited with status 0
-2026-08-29 01:07:34.830 trollstorehelper[10886:149413] - ldid error output start -
-2026-08-29 01:07:34.831 trollstorehelper[10886:149413] - ldid error output end -
-2026-08-29 01:07:34.839 trollstorehelper[10886:149413] About to spawn ldid (/private/var/containers/Bundle/Application/BE9B476F-4FAE-44CE-974D-44EC5A57CE39/TrollStore.app/ldid) with args (
-    "-s",
-    "/var/tmp/0C12B9CB-7019-426C-9308-4B8E26965C9E/Payload/3105.app"
-)
-2026-08-29 01:07:35.062 trollstorehelper[10886:149413] ldid exited with status 0
-2026-08-29 01:07:35.062 trollstorehelper[10886:149413] - ldid error output start -
-2026-08-29 01:07:35.062 trollstorehelper[10886:149413] - ldid error output end -
-2026-08-29 01:07:35.065 trollstorehelper[10886:149413] /private/var/tmp/0C12B9CB-7019-426C-9308-4B8E26965C9E/Payload/3105.app/3105 is binary
-2026-08-29 01:07:35.068 trollstorehelper[10886:149413] [/private/var/tmp/0C12B9CB-7019-426C-9308-4B8E26965C9E/Payload/3105.app/3105] Applying CoreTrust bypass...
-2026-08-29 01:07:35.132 trollstorehelper[10886:149413] [/private/var/tmp/0C12B9CB-7019-426C-9308-4B8E26965C9E/Payload/3105.app/3105] Applied CoreTrust bypass!
-2026-08-29 01:07:35.174 trollstorehelper[10886:149413] [installApp] replacing existing app with new version
-2026-08-29 01:07:35.192 trollstorehelper[10886:149413] [installApp] new app path: /private/var/containers/Bundle/Application/F6556AA2-80E2-4539-B418-D62019EFF287/3105.app
-2026-08-29 01:07:35.342 trollstorehelper[10886:149413] [dumpEntitlements] dumped {
-    "application-identifier" = "TROLLTROLL.*";
-    "com.apple.developer.team-identifier" = TROLLTROLL;
-    "com.apple.private.security.container-required" = "com.nightvibes.app.threeoneosfive1";
-    "get-task-allow" = 1;
-    "keychain-access-groups" =     (
-        "TROLLTROLL.*",
-        "com.apple.token"
-    );
-}
-2026-08-29 01:07:35.471 trollstorehelper[10886:149413] trollstorehelper returning 0
-Applying App Store code directory...
-Adding new signature blob...
-Updating TeamID...
-TeamID set to T8ALTGMVXN!
-Doing initial signing to calculate size...
-SHA1 hash: 51f9bca295be9c2e1dee77d093ce0fcf3fc93450
-SHA256 hash: 4a6f18da6efd5abd3e88d6c41a207a9f131fafb5fc6b687994fdda1338008120
-Encoding unsigned superblob...
-Updating load commands...
-Updating __LINKEDIT segment...
-Updating LC_CODE_SIGNATURE load command...
-Updating code slot hashes...
-Signing binary...
-SHA1 hash: 51f9bca295be9c2e1dee77d093ce0fcf3fc93450
-SHA256 hash: ac0a6fe92a3cb3c33cc9dda1970a4b81ef06a1b9cdf6d6528e8741207be07051
-Encoding signed superblob...
-Writing superblob to MachO...
 minimal_install_rc=0
-2026-08-29 01:07:37.093 trollstorehelper[10891:149444] [SnowBoard Launcher] Loader check passed. Loading SnowBoard...
-2026-08-29 01:07:37.124 trollstorehelper[10891:149444] Initialising Snowboard (Version: 1.5.37-Beta4-rootless Compiled: Jul  9 2024 : 00:24:46) in app: trollstorehelper...
-2026-08-29 01:07:37.372 trollstorehelper[10891:149444] trollstorehelper invoked with arguments: (
-    refresh
-)
-2026-08-29 01:07:38.259 trollstorehelper[10891:149444] [dumpEntitlements] dumped {
-    "application-identifier" = "com.opa334.TrollStore";
-    "com.apple.CommCenter.fine-grained" =     (
-        "data-allowed-write"
-    );
-    "com.apple.lsapplicationworkspace.rebuildappdatabases" = 1;
-    "com.apple.private.MobileContainerManager.allowed" = 1;
-    "com.apple.private.MobileInstallationHelperService.InstallDaemonOpsEnabled" = 1;
-    "com.apple.private.MobileInstallationHelperService.allowed" = 1;
-    "com.apple.private.coreservices.canmaplsdatabase" = 1;
-    "com.apple.private.persona-mgmt" = 1;
-    "com.apple.private.security.container-manager" = 1;
-    "com.apple.private.security.no-sandbox" = 1;
-    "com.apple.private.security.storage.MobileDocuments" = 1;
-    "com.apple.private.uninstall.deletion" = 1;
-    "com.apple.security.exception.files.absolute-path.read-write" =     (
-        "/"
-    );
-    "com.apple.security.exception.iokit-user-client-class" =     (
-        AGXDeviceUserClient,
-        IOSurfaceRootUserClient
-    );
-    "com.apple.springboard.opensensitiveurl" = 1;
-    "platform-application" = 1;
-}
-2026-08-29 01:07:38.982 trollstorehelper[10891:149444] [dumpEntitlements] dumped {
-    "application-identifier" = "TROLLTROLL.*";
-    "com.apple.developer.team-identifier" = TROLLTROLL;
-    "com.apple.private.security.container-required" = "com.nightvibes.app.threeoneosfive1";
-    "get-task-allow" = 1;
-    "keychain-access-groups" =     (
-        "TROLLTROLL.*",
-        "com.apple.token"
-    );
-}
-2026-08-29 01:07:39.858 trollstorehelper[10891:149444] trollstorehelper returning 0
 minimal_registration=com.nightvibes.app.threeoneosfive1 : /private/var/containers/Bundle/Application/F6556AA2-80E2-4539-B418-D62019EFF287/3105.app
-minimal_app=/private/var/containers/Bundle/Application/F6556AA2-80E2-4539-B418-D62019EFF287/3105.app
-minimal_uiopen_launcher=10903
-Timeout, server 100.96.37.124 not responding.
-ssh_exit_code=255
+minimal_primary=PRE_MAIN_BLOCK
+minimal_phase_empty=1
+minimal_direct=PRE_MAIN_BLOCK
+minimal_direct_phase_empty=1
+variant=platform expected=826003cea5ac7094c8b016a16f35841471f4ffc4746bf3a9baac2a3a66136aa8 got=826003cea5ac7094c8b016a16f35841471f4ffc4746bf3a9baac2a3a66136aa8
+platform_install_rc=0
+platform_registration=com.nightvibes.app.threeoneosfive1 : /private/var/containers/Bundle/Application/F6556AA2-80E2-4539-B418-D62019EFF287/3105.app
+platform_primary=PRE_MAIN_BLOCK
+platform_phase_empty=1
+platform_direct=PRE_MAIN_BLOCK
+platform_direct_phase_empty=1
+variant=nosandbox expected=ece7ef13e60dcbd7f77d3d7264fcc1d7076ca8cbfe90698b80ef9dff9cddbadd got=ece7ef13e60dcbd7f77d3d7264fcc1d7076ca8cbfe90698b80ef9dff9cddbadd
+nosandbox_install_rc=0
+nosandbox_registration=com.nightvibes.app.threeoneosfive1 : /private/var/containers/Bundle/Application/F6556AA2-80E2-4539-B418-D62019EFF287/3105.app
+nosandbox_primary=PRE_MAIN_BLOCK
+nosandbox_phase_empty=1
+nosandbox_direct=PRE_MAIN_BLOCK
+nosandbox_direct_phase_empty=1
+variant=platform-nosandbox expected=34dd95431fa851298416223fe66e3a694abfede862d3756b8b0aa92b641da1f3 got=34dd95431fa851298416223fe66e3a694abfede862d3756b8b0aa92b641da1f3
+platform-nosandbox_install_rc=0
+platform-nosandbox_registration=com.nightvibes.app.threeoneosfive1 : /private/var/containers/Bundle/Application/F6556AA2-80E2-4539-B418-D62019EFF287/3105.app
+platform-nosandbox_primary=PRE_MAIN_BLOCK
+platform-nosandbox_phase_empty=1
+platform-nosandbox_direct=PRE_MAIN_BLOCK
+platform-nosandbox_direct_phase_empty=1
+platform=PRE_MAIN_BLOCK/direct:PRE_MAIN_BLOCK
+platform=PRE_MAIN_BLOCK/direct:PRE_MAIN_BLOCK
+minimal=PRE_MAIN_BLOCK/direct:PRE_MAIN_BLOCK
+nosandbox=PRE_MAIN_BLOCK/direct:PRE_MAIN_BLOCK
+nosandbox=PRE_MAIN_BLOCK/direct:PRE_MAIN_BLOCK
+platform=PRE_MAIN_BLOCK/direct:PRE_MAIN_BLOCK
+platform-nosandbox=PRE_MAIN_BLOCK/direct:PRE_MAIN_BLOCK
+best_variant=
+platform-nosandbox=PRE_MAIN_BLOCK/direct:PRE_MAIN_BLOCK
+best_variant=
+ENTITLEMENT_MATRIX_UI_SUCCESS=0
+ssh_exit_code=0
