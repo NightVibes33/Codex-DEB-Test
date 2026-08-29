@@ -1,6 +1,6 @@
-patch=iphone-3105-bounded-springboard-bsexec
-requested_at=2026-08-29T00:38:00-05:00
-reason=background-bsexec-and-observe-didfinish-without-hanging-runner
+patch=iphone-3105-correct-uiopen-positional
+requested_at=2026-08-29T00:44:00-05:00
+reason=use-real-uikittools-uiopen-positional-bundle-id-syntax
 target=100.96.37.124
 payload=remote/ThreeOneOSFiveJB15.m+remote/iphone-command.sh
-attempt=14
+attempt=15
