@@ -118,7 +118,13 @@ jobs:
           IPA='$REMOTE'; EXPECT='$SHA'; BUNDLE='$BUNDLE_ID'
           echo '=== DEVICE ==='; uname -a || true
           plutil -p /System/Library/CoreServices/SystemVersion.plist 2>/dev/null | head -20 || true
-          if command -v sha256sum >/dev/null 2>&1; then GOT="\$(sha256sum "\$IPA"|awk '{print \$1}')"; else GOT="\$(shasum -a 256 "\$IPA"|awk '{print \$1}')"; fi
+          if command -v sha256sum >/dev/null 2>&1; then
+            set -- \$(sha256sum "\$IPA")
+            GOT="\$1"
+          else
+            set -- \$(shasum -a 256 "\$IPA")
+            GOT="\$1"
+          fi
           echo "runner_ipa_sha=\$EXPECT"; echo "device_ipa_sha=\$GOT"; [ "\$EXPECT" = "\$GOT" ]; echo TRANSFER_HASH_MATCH=1
           H=''; for p in /var/jb/usr/bin/trollstorehelper /var/jb/Applications/TrollStore.app/trollstorehelper /Applications/TrollStore.app/trollstorehelper; do [ -x "\$p" ] && H="\$p" && break; done
           [ -n "\$H" ] || H="\$(find /var/containers/Bundle/Application -maxdepth 4 -type f -name trollstorehelper 2>/dev/null | head -1 || true)"
