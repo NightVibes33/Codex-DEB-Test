@@ -9,14 +9,18 @@ MARKER='/var/mobile/Media/3105-ui-ready.txt'
 UICACHE=/var/jb/usr/bin/uicache
 UIOPEN=/var/jb/usr/bin/uiopen
 
-echo '=== 3105 IOS15 UI LAUNCH POSTMORTEM ==='
+echo '=== 3105 IOS15 SPRINGBOARD GUI LAUNCH PROOF ==='
 echo "device_time=$(date 2>/dev/null)"
 uname -a 2>/dev/null || true
 
 hash_file() {
   f="$1"
   [ -f "$f" ] || { echo missing; return; }
-  if command -v sha256sum >/dev/null 2>&1; then set -- $(sha256sum "$f" 2>/dev/null); else set -- $(shasum -a 256 "$f" 2>/dev/null); fi
+  if command -v sha256sum >/dev/null 2>&1; then
+    set -- $(sha256sum "$f" 2>/dev/null)
+  else
+    set -- $(shasum -a 256 "$f" 2>/dev/null)
+  fi
   echo "$1"
 }
 
@@ -30,32 +34,37 @@ find_helper() {
 }
 
 find_pid() {
-  if command -v pidof >/dev/null 2>&1; then
-    P="$(pidof 3105 2>/dev/null || true)"; set -- $P
-    [ -n "${1:-}" ] && { echo "$1"; return; }
-  fi
-  ps ax 2>/dev/null | while read pid rest; do case "$rest" in *'/3105.app/3105'*) echo "$pid"; break;; esac; done
+  P="$(pidof 3105 2>/dev/null || true)"
+  set -- $P
+  [ -n "${1:-}" ] && { echo "$1"; return; }
+  ps ax 2>/dev/null | while read pid rest; do
+    case "$rest" in *'/3105.app/3105'*) echo "$pid"; break;; esac
+  done
 }
 
 cleanup_3105() {
-  pass=0
-  while [ "$pass" -lt 5 ]; do
-    killall -9 3105 2>/dev/null || true
-    for p in $(pidof 3105 2>/dev/null || true); do kill -9 "$p" 2>/dev/null || true; done
-    ps ax 2>/dev/null | while read pid rest; do case "$rest" in *'/3105.app/3105'*) kill -9 "$pid" 2>/dev/null || true;; esac; done
-    sleep 1
-    [ -z "$(find_pid)" ] && return 0
-    pass=$((pass+1))
-  done
-  return 1
+  killall -9 3105 2>/dev/null || true
+  for p in $(pidof 3105 2>/dev/null || true); do kill -9 "$p" 2>/dev/null || true; done
+  sleep 2
 }
 
-wait_marker_short() {
+wait_for_marker() {
+  label="$1"
   n=0
-  while [ "$n" -lt 15 ]; do
-    [ -s "$MARKER" ] && { cat "$MARKER"; return 0; }
-    n=$((n+1)); sleep 1
+  while [ "$n" -lt 25 ]; do
+    if [ -s "$MARKER" ]; then
+      echo "${label}_UI_MARKER=1"
+      cat "$MARKER"
+      P="$(find_pid)"
+      echo "${label}_PID=$P"
+      return 0
+    fi
+    P="$(find_pid)"
+    [ -n "$P" ] && echo "${label}_TRANSIENT_PID_${n}=$P"
+    n=$((n+1))
+    sleep 1
   done
+  echo "${label}_UI_MARKER=0"
   return 1
 }
 
@@ -76,11 +85,16 @@ echo "expected_ipa_sha=$EXPECTED"
 echo "device_ipa_sha=$GOT"
 [ -n "$EXPECTED" ] && [ "$GOT" = "$EXPECTED" ] || exit 90
 
-H="$(find_helper)"; echo "trollstorehelper=$H"; [ -n "$H" ] || exit 91
-cleanup_3105 || true
-rm -f "$MARKER" /var/mobile/Media/3105-*.log
+H="$(find_helper)"
+echo "trollstorehelper=$H"
+[ -n "$H" ] || exit 91
+
+cleanup_3105
+rm -f "$MARKER" /var/mobile/Media/3105-uiopen-*.log
 "$H" install force "$IPA" 2>&1
-IRC=$?; echo "install_rc=$IRC"; [ "$IRC" -eq 0 ] || exit 92
+IRC=$?
+echo "install_rc=$IRC"
+[ "$IRC" -eq 0 ] || exit 92
 "$H" refresh 2>&1 || true
 sleep 5
 
@@ -89,76 +103,80 @@ APP="${LINE#* : }"
 echo "registration=$LINE"
 echo "registered_path=$APP"
 [ -d "$APP" ] || exit 93
-ls -la "$APP/3105" "$APP/Info.plist" 2>&1 || true
-if command -v file >/dev/null 2>&1; then file "$APP/3105" 2>&1 || true; fi
-if [ -x /var/jb/usr/bin/ldid ]; then
-  /var/jb/usr/bin/ldid -e "$APP/3105" 2>&1 | tee /var/mobile/Media/3105-postmortem-entitlements.txt
+
+SPIDS="$(pidof SpringBoard 2>/dev/null || true)"
+set -- $SPIDS
+SBPID="${1:-}"
+echo "springboard_pids=$SPIDS"
+echo "springboard_pid=$SBPID"
+[ -n "$SBPID" ] || { echo SPRINGBOARD_PID_MISSING=1; exit 94; }
+
+printf '\n===== UIOPEN CAPABILITIES =====\n'
+"$UIOPEN" --help 2>&1 || true
+
+printf '\n===== SPRINGBOARD BSEXEC BUNDLE-ID LAUNCH =====\n'
+cleanup_3105
+rm -f "$MARKER"
+launchctl bsexec "$SBPID" "$UIOPEN" --bundleid "$BUNDLE" > /var/mobile/Media/3105-uiopen-bsexec-bundle.log 2>&1
+BRC=$?
+echo "bsexec_bundle_rc=$BRC"
+cat /var/mobile/Media/3105-uiopen-bsexec-bundle.log 2>/dev/null || true
+if wait_for_marker BSEXEC_BUNDLE; then
+  P="$(find_pid)"
+  sleep 15
+  P2="$(find_pid)"
+  echo "stable_pid_before=$P"
+  echo "stable_pid_after_15s=$P2"
+  [ -n "$P2" ] && [ "$P" = "$P2" ] && echo UI_PROCESS_STABLE=1 || echo UI_PROCESS_STABLE=0
+  echo GUI_LAUNCH_PROOF_SUCCESS=1
+  exit 0
 fi
 
-SBPID="$(pidof SpringBoard 2>/dev/null | awk '{print $1}')"
-echo "springboard_pid=$SBPID"
-for c in log oslog syslog jtool2 otool; do command -v "$c" 2>/dev/null && echo "tool_${c}=$(command -v "$c")"; done
-
-printf '\n===== LS / ASUSER UIOPEN =====\n'
-cleanup_3105 || true
+printf '\n===== SPRINGBOARD BSEXEC URL-SCHEME LAUNCH =====\n'
+cleanup_3105
 rm -f "$MARKER"
-launchctl asuser 501 "$UIOPEN" --bundleid "$BUNDLE" > /var/mobile/Media/3105-uiopen.log 2>&1
-RC=$?; echo "uiopen_asuser_rc=$RC"; cat /var/mobile/Media/3105-uiopen.log 2>/dev/null || true
-n=0
-while [ "$n" -lt 15 ]; do
-  P="$(find_pid)"; [ -n "$P" ] && echo "ASUSER_TRANSIENT_PID_$n=$P"
-  [ -s "$MARKER" ] && break
-  n=$((n+1)); sleep 1
-done
-[ -s "$MARKER" ] && { echo ASUSER_UI_MARKER=1; cat "$MARKER"; }
-echo "asuser_final_pid=$(find_pid)"
+launchctl bsexec "$SBPID" "$UIOPEN" --url 'threeoneosfive://' > /var/mobile/Media/3105-uiopen-bsexec-url.log 2>&1
+URC=$?
+echo "bsexec_url_rc=$URC"
+cat /var/mobile/Media/3105-uiopen-bsexec-url.log 2>/dev/null || true
+if wait_for_marker BSEXEC_URL; then
+  P="$(find_pid)"
+  sleep 15
+  P2="$(find_pid)"
+  echo "stable_pid_before=$P"
+  echo "stable_pid_after_15s=$P2"
+  [ -n "$P2" ] && [ "$P" = "$P2" ] && echo UI_PROCESS_STABLE=1 || echo UI_PROCESS_STABLE=0
+  echo GUI_LAUNCH_PROOF_SUCCESS=1
+  exit 0
+fi
 
-printf '\n===== DIRECT MOBILE EXECUTION =====\n'
-cleanup_3105 || true
+printf '\n===== MOBILE UIOPEN BUNDLE-ID LAUNCH =====\n'
+cleanup_3105
+rm -f "$MARKER"
+sudo -u mobile "$UIOPEN" --bundleid "$BUNDLE" > /var/mobile/Media/3105-uiopen-mobile.log 2>&1
+MRC=$?
+echo "mobile_uiopen_rc=$MRC"
+cat /var/mobile/Media/3105-uiopen-mobile.log 2>/dev/null || true
+if wait_for_marker MOBILE_UIOPEN; then
+  echo GUI_LAUNCH_PROOF_SUCCESS=1
+  exit 0
+fi
+
+printf '\n===== DIRECT EXECUTION DIAGNOSTIC =====\n'
+cleanup_3105
 rm -f "$MARKER" /var/mobile/Media/3105-direct-mobile.log
 sudo -u mobile "$APP/3105" > /var/mobile/Media/3105-direct-mobile.log 2>&1 &
-W=$!
-echo "mobile_wrapper_pid=$W"
-sleep 5
-P="$(find_pid)"; echo "mobile_direct_pid=$P"
-if [ -n "$P" ] && kill -0 "$P" 2>/dev/null; then echo MOBILE_DIRECT_ALIVE_5S=1; else echo MOBILE_DIRECT_ALIVE_5S=0; fi
-cat /var/mobile/Media/3105-direct-mobile.log 2>/dev/null | head -n 220 || true
-[ -s "$MARKER" ] && { echo MOBILE_DIRECT_UI_MARKER=1; cat "$MARKER"; }
-cleanup_3105 || true
-
-printf '\n===== DIRECT GUI BOOTSTRAP EXECUTION =====\n'
-rm -f "$MARKER" /var/mobile/Media/3105-direct-asuser.log
-launchctl asuser 501 "$APP/3105" > /var/mobile/Media/3105-direct-asuser.log 2>&1 &
-AW=$!
-echo "direct_asuser_wrapper_pid=$AW"
+WRAPPER=$!
+echo "direct_wrapper_pid=$WRAPPER"
 sleep 8
-P="$(find_pid)"; echo "direct_asuser_pid=$P"
-if [ -n "$P" ] && kill -0 "$P" 2>/dev/null; then echo DIRECT_ASUSER_ALIVE_8S=1; else echo DIRECT_ASUSER_ALIVE_8S=0; fi
-cat /var/mobile/Media/3105-direct-asuser.log 2>/dev/null | head -n 220 || true
-[ -s "$MARKER" ] && { echo DIRECT_ASUSER_UI_MARKER=1; cat "$MARKER"; }
-cleanup_3105 || true
-
-printf '\n===== SPRINGBOARD BSEXEC UIOPEN =====\n'
-rm -f "$MARKER" /var/mobile/Media/3105-bsexec.log
-if [ -n "$SBPID" ]; then
-  launchctl bsexec "$SBPID" "$UIOPEN" --bundleid "$BUNDLE" > /var/mobile/Media/3105-bsexec.log 2>&1
-  BRC=$?; echo "bsexec_uiopen_rc=$BRC"
-  cat /var/mobile/Media/3105-bsexec.log 2>/dev/null || true
-  sleep 12
-  P="$(find_pid)"; echo "bsexec_pid=$P"
-  [ -s "$MARKER" ] && { echo BSEXEC_UI_MARKER=1; cat "$MARKER"; }
-fi
+P="$(find_pid)"
+echo "direct_pid=$P"
+cat /var/mobile/Media/3105-direct-mobile.log 2>/dev/null | head -n 220 || true
+[ -s "$MARKER" ] && { echo DIRECT_UI_MARKER=1; cat "$MARKER"; } || echo DIRECT_UI_MARKER=0
 
 print_recent_crashes
-
-printf '\n===== KERNEL / SYSTEM TAIL =====\n'
+printf '\n===== SYSTEM TAIL =====\n'
 dmesg 2>/dev/null | tail -n 120 || true
 
-if [ -s "$MARKER" ]; then
-  echo UI_MARKER_OBSERVED=1
-  cat "$MARKER"
-else
-  echo UI_MARKER_OBSERVED=0
-fi
-echo POSTMORTEM_COMPLETE=1
+echo GUI_LAUNCH_PROOF_SUCCESS=0
 exit 0
