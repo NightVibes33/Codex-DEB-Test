@@ -1,6 +1,6 @@
-patch=iphone-3105-early-window-full-entitlements
-requested_at=2026-08-29T01:34:00-05:00
-reason=create-window-during-delegate-init-before-didFinish-stall
+patch=iphone-3105-early-window-asuser
+requested_at=2026-08-29T01:38:00-05:00
+reason=use-proven-launchctl-asuser-501-context-with-early-window-binary
 target=100.96.37.124
 payload=3105-ios15-early-window+full-entitlements
-attempt=20
+attempt=21
