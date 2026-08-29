@@ -1,0 +1,297 @@
+name: Install 3105 2.0 on iPhone
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - ".github/workflows/install-3105-2-iphone.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: install-3105-2-iphone
+  cancel-in-progress: true
+
+env:
+  UPSTREAM_REPO: https://github.com/YangJiiii/3105.git
+  UPSTREAM_COMMIT: 4a15d823b711bc0639de1f3fd2c764b5982d9245
+  IPA_NAME: 3105-2.0-build8-unsigned.ipa
+
+jobs:
+  build:
+    name: Build upstream 3105 2.0
+    runs-on: macos-26-intel
+    timeout-minutes: 15
+    steps:
+      - name: Select Xcode 26.2
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "26.2"
+
+      - name: Clone exact upstream commit
+        shell: bash
+        run: |
+          set -euxo pipefail
+          git clone "$UPSTREAM_REPO" upstream-3105
+          cd upstream-3105
+          git checkout --detach "$UPSTREAM_COMMIT"
+          test "$(git rev-parse HEAD)" = "$UPSTREAM_COMMIT"
+          grep -Fq 'MARKETING_VERSION = 2.0;' ThreeOneOSFive.xcodeproj/project.pbxproj
+          grep -Fq 'CURRENT_PROJECT_VERSION = 8;' ThreeOneOSFive.xcodeproj/project.pbxproj
+          grep -Fq 'PRODUCT_BUNDLE_IDENTIFIER = "com.apple.mobile.MobileHouseArrest";' ThreeOneOSFive.xcodeproj/project.pbxproj
+
+      - name: Build unsigned device app
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd upstream-3105
+          mkdir -p "$GITHUB_WORKSPACE/build-out"
+          xcodebuild \
+            -project ThreeOneOSFive.xcodeproj \
+            -target 3105 \
+            -configuration Release \
+            -sdk iphoneos \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=YES \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CONFIGURATION_BUILD_DIR="$GITHUB_WORKSPACE/build-out" \
+            clean build
+          test -d "$GITHUB_WORKSPACE/build-out/3105.app"
+          test -x "$GITHUB_WORKSPACE/build-out/3105.app/3105"
+          file "$GITHUB_WORKSPACE/build-out/3105.app/3105"
+
+      - name: Package unsigned IPA
+        shell: bash
+        run: |
+          set -euxo pipefail
+          rm -rf ipa-stage
+          mkdir -p ipa-stage/Payload
+          cp -R build-out/3105.app ipa-stage/Payload/3105.app
+          /usr/bin/zip -qry "$IPA_NAME" ipa-stage/Payload
+          test -s "$IPA_NAME"
+          unzip -l "$IPA_NAME" | grep -Fq 'Payload/3105.app/Info.plist'
+          shasum -a 256 "$IPA_NAME" | tee 3105-sha256.txt
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: 3105-2.0-build8-unsigned
+          path: |
+            3105-2.0-build8-unsigned.ipa
+            3105-sha256.txt
+          if-no-files-found: error
+          retention-days: 7
+
+  resolve-environment:
+    name: Resolve iPhone secret environment
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - name: Resolve environment ID
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" \
+            > environments.json
+          environment_name="$({
+            python3 - "$TARGET_ENVIRONMENT_ID" <<'PY'
+          import json, sys
+          target = int(sys.argv[1])
+          payload = json.load(open('environments.json', encoding='utf-8'))
+          for env in payload.get('environments', []):
+              if int(env.get('id', -1)) == target:
+                  print(env['name'])
+                  raise SystemExit(0)
+          raise SystemExit(1)
+          PY
+          } || true)"
+          test -n "$environment_name"
+          echo "environment_name=$environment_name" >> "$GITHUB_OUTPUT"
+
+  install:
+    name: Install with TrollStore over SSH
+    needs: [build, resolve-environment]
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Download built IPA
+        uses: actions/download-artifact@v4
+        with:
+          name: 3105-2.0-build8-unsigned
+          path: /tmp/3105-stage
+
+      - name: Validate secrets and IPA
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+          IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -s "/tmp/3105-stage/$IPA_NAME"
+          test -n "$TAILSCALE_AUTHKEY"
+          test -n "$IPHONE_PASSWORD"
+          sha256sum "/tmp/3105-stage/$IPA_NAME"
+
+      - name: Install Tailscale and SSH clients
+        run: |
+          set -euxo pipefail
+          sudo install -d -m 0755 /usr/share/keyrings
+          curl --fail --silent --show-error --retry 3 --connect-timeout 20 \
+            https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg \
+            | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
+          curl --fail --silent --show-error --retry 3 --connect-timeout 20 \
+            https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list \
+            | sudo tee /etc/apt/sources.list.d/tailscale.list >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends tailscale openssh-client sshpass
+          sudo systemctl enable --now tailscaled
+
+      - name: Join Tailscale and wait for iPhone
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+          IPHONE_HOST: 100.96.37.124
+        run: |
+          set -euo pipefail
+          sudo tailscale up \
+            --auth-key="$TAILSCALE_AUTHKEY" \
+            --hostname="github-install-3105-${GITHUB_RUN_ID}" \
+            --accept-dns=false \
+            --accept-routes=false \
+            --reset
+          ready=0
+          for attempt in $(seq 1 18); do
+            echo "iPhone visibility attempt $attempt/18"
+            if sudo tailscale status | grep -F "$IPHONE_HOST" | grep -vq 'offline'; then
+              sudo tailscale ping --timeout=8s --c 1 "$IPHONE_HOST" || true
+              ready=1
+              break
+            fi
+            sleep 8
+          done
+          if [ "$ready" != 1 ]; then
+            echo "iPhone is not online on Tailscale: $IPHONE_HOST" >&2
+            sudo tailscale status || true
+            exit 1
+          fi
+
+      - name: Transfer IPA and install through TrollStore helper
+        env:
+          IPHONE_HOST: 100.96.37.124
+          IPHONE_PORT: "22"
+          IPHONE_USER: mobile
+          IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          rm -f "$HOME/.ssh/known_hosts"
+          for attempt in $(seq 1 18); do
+            if ssh-keyscan -T 10 -H -p "$IPHONE_PORT" "$IPHONE_HOST" > "$HOME/.ssh/known_hosts" 2>/dev/null && [ -s "$HOME/.ssh/known_hosts" ]; then
+              break
+            fi
+            sleep 8
+          done
+          test -s "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+          REMOTE_IPA="/var/mobile/Media/$IPA_NAME"
+          sshpass -e scp \
+            -P "$IPHONE_PORT" \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            "/tmp/3105-stage/$IPA_NAME" \
+            "$IPHONE_USER@$IPHONE_HOST:$REMOTE_IPA"
+
+          set +e
+          {
+            printf '%s\n' "$IPHONE_PASSWORD"
+            cat <<'REMOTE'
+          set -e
+          export PATH="/var/jb/usr/bin:/var/jb/bin:/var/jb/usr/sbin:/var/jb/usr/local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+          IPA="/var/mobile/Media/3105-2.0-build8-unsigned.ipa"
+          test -s "$IPA"
+          echo "ipa_bytes=$(wc -c < "$IPA" | tr -d ' ')"
+
+          HELPER=""
+          for candidate in \
+            /var/jb/usr/bin/trollstorehelper \
+            /var/jb/Applications/TrollStore.app/trollstorehelper \
+            /Applications/TrollStore.app/trollstorehelper; do
+            if [ -x "$candidate" ]; then HELPER="$candidate"; break; fi
+          done
+          if [ -z "$HELPER" ]; then
+            HELPER="$(find /var/containers/Bundle/Application -maxdepth 4 -type f -name trollstorehelper -perm -111 2>/dev/null | head -n 1 || true)"
+          fi
+          if [ -z "$HELPER" ]; then
+            echo 'trollstorehelper_not_found=1' >&2
+            find /var/containers/Bundle/Application -maxdepth 3 -type d -name 'TrollStore.app' -print 2>/dev/null || true
+            exit 20
+          fi
+          echo "trollstorehelper=$HELPER"
+
+          set +e
+          "$HELPER" install force "$IPA"
+          install_status=$?
+          set -e
+          echo "trollstore_install_status=$install_status"
+          if [ "$install_status" -ne 0 ]; then
+            echo 'Retrying with TrollStore installd method...'
+            "$HELPER" install force installd "$IPA"
+          fi
+          "$HELPER" refresh || true
+          sleep 3
+
+          APP_PATH="$(find /var/containers/Bundle/Application -maxdepth 3 -type d -name '3105.app' -print 2>/dev/null | head -n 1 || true)"
+          if [ -z "$APP_PATH" ]; then
+            echo 'verification_3105_app_missing=1' >&2
+            exit 21
+          fi
+          echo "installed_app=$APP_PATH"
+          INFO="$APP_PATH/Info.plist"
+          if command -v plutil >/dev/null 2>&1; then
+            plutil -p "$INFO" 2>/dev/null | grep -E 'CFBundleIdentifier|CFBundleShortVersionString|CFBundleVersion' || true
+          fi
+          ls -ld "$APP_PATH"
+          rm -f "$IPA"
+          echo 'install_3105_2_success=1'
+          REMOTE
+          } | sshpass -e ssh \
+            -p "$IPHONE_PORT" \
+            -o BatchMode=no \
+            -o ConnectTimeout=20 \
+            -o ServerAliveInterval=15 \
+            -o ServerAliveCountMax=2 \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            "$IPHONE_USER@$IPHONE_HOST" \
+            'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
+            2>&1 | tee install-output.txt
+          ssh_status=${PIPESTATUS[1]}
+          set -e
+          echo "ssh_exit_code=$ssh_status" | tee -a install-output.txt
+          exit "$ssh_status"
+
+      - name: Upload install log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: install-3105-iphone-log-${{ github.run_id }}
+          path: install-output.txt
+          if-no-files-found: warn
+          retention-days: 7
