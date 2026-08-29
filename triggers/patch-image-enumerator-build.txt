@@ -1,6 +1,6 @@
-patch=iphone-3105-real-springboard-safe-isolation
-requested_at=2026-08-29T00:29:00-05:00
-reason=prove-real-springboard-path-and-isolate-snowboard-injection
+patch=iphone-3105-pre-uikit-lifecycle-trace
+requested_at=2026-08-29T00:31:00-05:00
+reason=trace-constructor-main-delegate-didfinish-and-safe-mode-launch-paths
 target=100.96.37.124
 payload=remote/ThreeOneOSFiveJB15.m+remote/iphone-command.sh
-attempt=11
+attempt=12
