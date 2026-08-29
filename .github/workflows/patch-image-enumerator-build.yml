@@ -67,54 +67,56 @@ jobs:
           python3 - "$APP/Info.plist" <<'PY'
           import plistlib, sys
           p = sys.argv[1]
-          with open(p, 'rb') as f:
-              info = plistlib.load(f)
-          for key in ('UIApplicationSceneManifest', 'UIMainStoryboardFile', 'NSMainNibFile'):
-              info.pop(key, None)
-          info['CFBundleIdentifier'] = 'com.nightvibes.app.threeoneosfive1'
-          info['CFBundleExecutable'] = '3105'
-          info['MinimumOSVersion'] = '15.0'
-          info['ThreeOneOSFiveJBCompatibility'] = 'Dopamine iOS 15 retained UIKit window'
+          info = {
+              'CFBundleDevelopmentRegion': 'en',
+              'CFBundleDisplayName': '3105',
+              'CFBundleExecutable': '3105',
+              'CFBundleIdentifier': 'com.nightvibes.app.threeoneosfive1',
+              'CFBundleInfoDictionaryVersion': '6.0',
+              'CFBundleName': '3105',
+              'CFBundlePackageType': 'APPL',
+              'CFBundleShortVersionString': '2.0-test',
+              'CFBundleVersion': '15',
+              'LSRequiresIPhoneOS': True,
+              'MinimumOSVersion': '15.0',
+              'UIDeviceFamily': [1, 2],
+              'UILaunchScreen': {},
+              'UISupportedInterfaceOrientations': [
+                  'UIInterfaceOrientationPortrait',
+                  'UIInterfaceOrientationLandscapeLeft',
+                  'UIInterfaceOrientationLandscapeRight'
+              ],
+              'UISupportedInterfaceOrientations~ipad': [
+                  'UIInterfaceOrientationPortrait',
+                  'UIInterfaceOrientationPortraitUpsideDown',
+                  'UIInterfaceOrientationLandscapeLeft',
+                  'UIInterfaceOrientationLandscapeRight'
+              ],
+              'ThreeOneOSFiveJBCompatibility': 'Dopamine iOS 15 minimal foreground app identity'
+          }
           with open(p, 'wb') as f:
               plistlib.dump(info, f, fmt=plistlib.FMT_BINARY, sort_keys=False)
-          print('PLIST_PATCHED=1')
+          print('MINIMAL_PLIST_WRITTEN=1')
           print('bundle_id=' + info['CFBundleIdentifier'])
+          print('package_type=' + info['CFBundlePackageType'])
           print('minimum_os=' + info['MinimumOSVersion'])
           print('scene_manifest_present=' + str('UIApplicationSceneManifest' in info))
           PY
 
-          cat > /tmp/3105-ios15.entitlements <<'PLIST'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>application-identifier</key><string>TROLLTROLL.*</string>
-            <key>com.apple.developer.team-identifier</key><string>TROLLTROLL</string>
-            <key>get-task-allow</key><true/>
-            <key>keychain-access-groups</key>
-            <array><string>TROLLTROLL.*</string><string>com.apple.token</string></array>
-            <key>platform-application</key><true/>
-            <key>com.apple.private.security.no-sandbox</key><true/>
-            <key>com.apple.private.security.container-required</key><string>com.nightvibes.app.threeoneosfive1</string>
-            <key>com.apple.private.MobileContainerManager.allowed</key><true/>
-            <key>com.apple.private.security.container-manager</key><true/>
-            <key>com.apple.private.security.storage.MobileDocuments</key><true/>
-            <key>com.apple.security.exception.files.absolute-path.read-write</key>
-            <array><string>/</string></array>
-          </dict>
-          </plist>
-          PLIST
-
-          /usr/bin/codesign --force --sign - --timestamp=none \
-            --entitlements /tmp/3105-ios15.entitlements \
-            --generate-entitlement-der \
-            "$APP/3105"
-          /usr/bin/codesign -d --entitlements :- "$APP/3105" 2>&1 | tee /tmp/signed-entitlements.txt
-          grep -q 'platform-application' /tmp/signed-entitlements.txt
-          grep -q 'com.apple.private.MobileContainerManager.allowed' /tmp/signed-entitlements.txt
+          # Keep the compatibility binary a normal app. TrollStore performs the
+          # CoreTrust/application-identifier signing during device installation.
+          /usr/bin/codesign --force --sign - --timestamp=none "$APP/3105"
+          (/usr/bin/codesign -d --entitlements :- "$APP/3105" 2>&1 || true) | tee /tmp/signed-entitlements.txt
+          if grep -Eq 'platform-application|MobileContainerManager|security.no-sandbox|container-manager|absolute-path.read-write' /tmp/signed-entitlements.txt; then
+            echo PRIVATE_ENTITLEMENTS_STILL_PRESENT=1
+            cat /tmp/signed-entitlements.txt
+            exit 32
+          fi
+          echo MINIMAL_APP_ENTITLEMENTS=1
 
           /usr/bin/otool -l "$APP/3105" | grep -A6 LC_BUILD_VERSION | head -n 20 || true
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "$APP/Info.plist"
           /usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP/Info.plist"
           if /usr/libexec/PlistBuddy -c 'Print :UIApplicationSceneManifest' "$APP/Info.plist" >/dev/null 2>&1; then
             echo SCENE_MANIFEST_STILL_PRESENT=1
@@ -290,7 +292,7 @@ jobs:
           ssh_status=${PIPESTATUS[1]}
           set -e
           echo "iphone_ssh_exit_code=$ssh_status" | tee -a /tmp/iphone-output.txt
-          grep -E 'UI_READY|phase=|key=|hidden=|root_view_loaded=|UI_ACTIVE_KEY_WINDOW|UI_PRESENTATION_PROOF|RUNTIME_PROOF_SUCCESS|stable_pid|alive_after_60_seconds' /tmp/iphone-output.txt || true
+          grep -E 'UI_READY|phase=|key=|hidden=|root_view_loaded=|CORRECT_UIOPEN_UI_SUCCESS|RUNTIME_PROOF_SUCCESS|stable_pid|alive_after_60_seconds' /tmp/iphone-output.txt || true
           exit "$ssh_status"
 
       - name: Upload visible UI proof
