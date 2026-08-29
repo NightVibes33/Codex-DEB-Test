@@ -25,13 +25,13 @@ jobs:
           sparse-checkout-cone-mode: false
           fetch-depth: 1
 
-      - name: Build four entitlement variants
+      - name: Build early-window iOS 15 IPA
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          rm -rf /tmp/base-artifact /tmp/template /tmp/matrix /tmp/base.zip /tmp/3105-compiled
-          mkdir -p /tmp/base-artifact /tmp/template /tmp/matrix
+          rm -rf /tmp/base-artifact /tmp/work /tmp/base.zip /tmp/3105-ios15-windowfix.ipa /tmp/3105-ios15-windowfix.sha256
+          mkdir -p /tmp/base-artifact /tmp/work
 
           curl -fL --retry 5 --retry-all-errors --connect-timeout 20 \
             -H "Accept: application/vnd.github+json" \
@@ -45,12 +45,10 @@ jobs:
           GOT="$(shasum -a 256 "$BASE" | awk '{print $1}')"
           echo "base_ipa_sha=$GOT"
           test "$GOT" = "$BASE_IPA_SHA256"
-          unzip -q "$BASE" -d /tmp/template
-          APP=/tmp/template/Payload/3105.app
+          unzip -q "$BASE" -d /tmp/work
+          APP=/tmp/work/Payload/3105.app
           test -d "$APP"
 
-          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
-          echo "iphoneos_sdk=$SDK"
           xcrun --sdk iphoneos clang \
             -arch arm64 \
             -miphoneos-version-min=15.0 \
@@ -60,9 +58,9 @@ jobs:
             -framework Foundation \
             -framework QuartzCore \
             remote/ThreeOneOSFiveJB15.m \
-            -o /tmp/3105-compiled
-          chmod 0755 /tmp/3105-compiled
-          file /tmp/3105-compiled
+            -o "$APP/3105"
+          chmod 0755 "$APP/3105"
+          file "$APP/3105"
 
           python3 - "$APP/Info.plist" <<'PY'
           import plistlib, sys
@@ -75,8 +73,8 @@ jobs:
               'CFBundleInfoDictionaryVersion': '6.0',
               'CFBundleName': '3105',
               'CFBundlePackageType': 'APPL',
-              'CFBundleShortVersionString': '2.0-test',
-              'CFBundleVersion': '16',
+              'CFBundleShortVersionString': '2.0-jb15',
+              'CFBundleVersion': '20',
               'LSRequiresIPhoneOS': True,
               'MinimumOSVersion': '15.0',
               'UIDeviceFamily': [1, 2],
@@ -92,92 +90,55 @@ jobs:
                   'UIInterfaceOrientationLandscapeLeft',
                   'UIInterfaceOrientationLandscapeRight'
               ],
-              'ThreeOneOSFiveJBCompatibility': 'Dopamine iOS 15 entitlement matrix'
+              'ThreeOneOSFiveJBCompatibility': 'Dopamine iOS 15 early-window runtime'
           }
           with open(p, 'wb') as f:
               plistlib.dump(info, f, fmt=plistlib.FMT_BINARY, sort_keys=False)
-          print('MINIMAL_PLIST_WRITTEN=1')
-          print('bundle_id=' + info['CFBundleIdentifier'])
-          print('package_type=' + info['CFBundlePackageType'])
-          print('scene_manifest_present=' + str('UIApplicationSceneManifest' in info))
+          print('EARLY_WINDOW_PLIST=1')
           PY
 
-          make_entitlements() {
-            variant="$1"
-            out="$2"
-            python3 - "$variant" "$out" <<'PY'
-          import plistlib, sys
-          variant, out = sys.argv[1], sys.argv[2]
-          ent = {}
-          if variant in ('platform', 'platform-nosandbox'):
-              ent['platform-application'] = True
-          if variant in ('nosandbox', 'platform-nosandbox'):
-              ent['com.apple.private.security.no-sandbox'] = True
-          with open(out, 'wb') as f:
-              plistlib.dump(ent, f, fmt=plistlib.FMT_XML, sort_keys=True)
-          print(variant, ent)
-          PY
-          }
+          cat > /tmp/3105-ios15.entitlements <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>application-identifier</key><string>TROLLTROLL.*</string>
+            <key>com.apple.developer.team-identifier</key><string>TROLLTROLL</string>
+            <key>get-task-allow</key><true/>
+            <key>keychain-access-groups</key><array><string>TROLLTROLL.*</string><string>com.apple.token</string></array>
+            <key>platform-application</key><true/>
+            <key>com.apple.private.security.no-sandbox</key><true/>
+            <key>com.apple.private.security.container-required</key><string>com.nightvibes.app.threeoneosfive1</string>
+            <key>com.apple.private.MobileContainerManager.allowed</key><true/>
+            <key>com.apple.private.security.container-manager</key><true/>
+            <key>com.apple.private.security.storage.MobileDocuments</key><true/>
+            <key>com.apple.security.exception.files.absolute-path.read-write</key><array><string>/</string></array>
+          </dict></plist>
+          PLIST
 
-          : > /tmp/matrix/3105-matrix-sha256.txt
-          for variant in minimal platform nosandbox platform-nosandbox; do
-            WORK="/tmp/work-$variant"
-            rm -rf "$WORK"
-            cp -a /tmp/template "$WORK"
-            VAPP="$WORK/Payload/3105.app"
-            cp /tmp/3105-compiled "$VAPP/3105"
-            chmod 0755 "$VAPP/3105"
-            printf '%s\n' "$variant" > "$VAPP/EntitlementVariant.txt"
+          /usr/bin/codesign --force --sign - --timestamp=none \
+            --entitlements /tmp/3105-ios15.entitlements \
+            --generate-entitlement-der "$APP/3105"
+          /usr/bin/codesign -d --entitlements :- "$APP/3105" 2>&1 | tee /tmp/signed-entitlements.txt
+          grep -q 'platform-application' /tmp/signed-entitlements.txt
+          grep -q 'security.no-sandbox' /tmp/signed-entitlements.txt
+          grep -q 'MobileContainerManager.allowed' /tmp/signed-entitlements.txt
+          /usr/bin/otool -l "$APP/3105" | grep -A6 LC_BUILD_VERSION | head -n 20
 
-            if [ "$variant" = minimal ]; then
-              /usr/bin/codesign --force --sign - --timestamp=none "$VAPP/3105"
-            else
-              make_entitlements "$variant" "/tmp/$variant.entitlements.plist"
-              /usr/bin/codesign --force --sign - --timestamp=none \
-                --entitlements "/tmp/$variant.entitlements.plist" \
-                --generate-entitlement-der \
-                "$VAPP/3105"
-            fi
+          cd /tmp/work
+          zip -qry /tmp/3105-ios15-windowfix.ipa Payload
+          cd - >/dev/null
+          shasum -a 256 /tmp/3105-ios15-windowfix.ipa | awk '{print $1}' > /tmp/3105-ios15-windowfix.sha256
+          echo "ipa_sha=$(cat /tmp/3105-ios15-windowfix.sha256)"
+          echo EARLY_WINDOW_IPA_READY=1
 
-            (/usr/bin/codesign -d --entitlements :- "$VAPP/3105" 2>&1 || true) \
-              > "/tmp/matrix/entitlements-$variant.txt"
-            echo "===== $variant ====="
-            cat "/tmp/matrix/entitlements-$variant.txt"
-
-            case "$variant" in
-              minimal)
-                ! grep -q 'platform-application' "/tmp/matrix/entitlements-$variant.txt"
-                ! grep -q 'security.no-sandbox' "/tmp/matrix/entitlements-$variant.txt"
-                ;;
-              platform)
-                grep -q 'platform-application' "/tmp/matrix/entitlements-$variant.txt"
-                ! grep -q 'security.no-sandbox' "/tmp/matrix/entitlements-$variant.txt"
-                ;;
-              nosandbox)
-                ! grep -q 'platform-application' "/tmp/matrix/entitlements-$variant.txt"
-                grep -q 'security.no-sandbox' "/tmp/matrix/entitlements-$variant.txt"
-                ;;
-              platform-nosandbox)
-                grep -q 'platform-application' "/tmp/matrix/entitlements-$variant.txt"
-                grep -q 'security.no-sandbox' "/tmp/matrix/entitlements-$variant.txt"
-                ;;
-            esac
-
-            (cd "$WORK" && zip -qry "/tmp/matrix/3105-matrix-$variant.ipa" Payload)
-            SHA="$(shasum -a 256 "/tmp/matrix/3105-matrix-$variant.ipa" | awk '{print $1}')"
-            echo "$SHA  3105-matrix-$variant.ipa" >> /tmp/matrix/3105-matrix-sha256.txt
-            echo "variant=$variant sha256=$SHA"
-          done
-
-          cat /tmp/matrix/3105-matrix-sha256.txt
-          test "$(find /tmp/matrix -maxdepth 1 -name '3105-matrix-*.ipa' | wc -l | tr -d ' ')" = 4
-          echo ENTITLEMENT_MATRIX_READY=1
-
-      - name: Upload entitlement matrix
+      - name: Upload early-window IPA
         uses: actions/upload-artifact@v4
         with:
-          name: 3105-ios15-entitlement-matrix
-          path: /tmp/matrix/
+          name: 3105-ios15-windowfix
+          path: |
+            /tmp/3105-ios15-windowfix.ipa
+            /tmp/3105-ios15-windowfix.sha256
+            /tmp/signed-entitlements.txt
           if-no-files-found: error
           retention-days: 7
 
@@ -205,8 +166,7 @@ jobs:
           payload = json.load(open('/tmp/environments.json', encoding='utf-8'))
           for env in payload.get('environments', []):
               if int(env.get('id', -1)) == target:
-                  print(env['name'])
-                  raise SystemExit(0)
+                  print(env['name']); raise SystemExit(0)
           raise SystemExit('environment not found')
           PY
           )"
@@ -227,39 +187,36 @@ jobs:
           sparse-checkout-cone-mode: false
           fetch-depth: 1
 
-      - name: Download entitlement matrix
+      - name: Download early-window IPA
         uses: actions/download-artifact@v4
         with:
-          name: 3105-ios15-entitlement-matrix
-          path: /tmp/matrix
+          name: 3105-ios15-windowfix
+          path: /tmp/windowfix
 
-      - name: Verify matrix locally
+      - name: Verify IPA locally
         run: |
           set -euo pipefail
-          cd /tmp/matrix
-          test -s 3105-matrix-sha256.txt
-          sha256sum -c 3105-matrix-sha256.txt
-          test "$(find . -maxdepth 1 -name '3105-matrix-*.ipa' | wc -l | tr -d ' ')" = 4
+          test -s /tmp/windowfix/3105-ios15-windowfix.ipa
+          test -s /tmp/windowfix/3105-ios15-windowfix.sha256
+          EXPECTED="$(tr -d ' \r\n' < /tmp/windowfix/3105-ios15-windowfix.sha256)"
+          GOT="$(sha256sum /tmp/windowfix/3105-ios15-windowfix.ipa | awk '{print $1}')"
+          echo "expected=$EXPECTED"
+          echo "got=$GOT"
+          test "$EXPECTED" = "$GOT"
 
-      - name: Install Tailscale and SSH tools with retries
+      - name: Install Tailscale and SSH tools
         env:
           TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
         run: |
           set -euo pipefail
           test -n "$TAILSCALE_AUTHKEY"
           sudo install -d -m0755 /usr/share/keyrings
-          curl -fL --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 15 \
-            https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg \
-            -o /tmp/tailscale.gpg
+          curl -fL --retry 5 --retry-all-errors --connect-timeout 15 https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg -o /tmp/tailscale.gpg
           sudo install -m0644 /tmp/tailscale.gpg /usr/share/keyrings/tailscale-archive-keyring.gpg
-          curl -fL --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 15 \
-            https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list \
-            -o /tmp/tailscale.list
+          curl -fL --retry 5 --retry-all-errors --connect-timeout 15 https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list -o /tmp/tailscale.list
           sudo install -m0644 /tmp/tailscale.list /etc/apt/sources.list.d/tailscale.list
-          for n in 1 2 3; do sudo apt-get update -qq && break; sleep $((n * 5)); done
-          for n in 1 2 3; do sudo apt-get install -y -qq --no-install-recommends tailscale openssh-client sshpass netcat-openbsd && break; sleep $((n * 5)); done
-          command -v tailscale
-          command -v sshpass
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends tailscale openssh-client sshpass netcat-openbsd
           sudo systemctl enable --now tailscaled
 
       - name: Join tailnet and verify iPhone SSH
@@ -268,12 +225,7 @@ jobs:
           IPHONE_HOST: "100.96.37.124"
         run: |
           set -euo pipefail
-          sudo tailscale up \
-            --auth-key="$TAILSCALE_AUTHKEY" \
-            --hostname="gh-3105-matrix-${GITHUB_RUN_ID}" \
-            --accept-dns=false \
-            --accept-routes=false \
-            --reset
+          sudo tailscale up --auth-key="$TAILSCALE_AUTHKEY" --hostname="gh-3105-earlywin-${GITHUB_RUN_ID}" --accept-dns=false --accept-routes=false --reset
           ready=0
           for n in $(seq 1 18); do
             if nc -zvw8 "$IPHONE_HOST" 22; then ready=1; break; fi
@@ -282,7 +234,7 @@ jobs:
           done
           test "$ready" = 1
 
-      - name: Transfer and run entitlement matrix
+      - name: Install and prove visible runtime
         env:
           IPHONE_HOST: "100.96.37.124"
           IPHONE_PORT: "22"
@@ -291,46 +243,31 @@ jobs:
           SSHPASS: ${{ secrets.IPAD_PASSWORD }}
         run: |
           set -euo pipefail
-          test -n "$IPHONE_PASSWORD"
-          test -s remote/iphone-command.sh
-          mkdir -p "$HOME/.ssh"
-          chmod 700 "$HOME/.ssh"
+          mkdir -p "$HOME/.ssh"; chmod 700 "$HOME/.ssh"
           ssh-keyscan -T10 -H -p "$IPHONE_PORT" "$IPHONE_HOST" > "$HOME/.ssh/known_hosts" 2>/dev/null
-          test -s "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/known_hosts"
-
-          for f in /tmp/matrix/3105-matrix-*.ipa /tmp/matrix/3105-matrix-sha256.txt; do
-            sshpass -e scp -P "$IPHONE_PORT" \
-              -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-              "$f" "$IPHONE_USER@$IPHONE_HOST:/var/mobile/Media/$(basename "$f")"
-          done
-
+          sshpass -e scp -P "$IPHONE_PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            /tmp/windowfix/3105-ios15-windowfix.ipa "$IPHONE_USER@$IPHONE_HOST:/var/mobile/Media/3105-ios15-windowfix.ipa"
+          sshpass -e scp -P "$IPHONE_PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            /tmp/windowfix/3105-ios15-windowfix.sha256 "$IPHONE_USER@$IPHONE_HOST:/var/mobile/Media/3105-ios15-windowfix.sha256"
           set +e
-          {
-            printf '%s\n' "$IPHONE_PASSWORD"
-            cat remote/iphone-command.sh
-          } | sshpass -e ssh -p "$IPHONE_PORT" \
-                -o BatchMode=no \
-                -o ConnectTimeout=20 \
-                -o ConnectionAttempts=2 \
-                -o ServerAliveInterval=15 \
-                -o ServerAliveCountMax=3 \
-                -o StrictHostKeyChecking=yes \
-                -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-                "$IPHONE_USER@$IPHONE_HOST" \
-                'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
-                2>&1 | tee /tmp/iphone-output.txt
-          ssh_status=${PIPESTATUS[1]}
+          { printf '%s\n' "$IPHONE_PASSWORD"; cat remote/iphone-command.sh; } | \
+            sshpass -e ssh -p "$IPHONE_PORT" \
+              -o BatchMode=no -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=3 \
+              -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              "$IPHONE_USER@$IPHONE_HOST" \
+              'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
+              2>&1 | tee /tmp/iphone-output.txt
+          rc=${PIPESTATUS[1]}
           set -e
-          echo "iphone_ssh_exit_code=$ssh_status" | tee -a /tmp/iphone-output.txt
-          grep -E 'variant=|_primary=|_direct=|UI_READY|STALLED_BEFORE_DIDFINISH|PRE_MAIN_BLOCK|best_variant|ENTITLEMENT_MATRIX_UI_SUCCESS' /tmp/iphone-output.txt || true
-          exit "$ssh_status"
+          echo "iphone_ssh_exit_code=$rc" | tee -a /tmp/iphone-output.txt
+          exit "$rc"
 
-      - name: Upload matrix proof
+      - name: Upload UI proof
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: 3105-ios15-entitlement-matrix-proof-${{ github.run_id }}
+          name: 3105-ios15-early-window-proof-${{ github.run_id }}
           path: /tmp/iphone-output.txt
           if-no-files-found: warn
           retention-days: 7
