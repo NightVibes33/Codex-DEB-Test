@@ -1,5 +1,4 @@
-# registered launch diagnostic
-name: Temp 3105 iOS15 launch diagnostic
+name: Temp 3105 iOS15 stability proof
 
 on:
   workflow_dispatch:
@@ -33,7 +32,7 @@ jobs:
           test -n "$n"
           echo "name=$n" >> "$GITHUB_OUTPUT"
 
-  diagnose:
+  prove:
     needs: env
     environment:
       name: ${{ needs.env.outputs.name }}
@@ -50,7 +49,7 @@ jobs:
           sudo apt-get install -y -qq --no-install-recommends tailscale openssh-client sshpass
           sudo systemctl enable --now tailscaled
 
-      - name: Diagnose and launch installed patched app
+      - name: Launch as mobile and hold same PID 90 seconds
         env:
           TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
           IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
@@ -59,7 +58,7 @@ jobs:
           BUNDLE: "com.apple.mobile.MobileHouseArrest"
         run: |
           set -euo pipefail
-          sudo tailscale up --auth-key="$TAILSCALE_AUTHKEY" --hostname="gh-3105-launch-${GITHUB_RUN_ID}" --accept-dns=false --accept-routes=false --reset
+          sudo tailscale up --auth-key="$TAILSCALE_AUTHKEY" --hostname="gh-3105-stable-${GITHUB_RUN_ID}" --accept-dns=false --accept-routes=false --reset
           mkdir -p ~/.ssh; chmod 700 ~/.ssh
           ready=0
           for n in $(seq 1 18); do
@@ -73,131 +72,88 @@ jobs:
           {
             printf '%s\n' "$IPHONE_PASSWORD"
             cat <<EOS
-          set +e
+          set -e
           export PATH="/var/jb/usr/bin:/var/jb/bin:/var/jb/usr/sbin:/var/jb/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:\$PATH"
           BUNDLE='$BUNDLE'
-          echo '=== DEVICE ==='
+          echo '=== 3105 STABILITY PROOF ==='
           uname -a
-          id
-          echo "mobile_id=\$(id mobile 2>&1)"
-          for c in uiopen uicache sudo su launchctl pidof pgrep ps log strings otool ldid; do
-            p="\$(command -v "\$c" 2>/dev/null || true)"
-            echo "cmd_\$c=\${p:-missing}"
-          done
 
           APP=''
           for p in /var/containers/Bundle/Application/*/3105.app; do
             [ -d "\$p" ] && APP="\$p" && break
           done
-          if [ -z "\$APP" ]; then echo APP_NOT_FOUND; exit 61; fi
-          echo "app=\$APP"
-          plutil -p "\$APP/Info.plist" 2>&1 || true
-          if command -v ldid >/dev/null 2>&1; then ldid -e "\$APP/3105" 2>&1 || true; fi
+          [ -n "\$APP" ] || { echo APP_NOT_FOUND; exit 71; }
+          echo "installed_app=\$APP"
+          [ -x "\$APP/3105" ] || { echo EXECUTABLE_NOT_FOUND; exit 72; }
+          echo "installed_executable=\$APP/3105"
+
+          if command -v ldid >/dev/null 2>&1; then
+            echo '=== INSTALLED ENTITLEMENTS ==='
+            ldid -e "\$APP/3105" 2>&1 || true
+          fi
+
+          U="\$(command -v uiopen 2>/dev/null || true)"
+          [ -n "\$U" ] || { echo UIOPEN_NOT_FOUND; exit 73; }
+          S="\$(command -v su 2>/dev/null || true)"
+          [ -n "\$S" ] || { echo SU_NOT_FOUND; exit 74; }
+          echo "launch_route=root_ssh_to_su_mobile_to_uiopen"
+          echo "uiopen=\$U"
+          echo "su=\$S"
 
           find_pid() {
-            if command -v pidof >/dev/null 2>&1; then
-              set -- \$(pidof 3105 2>/dev/null)
-              [ "\$#" -gt 0 ] && { echo "\$1"; return 0; }
-            fi
-            if command -v pgrep >/dev/null 2>&1; then
-              set -- \$(pgrep -x 3105 2>/dev/null)
-              [ "\$#" -gt 0 ] && { echo "\$1"; return 0; }
-            fi
-            if command -v ps >/dev/null 2>&1; then
-              ps ax 2>/dev/null | while IFS= read -r line; do
-                case "\$line" in
-                  *'/3105.app/3105'*) set -- \$line; echo "\$1"; break ;;
-                esac
-              done
-            fi
+            ps ax 2>/dev/null | while IFS= read -r line; do
+              case "\$line" in
+                *'/3105.app/3105'*) set -- \$line; echo "\$1"; break ;;
+              esac
+            done
           }
 
           killall 3105 2>/dev/null || true
           sleep 2
           if command -v uicache >/dev/null 2>&1; then
-            echo '=== UICACHE REGISTER ==='
             uicache -p "\$APP" 2>&1 || true
-            uicache -a 2>&1 || true
           fi
 
-          U="\$(command -v uiopen 2>/dev/null || true)"
-          [ -n "\$U" ] || { echo UIOPEN_MISSING; exit 62; }
+          "\$S" mobile -c "\"\$U\" --bundleid \"\$BUNDLE\"" 2>&1
+          launch_rc=\$?
+          echo "mobile_uiopen_rc=\$launch_rc"
+          [ "\$launch_rc" -eq 0 ] || exit 75
 
-          try_wait() {
-            tag="\$1"
-            n=0
-            while [ "\$n" -lt 8 ]; do
-              PID="\$(find_pid)"
-              if [ -n "\$PID" ]; then echo "\${tag}_pid=\$PID"; return 0; fi
-              n=\$((n+1)); sleep 1
-            done
-            echo "\${tag}_no_pid=1"
-            return 1
-          }
+          PID=''
+          n=0
+          while [ "\$n" -lt 20 ]; do
+            PID="\$(find_pid)"
+            [ -n "\$PID" ] && break
+            n=\$((n+1))
+            sleep 1
+          done
+          [ -n "\$PID" ] || { echo NO_PROCESS_AFTER_LAUNCH; exit 76; }
+          echo "launch_pid=\$PID"
 
-          echo '=== LAUNCH AS MOBILE VIA SUDO ==='
-          if command -v sudo >/dev/null 2>&1; then
-            sudo -u mobile "\$U" --bundleid "\$BUNDLE" 2>&1
-            echo "sudo_mobile_uiopen_rc=\$?"
-            try_wait sudo_mobile && exit 0
-          fi
-
-          echo '=== LAUNCH AS MOBILE VIA LAUNCHCTL ASUSER ==='
-          if command -v launchctl >/dev/null 2>&1; then
-            launchctl asuser 501 "\$U" --bundleid "\$BUNDLE" 2>&1
-            echo "launchctl_asuser_uiopen_rc=\$?"
-            try_wait launchctl_asuser && exit 0
-          fi
-
-          echo '=== LAUNCH AS MOBILE VIA SU ==='
-          if command -v su >/dev/null 2>&1; then
-            su mobile -c "\"\$U\" --bundleid \"\$BUNDLE\"" 2>&1
-            echo "su_mobile_uiopen_rc=\$?"
-            try_wait su_mobile && exit 0
-          fi
-
-          echo '=== ROOT UIOPEN RETEST ==='
-          "\$U" --bundleid "\$BUNDLE" 2>&1
-          echo "root_uiopen_rc=\$?"
-          try_wait root_uiopen && exit 0
-
-          echo '=== DIRECT BINARY DIAGNOSTIC ==='
-          LOG=/var/mobile/3105-direct-launch.log
-          rm -f "\$LOG"
-          if command -v sudo >/dev/null 2>&1; then
-            sudo -u mobile env DYLD_PRINT_LIBRARIES=1 DYLD_PRINT_APIS=1 "\$APP/3105" >"\$LOG" 2>&1 &
-          else
-            "\$APP/3105" >"\$LOG" 2>&1 &
-          fi
-          DPID=\$!
-          echo "direct_wrapper_pid=\$DPID"
-          sleep 5
-          if kill -0 "\$DPID" 2>/dev/null; then
-            echo DIRECT_PROCESS_ALIVE_AFTER_5S=1
-            PID="\$(find_pid)"; echo "direct_found_pid=\$PID"
-          else
-            echo DIRECT_PROCESS_EXITED=1
-          fi
-          echo '=== DIRECT LOG ==='
-          cat "\$LOG" 2>/dev/null || true
-
-          echo '=== RECENT CRASH FILES ==='
-          for f in /var/mobile/Library/Logs/CrashReporter/*3105* /var/mobile/Library/Logs/CrashReporter/*MobileHouseArrest*; do
-            [ -f "\$f" ] || continue
-            echo "crash_file=\$f"
-            sed -n '1,360p' "\$f" 2>/dev/null || cat "\$f" 2>/dev/null || true
+          n=0
+          while [ "\$n" -lt 18 ]; do
+            kill -0 "\$PID" 2>/dev/null || { echo "PROCESS_DIED_AT_CHECK=\$n"; exit 77; }
+            CURRENT="\$(find_pid)"
+            [ "\$CURRENT" = "\$PID" ] || { echo "PID_CHANGED_AT_CHECK=\$n old=\$PID new=\$CURRENT"; exit 78; }
+            n=\$((n+1))
+            echo "ALIVE_CHECK_\$n pid=\$PID"
+            sleep 5
           done
 
-          echo '=== PROCESS SNAPSHOT ==='
-          ps ax 2>&1 | grep -E '3105|SpringBoard|runningboardd' 2>&1 || true
-          exit 63
+          FINAL="\$(find_pid)"
+          [ "\$FINAL" = "\$PID" ] || { echo "FINAL_PID_CHANGED old=\$PID new=\$FINAL"; exit 79; }
+          kill -0 "\$PID" 2>/dev/null || { echo FINAL_PROCESS_DEAD; exit 80; }
+          echo "stable_pid=\$PID"
+          echo alive_after_90_seconds=1
+          echo RUNTIME_PROOF_SUCCESS=1
           EOS
-          } | sshpass -e ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh||true)"; [ -n "$S" ] || S=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$S" -s' | tee /tmp/launch-diagnostic.log
+          } | sshpass -e ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh||true)"; [ -n "$S" ] || S=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$S" -s' | tee /tmp/stability-proof.log
+          grep -Fq RUNTIME_PROOF_SUCCESS=1 /tmp/stability-proof.log
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: 3105-ios15-launch-diagnostic-${{ github.run_id }}
-          path: /tmp/launch-diagnostic.log
+          name: 3105-ios15-stability-proof-${{ github.run_id }}
+          path: /tmp/stability-proof.log
           if-no-files-found: warn
           retention-days: 7
