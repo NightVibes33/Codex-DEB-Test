@@ -1,4 +1,5 @@
 patch=image-enumerator-build
-requested_at=2026-08-28T06:58:00-05:00
-reason=run-iphone-tailscale-ssh-diagnostic
+requested_at=2026-08-29T00:00:00-05:00
+reason=prove-3105-ios15-mobile-springboard-launch
 target=100.96.37.124
+payload=remote/iphone-command.sh
