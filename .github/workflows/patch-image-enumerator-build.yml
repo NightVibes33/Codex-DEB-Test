@@ -7,6 +7,7 @@ on:
       - "triggers/patch-image-enumerator-build.txt"
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
@@ -41,21 +42,65 @@ jobs:
           )"
           test -n "$environment_name"
           echo "environment_name=$environment_name" >> "$GITHUB_OUTPUT"
-          echo "Resolved environment: $environment_name"
 
   iphone-proof:
     needs: resolve-environment
     environment:
       name: ${{ needs.resolve-environment.outputs.environment_name }}
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
+    env:
+      BASE_ARTIFACT_ID: "9707500776"
+      BASE_IPA_SHA256: "21dd62c7f11133be0cf12a72d63a1344bf74f94861b9f17972456048d9dac6d9"
     steps:
       - uses: actions/checkout@v4
         with:
           sparse-checkout: |
             remote/iphone-command.sh
+            remote/patch-3105-ios15-launchable.py
+            remote/3105-ios15-textro.b64
           sparse-checkout-cone-mode: false
           fetch-depth: 1
+
+      - name: Build one-change hybrid IPA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/base /tmp/work /tmp/base.zip /tmp/textro.bin /tmp/hybrid-patch.py /tmp/3105-ios15-hybrid.ipa /tmp/3105-ios15-hybrid.sha256
+          mkdir -p /tmp/base /tmp/work
+          curl -fL --retry 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${BASE_ARTIFACT_ID}/zip" \
+            -o /tmp/base.zip
+          unzip -q /tmp/base.zip -d /tmp/base
+          BASE=/tmp/base/3105-2.0-build8-unsigned.ipa
+          echo "$BASE_IPA_SHA256  $BASE" | sha256sum -c -
+          unzip -q "$BASE" -d /tmp/work
+          base64 -d remote/3105-ios15-textro.b64 > /tmp/textro.bin
+          cp remote/patch-3105-ios15-launchable.py /tmp/hybrid-patch.py
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('/tmp/hybrid-patch.py')
+          s = p.read_text()
+          needle = "    'platform-application': True,\n"
+          if s.count(needle) != 1:
+              raise SystemExit(f'expected one platform-application entitlement, got {s.count(needle)}')
+          s = s.replace(needle, '')
+          p.write_text(s)
+          print('REMOVED_ONLY_PLATFORM_APPLICATION=1')
+          PY
+          python3 /tmp/hybrid-patch.py /tmp/work/Payload/3105.app /tmp/textro.bin | tee /tmp/hybrid-patch.log
+          grep -Fq LAUNCHABLE_PATCHED_BINARY=1 /tmp/hybrid-patch.log
+          grep -Fq plist_bundle_id=com.nightvibes.app.threeoneosfive1 /tmp/hybrid-patch.log
+          cd /tmp/work
+          zip -qry /tmp/3105-ios15-hybrid.ipa Payload
+          cd - >/dev/null
+          sha256sum /tmp/3105-ios15-hybrid.ipa | cut -d' ' -f1 | tee /tmp/3105-ios15-hybrid.sha256
+          test -s /tmp/3105-ios15-hybrid.ipa
+          test -s /tmp/3105-ios15-hybrid.sha256
+          echo HYBRID_IPA_READY=1
 
       - name: Install Tailscale and SSH tools
         env:
@@ -80,22 +125,19 @@ jobs:
           set -euo pipefail
           sudo tailscale up \
             --auth-key="$TAILSCALE_AUTHKEY" \
-            --hostname="gh-3105-proof-${GITHUB_RUN_ID}" \
+            --hostname="gh-3105-hybrid-${GITHUB_RUN_ID}" \
             --accept-dns=false \
             --accept-routes=false \
             --reset
           ready=0
           for n in $(seq 1 18); do
-            if nc -zvw8 "$IPHONE_HOST" 22; then
-              ready=1
-              break
-            fi
+            if nc -zvw8 "$IPHONE_HOST" 22; then ready=1; break; fi
             sudo tailscale ping --timeout=5s --c 1 "$IPHONE_HOST" || true
             sleep 8
           done
           test "$ready" = 1
 
-      - name: Run exact 3105 proof on iPhone
+      - name: Transfer hybrid IPA and run 90-second proof
         env:
           IPHONE_HOST: "100.96.37.124"
           IPHONE_PORT: "22"
@@ -111,33 +153,41 @@ jobs:
           ssh-keyscan -T10 -H -p "$IPHONE_PORT" "$IPHONE_HOST" > "$HOME/.ssh/known_hosts" 2>/dev/null
           test -s "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/known_hosts"
+          sshpass -e scp -P "$IPHONE_PORT" \
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            /tmp/3105-ios15-hybrid.ipa \
+            "$IPHONE_USER@$IPHONE_HOST:/var/mobile/Media/3105-ios15-hybrid.ipa"
+          sshpass -e scp -P "$IPHONE_PORT" \
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            /tmp/3105-ios15-hybrid.sha256 \
+            "$IPHONE_USER@$IPHONE_HOST:/var/mobile/Media/3105-ios15-hybrid.sha256"
 
           set +e
           {
             printf '%s\n' "$IPHONE_PASSWORD"
             cat remote/iphone-command.sh
           } | sshpass -e ssh -p "$IPHONE_PORT" \
-                -o BatchMode=no \
-                -o ConnectTimeout=20 \
-                -o ConnectionAttempts=2 \
-                -o ServerAliveInterval=15 \
-                -o ServerAliveCountMax=3 \
-                -o StrictHostKeyChecking=yes \
-                -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+                -o BatchMode=no -o ConnectTimeout=20 -o ConnectionAttempts=2 \
+                -o ServerAliveInterval=15 -o ServerAliveCountMax=3 \
+                -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
                 "$IPHONE_USER@$IPHONE_HOST" \
                 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
                 2>&1 | tee /tmp/iphone-output.txt
           ssh_status=${PIPESTATUS[1]}
           set -e
           echo "iphone_ssh_exit_code=$ssh_status" | tee -a /tmp/iphone-output.txt
-          grep -E 'RUNTIME_PROOF_SUCCESS|alive_after_90_seconds|MOBILE_SESSION_PROOF_FAILED|NO_PROCESS|DIRECT_ALIVE|launch_pid|stable_pid' /tmp/iphone-output.txt || true
+          grep -E 'RUNTIME_PROOF_SUCCESS|alive_after_90_seconds|launch_pid|stable_pid|PLATFORM_APPLICATION|MCM_ENTITLEMENT|NO_SANDBOX|NO_PROCESS|DIRECT_ALIVE' /tmp/iphone-output.txt || true
           exit "$ssh_status"
 
-      - name: Upload proof output
+      - name: Upload hybrid IPA and proof output
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: iphone-3105-runtime-proof-${{ github.run_id }}
-          path: /tmp/iphone-output.txt
+          name: 3105-ios15-hybrid-${{ github.run_id }}
+          path: |
+            /tmp/3105-ios15-hybrid.ipa
+            /tmp/3105-ios15-hybrid.sha256
+            /tmp/hybrid-patch.log
+            /tmp/iphone-output.txt
           if-no-files-found: warn
           retention-days: 7
