@@ -1,0 +1,146 @@
+name: Temp 3105 iOS15 live diagnose
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/temp-3105-ios15-live-diagnose.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  env:
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.r.outputs.name }}
+    steps:
+      - id: r
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" >/tmp/e.json
+          n="$(python3 - <<'PY'
+          import json
+          for e in json.load(open('/tmp/e.json')).get('environments',[]):
+              if int(e.get('id',-1))==18728387881: print(e['name']); break
+          PY
+          )"
+          test -n "$n"; echo "name=$n" >> "$GITHUB_OUTPUT"
+
+  diagnose:
+    needs: env
+    environment:
+      name: ${{ needs.env.outputs.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Prepare SSH bridge
+        run: |
+          set -euo pipefail
+          sudo install -d -m0755 /usr/share/keyrings
+          curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
+          curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list | sudo tee /etc/apt/sources.list.d/tailscale.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends tailscale openssh-client sshpass
+          sudo systemctl enable --now tailscaled
+
+      - name: Probe installed 3105 launch live
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+          IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          HOST: "100.96.37.124"
+        run: |
+          set -euo pipefail
+          sudo tailscale up --auth-key="$TAILSCALE_AUTHKEY" --hostname="gh-3105-diag-${GITHUB_RUN_ID}" --accept-dns=false --accept-routes=false --reset
+          mkdir -p ~/.ssh; chmod 700 ~/.ssh
+          ready=0
+          for n in $(seq 1 18); do
+            rm -f ~/.ssh/known_hosts
+            if ssh-keyscan -T8 -H "$HOST" >~/.ssh/known_hosts 2>/dev/null && [ -s ~/.ssh/known_hosts ]; then ready=1; break; fi
+            sudo tailscale ping --timeout=5s --c 1 "$HOST" || true
+            sleep 8
+          done
+          test "$ready" = 1; chmod 600 ~/.ssh/known_hosts
+          {
+            printf '%s\n' "$IPHONE_PASSWORD"
+            cat <<'EOS'
+          set +e
+          export PATH="/var/jb/usr/bin:/var/jb/bin:/var/jb/usr/sbin:/var/jb/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+          BUNDLE='com.apple.mobile.MobileHouseArrest'
+          APP=''
+          for p in /var/containers/Bundle/Application/*/3105.app; do
+            [ -d "$p" ] && APP="$p" && break
+          done
+          echo "device_time=$(date 2>/dev/null)"
+          echo "installed_app=$APP"
+          [ -n "$APP" ] || exit 20
+          plutil -p "$APP/Info.plist" 2>/dev/null || true
+
+          echo '=== CURRENT CRASH FILES ==='
+          ls -lT /var/mobile/Library/Logs/CrashReporter/3105-*.ips 2>/dev/null || true
+
+          echo '=== DIRECT EXEC DYLD TEST ==='
+          rm -f /var/mobile/Media/3105-direct.log
+          "$APP/3105" >/var/mobile/Media/3105-direct.log 2>&1 &
+          DP=$!
+          echo "direct_pid=$DP"
+          sleep 3
+          if kill -0 "$DP" 2>/dev/null; then
+            echo DIRECT_PROCESS_ALIVE_AFTER_3S=1
+            kill "$DP" 2>/dev/null || true
+          else
+            echo DIRECT_PROCESS_ALIVE_AFTER_3S=0
+          fi
+          cat /var/mobile/Media/3105-direct.log 2>/dev/null || true
+
+          U=''
+          for p in /var/jb/usr/bin/uiopen /usr/bin/uiopen /bin/uiopen; do [ -x "$p" ] && U="$p" && break; done
+          [ -n "$U" ] || U="$(command -v uiopen 2>/dev/null || true)"
+          echo "uiopen=$U"
+          echo '=== UIOPEN LAUNCH ==='
+          "$U" --bundleid "$BUNDLE"
+          echo "uiopen_rc=$?"
+
+          i=0
+          while [ "$i" -lt 8 ]; do
+            i=$((i+1))
+            echo "--- PROCESS SNAPSHOT $i ---"
+            if command -v pidof >/dev/null 2>&1; then echo "pidof=$(pidof 3105 2>/dev/null)"; fi
+            if command -v pgrep >/dev/null 2>&1; then echo "pgrep=$(pgrep -x 3105 2>/dev/null)"; fi
+            ps ax 2>/dev/null | while read pid rest; do
+              case "$pid $rest" in
+                *3105*|*MobileHouseArrest*) echo "PS_MATCH $pid $rest" ;;
+              esac
+            done
+            sleep 1
+          done
+
+          echo '=== LAUNCHD MATCHES ==='
+          launchctl print gui/501 2>/dev/null | while IFS= read -r line; do
+            case "$line" in
+              *3105*|*MobileHouseArrest*) echo "$line" ;;
+            esac
+          done
+
+          echo '=== UNIFIED LOG MATCHES ==='
+          if command -v log >/dev/null 2>&1; then
+            log show --last 2m --style compact --predicate 'process == "3105" OR eventMessage CONTAINS "MobileHouseArrest"' 2>&1 || true
+          fi
+
+          echo '=== CRASH FILES AFTER LAUNCH ==='
+          ls -lT /var/mobile/Library/Logs/CrashReporter/3105-*.ips 2>/dev/null || true
+          echo DIAG_COMPLETE=1
+          EOS
+          } | sshpass -e ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh||true)"; [ -n "$S" ] || S=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$S" -s' | tee /tmp/diag.log
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: 3105-live-diag-${{ github.run_id }}
+          path: /tmp/diag.log
+          if-no-files-found: warn
+          retention-days: 7
