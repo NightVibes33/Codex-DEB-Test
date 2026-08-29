@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import os, sys, struct, hashlib, plistlib
-if len(sys.argv) != 4:
-    raise SystemExit('usage: patch-3105-ios15.py APP_DIR TEXTRO_BIN FINAL_INFO_PLIST')
-app, blob_path, final_plist = sys.argv[1:]
+if len(sys.argv) != 3:
+    raise SystemExit('usage: patch-3105-ios15.py APP_DIR TEXTRO_BIN')
+app, blob_path = sys.argv[1:]
 binary=os.path.join(app,'3105')
 blob=open(blob_path,'rb').read()
 if hashlib.sha256(blob).hexdigest() != 'f1eeaf99806da5ca18cfa3cc98e7d1ca270bfe17dfa273f26df862d4a92ec02d':
@@ -40,11 +40,14 @@ for i in range(imports_count):
     v=struct.unpack_from('<I',b,off)[0]
     struct.pack_into('<I',b,off,v|(1<<8))
 open(binary,'wb').write(b); os.chmod(binary,0o755)
-# Use the exact Info.plist bytes from the already-patched local IPA.
-plist_bytes=open(final_plist,'rb').read()
-if hashlib.sha256(plist_bytes).hexdigest() != '773bc29c61bbe8d76d79339a59a343bdb671e4f6b21ced479a171177393d8df9':
-    raise SystemExit('final plist hash mismatch')
-open(os.path.join(app,'Info.plist'),'wb').write(plist_bytes)
+# Apply the same functional Info.plist changes directly to pristine 2.0.
+plist_path=os.path.join(app,'Info.plist')
+with open(plist_path,'rb') as f:
+    info=plistlib.load(f)
+info['MinimumOSVersion']='15.0'
+info['ThreeOneOSFiveJBCompatibility']='Dopamine iOS 15 UIKit fallback'
+with open(plist_path,'wb') as f:
+    plistlib.dump(info,f,fmt=plistlib.FMT_BINARY,sort_keys=False)
 # Append the same ad-hoc CodeDirectory + entitlement blob used by the local patched IPA.
 b=bytearray(open(binary,'rb').read())
 ncmds=struct.unpack_from('<I',b,16)[0]; sizeofcmds=struct.unpack_from('<I',b,20)[0]
@@ -78,7 +81,7 @@ xml=plistlib.dumps(ent,fmt=plistlib.FMT_XML,sort_keys=True)
 be=lambda x:struct.pack('>I',x)
 ent_blob=be(0xfade7171)+be(8+len(xml))+xml
 ident=b'com.apple.mobile.MobileHouseArrest\0'; team=b'TROLLTROLL\0'
-code_limit=sigoff; hash_size=32; page_exp=12; page_size=4096
+code_limit=sigoff; hash_size=32; page_size=4096
 n_code=(code_limit+page_size-1)//page_size; n_special=5
 ident_off=52; team_off=ident_off+len(ident)
 hashes_base=(team_off+len(team)+7)&~7
@@ -109,3 +112,5 @@ if final_hash != '41ae16f59b0a655bc6b94d19b524a60c74a53ebb7c3aa00b4ee087fef87da3
     raise SystemExit('patched executable mismatch: '+final_hash)
 print('EXACT_PATCHED_BINARY=1')
 print('patched_binary_sha256='+final_hash)
+print('plist_minimum_os='+info['MinimumOSVersion'])
+print('plist_jb_marker='+info['ThreeOneOSFiveJBCompatibility'])
