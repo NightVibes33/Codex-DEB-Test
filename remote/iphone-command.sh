@@ -23,6 +23,13 @@ hash_file(){
   if command -v sha256sum >/dev/null 2>&1; then set -- $(sha256sum "$f" 2>/dev/null); else set -- $(shasum -a 256 "$f" 2>/dev/null); fi
   echo "$1"
 }
+manifest_hash(){
+  name="$1"
+  line="$(grep -F "$name" "$MANIFEST" 2>/dev/null | head -n 1)"
+  [ -n "$line" ] || return
+  set -- $line
+  echo "$1"
+}
 find_helper(){
   for p in /var/jb/usr/bin/trollstorehelper /var/jb/Applications/TrollStore.app/trollstorehelper /Applications/TrollStore.app/trollstorehelper /var/containers/Bundle/Application/*/*.app/trollstorehelper; do
     [ -x "$p" ] && { echo "$p"; return; }
@@ -83,14 +90,15 @@ echo "springboard_pid=$SBPID"
 [ -x "$UIOPEN" ] || exit 94
 [ -s "$MANIFEST" ] || exit 95
 
+echo '----- transferred checksum manifest -----'
+cat "$MANIFEST"
 : > "$RESULTS"
 echo "matrix_started=$(date 2>/dev/null)" >> "$RESULTS"
 
-# Verify every transferred IPA before touching the installed app.
 for V in $VARIANTS; do
   IPA="$MEDIA/3105-matrix-$V.ipa"
   NAME="3105-matrix-$V.ipa"
-  EXPECTED="$(awk -v n="$NAME" '$2==n {print $1; exit}' "$MANIFEST" 2>/dev/null)"
+  EXPECTED="$(manifest_hash "$NAME")"
   GOT="$(hash_file "$IPA")"
   echo "variant=$V expected=$EXPECTED got=$GOT"
   [ -n "$EXPECTED" ] && [ "$EXPECTED" = "$GOT" ] || { echo "$V=HASH_MISMATCH" >> "$RESULTS"; exit 96; }
@@ -123,7 +131,6 @@ for V in $VARIANTS; do
     continue
   fi
 
-  # Primary test: ask SpringBoard/FrontBoard to launch the registered app.
   reset_trace
   launchctl bsexec "$SBPID" "$UIOPEN" --bundleid "$BUNDLE" > "$MEDIA/3105-$V-uiopen.log" 2>&1 &
   LP=$!
@@ -137,8 +144,6 @@ for V in $VARIANTS; do
   cat "$MEDIA/3105-$V-uiopen.log" 2>/dev/null | head -n 100 || true
 
   FINAL="$PRIMARY"
-  # If FrontBoard produced no executable trace, directly execute once only to
-  # distinguish launch-policy failure from a pre-main entitlement/dyld block.
   if [ "$PRIMARY" = PRE_MAIN_BLOCK ]; then
     cleanup
     reset_trace
@@ -165,7 +170,6 @@ echo "matrix_finished=$(date 2>/dev/null)" >> "$RESULTS"
 echo
 cat "$RESULTS"
 
-# Leave the best proven variant installed and ask SpringBoard to show it.
 if [ -n "$BEST" ]; then
   echo "REINSTALLING_BEST=$BEST"
   "$H" install force "$MEDIA/3105-matrix-$BEST.ipa" 2>&1
