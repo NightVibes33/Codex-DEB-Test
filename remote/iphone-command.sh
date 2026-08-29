@@ -10,9 +10,12 @@ PHASE='/var/mobile/Media/3105-launch-phase.txt'
 UICACHE=/var/jb/usr/bin/uicache
 UIOPEN=/var/jb/usr/bin/uiopen
 
-echo '=== 3105 IOS15 BOUNDED SPRINGBOARD BOOTSTRAP ==='
+echo '=== 3105 IOS15 CORRECT UIOPEN LAUNCH ==='
 echo "device_time=$(date 2>/dev/null)"
 uname -a 2>/dev/null || true
+
+echo '----- uiopen usage -----'
+"$UIOPEN" 2>&1 | head -n 20 || true
 
 hash_file(){ f="$1"; [ -f "$f" ] || { echo missing; return; }; if command -v sha256sum >/dev/null 2>&1; then set -- $(sha256sum "$f" 2>/dev/null); else set -- $(shasum -a 256 "$f" 2>/dev/null); fi; echo "$1"; }
 find_helper(){ for p in /var/jb/usr/bin/trollstorehelper /var/jb/Applications/TrollStore.app/trollstorehelper /Applications/TrollStore.app/trollstorehelper /var/containers/Bundle/Application/*/*.app/trollstorehelper; do [ -x "$p" ] && { echo "$p"; return; }; done; }
@@ -33,33 +36,33 @@ LINE="$("$UICACHE" -l 2>&1 | grep -F "$BUNDLE" | head -n 1)"; APP="${LINE#* : }"
 SBPID="$(find_sb)"; echo "springboard_pid=$SBPID"; [ -n "$SBPID" ] || exit 94
 launchctl print system/com.apple.SpringBoard 2>&1 | grep -E 'state =|pid =|username =' | head -n 20 || true
 
-printf '\n===== TEST A: BSEXEC SPRINGBOARD + BUNDLE ID =====\n'
+printf '\n===== TEST A: MOBILE UIOPEN POSITIONAL BUNDLE ID =====\n'
 cleanup; reset_trace
-launchctl bsexec "$SBPID" "$UIOPEN" --bundleid "$BUNDLE" > /var/mobile/Media/3105-A.log 2>&1 &
+sudo -u mobile "$UIOPEN" "$BUNDLE" > /var/mobile/Media/3105-A.log 2>&1 &
 LA=$!; echo "A_launcher=$LA"; sleep 1
 if wait_trace A; then
   finish_launcher "$LA"; P="$(find_pid)"; sleep 10; P2="$(find_pid)"; echo "A_pid_before=$P"; echo "A_pid_after=$P2"; [ -n "$P2" ] && [ "$P" = "$P2" ] && echo A_STABLE=1 || echo A_STABLE=0
-  echo REAL_SPRINGBOARD_UI_SUCCESS=1; exit 0
+  echo CORRECT_UIOPEN_UI_SUCCESS=1; exit 0
 fi
 finish_launcher "$LA"; cat /var/mobile/Media/3105-A.log 2>/dev/null | head -n 120 || true
 
-printf '\n===== TEST B: BSEXEC SPRINGBOARD + URL =====\n'
+printf '\n===== TEST B: SPRINGBOARD BSEXEC UIOPEN POSITIONAL BUNDLE ID =====\n'
 cleanup; reset_trace
-launchctl bsexec "$SBPID" "$UIOPEN" --url 'threeoneosfive://' > /var/mobile/Media/3105-B.log 2>&1 &
+launchctl bsexec "$SBPID" "$UIOPEN" "$BUNDLE" > /var/mobile/Media/3105-B.log 2>&1 &
 LB=$!; echo "B_launcher=$LB"; sleep 1
 if wait_trace B; then
   finish_launcher "$LB"; P="$(find_pid)"; sleep 10; P2="$(find_pid)"; echo "B_pid_before=$P"; echo "B_pid_after=$P2"; [ -n "$P2" ] && [ "$P" = "$P2" ] && echo B_STABLE=1 || echo B_STABLE=0
-  echo REAL_SPRINGBOARD_UI_SUCCESS=1; exit 0
+  echo CORRECT_UIOPEN_UI_SUCCESS=1; exit 0
 fi
 finish_launcher "$LB"; cat /var/mobile/Media/3105-B.log 2>/dev/null | head -n 120 || true
 
-printf '\n===== TEST C: BSEXEC SPRINGBOARD + MOBILE UIOPEN =====\n'
+printf '\n===== TEST C: MOBILE UIOPEN POSITIONAL URL =====\n'
 cleanup; reset_trace
-launchctl bsexec "$SBPID" sudo -u mobile "$UIOPEN" --bundleid "$BUNDLE" > /var/mobile/Media/3105-C.log 2>&1 &
+sudo -u mobile "$UIOPEN" 'threeoneosfive://' > /var/mobile/Media/3105-C.log 2>&1 &
 LC=$!; echo "C_launcher=$LC"; sleep 1
 if wait_trace C; then
   finish_launcher "$LC"; P="$(find_pid)"; sleep 10; P2="$(find_pid)"; echo "C_pid_before=$P"; echo "C_pid_after=$P2"; [ -n "$P2" ] && [ "$P" = "$P2" ] && echo C_STABLE=1 || echo C_STABLE=0
-  echo REAL_SPRINGBOARD_UI_SUCCESS=1; exit 0
+  echo CORRECT_UIOPEN_UI_SUCCESS=1; exit 0
 fi
 finish_launcher "$LC"; cat /var/mobile/Media/3105-C.log 2>/dev/null | head -n 120 || true
 
@@ -69,5 +72,5 @@ sudo -u mobile "$APP/3105" > /var/mobile/Media/3105-D.log 2>&1 &
 LD=$!; echo "D_wrapper=$LD"; wait_trace D || true; kill "$LD" 2>/dev/null || true
 cat /var/mobile/Media/3105-D.log 2>/dev/null | head -n 180 || true
 
-echo REAL_SPRINGBOARD_UI_SUCCESS=0
+echo CORRECT_UIOPEN_UI_SUCCESS=0
 exit 0
