@@ -1,6 +1,6 @@
-patch=iphone-3105-springboard-gui-proof
-requested_at=2026-08-29T00:23:00-05:00
-reason=fix-missing-springboard-pid-and-launch-through-frontboard-context
+patch=iphone-3105-real-springboard-safe-isolation
+requested_at=2026-08-29T00:29:00-05:00
+reason=prove-real-springboard-path-and-isolate-snowboard-injection
 target=100.96.37.124
 payload=remote/ThreeOneOSFiveJB15.m+remote/iphone-command.sh
-attempt=10
+attempt=11
