@@ -1,6 +1,6 @@
-patch=iphone-3105-correct-uiopen-positional
-requested_at=2026-08-29T00:44:00-05:00
-reason=use-real-uikittools-uiopen-positional-bundle-id-syntax
+patch=iphone-3105-minimal-frontboard-identity
+requested_at=2026-08-29T00:58:00-05:00
+reason=remove-private-platform-entitlements-and-use-minimal-classic-app-plist
 target=100.96.37.124
 payload=remote/ThreeOneOSFiveJB15.m+remote/iphone-command.sh
-attempt=15
+attempt=16
