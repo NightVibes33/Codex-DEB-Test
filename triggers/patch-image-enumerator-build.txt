@@ -1,6 +1,6 @@
-patch=iphone-3105-minimal-frontboard-identity
-requested_at=2026-08-29T00:58:00-05:00
-reason=remove-private-platform-entitlements-and-use-minimal-classic-app-plist
+patch=iphone-3105-entitlement-matrix
+requested_at=2026-08-29T01:06:00-05:00
+reason=binary-search-platform-application-and-no-sandbox-for-premain-vs-uikit-lifecycle
 target=100.96.37.124
-payload=remote/ThreeOneOSFiveJB15.m+remote/iphone-command.sh
-attempt=16
+payload=4-ipa-entitlement-matrix+remote/iphone-command.sh
+attempt=17
