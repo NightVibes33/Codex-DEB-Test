@@ -1,4 +1,4 @@
-name: iPhone SSH 3105 Runtime Proof
+name: iPhone SSH 3105 Visible UI Proof
 
 on:
   push:
@@ -7,9 +7,141 @@ on:
       - "triggers/patch-image-enumerator-build.txt"
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
+  build-ios15-window:
+    runs-on: macos-26-intel
+    timeout-minutes: 20
+    env:
+      BASE_ARTIFACT_ID: "9707500776"
+      BASE_IPA_SHA256: "21dd62c7f11133be0cf12a72d63a1344bf74f94861b9f17972456048d9dac6d9"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            remote/ThreeOneOSFiveJB15.m
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+
+      - name: Build retained UIKit iOS 15 executable
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/base-artifact /tmp/work /tmp/base.zip /tmp/3105-ios15-windowfix.ipa /tmp/3105-ios15-windowfix.sha256
+          mkdir -p /tmp/base-artifact /tmp/work
+
+          curl -fL --retry 5 --retry-all-errors --connect-timeout 20 \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${BASE_ARTIFACT_ID}/zip" \
+            -o /tmp/base.zip
+          unzip -q /tmp/base.zip -d /tmp/base-artifact
+          BASE="$(find /tmp/base-artifact -type f -name '*.ipa' | head -n 1)"
+          test -n "$BASE"
+          GOT="$(shasum -a 256 "$BASE" | awk '{print $1}')"
+          echo "base_ipa_sha=$GOT"
+          test "$GOT" = "$BASE_IPA_SHA256"
+          unzip -q "$BASE" -d /tmp/work
+          APP=/tmp/work/Payload/3105.app
+          test -d "$APP"
+
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          echo "iphoneos_sdk=$SDK"
+          xcrun --sdk iphoneos clang \
+            -arch arm64 \
+            -miphoneos-version-min=15.0 \
+            -fobjc-arc \
+            -Wno-deprecated-declarations \
+            -framework UIKit \
+            -framework Foundation \
+            -framework QuartzCore \
+            remote/ThreeOneOSFiveJB15.m \
+            -o "$APP/3105"
+          chmod 0755 "$APP/3105"
+          file "$APP/3105"
+
+          python3 - "$APP/Info.plist" <<'PY'
+          import plistlib, sys
+          p = sys.argv[1]
+          with open(p, 'rb') as f:
+              info = plistlib.load(f)
+          for key in ('UIApplicationSceneManifest', 'UIMainStoryboardFile', 'NSMainNibFile'):
+              info.pop(key, None)
+          info['CFBundleIdentifier'] = 'com.nightvibes.app.threeoneosfive1'
+          info['CFBundleExecutable'] = '3105'
+          info['MinimumOSVersion'] = '15.0'
+          info['ThreeOneOSFiveJBCompatibility'] = 'Dopamine iOS 15 retained UIKit window'
+          with open(p, 'wb') as f:
+              plistlib.dump(info, f, fmt=plistlib.FMT_BINARY, sort_keys=False)
+          print('PLIST_PATCHED=1')
+          print('bundle_id=' + info['CFBundleIdentifier'])
+          print('minimum_os=' + info['MinimumOSVersion'])
+          print('scene_manifest_present=' + str('UIApplicationSceneManifest' in info))
+          PY
+
+          cat > /tmp/3105-ios15.entitlements <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>application-identifier</key><string>TROLLTROLL.*</string>
+            <key>com.apple.developer.team-identifier</key><string>TROLLTROLL</string>
+            <key>get-task-allow</key><true/>
+            <key>keychain-access-groups</key>
+            <array><string>TROLLTROLL.*</string><string>com.apple.token</string></array>
+            <key>platform-application</key><true/>
+            <key>com.apple.private.security.no-sandbox</key><true/>
+            <key>com.apple.private.security.container-required</key><string>com.nightvibes.app.threeoneosfive1</string>
+            <key>com.apple.private.MobileContainerManager.allowed</key><true/>
+            <key>com.apple.private.security.container-manager</key><true/>
+            <key>com.apple.private.security.storage.MobileDocuments</key><true/>
+            <key>com.apple.security.exception.files.absolute-path.read-write</key>
+            <array><string>/</string></array>
+          </dict>
+          </plist>
+          PLIST
+
+          /usr/bin/codesign --force --sign - --timestamp=none \
+            --entitlements /tmp/3105-ios15.entitlements \
+            --generate-entitlement-der \
+            "$APP/3105"
+          /usr/bin/codesign -d --entitlements :- "$APP/3105" 2>&1 | tee /tmp/signed-entitlements.txt
+          grep -q 'platform-application' /tmp/signed-entitlements.txt
+          grep -q 'com.apple.private.MobileContainerManager.allowed' /tmp/signed-entitlements.txt
+
+          /usr/bin/otool -l "$APP/3105" | grep -A6 LC_BUILD_VERSION | head -n 20 || true
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP/Info.plist"
+          if /usr/libexec/PlistBuddy -c 'Print :UIApplicationSceneManifest' "$APP/Info.plist" >/dev/null 2>&1; then
+            echo SCENE_MANIFEST_STILL_PRESENT=1
+            exit 31
+          fi
+          echo CLASSIC_APP_LIFECYCLE=1
+
+          cd /tmp/work
+          zip -qry /tmp/3105-ios15-windowfix.ipa Payload
+          cd - >/dev/null
+          shasum -a 256 /tmp/3105-ios15-windowfix.ipa | awk '{print $1}' > /tmp/3105-ios15-windowfix.sha256
+          echo "windowfix_ipa_sha=$(cat /tmp/3105-ios15-windowfix.sha256)"
+          test -s /tmp/3105-ios15-windowfix.ipa
+          test -s /tmp/3105-ios15-windowfix.sha256
+          echo IOS15_WINDOWFIX_IPA_READY=1
+
+      - name: Upload retained UIKit IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: 3105-ios15-windowfix
+          path: |
+            /tmp/3105-ios15-windowfix.ipa
+            /tmp/3105-ios15-windowfix.sha256
+            /tmp/signed-entitlements.txt
+          if-no-files-found: error
+          retention-days: 7
+
   resolve-environment:
     runs-on: ubuntu-latest
     outputs:
@@ -43,7 +175,7 @@ jobs:
           echo "environment_name=$environment_name" >> "$GITHUB_OUTPUT"
 
   iphone-proof:
-    needs: resolve-environment
+    needs: [build-ios15-window, resolve-environment]
     environment:
       name: ${{ needs.resolve-environment.outputs.environment_name }}
     runs-on: ubuntu-latest
@@ -55,6 +187,23 @@ jobs:
             remote/iphone-command.sh
           sparse-checkout-cone-mode: false
           fetch-depth: 1
+
+      - name: Download retained UIKit IPA
+        uses: actions/download-artifact@v4
+        with:
+          name: 3105-ios15-windowfix
+          path: /tmp/windowfix
+
+      - name: Verify local test payload
+        run: |
+          set -euo pipefail
+          test -s /tmp/windowfix/3105-ios15-windowfix.ipa
+          test -s /tmp/windowfix/3105-ios15-windowfix.sha256
+          EXPECTED="$(tr -d ' \r\n' < /tmp/windowfix/3105-ios15-windowfix.sha256)"
+          GOT="$(sha256sum /tmp/windowfix/3105-ios15-windowfix.ipa | awk '{print $1}')"
+          echo "expected=$EXPECTED"
+          echo "got=$GOT"
+          test "$EXPECTED" = "$GOT"
 
       - name: Install Tailscale and SSH tools with retries
         env:
@@ -71,23 +220,10 @@ jobs:
             https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list \
             -o /tmp/tailscale.list
           sudo install -m0644 /tmp/tailscale.list /etc/apt/sources.list.d/tailscale.list
-
-          apt_ok=0
-          for n in 1 2 3; do
-            if sudo apt-get update -qq; then apt_ok=1; break; fi
-            sleep $((n * 5))
-          done
-          test "$apt_ok" = 1
-
-          install_ok=0
-          for n in 1 2 3; do
-            if sudo apt-get install -y -qq --no-install-recommends tailscale openssh-client sshpass netcat-openbsd; then
-              install_ok=1
-              break
-            fi
-            sleep $((n * 5))
-          done
-          test "$install_ok" = 1
+          for n in 1 2 3; do sudo apt-get update -qq && break; sleep $((n * 5)); done
+          for n in 1 2 3; do sudo apt-get install -y -qq --no-install-recommends tailscale openssh-client sshpass netcat-openbsd && break; sleep $((n * 5)); done
+          command -v tailscale
+          command -v sshpass
           sudo systemctl enable --now tailscaled
 
       - name: Join tailnet and verify iPhone SSH
@@ -98,22 +234,19 @@ jobs:
           set -euo pipefail
           sudo tailscale up \
             --auth-key="$TAILSCALE_AUTHKEY" \
-            --hostname="gh-3105-bootstrap-${GITHUB_RUN_ID}" \
+            --hostname="gh-3105-ui-${GITHUB_RUN_ID}" \
             --accept-dns=false \
             --accept-routes=false \
             --reset
           ready=0
           for n in $(seq 1 18); do
-            if nc -zvw8 "$IPHONE_HOST" 22; then
-              ready=1
-              break
-            fi
+            if nc -zvw8 "$IPHONE_HOST" 22; then ready=1; break; fi
             sudo tailscale ping --timeout=5s --c 1 "$IPHONE_HOST" || true
             sleep 8
           done
           test "$ready" = 1
 
-      - name: Run SpringBoard bootstrap 90-second proof
+      - name: Transfer IPA and prove active visible window
         env:
           IPHONE_HOST: "100.96.37.124"
           IPHONE_PORT: "22"
@@ -129,6 +262,15 @@ jobs:
           ssh-keyscan -T10 -H -p "$IPHONE_PORT" "$IPHONE_HOST" > "$HOME/.ssh/known_hosts" 2>/dev/null
           test -s "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/known_hosts"
+
+          sshpass -e scp -P "$IPHONE_PORT" \
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            /tmp/windowfix/3105-ios15-windowfix.ipa \
+            "$IPHONE_USER@$IPHONE_HOST:/var/mobile/Media/3105-ios15-windowfix.ipa"
+          sshpass -e scp -P "$IPHONE_PORT" \
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            /tmp/windowfix/3105-ios15-windowfix.sha256 \
+            "$IPHONE_USER@$IPHONE_HOST:/var/mobile/Media/3105-ios15-windowfix.sha256"
 
           set +e
           {
@@ -148,14 +290,14 @@ jobs:
           ssh_status=${PIPESTATUS[1]}
           set -e
           echo "iphone_ssh_exit_code=$ssh_status" | tee -a /tmp/iphone-output.txt
-          grep -E 'RUNTIME_PROOF_SUCCESS|alive_after_90_seconds|launch_method|stable_pid|launch_pid|ASUSER|BSEXEC|DIRECT_ACTUAL|SPRINGBOARD_BOOTSTRAP_PROOF_FAILED' /tmp/iphone-output.txt || true
+          grep -E 'UI_READY|phase=|key=|hidden=|root_view_loaded=|UI_ACTIVE_KEY_WINDOW|UI_PRESENTATION_PROOF|RUNTIME_PROOF_SUCCESS|stable_pid|alive_after_60_seconds' /tmp/iphone-output.txt || true
           exit "$ssh_status"
 
-      - name: Upload proof output
+      - name: Upload visible UI proof
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: 3105-springboard-bootstrap-${{ github.run_id }}
+          name: 3105-ios15-visible-ui-proof-${{ github.run_id }}
           path: /tmp/iphone-output.txt
           if-no-files-found: warn
           retention-days: 7
