@@ -1,6 +1,6 @@
-patch=iphone-3105-entitlement-matrix
-requested_at=2026-08-29T01:06:00-05:00
-reason=binary-search-platform-application-and-no-sandbox-for-premain-vs-uikit-lifecycle
+patch=iphone-3105-entitlement-matrix-ios-parser-fix
+requested_at=2026-08-29T01:09:00-05:00
+reason=rerun-four-variant-bisection-after-posix-shell-manifest-parser-fix
 target=100.96.37.124
 payload=4-ipa-entitlement-matrix+remote/iphone-command.sh
-attempt=17
+attempt=18
