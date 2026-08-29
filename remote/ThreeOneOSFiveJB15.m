@@ -2,9 +2,28 @@
 #import <Foundation/Foundation.h>
 #import <spawn.h>
 #import <sys/wait.h>
+#import <sys/stat.h>
+#import <fcntl.h>
 #import <unistd.h>
+#include <string.h>
 
 extern char **environ;
+
+static const char *kPhasePath = "/var/mobile/Media/3105-launch-phase.txt";
+
+static void AppendRawPhase(const char *phase) {
+    int fd = open(kPhasePath, O_WRONLY | O_CREAT | O_APPEND, 0644);
+    if (fd < 0) return;
+    char line[256];
+    int n = snprintf(line, sizeof(line), "phase=%s pid=%d uid=%u euid=%u\n", phase, getpid(), getuid(), geteuid());
+    if (n > 0) write(fd, line, (size_t)n);
+    fsync(fd);
+    close(fd);
+}
+
+__attribute__((constructor)) static void ThreeOneOSFiveLaunchConstructor(void) {
+    AppendRawPhase("constructor");
+}
 
 static NSString *RunShell(NSString *command) {
     NSArray<NSString *> *shells = @[@"/var/jb/usr/bin/bash", @"/var/jb/bin/bash", @"/var/jb/bin/sh", @"/bin/sh"];
@@ -73,12 +92,13 @@ static NSString *RunShell(NSString *command) {
 }
 
 - (void)viewDidLoad {
+    AppendRawPhase("viewDidLoad-enter");
     [super viewDidLoad];
     self.view.backgroundColor = UIColor.systemBackgroundColor;
     self.title = @"3105";
 
     UILabel *title = [self label:@"3105 — Dopamine iOS 15" size:28 weight:UIFontWeightBold];
-    UILabel *subtitle = [self label:@"UIKit compatibility mode is active. The window is attached to the SpringBoard user session." size:14 weight:UIFontWeightRegular];
+    UILabel *subtitle = [self label:@"UIKit compatibility mode is active. If you can read this, the foreground scene is real." size:14 weight:UIFontWeightRegular];
     subtitle.textColor = UIColor.secondaryLabelColor;
 
     self.pathField = [UITextField new];
@@ -104,7 +124,7 @@ static NSString *RunShell(NSString *command) {
     self.outputView.font = [UIFont monospacedSystemFontOfSize:12 weight:UIFontWeightRegular];
     self.outputView.backgroundColor = UIColor.secondarySystemBackgroundColor;
     self.outputView.layer.cornerRadius = 12;
-    self.outputView.text = [NSString stringWithFormat:@"UI READY\nuid=%u\n\nTap a route to test jailbreak filesystem access.", getuid()];
+    self.outputView.text = [NSString stringWithFormat:@"UI READY\npid=%d uid=%u euid=%u\n\nTap a route to test filesystem access.", getpid(), getuid(), geteuid()];
     self.outputView.translatesAutoresizingMaskIntoConstraints = NO;
 
     UIStackView *stack = [[UIStackView alloc] initWithArrangedSubviews:@[title, subtitle, self.pathField, buttons, self.outputView]];
@@ -118,8 +138,10 @@ static NSString *RunShell(NSString *command) {
         [stack.leadingAnchor constraintEqualToAnchor:safe.leadingAnchor constant:18],
         [stack.trailingAnchor constraintEqualToAnchor:safe.trailingAnchor constant:-18],
         [stack.topAnchor constraintEqualToAnchor:safe.topAnchor constant:18],
-        [self.outputView.heightAnchor constraintGreaterThanOrEqualToConstant:220]
+        [stack.bottomAnchor constraintLessThanOrEqualToAnchor:safe.bottomAnchor constant:-12],
+        [self.outputView.heightAnchor constraintGreaterThanOrEqualToConstant:180]
     ]];
+    AppendRawPhase("viewDidLoad-exit");
 }
 
 - (void)setOutput:(NSString *)text { self.outputView.text = text ?: @""; }
@@ -141,6 +163,13 @@ static __strong UIWindow *gRetainedWindow = nil;
 
 @implementation ThreeOneOSFiveJB15Delegate
 
+- (instancetype)init {
+    AppendRawPhase("delegate-init-enter");
+    self = [super init];
+    AppendRawPhase("delegate-init-exit");
+    return self;
+}
+
 - (void)writeWindowMarker:(NSString *)phase {
     ThreeOneOSFiveJB15ViewController *root = nil;
     UIViewController *candidate = self.window.rootViewController;
@@ -151,10 +180,12 @@ static __strong UIWindow *gRetainedWindow = nil;
     BOOL viewLoaded = root != nil && root.isViewLoaded;
     NSString *marker = [NSString stringWithFormat:@"UI_READY=1\nphase=%@\npid=%d\nwindow=%@\nkey=%d\nhidden=%d\nroot_view_loaded=%d\napplication_state=%ld\n", phase, getpid(), self.window, self.window.isKeyWindow, self.window.isHidden, viewLoaded, (long)UIApplication.sharedApplication.applicationState];
     [marker writeToFile:@"/var/mobile/Media/3105-ui-ready.txt" atomically:YES encoding:NSUTF8StringEncoding error:nil];
+    AppendRawPhase(phase.UTF8String);
     NSLog(@"[3105-iOS15] %@", marker);
 }
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    AppendRawPhase("didFinish-enter");
     CGRect frame = UIScreen.mainScreen.bounds;
     self.window = [[UIWindow alloc] initWithFrame:frame];
     gRetainedWindow = self.window;
@@ -172,6 +203,7 @@ static __strong UIWindow *gRetainedWindow = nil;
 }
 
 - (void)applicationDidBecomeActive:(UIApplication *)application {
+    AppendRawPhase("active-enter");
     if (self.window) {
         self.window.hidden = NO;
         [self.window makeKeyAndVisible];
@@ -182,7 +214,11 @@ static __strong UIWindow *gRetainedWindow = nil;
 @end
 
 int main(int argc, char *argv[]) {
+    AppendRawPhase("main-enter");
     @autoreleasepool {
-        return UIApplicationMain(argc, argv, nil, NSStringFromClass([ThreeOneOSFiveJB15Delegate class]));
+        AppendRawPhase("before-UIApplicationMain");
+        int rc = UIApplicationMain(argc, argv, nil, NSStringFromClass([ThreeOneOSFiveJB15Delegate class]));
+        AppendRawPhase("UIApplicationMain-returned");
+        return rc;
     }
 }
