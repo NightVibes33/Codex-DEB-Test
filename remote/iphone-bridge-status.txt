@@ -1,7 +1,7 @@
 iPhone Tailscale SSH Bridge
-run_id=33238783504
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33238783504
-commit=b43aa5a668dafe5517ec77ee16f20ca724a36a4f
+run_id=33238916753
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33238916753
+commit=a66082eefe5e456719ee31141be6353e455aabcb
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
@@ -19,59 +19,84 @@ SSH port attempt 1/18
 # 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
 iphone_ssh_port_ready=success
 Staging native rfmonctl and running probe as root...
-=== 3105 IOS15 EARLY WINDOW PROOF ===
-device_time=Sat Aug 29 01:34:57 CDT 2026
+=== 3105 IOS15 EARLY WINDOW ASUSER PROOF ===
+device_time=Sat Aug 29 01:38:11 CDT 2026
 Darwin iPhone 21.6.0 Darwin Kernel Version 21.6.0: Fri Mar  6 21:01:24 PST 2026; root:xnu-8020.241.44~1/RELEASE_ARM64_S8000 iPhone8,1 arm Darwin
-expected=6440d2694a23f42bff386e288a5311378ed234bd4dc18d7c88509f4fea1a8550
-got=6440d2694a23f42bff386e288a5311378ed234bd4dc18d7c88509f4fea1a8550
+expected=fd690a2c6002965d66238c6117335c4a0e52462cc1fe50f5cbe683d325702e46
+got=fd690a2c6002965d66238c6117335c4a0e52462cc1fe50f5cbe683d325702e46
 helper=/var/containers/Bundle/Application/37A1E069-9D65-484C-8622-662A1DE8BB68/Tips.app/trollstorehelper
 springboard_pid=328
-2026-08-29 01:35:00.126 trollstorehelper[2426:18813] [SnowBoard Launcher] Loader check passed. Loading SnowBoard...
-2026-08-29 01:35:00.134 trollstorehelper[2426:18813] Initialising Snowboard (Version: 1.5.37-Beta4-rootless Compiled: Jul  9 2024 : 00:24:46) in app: trollstorehelper...
-2026-08-29 01:35:00.184 trollstorehelper[2426:18813] trollstorehelper invoked with arguments: (
+2026-08-29 01:38:14.343 trollstorehelper[2649:20765] [SnowBoard Launcher] Loader check passed. Loading SnowBoard...
+2026-08-29 01:38:14.354 trollstorehelper[2649:20765] Initialising Snowboard (Version: 1.5.37-Beta4-rootless Compiled: Jul  9 2024 : 00:24:46) in app: trollstorehelper...
+2026-08-29 01:38:14.399 trollstorehelper[2649:20765] trollstorehelper invoked with arguments: (
     install,
     force,
     "/var/mobile/Media/3105-ios15-windowfix.ipa"
 )
-2026-08-29 01:35:00.286 trollstorehelper[2426:18813] [installApp force = 1]
-2026-08-29 01:35:00.375 trollstorehelper[2426:18813] [dumpEntitlements] no entitlements specified
-2026-08-29 01:35:00.382 trollstorehelper[2426:18813] About to spawn ldid (/private/var/containers/Bundle/Application/BE9B476F-4FAE-44CE-974D-44EC5A57CE39/TrollStore.app/ldid) with args (
-    "-S/var/tmp/E7EBB112-3C84-4A0F-9801-2553232FC4C5.plist",
-    "/private/var/tmp/41B28FC9-32AE-45C8-80F3-B02CFD923FB9/Payload/3105.app/3105"
-)
-2026-08-29 01:35:00.442 trollstorehelper[2426:18813] ldid exited with status 0
-2026-08-29 01:35:00.442 trollstorehelper[2426:18813] - ldid error output start -
-2026-08-29 01:35:00.442 trollstorehelper[2426:18813] - ldid error output end -
-2026-08-29 01:35:00.444 trollstorehelper[2426:18813] About to spawn ldid (/private/var/containers/Bundle/Application/BE9B476F-4FAE-44CE-974D-44EC5A57CE39/TrollStore.app/ldid) with args (
-    "-s",
-    "/var/tmp/41B28FC9-32AE-45C8-80F3-B02CFD923FB9/Payload/3105.app"
-)
-2026-08-29 01:35:00.500 trollstorehelper[2426:18813] ldid exited with status 0
-2026-08-29 01:35:00.500 trollstorehelper[2426:18813] - ldid error output start -
-2026-08-29 01:35:00.500 trollstorehelper[2426:18813] - ldid error output end -
-2026-08-29 01:35:00.501 trollstorehelper[2426:18813] /private/var/tmp/41B28FC9-32AE-45C8-80F3-B02CFD923FB9/Payload/3105.app/3105 is binary
-2026-08-29 01:35:00.502 trollstorehelper[2426:18813] [/private/var/tmp/41B28FC9-32AE-45C8-80F3-B02CFD923FB9/Payload/3105.app/3105] Applying CoreTrust bypass...
-2026-08-29 01:35:00.527 trollstorehelper[2426:18813] [/private/var/tmp/41B28FC9-32AE-45C8-80F3-B02CFD923FB9/Payload/3105.app/3105] Applied CoreTrust bypass!
-2026-08-29 01:35:00.535 trollstorehelper[2426:18813] [installApp] replacing existing app with new version
-2026-08-29 01:35:00.539 trollstorehelper[2426:18813] [installApp] new app path: /private/var/containers/Bundle/Application/F6556AA2-80E2-4539-B418-D62019EFF287/3105.app
-2026-08-29 01:35:00.574 trollstorehelper[2426:18813] [dumpEntitlements] dumped {
+2026-08-29 01:38:14.489 trollstorehelper[2649:20765] [installApp force = 1]
+2026-08-29 01:38:14.544 trollstorehelper[2649:20765] [dumpEntitlements] dumped {
     "application-identifier" = "TROLLTROLL.*";
     "com.apple.developer.team-identifier" = TROLLTROLL;
+    "com.apple.private.MobileContainerManager.allowed" = 1;
+    "com.apple.private.security.container-manager" = 1;
     "com.apple.private.security.container-required" = "com.nightvibes.app.threeoneosfive1";
+    "com.apple.private.security.no-sandbox" = 1;
+    "com.apple.private.security.storage.MobileDocuments" = 1;
+    "com.apple.security.exception.files.absolute-path.read-write" =     (
+        "/"
+    );
     "get-task-allow" = 1;
     "keychain-access-groups" =     (
         "TROLLTROLL.*",
         "com.apple.token"
     );
+    "platform-application" = 1;
 }
-2026-08-29 01:35:00.598 trollstorehelper[2426:18813] trollstorehelper returning 0
+2026-08-29 01:38:14.552 trollstorehelper[2649:20765] About to spawn ldid (/private/var/containers/Bundle/Application/BE9B476F-4FAE-44CE-974D-44EC5A57CE39/TrollStore.app/ldid) with args (
+    "-S/var/tmp/AA688C6A-A17B-4715-B200-ABFA711913A9.plist",
+    "/private/var/tmp/FE521BBF-3039-43F5-8486-0E08F9FEA664/Payload/3105.app/3105"
+)
+2026-08-29 01:38:14.601 trollstorehelper[2649:20765] ldid exited with status 0
+2026-08-29 01:38:14.601 trollstorehelper[2649:20765] - ldid error output start -
+2026-08-29 01:38:14.601 trollstorehelper[2649:20765] - ldid error output end -
+2026-08-29 01:38:14.603 trollstorehelper[2649:20765] About to spawn ldid (/private/var/containers/Bundle/Application/BE9B476F-4FAE-44CE-974D-44EC5A57CE39/TrollStore.app/ldid) with args (
+    "-s",
+    "/var/tmp/FE521BBF-3039-43F5-8486-0E08F9FEA664/Payload/3105.app"
+)
+2026-08-29 01:38:14.656 trollstorehelper[2649:20765] ldid exited with status 0
+2026-08-29 01:38:14.656 trollstorehelper[2649:20765] - ldid error output start -
+2026-08-29 01:38:14.656 trollstorehelper[2649:20765] - ldid error output end -
+2026-08-29 01:38:14.657 trollstorehelper[2649:20765] /private/var/tmp/FE521BBF-3039-43F5-8486-0E08F9FEA664/Payload/3105.app/3105 is binary
+2026-08-29 01:38:14.658 trollstorehelper[2649:20765] [/private/var/tmp/FE521BBF-3039-43F5-8486-0E08F9FEA664/Payload/3105.app/3105] Applying CoreTrust bypass...
+2026-08-29 01:38:14.673 trollstorehelper[2649:20765] [/private/var/tmp/FE521BBF-3039-43F5-8486-0E08F9FEA664/Payload/3105.app/3105] Applied CoreTrust bypass!
+2026-08-29 01:38:14.680 trollstorehelper[2649:20765] [installApp] replacing existing app with new version
+2026-08-29 01:38:14.684 trollstorehelper[2649:20765] [installApp] new app path: /private/var/containers/Bundle/Application/F6556AA2-80E2-4539-B418-D62019EFF287/3105.app
+2026-08-29 01:38:14.719 trollstorehelper[2649:20765] [dumpEntitlements] dumped {
+    "application-identifier" = "TROLLTROLL.*";
+    "com.apple.developer.team-identifier" = TROLLTROLL;
+    "com.apple.private.MobileContainerManager.allowed" = 1;
+    "com.apple.private.security.container-manager" = 1;
+    "com.apple.private.security.container-required" = "com.nightvibes.app.threeoneosfive1";
+    "com.apple.private.security.no-sandbox" = 1;
+    "com.apple.private.security.storage.MobileDocuments" = 1;
+    "com.apple.security.exception.files.absolute-path.read-write" =     (
+        "/"
+    );
+    "get-task-allow" = 1;
+    "keychain-access-groups" =     (
+        "TROLLTROLL.*",
+        "com.apple.token"
+    );
+    "platform-application" = 1;
+}
+2026-08-29 01:38:14.743 trollstorehelper[2649:20765] trollstorehelper returning 0
 Applying App Store code directory...
 Adding new signature blob...
 Updating TeamID...
 TeamID set to T8ALTGMVXN!
 Doing initial signing to calculate size...
 SHA1 hash: 51f9bca295be9c2e1dee77d093ce0fcf3fc93450
-SHA256 hash: a2576326f3482527a58fa9ec428c80dd91f28bb7be0601fe488ac16a7fb86086
+SHA256 hash: 1d7e3c34c07c82ef7f9ed8d2bd6b4f882354369f3d2a0894e2ebb3c5ef96c5bc
 Encoding unsigned superblob...
 Updating load commands...
 Updating __LINKEDIT segment...
@@ -79,16 +104,16 @@ Updating LC_CODE_SIGNATURE load command...
 Updating code slot hashes...
 Signing binary...
 SHA1 hash: 51f9bca295be9c2e1dee77d093ce0fcf3fc93450
-SHA256 hash: 26d783402b132190ef04a50eeae89f7cde2ec12c9610b66500bf1588c9fcbedf
+SHA256 hash: e0351d7f117218eb42eb6e8332ccd2086fe800722ad10ab0105a54fb215eacf8
 Encoding signed superblob...
 Writing superblob to MachO...
 install_rc=0
-2026-08-29 01:35:00.854 trollstorehelper[2430:18863] [SnowBoard Launcher] Loader check passed. Loading SnowBoard...
-2026-08-29 01:35:00.861 trollstorehelper[2430:18863] Initialising Snowboard (Version: 1.5.37-Beta4-rootless Compiled: Jul  9 2024 : 00:24:46) in app: trollstorehelper...
-2026-08-29 01:35:00.913 trollstorehelper[2430:18863] trollstorehelper invoked with arguments: (
+2026-08-29 01:38:15.015 trollstorehelper[2654:20812] [SnowBoard Launcher] Loader check passed. Loading SnowBoard...
+2026-08-29 01:38:15.026 trollstorehelper[2654:20812] Initialising Snowboard (Version: 1.5.37-Beta4-rootless Compiled: Jul  9 2024 : 00:24:46) in app: trollstorehelper...
+2026-08-29 01:38:15.072 trollstorehelper[2654:20812] trollstorehelper invoked with arguments: (
     refresh
 )
-2026-08-29 01:35:00.942 trollstorehelper[2430:18863] [dumpEntitlements] dumped {
+2026-08-29 01:38:15.104 trollstorehelper[2654:20812] [dumpEntitlements] dumped {
     "application-identifier" = "com.opa334.TrollStore";
     "com.apple.CommCenter.fine-grained" =     (
         "data-allowed-write"
@@ -113,21 +138,29 @@ install_rc=0
     "com.apple.springboard.opensensitiveurl" = 1;
     "platform-application" = 1;
 }
-2026-08-29 01:35:01.117 trollstorehelper[2430:18863] [dumpEntitlements] dumped {
+2026-08-29 01:38:15.326 trollstorehelper[2654:20812] [dumpEntitlements] dumped {
     "application-identifier" = "TROLLTROLL.*";
     "com.apple.developer.team-identifier" = TROLLTROLL;
+    "com.apple.private.MobileContainerManager.allowed" = 1;
+    "com.apple.private.security.container-manager" = 1;
     "com.apple.private.security.container-required" = "com.nightvibes.app.threeoneosfive1";
+    "com.apple.private.security.no-sandbox" = 1;
+    "com.apple.private.security.storage.MobileDocuments" = 1;
+    "com.apple.security.exception.files.absolute-path.read-write" =     (
+        "/"
+    );
     "get-task-allow" = 1;
     "keychain-access-groups" =     (
         "TROLLTROLL.*",
         "com.apple.token"
     );
+    "platform-application" = 1;
 }
-2026-08-29 01:35:01.152 trollstorehelper[2430:18863] trollstorehelper returning 0
+2026-08-29 01:38:15.364 trollstorehelper[2654:20812] trollstorehelper returning 0
 registration=com.nightvibes.app.threeoneosfive1 : /private/var/containers/Bundle/Application/F6556AA2-80E2-4539-B418-D62019EFF287/3105.app
 app=/private/var/containers/Bundle/Application/F6556AA2-80E2-4539-B418-D62019EFF287/3105.app
---- launching through SpringBoard bootstrap ---
-uiopen_launcher=2465
+--- launching in UID 501 GUI bootstrap ---
+uiopen_launcher=2687
 --- phase trace ---
 PHASE_EMPTY=1
 --- UI marker ---
