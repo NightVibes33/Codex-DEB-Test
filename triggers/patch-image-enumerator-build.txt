@@ -1,6 +1,6 @@
 patch=iphone-3105-runtime-proof
-requested_at=2026-08-29T00:58:00-05:00
-reason=retry-gui501-bootstrap-after-hardening-bridge
+requested_at=2026-08-29T01:03:00-05:00
+reason=force-clean-stale-processes-then-test-asuser-bsexec
 target=100.96.37.124
 payload=remote/iphone-command.sh
-attempt=6
+attempt=7
