@@ -1,6 +1,6 @@
-patch=iphone-3105-ui-postmortem
-requested_at=2026-08-29T00:18:00-05:00
-reason=diagnose-no-process-after-retained-uikit-build
+patch=iphone-3105-springboard-gui-proof
+requested_at=2026-08-29T00:23:00-05:00
+reason=fix-missing-springboard-pid-and-launch-through-frontboard-context
 target=100.96.37.124
 payload=remote/ThreeOneOSFiveJB15.m+remote/iphone-command.sh
-attempt=9
+attempt=10
