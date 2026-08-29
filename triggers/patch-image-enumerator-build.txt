@@ -1,6 +1,6 @@
-patch=iphone-3105-early-window-asuser
-requested_at=2026-08-29T01:38:00-05:00
-reason=use-proven-launchctl-asuser-501-context-with-early-window-binary
+patch=iphone-3105-early-window-asuser-sync
+requested_at=2026-08-29T01:42:00-05:00
+reason=match-exact-synchronous-launchctl-asuser-semantics-from-proven-90-second-run
 target=100.96.37.124
 payload=3105-ios15-early-window+full-entitlements
-attempt=21
+attempt=22
