@@ -140,6 +140,20 @@ static __strong UIWindow *gRetainedWindow = nil;
 @end
 
 @implementation ThreeOneOSFiveJB15Delegate
+
+- (void)writeWindowMarker:(NSString *)phase {
+    ThreeOneOSFiveJB15ViewController *root = nil;
+    UIViewController *candidate = self.window.rootViewController;
+    if ([candidate isKindOfClass:UINavigationController.class]) {
+        candidate = ((UINavigationController *)candidate).topViewController;
+    }
+    if ([candidate isKindOfClass:ThreeOneOSFiveJB15ViewController.class]) root = (ThreeOneOSFiveJB15ViewController *)candidate;
+    BOOL viewLoaded = root != nil && root.isViewLoaded;
+    NSString *marker = [NSString stringWithFormat:@"UI_READY=1\nphase=%@\npid=%d\nwindow=%@\nkey=%d\nhidden=%d\nroot_view_loaded=%d\napplication_state=%ld\n", phase, getpid(), self.window, self.window.isKeyWindow, self.window.isHidden, viewLoaded, (long)UIApplication.sharedApplication.applicationState];
+    [marker writeToFile:@"/var/mobile/Media/3105-ui-ready.txt" atomically:YES encoding:NSUTF8StringEncoding error:nil];
+    NSLog(@"[3105-iOS15] %@", marker);
+}
+
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     CGRect frame = UIScreen.mainScreen.bounds;
     self.window = [[UIWindow alloc] initWithFrame:frame];
@@ -152,10 +166,8 @@ static __strong UIWindow *gRetainedWindow = nil;
     self.window.windowLevel = UIWindowLevelNormal;
     self.window.hidden = NO;
     [self.window makeKeyAndVisible];
-
-    NSString *marker = [NSString stringWithFormat:@"UI_READY=1\npid=%d\nwindow=%@\nkey=%d\nhidden=%d\n", getpid(), self.window, self.window.isKeyWindow, self.window.isHidden];
-    [marker writeToFile:@"/var/mobile/Media/3105-ui-ready.txt" atomically:YES encoding:NSUTF8StringEncoding error:nil];
-    NSLog(@"[3105-iOS15] %@", marker);
+    (void)root.view;
+    [self writeWindowMarker:@"didFinish"];
     return YES;
 }
 
@@ -164,6 +176,7 @@ static __strong UIWindow *gRetainedWindow = nil;
         self.window.hidden = NO;
         [self.window makeKeyAndVisible];
         gRetainedWindow = self.window;
+        [self writeWindowMarker:@"active"];
     }
 }
 @end
