@@ -1,105 +1,15 @@
 iPhone Tailscale SSH Bridge
-run_id=33236170786
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33236170786
-commit=75c8aa8a9dea7f153593548b00562f784f8a0afb
+run_id=33236223175
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33236223175
+commit=7861ba0f0b3533f77e262c0cfa9ff5ec929b7d46
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
 tailscale=success
 install_ssh=success
-ssh=cancelled
+ssh=success
 
 --- sanitized SSH output ---
-Waking and checking iPhone SSH port over Tailscale...
-SSH port attempt 1/18
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-iphone_ssh_port_ready=success
-Staging native rfmonctl and running probe as root...
-=== 3105 IOS15 REAL SPRINGBOARD + TWEAK ISOLATION ===
-device_time=Sat Aug 29 00:27:20 CDT 2026
-Darwin iPhone 21.6.0 Darwin Kernel Version 21.6.0: Fri Mar  6 21:01:24 PST 2026; root:xnu-8020.241.44~1/RELEASE_ARM64_S8000 iPhone8,1 arm Darwin
-expected=0c24a6c180f35cd7ac0b4bb6153349b996e1360d16b2a58b3d3afbf29776cb3f
-got=0c24a6c180f35cd7ac0b4bb6153349b996e1360d16b2a58b3d3afbf29776cb3f
-helper=/var/containers/Bundle/Application/37A1E069-9D65-484C-8622-662A1DE8BB68/Tips.app/trollstorehelper
-2026-08-29 00:27:26.195 trollstorehelper[7021:114606] [SnowBoard Launcher] Loader check passed. Loading SnowBoard...
-2026-08-29 00:27:26.224 trollstorehelper[7021:114606] Initialising Snowboard (Version: 1.5.37-Beta4-rootless Compiled: Jul  9 2024 : 00:24:46) in app: trollstorehelper...
-2026-08-29 00:27:26.407 trollstorehelper[7021:114606] trollstorehelper invoked with arguments: (
-    install,
-    force,
-    "/var/mobile/Media/3105-ios15-windowfix.ipa"
-)
-2026-08-29 00:27:26.507 trollstorehelper[7021:114606] [installApp force = 1]
-2026-08-29 00:27:26.786 trollstorehelper[7021:114606] [dumpEntitlements] dumped {
-    "application-identifier" = "TROLLTROLL.*";
-    "com.apple.developer.team-identifier" = TROLLTROLL;
-    "com.apple.private.MobileContainerManager.allowed" = 1;
-    "com.apple.private.security.container-manager" = 1;
-    "com.apple.private.security.container-required" = "com.nightvibes.app.threeoneosfive1";
-    "com.apple.private.security.no-sandbox" = 1;
-    "com.apple.private.security.storage.MobileDocuments" = 1;
-    "com.apple.security.exception.files.absolute-path.read-write" =     (
-        "/"
-    );
-    "get-task-allow" = 1;
-    "keychain-access-groups" =     (
-        "TROLLTROLL.*",
-        "com.apple.token"
-    );
-    "platform-application" = 1;
-}
-2026-08-29 00:27:26.802 trollstorehelper[7021:114606] About to spawn ldid (/private/var/containers/Bundle/Application/BE9B476F-4FAE-44CE-974D-44EC5A57CE39/TrollStore.app/ldid) with args (
-    "-S/var/tmp/1C44342A-8EBE-4455-A3A7-5125BE3A129D.plist",
-    "/private/var/tmp/C02E3C95-1568-4481-BF11-AD8B582A4B7E/Payload/3105.app/3105"
-)
-2026-08-29 00:27:26.990 trollstorehelper[7021:114606] ldid exited with status 0
-2026-08-29 00:27:26.990 trollstorehelper[7021:114606] - ldid error output start -
-2026-08-29 00:27:26.991 trollstorehelper[7021:114606] - ldid error output end -
-2026-08-29 00:27:26.999 trollstorehelper[7021:114606] About to spawn ldid (/private/var/containers/Bundle/Application/BE9B476F-4FAE-44CE-974D-44EC5A57CE39/TrollStore.app/ldid) with args (
-    "-s",
-    "/var/tmp/C02E3C95-1568-4481-BF11-AD8B582A4B7E/Payload/3105.app"
-)
-2026-08-29 00:27:27.226 trollstorehelper[7021:114606] ldid exited with status 0
-2026-08-29 00:27:27.226 trollstorehelper[7021:114606] - ldid error output start -
-2026-08-29 00:27:27.226 trollstorehelper[7021:114606] - ldid error output end -
-2026-08-29 00:27:27.228 trollstorehelper[7021:114606] /private/var/tmp/C02E3C95-1568-4481-BF11-AD8B582A4B7E/Payload/3105.app/3105 is binary
-2026-08-29 00:27:27.231 trollstorehelper[7021:114606] [/private/var/tmp/C02E3C95-1568-4481-BF11-AD8B582A4B7E/Payload/3105.app/3105] Applying CoreTrust bypass...
-2026-08-29 00:27:27.280 trollstorehelper[7021:114606] [/private/var/tmp/C02E3C95-1568-4481-BF11-AD8B582A4B7E/Payload/3105.app/3105] Applied CoreTrust bypass!
-2026-08-29 00:27:27.288 trollstorehelper[7021:114606] [installApp] replacing existing app with new version
-2026-08-29 00:27:27.293 trollstorehelper[7021:114606] [installApp] new app path: /private/var/containers/Bundle/Application/F6556AA2-80E2-4539-B418-D62019EFF287/3105.app
-2026-08-29 00:27:27.329 trollstorehelper[7021:114606] [dumpEntitlements] dumped {
-    "application-identifier" = "TROLLTROLL.*";
-    "com.apple.developer.team-identifier" = TROLLTROLL;
-    "com.apple.private.MobileContainerManager.allowed" = 1;
-    "com.apple.private.security.container-manager" = 1;
-    "com.apple.private.security.container-required" = "com.nightvibes.app.threeoneosfive1";
-    "com.apple.private.security.no-sandbox" = 1;
-    "com.apple.private.security.storage.MobileDocuments" = 1;
-    "com.apple.security.exception.files.absolute-path.read-write" =     (
-        "/"
-    );
-    "get-task-allow" = 1;
-    "keychain-access-groups" =     (
-        "TROLLTROLL.*",
-        "com.apple.token"
-    );
-    "platform-application" = 1;
-}
-2026-08-29 00:27:27.356 trollstorehelper[7021:114606] trollstorehelper returning 0
-Applying App Store code directory...
-Adding new signature blob...
-Updating TeamID...
-TeamID set to T8ALTGMVXN!
-Doing initial signing to calculate size...
-SHA1 hash: 51f9bca295be9c2e1dee77d093ce0fcf3fc93450
-SHA256 hash: 786fafa208ac39e1d403212cf0e6853e8fe9050b882b1c7510ec0c94dca627a1
-Encoding unsigned superblob...
-Updating load commands...
-Updating __LINKEDIT segment...
-Updating LC_CODE_SIGNATURE load command...
 Updating code slot hashes...
 Signing binary...
 SHA1 hash: 51f9bca295be9c2e1dee77d093ce0fcf3fc93450
@@ -107,12 +17,12 @@ SHA256 hash: 4d1032be0ed5bb45b295b881acc1a843df37e71e313a745e4c9cde2ee06133a0
 Encoding signed superblob...
 Writing superblob to MachO...
 install_rc=0
-2026-08-29 00:27:27.675 trollstorehelper[7024:114626] [SnowBoard Launcher] Loader check passed. Loading SnowBoard...
-2026-08-29 00:27:27.683 trollstorehelper[7024:114626] Initialising Snowboard (Version: 1.5.37-Beta4-rootless Compiled: Jul  9 2024 : 00:24:46) in app: trollstorehelper...
-2026-08-29 00:27:28.878 trollstorehelper[7024:114626] trollstorehelper invoked with arguments: (
+2026-08-29 00:29:04.525 trollstorehelper[7554:117200] [SnowBoard Launcher] Loader check passed. Loading SnowBoard...
+2026-08-29 00:29:04.573 trollstorehelper[7554:117200] Initialising Snowboard (Version: 1.5.37-Beta4-rootless Compiled: Jul  9 2024 : 00:24:46) in app: trollstorehelper...
+2026-08-29 00:29:04.759 trollstorehelper[7554:117200] trollstorehelper invoked with arguments: (
     refresh
 )
-2026-08-29 00:27:28.961 trollstorehelper[7024:114626] [dumpEntitlements] dumped {
+2026-08-29 00:29:04.952 trollstorehelper[7554:117200] [dumpEntitlements] dumped {
     "application-identifier" = "com.opa334.TrollStore";
     "com.apple.CommCenter.fine-grained" =     (
         "data-allowed-write"
@@ -137,7 +47,7 @@ install_rc=0
     "com.apple.springboard.opensensitiveurl" = 1;
     "platform-application" = 1;
 }
-2026-08-29 00:27:29.082 trollstorehelper[7024:114626] [dumpEntitlements] dumped {
+2026-08-29 00:29:05.594 trollstorehelper[7554:117200] [dumpEntitlements] dumped {
     "application-identifier" = "TROLLTROLL.*";
     "com.apple.developer.team-identifier" = TROLLTROLL;
     "com.apple.private.MobileContainerManager.allowed" = 1;
@@ -155,12 +65,208 @@ install_rc=0
     );
     "platform-application" = 1;
 }
-2026-08-29 00:27:29.109 trollstorehelper[7024:114626] trollstorehelper returning 0
+2026-08-29 00:29:05.755 trollstorehelper[7554:117200] trollstorehelper returning 0
 registration=com.nightvibes.app.threeoneosfive1 : /private/var/containers/Bundle/Application/F6556AA2-80E2-4539-B418-D62019EFF287/3105.app
-app=/private/var/containers/Bundle/Application/F6556AA2-80E2-4539-B418-D62019EFF287/3105.app
-springboard_pid=318
-  318   ??  Ss     1:43.13 /System/Library/CoreServices/SpringBoard.app/SpringBoard
- 7056   ??  R      0:00.13 grep -i SpringBoard
+registered_path=/private/var/containers/Bundle/Application/F6556AA2-80E2-4539-B418-D62019EFF287/3105.app
 
-===== A: REAL SPRINGBOARD BSEXEC + UIOPEN =====
+===== PROCESS / BOOTSTRAP DISCOVERY =====
+pidof_springboard=
+pgrep_springboard=
+ps_tool=/bin/ps
+  318   ??  Rs     1:45.28 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+  318 ??         1:45.29 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+launchctl_print=gui/501
+launchctl_print=system/com.apple.SpringBoard
+system/com.apple.SpringBoard = {
+	active count = 38
+	path = /System/Library/LaunchDaemons/com.apple.SpringBoard.plist
+	state = running
+	bundle id = com.apple.springboard
+
+	program = /System/Library/CoreServices/SpringBoard.app/SpringBoard
+	arguments = {
+		/System/Library/CoreServices/SpringBoard.app/SpringBoard
+	}
+
+	default environment = {
+		PATH => /usr/bin:/bin:/usr/sbin:/sbin
+	}
+
+	environment = {
+		CA_ASSERT_MAIN_THREAD_TRANSACTIONS => 1
+		XPC_SERVICE_NAME => com.apple.SpringBoard
+	}
+
+	domain = system
+	username = mobile
+
+	minimum runtime = 5
+	base minimum runtime = 5
+	exit timeout = 3
+	runs = 1
+	pid = 318
+	immediate reason = speculative
+	forks = 16
+	execs = 1
+	initialized = 1
+	trampolined = 1
+	started suspended = 0
+	proxy started suspended = 0
+	uses proxy = 0
+	last exit code = (never exited)
+
+	event triggers = {
+		ATXActivitySuggestionClient.Modes.SpringBoard => {
+			keepalive = 0
+			service = com.apple.SpringBoard
+			stream = com.apple.biome.compute.publisher
+			monitor = com.apple.biomed
+			descriptor = {
+				"identifier" => "ATXActivitySuggestionClient.Modes.SpringBoard"
+				"graphData" => 				"client" => "ATXActivitySuggestionClient.Modes.SpringBoard"
+			}
+		}
+		com.apple.spd.event.init => {
+			keepalive = 0
+			service = com.apple.SpringBoard
+			stream = com.apple.spd.matching
+			monitor = com.apple.UserEventAgent-System
+			descriptor = {
+				"msg_type" => 1
+				"pid" => 318
+			}
+		}
+		per_app_language_changed => {
+			keepalive = 0
+			service = com.apple.SpringBoard
+			stream = com.apple.IntlPreferences.events
+			monitor = com.apple.localizationswitcherd
+			descriptor = {
+			}
+		}
+		com.apple.springboard.bannerauthority.screensharing => {
+			keepalive = 0
+			service = com.apple.SpringBoard
+			stream = com.apple.biome.compute.publisher
+			monitor = com.apple.biomed
+			descriptor = {
+				"identifier" => "com.apple.springboard.bannerauthority.screensharing"
+				"graphData" => 				"client" => "com.apple.springboard.bannerauthority.screensharing"
+			}
+		}
+		com.apple.UIKit.UserInterfaceStyleAnalyticsActivity => {
+			keepalive = 0
+			service = com.apple.SpringBoard
+launchctl_print=gui/501/com.apple.SpringBoard
+
+===== TEST A: ASUSER + MOBILE + UIOPEN BUNDLE =====
 A_rc=45
+A_PHASE_9=phase=delegate-init-exit pid=7726 uid=501 euid=501
+A_PHASE_10=phase=delegate-init-exit pid=7726 uid=501 euid=501
+A_PHASE_11=phase=delegate-init-exit pid=7726 uid=501 euid=501
+A_PHASE_12=phase=delegate-init-exit pid=7726 uid=501 euid=501
+A_PHASE_13=phase=delegate-init-exit pid=7726 uid=501 euid=501
+A_PHASE_14=phase=delegate-init-exit pid=7726 uid=501 euid=501
+A_PHASE_15=phase=delegate-init-exit pid=7726 uid=501 euid=501
+A_PHASE_16=phase=delegate-init-exit pid=7726 uid=501 euid=501
+A_PHASE_17=phase=delegate-init-exit pid=7726 uid=501 euid=501
+----- A PHASE TRACE -----
+PHASE_TRACE_EMPTY=1
+----- A UI MARKER -----
+UI_MARKER_EMPTY=1
+----- A PROCESS -----
+pid=
+
+===== TEST B: ASUSER + MOBILE + UIOPEN URL =====
+B_rc=45
+----- B PHASE TRACE -----
+PHASE_TRACE_EMPTY=1
+----- B UI MARKER -----
+UI_MARKER_EMPTY=1
+----- B PROCESS -----
+pid=
+
+===== TEST C: DIRECT MOBILE, NORMAL INJECTION =====
+C_wrapper=8062
+C_PHASE_4=phase=delegate-init-exit pid=8085 uid=501 euid=501
+C_PHASE_5=phase=delegate-init-exit pid=8085 uid=501 euid=501
+C_PHASE_6=phase=delegate-init-exit pid=8085 uid=501 euid=501
+C_PHASE_7=phase=delegate-init-exit pid=8085 uid=501 euid=501
+C_PHASE_8=phase=delegate-init-exit pid=8085 uid=501 euid=501
+C_PHASE_9=phase=delegate-init-exit pid=8085 uid=501 euid=501
+C_PHASE_10=phase=delegate-init-exit pid=8085 uid=501 euid=501
+C_PHASE_11=phase=delegate-init-exit pid=8085 uid=501 euid=501
+C_PHASE_12=phase=delegate-init-exit pid=8085 uid=501 euid=501
+C_PHASE_13=phase=delegate-init-exit pid=8085 uid=501 euid=501
+C_PHASE_14=phase=delegate-init-exit pid=8085 uid=501 euid=501
+C_PHASE_15=phase=delegate-init-exit pid=8085 uid=501 euid=501
+C_PHASE_16=phase=delegate-init-exit pid=8085 uid=501 euid=501
+C_PHASE_17=
+C_PHASE_18=phase=before-UIApplicationMain pid=8239 uid=501 euid=501
+C_PHASE_19=phase=delegate-init-exit pid=8239 uid=501 euid=501
+----- C PHASE TRACE -----
+phase=constructor pid=8239 uid=501 euid=501
+phase=main-enter pid=8239 uid=501 euid=501
+phase=before-UIApplicationMain pid=8239 uid=501 euid=501
+phase=delegate-init-enter pid=8239 uid=501 euid=501
+phase=delegate-init-exit pid=8239 uid=501 euid=501
+----- C UI MARKER -----
+UI_MARKER_EMPTY=1
+----- C PROCESS -----
+pid=
+2026-08-29 00:30:48.332 3105[8239:119771] [SnowBoard Launcher] Loader check passed. Loading SnowBoard...
+2026-08-29 00:30:48.375 3105[8239:119771] Initialising Snowboard (Version: 1.5.37-Beta4-rootless Compiled: Jul  9 2024 : 00:24:46) in app: 3105...
+
+===== TEST D: DIRECT MOBILE, TWEAK SAFE MODE =====
+D_wrapper=8308
+D_PHASE_1=phase=delegate-init-exit pid=8315 uid=501 euid=501
+D_PHASE_2=phase=delegate-init-exit pid=8315 uid=501 euid=501
+D_PHASE_3=phase=delegate-init-exit pid=8315 uid=501 euid=501
+D_PHASE_4=phase=delegate-init-exit pid=8315 uid=501 euid=501
+D_PHASE_5=phase=delegate-init-exit pid=8315 uid=501 euid=501
+D_PHASE_6=phase=delegate-init-exit pid=8315 uid=501 euid=501
+D_PHASE_7=phase=delegate-init-exit pid=8315 uid=501 euid=501
+D_PHASE_8=phase=delegate-init-exit pid=8315 uid=501 euid=501
+D_PHASE_9=phase=delegate-init-exit pid=8315 uid=501 euid=501
+D_PHASE_10=phase=delegate-init-exit pid=8315 uid=501 euid=501
+D_PHASE_11=phase=delegate-init-exit pid=8315 uid=501 euid=501
+D_PHASE_12=phase=delegate-init-exit pid=8315 uid=501 euid=501
+D_PHASE_13=phase=delegate-init-exit pid=8315 uid=501 euid=501
+D_PHASE_14=phase=delegate-init-exit pid=8315 uid=501 euid=501
+D_PHASE_15=phase=delegate-init-exit pid=8315 uid=501 euid=501
+D_PHASE_16=
+D_PHASE_17=phase=delegate-init-exit pid=8491 uid=501 euid=501
+D_PHASE_18=phase=delegate-init-exit pid=8491 uid=501 euid=501
+D_PHASE_19=phase=delegate-init-exit pid=8491 uid=501 euid=501
+----- D PHASE TRACE -----
+phase=constructor pid=8491 uid=501 euid=501
+phase=main-enter pid=8491 uid=501 euid=501
+phase=before-UIApplicationMain pid=8491 uid=501 euid=501
+phase=delegate-init-enter pid=8491 uid=501 euid=501
+phase=delegate-init-exit pid=8491 uid=501 euid=501
+----- D UI MARKER -----
+UI_MARKER_EMPTY=1
+----- D PROCESS -----
+pid=
+
+===== TEST E: LAUNCHCTL ASUSER DIRECT SAFE MODE =====
+E_wrapper=8569
+----- E PHASE TRACE -----
+PHASE_TRACE_EMPTY=1
+----- E UI MARKER -----
+UI_MARKER_EMPTY=1
+----- E PROCESS -----
+pid=
+
+===== FINAL DIAGNOSIS INPUT =====
+----- FINAL PHASE TRACE -----
+PHASE_TRACE_EMPTY=1
+----- FINAL UI MARKER -----
+UI_MARKER_EMPTY=1
+----- FINAL PROCESS -----
+pid=
+LOG=/var/mobile/Media/3105-C.log
+2026-08-29 00:30:48.332 3105[8239:119771] [SnowBoard Launcher] Loader check passed. Loading SnowBoard...
+2026-08-29 00:30:48.375 3105[8239:119771] Initialising Snowboard (Version: 1.5.37-Beta4-rootless Compiled: Jul  9 2024 : 00:24:46) in app: 3105...
+LIFECYCLE_TRACE_COMPLETE=1
+ssh_exit_code=0
