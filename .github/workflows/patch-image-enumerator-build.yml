@@ -1,69 +1,21 @@
-name: Patch Image Enumerator Build
+name: iPhone SSH 3105 Runtime Proof
 
 on:
   push:
     branches: [main]
     paths:
-      - triggers/patch-image-enumerator-build.txt
+      - "triggers/patch-image-enumerator-build.txt"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  patch:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Patch build and reporting
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('.github/workflows/enumerate-jailbreak-process-images.yml')
-          s=p.read_text()
-          s=s.replace('#include <mach/mach_vm.h>\n', '#include <mach/mach_vm.h>\n          #include <mach/mach_error.h>\n', 1)
-          s=s.replace("cat > imageprobe/entitlements.plist <<'PLIST'", "cat > imageprobe/Entitlements.plist <<'PLIST'", 1)
-          old='''          make -C imageprobe clean all FINALPACKAGE=1
-          BIN="$(find imageprobe/.theos -type f -name imageprobe -perm -111 | head -n1)"
-'''
-          new='''          : > imageprobe-build.txt
-          set +e
-          make -C imageprobe clean all FINALPACKAGE=1 2>&1 | tee imageprobe-build.txt
-          build_code=${PIPESTATUS[0]}
-          set -e
-          test "$build_code" -eq 0
-          BIN="$(find imageprobe/.theos -type f -name imageprobe -perm -111 | head -n1)"
-'''
-          if old not in s:
-              raise SystemExit('build block not found')
-          s=s.replace(old,new,1)
-          old2="text=Path('process-images.txt').read_text(errors='replace') if Path('process-images.txt').exists() else 'No output.'"
-          new2="build=Path('imageprobe-build.txt').read_text(errors='replace') if Path('imageprobe-build.txt').exists() else 'No build output.'\n          probe=Path('process-images.txt').read_text(errors='replace') if Path('process-images.txt').exists() else 'No probe output.'\n          text='--- build ---\\n'+build+'\\n--- probe ---\\n'+probe"
-          if old2 not in s:
-              raise SystemExit('publish block not found')
-          s=s.replace(old2,new2,1)
-          p.write_text(s)
-          PY
-          grep -nE 'mach_error|Entitlements|imageprobe-build|build_code' .github/workflows/enumerate-jailbreak-process-images.yml
-      - name: Commit patch
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin main
-          git add .github/workflows/enumerate-jailbreak-process-images.yml
-          if ! git diff --cached --quiet; then
-            git commit -m "Fix image enumerator build diagnostics [skip ci]"
-            git push origin HEAD:main
-          fi
-
-  resolve-iphone-environment:
-    if: contains(github.event.head_commit.message, '[iphone-ssh]')
+  resolve-environment:
     runs-on: ubuntu-latest
     outputs:
       environment_name: ${{ steps.resolve.outputs.environment_name }}
     steps:
-      - name: Resolve environment
+      - name: Resolve iPhone environment
         id: resolve
         env:
           GH_TOKEN: ${{ github.token }}
@@ -75,76 +27,91 @@ jobs:
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" \
-            > environments.json
+            > /tmp/environments.json
           environment_name="$(python3 - "$TARGET_ENVIRONMENT_ID" <<'PY'
           import json, sys
           target = int(sys.argv[1])
-          payload = json.load(open('environments.json', encoding='utf-8'))
+          payload = json.load(open('/tmp/environments.json', encoding='utf-8'))
           for env in payload.get('environments', []):
               if int(env.get('id', -1)) == target:
                   print(env['name'])
                   raise SystemExit(0)
-          raise SystemExit(1)
+          raise SystemExit('environment not found')
           PY
           )"
+          test -n "$environment_name"
           echo "environment_name=$environment_name" >> "$GITHUB_OUTPUT"
           echo "Resolved environment: $environment_name"
 
-  iphone-ssh:
-    if: contains(github.event.head_commit.message, '[iphone-ssh]')
-    needs: resolve-iphone-environment
+  iphone-proof:
+    needs: resolve-environment
     environment:
-      name: ${{ needs.resolve-iphone-environment.outputs.environment_name }}
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            remote/iphone-command.sh
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
 
-      - name: Install Tailscale and SSH clients
+      - name: Install Tailscale and SSH tools
         env:
           TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
         run: |
           set -euo pipefail
-          test -n "$TAILSCALE_AUTHKEY" || { echo 'Missing TAILSCALE_AUTHKEY'; exit 1; }
-          sudo install -d -m 0755 /usr/share/keyrings
-          curl --fail --silent --show-error --retry 3 --connect-timeout 20 https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
-          curl --fail --silent --show-error --retry 3 --connect-timeout 20 https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list | sudo tee /etc/apt/sources.list.d/tailscale.list >/dev/null
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends tailscale openssh-client sshpass netcat-openbsd
+          test -n "$TAILSCALE_AUTHKEY"
+          sudo install -d -m0755 /usr/share/keyrings
+          curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg \
+            | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
+          curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list \
+            | sudo tee /etc/apt/sources.list.d/tailscale.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends tailscale openssh-client sshpass netcat-openbsd
           sudo systemctl enable --now tailscaled
 
-      - name: Join Tailscale and test iPhone 100.96.37.124
+      - name: Join tailnet and verify iPhone SSH
         env:
           TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
-          IPHONE_HOST: 100.96.37.124
+          IPHONE_HOST: "100.96.37.124"
         run: |
           set -euo pipefail
-          : > iphone-output.txt
-          sudo tailscale logout >/dev/null 2>&1 || true
-          sudo systemctl restart tailscaled
-          sleep 3
-          sudo tailscale up --auth-key="$TAILSCALE_AUTHKEY" --hostname="github-iphone-${GITHUB_RUN_ID}" --accept-dns=false --accept-routes=false --reset 2>&1 | tee -a iphone-output.txt
-          sudo tailscale status 2>&1 | tee -a iphone-output.txt
-          sudo tailscale status | grep -F "$IPHONE_HOST" | tee -a iphone-output.txt
-          sudo tailscale ping --timeout=8s --c 2 "$IPHONE_HOST" 2>&1 | tee -a iphone-output.txt || true
-          nc -zvw8 "$IPHONE_HOST" 22 2>&1 | tee -a iphone-output.txt
-          echo 'iphone_tcp_22=open' | tee -a iphone-output.txt
+          sudo tailscale up \
+            --auth-key="$TAILSCALE_AUTHKEY" \
+            --hostname="gh-3105-proof-${GITHUB_RUN_ID}" \
+            --accept-dns=false \
+            --accept-routes=false \
+            --reset
+          ready=0
+          for n in $(seq 1 18); do
+            if nc -zvw8 "$IPHONE_HOST" 22; then
+              ready=1
+              break
+            fi
+            sudo tailscale ping --timeout=5s --c 1 "$IPHONE_HOST" || true
+            sleep 8
+          done
+          test "$ready" = 1
 
-      - name: SSH and run battery diagnostic
+      - name: Run exact 3105 proof on iPhone
         env:
-          IPHONE_HOST: 100.96.37.124
+          IPHONE_HOST: "100.96.37.124"
           IPHONE_PORT: "22"
-          IPHONE_USER: mobile
+          IPHONE_USER: "mobile"
           IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
           SSHPASS: ${{ secrets.IPAD_PASSWORD }}
         run: |
-          set -uo pipefail
-          test -n "$IPHONE_PASSWORD" || { echo 'Missing IPAD_PASSWORD used for iPhone login' | tee -a iphone-output.txt; exit 1; }
+          set -euo pipefail
+          test -n "$IPHONE_PASSWORD"
+          test -s remote/iphone-command.sh
           mkdir -p "$HOME/.ssh"
           chmod 700 "$HOME/.ssh"
-          ssh-keyscan -T 10 -H -p "$IPHONE_PORT" "$IPHONE_HOST" > "$HOME/.ssh/known_hosts" 2>>iphone-output.txt
-          test -s "$HOME/.ssh/known_hosts" || { echo 'iphone_host_key_scan=failed' | tee -a iphone-output.txt; exit 1; }
+          ssh-keyscan -T10 -H -p "$IPHONE_PORT" "$IPHONE_HOST" > "$HOME/.ssh/known_hosts" 2>/dev/null
+          test -s "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/known_hosts"
+
           set +e
           {
             printf '%s\n' "$IPHONE_PASSWORD"
@@ -154,22 +121,23 @@ jobs:
                 -o ConnectTimeout=20 \
                 -o ConnectionAttempts=2 \
                 -o ServerAliveInterval=15 \
-                -o ServerAliveCountMax=2 \
+                -o ServerAliveCountMax=3 \
                 -o StrictHostKeyChecking=yes \
                 -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
                 "$IPHONE_USER@$IPHONE_HOST" \
                 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
-                2>&1 | tee -a iphone-output.txt
+                2>&1 | tee /tmp/iphone-output.txt
           ssh_status=${PIPESTATUS[1]}
           set -e
-          echo "iphone_ssh_exit_code=$ssh_status" | tee -a iphone-output.txt
+          echo "iphone_ssh_exit_code=$ssh_status" | tee -a /tmp/iphone-output.txt
+          grep -E 'RUNTIME_PROOF_SUCCESS|alive_after_90_seconds|MOBILE_SESSION_PROOF_FAILED|NO_PROCESS|DIRECT_ALIVE|launch_pid|stable_pid' /tmp/iphone-output.txt || true
           exit "$ssh_status"
 
-      - name: Upload iPhone SSH output
+      - name: Upload proof output
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: iphone-ssh-output-${{ github.run_id }}
-          path: iphone-output.txt
+          name: iphone-3105-runtime-proof-${{ github.run_id }}
+          path: /tmp/iphone-output.txt
           if-no-files-found: warn
           retention-days: 7
