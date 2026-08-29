@@ -1,0 +1,137 @@
+name: Temp 3105 iOS15 live hold
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/temp-3105-ios15-live-hold.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  env:
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.r.outputs.name }}
+    steps:
+      - id: r
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" >/tmp/e.json
+          n="$(python3 - <<'PY'
+          import json
+          for e in json.load(open('/tmp/e.json')).get('environments',[]):
+              if int(e.get('id',-1))==18728387881: print(e['name']); break
+          PY
+          )"
+          test -n "$n"; echo "name=$n" >> "$GITHUB_OUTPUT"
+
+  hold:
+    needs: env
+    environment:
+      name: ${{ needs.env.outputs.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Prepare bridge
+        run: |
+          set -euo pipefail
+          sudo install -d -m0755 /usr/share/keyrings
+          curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
+          curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list | sudo tee /etc/apt/sources.list.d/tailscale.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends tailscale openssh-client sshpass
+          sudo systemctl enable --now tailscaled
+
+      - name: Launch installed app and hold same PID
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+          IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          HOST: "100.96.37.124"
+        run: |
+          set -euo pipefail
+          sudo tailscale up --auth-key="$TAILSCALE_AUTHKEY" --hostname="gh-3105-hold-${GITHUB_RUN_ID}" --accept-dns=false --accept-routes=false --reset
+          mkdir -p ~/.ssh; chmod 700 ~/.ssh
+          ready=0
+          for n in $(seq 1 18); do
+            rm -f ~/.ssh/known_hosts
+            if ssh-keyscan -T8 -H "$HOST" >~/.ssh/known_hosts 2>/dev/null && [ -s ~/.ssh/known_hosts ]; then ready=1; break; fi
+            sudo tailscale ping --timeout=5s --c 1 "$HOST" || true
+            sleep 8
+          done
+          test "$ready" = 1; chmod 600 ~/.ssh/known_hosts
+          {
+            printf '%s\n' "$IPHONE_PASSWORD"
+            cat <<'EOS'
+          set -e
+          export PATH="/var/jb/usr/bin:/var/jb/bin:/var/jb/usr/sbin:/var/jb/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+          APP='/var/containers/Bundle/Application/F6556AA2-80E2-4539-B418-D62019EFF287/3105.app'
+          BUNDLE='com.nightvibes.app.threeoneosfive1'
+          [ -d "$APP" ] || { echo APP_PATH_MISSING; exit 61; }
+          [ -x "$APP/3105" ] || { echo APP_BINARY_MISSING; exit 62; }
+          if grep -a -Fq "$BUNDLE" "$APP/Info.plist" 2>/dev/null; then echo BUNDLE_ID_BYTES_VERIFIED=1; else echo BUNDLE_ID_BYTES_NOT_FOUND; exit 63; fi
+          echo "device_time=$(date 2>/dev/null)"
+          echo "app=$APP"
+          echo "bundle=$BUNDLE"
+
+          killall 3105 2>/dev/null || true
+          sleep 2
+          C=''
+          for p in /var/jb/usr/bin/uicache /usr/bin/uicache; do [ -x "$p" ] && C="$p" && break; done
+          echo "uicache=$C"
+          if [ -n "$C" ]; then "$C" -p "$APP" 2>&1 || "$C" -a 2>&1 || true; fi
+          sleep 4
+          U=''
+          for p in /var/jb/usr/bin/uiopen /usr/bin/uiopen /bin/uiopen; do [ -x "$p" ] && U="$p" && break; done
+          [ -n "$U" ] || { echo NO_UIOPEN; exit 64; }
+          echo "uiopen=$U"
+
+          find_pid() {
+            if command -v pidof >/dev/null 2>&1; then
+              P="$(pidof 3105 2>/dev/null || true)"; set -- $P
+              [ -n "${1:-}" ] && { echo "$1"; return; }
+            fi
+            ps ax 2>/dev/null | while read pid rest; do case "$rest" in *'/3105.app/3105'*) echo "$pid"; break;; esac; done
+          }
+
+          echo SPRINGBOARD_LAUNCH_BEGIN=1
+          "$U" --bundleid "$BUNDLE" 2>&1 || true
+          PID=''; n=0
+          while [ "$n" -lt 25 ]; do
+            PID="$(find_pid)"
+            [ -n "$PID" ] && break
+            n=$((n+1)); echo "WAIT_PID_$n"; sleep 1
+          done
+          if [ -z "$PID" ]; then
+            echo NO_PROCESS_AFTER_LAUNCH
+            ps ax 2>/dev/null | while read pid rest; do case "$pid $rest" in *3105*|*threeoneosfive*) echo "PS_MATCH $pid $rest";; esac; done
+            exit 65
+          fi
+          echo "launch_pid=$PID"
+          n=0
+          while [ "$n" -lt 18 ]; do
+            kill -0 "$PID" 2>/dev/null || { echo "PROCESS_DIED_CHECK=$n"; exit 66; }
+            n=$((n+1)); echo "ALIVE_$n pid=$PID"; sleep 5
+          done
+          PID2="$(find_pid)"
+          echo "final_pid=$PID2"
+          [ "$PID2" = "$PID" ] || { echo "PID_CHANGED old=$PID new=$PID2"; exit 67; }
+          echo alive_after_90_seconds=1
+          echo "stable_pid=$PID"
+          echo RUNTIME_PROOF_SUCCESS=1
+          EOS
+          } | sshpass -e ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh||true)"; [ -n "$S" ] || S=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$S" -s' | tee /tmp/hold.log
+          grep -Fq RUNTIME_PROOF_SUCCESS=1 /tmp/hold.log
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: 3105-live-hold-${{ github.run_id }}
+          path: /tmp/hold.log
+          if-no-files-found: warn
+          retention-days: 7
