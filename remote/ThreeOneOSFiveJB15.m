@@ -9,6 +9,7 @@
 extern char **environ;
 static const char *kPhasePath = "/var/mobile/Media/3105-launch-phase.txt";
 static NSString * const kMarkerPath = @"/var/mobile/Media/3105-ui-ready.txt";
+static __strong UIWindow *gRetainedWindow = nil;
 
 static void AppendRawPhase(const char *phase) {
     int fd = open(kPhasePath, O_WRONLY | O_CREAT | O_APPEND, 0644);
@@ -22,6 +23,10 @@ static void AppendRawPhase(const char *phase) {
 
 __attribute__((constructor)) static void ThreeOneOSFiveLaunchConstructor(void) {
     AppendRawPhase("constructor");
+}
+
+static BOOL UsesSceneLifecycle(void) {
+    return [[NSBundle mainBundle] objectForInfoDictionaryKey:@"UIApplicationSceneManifest"] != nil;
 }
 
 static NSString *RunShell(NSString *command) {
@@ -40,7 +45,6 @@ static NSString *RunShell(NSString *command) {
     posix_spawn_file_actions_adddup2(&actions, pipefd[1], STDOUT_FILENO);
     posix_spawn_file_actions_adddup2(&actions, pipefd[1], STDERR_FILENO);
     posix_spawn_file_actions_addclose(&actions, pipefd[0]);
-
     const char *argv[] = { shell.UTF8String, "-lc", command.UTF8String, NULL };
     pid_t pid = 0;
     int rc = posix_spawn(&pid, shell.UTF8String, &actions, NULL, (char * const *)argv, environ);
@@ -92,7 +96,7 @@ static NSString *RunShell(NSString *command) {
     self.title = @"3105";
 
     UILabel *title = [self label:@"3105 — Dopamine iOS 15" size:28 weight:UIFontWeightBold];
-    UILabel *subtitle = [self label:@"Jailbreak compatibility runtime active" size:14 weight:UIFontWeightRegular];
+    UILabel *subtitle = [self label:@"iOS 15 compatibility UI + jailbreak routes" size:14 weight:UIFontWeightRegular];
     subtitle.textColor = UIColor.secondaryLabelColor;
 
     self.pathField = [UITextField new];
@@ -118,7 +122,7 @@ static NSString *RunShell(NSString *command) {
     self.outputView.font = [UIFont monospacedSystemFontOfSize:12 weight:UIFontWeightRegular];
     self.outputView.backgroundColor = UIColor.secondarySystemBackgroundColor;
     self.outputView.layer.cornerRadius = 12;
-    self.outputView.text = [NSString stringWithFormat:@"UI READY\npid=%d uid=%u euid=%u\n\nTap a route to test jailbreak filesystem access.", getpid(), getuid(), geteuid()];
+    self.outputView.text = [NSString stringWithFormat:@"UI READY\npid=%d uid=%u euid=%u\nsceneLifecycle=%@\n\nTap a route to test jailbreak filesystem access.", getpid(), getuid(), geteuid(), UsesSceneLifecycle() ? @"YES" : @"NO"];
     self.outputView.translatesAutoresizingMaskIntoConstraints = NO;
 
     UIStackView *stack = [[UIStackView alloc] initWithArrangedSubviews:@[title, subtitle, self.pathField, buttons, self.outputView]];
@@ -148,77 +152,118 @@ static NSString *RunShell(NSString *command) {
 - (void)jbTapped:(id)sender { [self setOutput:RunShell(@"ls -la /var/jb 2>&1 | head -n 120")]; }
 @end
 
-static __strong UIWindow *gRetainedWindow = nil;
+static UINavigationController *MakeRootController(void) {
+    ThreeOneOSFiveJB15ViewController *root = [ThreeOneOSFiveJB15ViewController new];
+    return [[UINavigationController alloc] initWithRootViewController:root];
+}
 
-@interface ThreeOneOSFiveJB15Delegate : UIResponder <UIApplicationDelegate>
-@property(nonatomic,strong) UIWindow *window;
-- (void)buildCompatibilityWindow:(NSString *)phase;
-@end
-
-@implementation ThreeOneOSFiveJB15Delegate
-
-- (void)writeWindowMarker:(NSString *)phase {
-    UIViewController *candidate = self.window.rootViewController;
+static void WriteWindowMarker(UIWindow *window, NSString *phase) {
+    UIViewController *candidate = window.rootViewController;
     if ([candidate isKindOfClass:UINavigationController.class]) candidate = ((UINavigationController *)candidate).topViewController;
     BOOL loaded = candidate != nil && candidate.isViewLoaded;
     NSString *marker = [NSString stringWithFormat:
-        @"UI_READY=1\nphase=%@\npid=%d\nuid=%u\neuid=%u\nwindow=%@\nkey=%d\nhidden=%d\nroot_view_loaded=%d\n",
-        phase, getpid(), getuid(), geteuid(), self.window, self.window.isKeyWindow, self.window.isHidden, loaded];
+        @"UI_READY=1\nphase=%@\npid=%d\nuid=%u\neuid=%u\nscene_lifecycle=%d\nwindow=%@\nkey=%d\nhidden=%d\nroot_view_loaded=%d\n",
+        phase, getpid(), getuid(), geteuid(), UsesSceneLifecycle(), window, window.isKeyWindow, window.isHidden, loaded];
     [marker writeToFile:kMarkerPath atomically:YES encoding:NSUTF8StringEncoding error:nil];
     AppendRawPhase(phase.UTF8String);
     NSLog(@"[3105-iOS15] %@", marker);
 }
 
-- (void)buildCompatibilityWindow:(NSString *)phase {
-    AppendRawPhase("window-build-enter");
-    if (!self.window) {
-        CGRect frame = UIScreen.mainScreen.bounds;
-        UIWindow *window = [[UIWindow alloc] initWithFrame:frame];
-        ThreeOneOSFiveJB15ViewController *root = [ThreeOneOSFiveJB15ViewController new];
-        UINavigationController *nav = [[UINavigationController alloc] initWithRootViewController:root];
-        window.rootViewController = nav;
-        window.backgroundColor = UIColor.systemBackgroundColor;
-        window.windowLevel = UIWindowLevelNormal;
-        window.userInteractionEnabled = YES;
-        self.window = window;
-        gRetainedWindow = window;
-        (void)root.view;
-        [window layoutIfNeeded];
-        window.hidden = NO;
-        [window makeKeyAndVisible];
-        [window setNeedsLayout];
-        [window layoutIfNeeded];
-    } else {
+@interface ThreeOneOSFiveJB15SceneDelegate : UIResponder <UIWindowSceneDelegate>
+@property(nonatomic,strong) UIWindow *window;
+@end
+
+@implementation ThreeOneOSFiveJB15SceneDelegate
+- (instancetype)init {
+    AppendRawPhase("scene-delegate-init-enter");
+    self = [super init];
+    AppendRawPhase("scene-delegate-init-exit");
+    return self;
+}
+- (void)scene:(UIScene *)scene willConnectToSession:(UISceneSession *)session options:(UISceneConnectionOptions *)connectionOptions {
+    AppendRawPhase("scene-willConnect-enter");
+    if (![scene isKindOfClass:UIWindowScene.class]) {
+        AppendRawPhase("scene-not-window-scene");
+        return;
+    }
+    UIWindowScene *windowScene = (UIWindowScene *)scene;
+    UIWindow *window = [[UIWindow alloc] initWithWindowScene:windowScene];
+    window.frame = windowScene.coordinateSpace.bounds;
+    window.rootViewController = MakeRootController();
+    window.backgroundColor = UIColor.systemBackgroundColor;
+    window.windowLevel = UIWindowLevelNormal;
+    window.userInteractionEnabled = YES;
+    self.window = window;
+    gRetainedWindow = window;
+    (void)window.rootViewController.view;
+    window.hidden = NO;
+    [window makeKeyAndVisible];
+    [window layoutIfNeeded];
+    AppendRawPhase("scene-window-visible");
+    WriteWindowMarker(window, @"scene-willConnect");
+}
+- (void)sceneDidBecomeActive:(UIScene *)scene {
+    AppendRawPhase("scene-active-enter");
+    if (self.window) {
         self.window.hidden = NO;
         [self.window makeKeyAndVisible];
         gRetainedWindow = self.window;
+        WriteWindowMarker(self.window, @"scene-active");
     }
-    AppendRawPhase("window-build-visible");
-    [self writeWindowMarker:phase];
+    AppendRawPhase("scene-active-exit");
 }
+@end
 
+@interface ThreeOneOSFiveJB15Delegate : UIResponder <UIApplicationDelegate>
+@property(nonatomic,strong) UIWindow *window;
+@end
+
+@implementation ThreeOneOSFiveJB15Delegate
 - (instancetype)init {
     AppendRawPhase("delegate-init-enter");
     self = [super init];
     if (self) {
         AppendRawPhase("delegate-init-super-done");
-        [self buildCompatibilityWindow:@"delegate-init-window"];
+        if (!UsesSceneLifecycle()) {
+            AppendRawPhase("classic-window-build-enter");
+            UIWindow *window = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
+            window.rootViewController = MakeRootController();
+            window.backgroundColor = UIColor.systemBackgroundColor;
+            window.windowLevel = UIWindowLevelNormal;
+            self.window = window;
+            gRetainedWindow = window;
+            (void)window.rootViewController.view;
+            window.hidden = NO;
+            [window makeKeyAndVisible];
+            [window layoutIfNeeded];
+            AppendRawPhase("classic-window-visible");
+            WriteWindowMarker(window, @"delegate-init-classic");
+        }
     }
     AppendRawPhase("delegate-init-exit");
     return self;
 }
-
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     AppendRawPhase("didFinish-enter");
-    [self buildCompatibilityWindow:@"didFinish"];
+    if (!UsesSceneLifecycle() && self.window) WriteWindowMarker(self.window, @"didFinish-classic");
     AppendRawPhase("didFinish-exit");
     return YES;
 }
-
+- (UISceneConfiguration *)application:(UIApplication *)application configurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession options:(UISceneConnectionOptions *)options API_AVAILABLE(ios(13.0)) {
+    AppendRawPhase("scene-config-enter");
+    UISceneConfiguration *config = [[UISceneConfiguration alloc] initWithName:@"3105 Default" sessionRole:connectingSceneSession.role];
+    config.delegateClass = ThreeOneOSFiveJB15SceneDelegate.class;
+    AppendRawPhase("scene-config-exit");
+    return config;
+}
 - (void)applicationDidBecomeActive:(UIApplication *)application {
-    AppendRawPhase("active-enter");
-    [self buildCompatibilityWindow:@"active"];
-    AppendRawPhase("active-exit");
+    AppendRawPhase("app-active-enter");
+    if (!UsesSceneLifecycle() && self.window) {
+        self.window.hidden = NO;
+        [self.window makeKeyAndVisible];
+        WriteWindowMarker(self.window, @"app-active-classic");
+    }
+    AppendRawPhase("app-active-exit");
 }
 @end
 
