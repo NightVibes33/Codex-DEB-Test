@@ -1,6 +1,6 @@
-patch=iphone-3105-entitlement-matrix-ios-parser-fix
-requested_at=2026-08-29T01:09:00-05:00
-reason=rerun-four-variant-bisection-after-posix-shell-manifest-parser-fix
+patch=iphone-3105-entitlement-matrix-posix-parser
+requested_at=2026-08-29T01:26:00-05:00
+reason=run-four-variant-entitlement-bisection-with-pure-posix-manifest-parser
 target=100.96.37.124
 payload=4-ipa-entitlement-matrix+remote/iphone-command.sh
-attempt=18
+attempt=19
