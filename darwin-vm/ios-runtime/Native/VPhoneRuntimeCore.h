@@ -10,7 +10,7 @@ extern "C" {
 
 #define VP_GUEST_PAGE_SHIFT 14u
 #define VP_GUEST_PAGE_SIZE  (1u << VP_GUEST_PAGE_SHIFT)
-#define VP_RUNTIME_ABI_VERSION 2u
+#define VP_RUNTIME_ABI_VERSION 3u
 #define VP_DEFAULT_INSTRUCTION_BUDGET UINT64_C(1000000)
 
 typedef enum {
@@ -52,6 +52,27 @@ typedef VPStatus (*VPSyscallHandler)(
     void *context
 );
 
+/* One Apple boot artifact and the guest-physical address where it is staged. */
+typedef struct {
+    const void *bytes;
+    size_t length;
+    uint64_t guest_address;
+} VPBootImage;
+
+/*
+ * Physical layout for the vphone-style Apple boot chain. Images may be omitted
+ * by setting bytes=NULL and length=0, but the selected entry image must exist.
+ * This API only stages user-supplied Apple artifacts; it ships no Apple bytes.
+ */
+typedef struct {
+    VPBootImage iboot;
+    VPBootImage kernelcache;
+    VPBootImage device_tree;
+    VPBootImage trust_cache;
+    VPBootImage ramdisk;
+    uint64_t entry_address;
+} VPBootImageLayout;
+
 uint32_t vp_runtime_abi_version(void);
 VPRuntime *vp_runtime_create(const VPMachineConfig *config);
 void vp_runtime_destroy(VPRuntime *runtime);
@@ -76,6 +97,13 @@ VPStatus vp_runtime_memory_write(VPRuntime *runtime, uint64_t guest_address, con
 uint64_t vp_runtime_committed_bytes(const VPRuntime *runtime);
 uint64_t vp_runtime_committed_pages(const VPRuntime *runtime);
 
+/*
+ * Atomically validates and stages an Apple guest boot set into sparse physical
+ * memory, then selects entry_address as the next reset vector. This is the
+ * native bridge used by the iOS host before the CPU executor begins.
+ */
+VPStatus vp_runtime_stage_boot_images(VPRuntime *runtime, const VPBootImageLayout *layout);
+
 /* Custom interpreter execution configuration. */
 VPStatus vp_runtime_set_boot_vector(VPRuntime *runtime, uint64_t guest_address);
 void vp_runtime_set_instruction_budget(VPRuntime *runtime, uint64_t budget);
@@ -83,9 +111,9 @@ uint64_t vp_runtime_boot_vector(const VPRuntime *runtime);
 uint64_t vp_runtime_instructions_retired(const VPRuntime *runtime);
 
 /*
- * Runs guest AArch64 directly through VPhoneAArch64.  This is the mandatory
- * standalone fallback used by the IPA: no QEMU process, companion computer,
- * remote JIT service or macOS Virtualization.framework is required.
+ * Runs guest AArch64 directly through VPhoneAArch64. This is the mandatory
+ * standalone fallback used by the IPA: no generic emulator process, companion
+ * computer, remote JIT service or macOS Virtualization.framework is required.
  */
 VPStatus vp_runtime_boot(VPRuntime *runtime);
 VPStatus vp_runtime_stop(VPRuntime *runtime);
