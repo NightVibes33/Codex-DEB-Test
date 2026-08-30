@@ -21,11 +21,16 @@ jobs:
       - name: Checkout probe branch
         uses: actions/checkout@v4
 
-      - name: Clone Reims
+      - name: Clone Reims and enable Windows Vulkan probe
         shell: pwsh
         run: |
           git clone --depth 1 https://github.com/steelbrain/reims-vgpu.git upstream/reims-vgpu
           git -C upstream/reims-vgpu rev-parse HEAD
+          $lib = "upstream/reims-vgpu/crates/reims-vgpu/src/lib.rs"
+          $text = Get-Content $lib -Raw
+          $text = $text.Replace('not(any(target_os = "macos", target_os = "linux"))', 'not(any(target_os = "macos", target_os = "linux", target_os = "windows"))')
+          Set-Content -Path $lib -Value $text -NoNewline
+          Select-String -Path $lib -Pattern 'target_os = "windows"'
           rustc -Vv
           cargo -V
 
@@ -56,13 +61,18 @@ jobs:
       - name: Checkout probe branch
         uses: actions/checkout@v4
 
-      - name: Clone Reims with QEMU
+      - name: Clone Reims with QEMU and enable Windows Vulkan probe
         shell: pwsh
         run: |
           git clone https://github.com/steelbrain/reims-vgpu.git upstream/reims-vgpu
           git -C upstream/reims-vgpu submodule update --init vendor/qemu
           git -C upstream/reims-vgpu rev-parse HEAD
           git -C upstream/reims-vgpu/vendor/qemu rev-parse HEAD
+          $lib = "upstream/reims-vgpu/crates/reims-vgpu/src/lib.rs"
+          $text = Get-Content $lib -Raw
+          $text = $text.Replace('not(any(target_os = "macos", target_os = "linux"))', 'not(any(target_os = "macos", target_os = "linux", target_os = "windows"))')
+          Set-Content -Path $lib -Value $text -NoNewline
+          Select-String -Path $lib -Pattern 'target_os = "windows"'
 
       - name: Set up MSYS2 / MinGW64
         uses: msys2/setup-msys2@v2
@@ -94,9 +104,15 @@ jobs:
         working-directory: upstream/reims-vgpu/vendor/qemu
         run: |
           set -euxo pipefail
-          # vmapple's device model is useful outside HVF; this probe tests whether
-          # the current source can compile it for a Windows/TCG host.
-          sed -i '/depends on HVF/d' hw/vmapple/Kconfig
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('hw/vmapple/Kconfig')
+          s = p.read_text()
+          s = s.replace('    depends on ARM\n    depends on HVF\n    default y if ARM\n',
+                        '    depends on AARCH64\n    depends on TCG || HVF || KVM\n    default y\n')
+          s = s.replace('    select MAC_PVG_MMIO\n', '    imply MAC_PVG_MMIO\n')
+          p.write_text(s)
+          PY
           grep -n -A25 -B2 'config VMAPPLE' hw/vmapple/Kconfig
 
       - name: Build Reims staticlib with MinGW Rust
