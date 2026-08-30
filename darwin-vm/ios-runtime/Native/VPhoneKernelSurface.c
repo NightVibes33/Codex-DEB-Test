@@ -28,13 +28,20 @@ VPKernelSurface *vp_ksurface_create(VPRuntime *runtime) {
     surface->identity.gid = 0;
     surface->identity.euid = 0;
     surface->identity.egid = 0;
-    surface->identity.task_handle = UINT64_C(0x4E595849414E0001); /* "NYXIAN" + slot */
+    surface->identity.task_handle = UINT64_C(0x4E595849414E0001);
     surface->mode = VP_KSURFACE_MODE_NORMAL;
 #ifdef DEBUG
     surface->build_type = VP_KSURFACE_BUILD_DEBUG;
 #else
     surface->build_type = VP_KSURFACE_BUILD_RELEASE;
 #endif
+    return surface;
+}
+
+VPKernelSurface *vp_ksurface_attach(VPRuntime *runtime) {
+    VPKernelSurface *surface = vp_ksurface_create(runtime);
+    if (!surface) return NULL;
+    vp_runtime_set_syscall_handler(runtime, vp_ksurface_handle_syscall, surface);
     return surface;
 }
 
@@ -63,11 +70,7 @@ uint64_t vp_ksurface_syscalls_rejected(const VPKernelSurface *surface) {
     return surface ? surface->rejected : 0;
 }
 
-static VPStatus vp_pectl(
-    VPKernelSurface *surface,
-    const uint64_t args[8],
-    uint64_t *result
-) {
+static VPStatus vp_pectl(VPKernelSurface *surface, const uint64_t args[8], uint64_t *result) {
     const uint64_t category = args ? args[0] : UINT64_MAX;
     const uint64_t operation = args ? args[1] : UINT64_MAX;
 
