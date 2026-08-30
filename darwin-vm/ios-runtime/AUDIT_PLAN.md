@@ -1,0 +1,1 @@
+Audit `34306/vphone-aio` before importing runtime source. Verify execution engine, kernel strategy, jailbreak/bootstrap, display/input/network implementation, licensing, and iOS host build assumptions.
