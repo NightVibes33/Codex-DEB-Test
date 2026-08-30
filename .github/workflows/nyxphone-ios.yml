@@ -204,7 +204,7 @@ jobs:
             -emit-module-path "$RUNNER_TEMP/nyxphone-ios/VPhoneHost.swiftmodule" \
             "$ROOT/HostIntegration/VPhoneMachineManifest.swift" \
             "$ROOT/HostIntegration/VPhoneHardwareProfile.swift" \
-            "$ROOT/HostIntegration/VirtualPhoneSession.swift"
+            "$ROOT/HostIntegration/VirtualPhoneSession.swift" \
             "$ROOT/HostIntegration/NyxVirtualMachine.swift"
 
       - uses: actions/upload-artifact@v4
