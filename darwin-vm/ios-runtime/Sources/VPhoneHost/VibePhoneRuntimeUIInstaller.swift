@@ -68,15 +68,16 @@ private enum VibePhoneRuntimeUIInstaller {
     }
 
     private static func foregroundWindow() -> UIWindow? {
-        UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .filter { $0.activationState == .foregroundActive || $0.activationState == .foregroundInactive }
-            .flatMap(\.windows)
-            .first(where: \.isKeyWindow)
-            ?? UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .flatMap(\.windows)
-                .first(where: { !$0.isHidden })
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let foregroundScenes = scenes.filter { scene in
+            scene.activationState == .foregroundActive || scene.activationState == .foregroundInactive
+        }
+        let foregroundWindows = foregroundScenes.flatMap { $0.windows }
+        if let keyWindow = foregroundWindows.first(where: { $0.isKeyWindow }) {
+            return keyWindow
+        }
+        let allWindows = scenes.flatMap { $0.windows }
+        return allWindows.first(where: { !$0.isHidden })
     }
 
     private static func topPresenter(from controller: UIViewController?) -> UIViewController? {
