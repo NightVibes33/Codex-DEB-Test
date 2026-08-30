@@ -1,0 +1,7 @@
+module VPhoneRuntimeCore {
+    header "VPhoneRuntimeCore.h"
+    header "VPhoneAArch64.h"
+    header "VPhoneKernelSurface.h"
+    header "VPhoneHostRuntime.h"
+    export *
+}
