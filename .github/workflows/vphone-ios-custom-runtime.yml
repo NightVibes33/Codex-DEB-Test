@@ -87,13 +87,21 @@ jobs:
           VIBE_COMMIT="$(python3 -c "import json; print(json.load(open('vphone-ios/vendor.lock.json'))['VibeContainers']['commit'])")"
           VPHONE_COMMIT="$(python3 -c "import json; print(json.load(open('vphone-ios/vendor.lock.json'))['vphone-cli']['commit'])")"
 
-          git clone --recursive https://github.com/NightVibes33/VibeContainers.git "$RUNNER_TEMP/VibeContainers"
-          git -C "$RUNNER_TEMP/VibeContainers" checkout "$VIBE_COMMIT"
+          mkdir -p "$RUNNER_TEMP/VibeContainers"
+          git -C "$RUNNER_TEMP/VibeContainers" init
+          git -C "$RUNNER_TEMP/VibeContainers" remote add origin https://github.com/NightVibes33/VibeContainers.git
+          git -C "$RUNNER_TEMP/VibeContainers" fetch --depth 1 origin "$VIBE_COMMIT"
+          git -C "$RUNNER_TEMP/VibeContainers" checkout --detach FETCH_HEAD
           git -C "$RUNNER_TEMP/VibeContainers" submodule sync --recursive
-          git -C "$RUNNER_TEMP/VibeContainers" submodule update --init --recursive
+          git -C "$RUNNER_TEMP/VibeContainers" -c protocol.version=2 submodule update --init --recursive --depth 1
+          test "$(git -C "$RUNNER_TEMP/VibeContainers" rev-parse HEAD)" = "$VIBE_COMMIT"
 
-          git clone https://github.com/Lakr233/vphone-cli.git "$RUNNER_TEMP/vphone-cli"
-          git -C "$RUNNER_TEMP/vphone-cli" checkout "$VPHONE_COMMIT"
+          mkdir -p "$RUNNER_TEMP/vphone-cli"
+          git -C "$RUNNER_TEMP/vphone-cli" init
+          git -C "$RUNNER_TEMP/vphone-cli" remote add origin https://github.com/Lakr233/vphone-cli.git
+          git -C "$RUNNER_TEMP/vphone-cli" fetch --depth 1 origin "$VPHONE_COMMIT"
+          git -C "$RUNNER_TEMP/vphone-cli" checkout --detach FETCH_HEAD
+          test "$(git -C "$RUNNER_TEMP/vphone-cli" rev-parse HEAD)" = "$VPHONE_COMMIT"
 
           test -d "$RUNNER_TEMP/vphone-cli/sources/FirmwarePatcher"
           test -d "$RUNNER_TEMP/vphone-cli/sources/VPhoneCore"
