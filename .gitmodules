@@ -1,0 +1,6 @@
+[submodule "nyxphone/Host/VibeContainers"]
+	path = nyxphone/Host/VibeContainers
+	url = https://github.com/NightVibes33/VibeContainers.git
+[submodule "nyxphone/Kernel/Nyxian"]
+	path = nyxphone/Kernel/Nyxian
+	url = https://github.com/emexlab/Nyxian.git

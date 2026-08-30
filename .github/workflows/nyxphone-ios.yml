@@ -1,0 +1,369 @@
+name: iOS NyxPhone Runtime
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - temp/darwin-vm-windows11
+    paths:
+      - 'nyxphone/**'
+      - '.github/workflows/nyxphone-ios.yml'
+
+permissions:
+  contents: read
+
+env:
+  VIBECONTAINERS_SHA: 9184712fbd751082a1376e4453387f3ecfeb8268
+  NYXIAN_SHA: 7488333d32aab81fa01437968bfdef7bde1771f4
+  VPHONE_CLI_SHA: 2af884b56c4d9044cdfad8ac94f034ec767d0fb3
+
+jobs:
+  runtime-core:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/darwin-vm-windows11
+
+      - name: Fetch pinned Nyxian and vphone-cli donors
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/emexlab/Nyxian.git "$RUNNER_TEMP/Nyxian"
+          git -C "$RUNNER_TEMP/Nyxian" checkout "$NYXIAN_SHA"
+          test "$(git -C "$RUNNER_TEMP/Nyxian" rev-parse HEAD)" = "$NYXIAN_SHA"
+
+          git clone --filter=blob:none https://github.com/Lakr233/vphone-cli.git "$RUNNER_TEMP/vphone-cli"
+          git -C "$RUNNER_TEMP/vphone-cli" checkout "$VPHONE_CLI_SHA"
+          test "$(git -C "$RUNNER_TEMP/vphone-cli" rev-parse HEAD)" = "$VPHONE_CLI_SHA"
+          test -f "$RUNNER_TEMP/vphone-cli/scripts/cfw_install_jb.sh"
+          test -f "$RUNNER_TEMP/vphone-cli/scripts/cfw_install.sh"
+          test -f "$RUNNER_TEMP/vphone-cli/research/iboot_patches.md"
+          test -f "$RUNNER_TEMP/vphone-cli/research/kernel_jb_patch_notes.md"
+          grep -q 'MIT License' "$RUNNER_TEMP/vphone-cli/LICENSE"
+
+      - name: Native memory CPU kernel-surface and Apple boot-image self-test
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/nyxphone"
+          NYX="$RUNNER_TEMP/Nyxian"
+          cat > "$RUNNER_TEMP/runtime-smoke.c" <<'EOF'
+          #include "VPhoneRuntimeCore.h"
+          #include "VPhoneAArch64.h"
+          #include "VPhoneKernelSurface.h"
+          #include "VPhoneHostRuntime.h"
+          #include "NyxRuntime.h"
+          #include <stdint.h>
+          #include <stdio.h>
+          #include <string.h>
+
+          static uint32_t movz_x(unsigned rd, unsigned imm16) {
+              return 0xD2800000u | ((imm16 & 0xFFFFu) << 5) | (rd & 31u);
+          }
+          static uint32_t add_x_imm(unsigned rd, unsigned rn, unsigned imm12) {
+              return 0x91000000u | ((imm12 & 0xFFFu) << 10) | ((rn & 31u) << 5) | (rd & 31u);
+          }
+          static uint32_t str_x(unsigned rt, unsigned rn, unsigned imm12_scaled) {
+              return 0xF9000000u | ((imm12_scaled & 0xFFFu) << 10) | ((rn & 31u) << 5) | (rt & 31u);
+          }
+          static uint32_t ldr_x(unsigned rt, unsigned rn, unsigned imm12_scaled) {
+              return 0xF9400000u | ((imm12_scaled & 0xFFFu) << 10) | ((rn & 31u) << 5) | (rt & 31u);
+          }
+
+          int main(void) {
+              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.1-interpreter") != 0) return 9;
+              VPMachineConfig cfg = {8, 8ULL * 1024 * 1024 * 1024, 1290, 2796, 460, 3.0};
+              VPRuntime *rt = vp_runtime_create(&cfg);
+              if (!rt) return 10;
+              VPKernelSurface *surface = vp_ksurface_attach(rt);
+              if (!surface) return 11;
+
+              uint8_t zero[32];
+              memset(zero, 0xAA, sizeof(zero));
+              if (vp_runtime_memory_read(rt, 0x1000, zero, sizeof(zero)) != VP_STATUS_OK) return 12;
+              for (size_t i = 0; i < sizeof(zero); i++) if (zero[i] != 0) return 13;
+
+              const uint64_t code_base = 0x20000;
+              const uint32_t program[] = {
+                  movz_x(0, 0x1234),
+                  add_x_imm(1, 0, 5),
+                  str_x(1, 31, 0),
+                  ldr_x(2, 31, 0),
+                  movz_x(16, VP_DARWIN_SYS_GETPID),
+                  0xD4000001u,
+                  0xD503201Fu,
+                  0xD4400000u,
+              };
+              const uint8_t dtree[] = {0x44,0x54,0x52,0x45,0x45};
+              const uint8_t trust[] = {0x54,0x52,0x55,0x53,0x54};
+              const uint8_t ramdisk[] = {0x52,0x41,0x4d,0x44,0x49,0x53,0x4b};
+              VPBootImageLayout boot = {
+                  .iboot = {program, sizeof(program), code_base},
+                  .kernelcache = {NULL, 0, 0},
+                  .device_tree = {dtree, sizeof(dtree), 0x30000},
+                  .trust_cache = {trust, sizeof(trust), 0x40000},
+                  .ramdisk = {ramdisk, sizeof(ramdisk), 0x50000},
+                  .entry_address = code_base,
+              };
+              if (vp_runtime_stage_boot_images(rt, &boot) != VP_STATUS_OK) return 14;
+              if (vp_runtime_boot_vector(rt) != code_base) return 15;
+              uint8_t dtree_check[sizeof(dtree)] = {0};
+              if (vp_runtime_memory_read(rt, 0x30000, dtree_check, sizeof(dtree_check)) != VP_STATUS_OK) return 16;
+              if (memcmp(dtree, dtree_check, sizeof(dtree)) != 0) return 17;
+
+              VPAArch64CPU cpu;
+              vp_aarch64_reset(&cpu, code_base);
+              cpu.sp = 0x60000;
+              for (unsigned i = 0; i < 8; i++) {
+                  VPCPUStepResult r = vp_aarch64_step(rt, &cpu, NULL);
+                  if (i < 7 && r != VP_CPU_STEP_OK) return 20 + (int)i;
+                  if (i == 7 && r != VP_CPU_STEP_HALTED) return 30;
+              }
+              if (cpu.x[1] != 0x1239 || cpu.x[2] != 0x1239) return 31;
+              if (cpu.x[0] != 1 || cpu.syscalls_retired != 1) return 32;
+              if (vp_ksurface_syscalls_handled(surface) != 1) return 33;
+
+              if (vp_runtime_boot(rt) != VP_STATUS_OK) return 34;
+              if (vp_runtime_state(rt) != VP_RUNTIME_STOPPED) return 35;
+              if (vp_runtime_instructions_retired(rt) != 8) return 36;
+              if (vp_ksurface_syscalls_handled(surface) != 2) return 37;
+
+              printf("ABI=%u boot-stage=ok retired=%llu ksurface=%llu committed=%llu\n",
+                     vp_runtime_abi_version(),
+                     (unsigned long long)vp_runtime_instructions_retired(rt),
+                     (unsigned long long)vp_ksurface_syscalls_handled(surface),
+                     (unsigned long long)vp_runtime_committed_bytes(rt));
+              vp_ksurface_destroy(surface);
+              vp_runtime_destroy(rt);
+              return 0;
+          }
+          EOF
+
+          clang -std=c11 -Wall -Wextra -Werror \
+            -I "$ROOT/Runtime/Core" -I "$ROOT/Runtime/include" -I "$NYX" \
+            "$ROOT/Runtime/Core/VPhoneRuntimeCore.c" \
+            "$ROOT/Runtime/Core/VPhoneAArch64.c" \
+            "$ROOT/Runtime/Core/VPhoneKernelSurface.c" \
+            "$ROOT/Runtime/Core/VPhoneHostRuntime.c" \
+            "$ROOT/Runtime/Core/VPhoneNyxianCompat.c" \
+            "$ROOT/Runtime/Core/NyxRuntime.c" \
+            "$RUNNER_TEMP/runtime-smoke.c" \
+            -framework CoreFoundation \
+            -o "$RUNNER_TEMP/runtime-smoke"
+          "$RUNNER_TEMP/runtime-smoke"
+
+      - name: Compile custom native core for real iPhone and iPad
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/nyxphone"
+          NYX="$RUNNER_TEMP/Nyxian"
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          mkdir -p "$RUNNER_TEMP/nyxphone-ios"
+          for SRC in VPhoneRuntimeCore VPhoneAArch64 VPhoneKernelSurface VPhoneHostRuntime VPhoneNyxianCompat NyxRuntime; do
+            xcrun --sdk iphoneos clang \
+              -target arm64-apple-ios17.0 -isysroot "$SDK" \
+              -std=c11 -Wall -Wextra -Werror -O2 \
+              -I "$ROOT/Runtime/Core" -I "$ROOT/Runtime/include" -I "$NYX" \
+              -c "$ROOT/Runtime/Core/$SRC.c" \
+              -o "$RUNNER_TEMP/nyxphone-ios/$SRC.o"
+          done
+          xcrun ar rcs "$RUNNER_TEMP/nyxphone-ios/libNyxPhoneRuntime.a" "$RUNNER_TEMP/nyxphone-ios/"*.o
+          xcrun nm "$RUNNER_TEMP/nyxphone-ios/libNyxPhoneRuntime.a" | grep '_vp_runtime_boot'
+          xcrun nm "$RUNNER_TEMP/nyxphone-ios/libNyxPhoneRuntime.a" | grep '_vp_runtime_stage_boot_images'
+          xcrun nm "$RUNNER_TEMP/nyxphone-ios/libNyxPhoneRuntime.a" | grep '_vp_host_runtime_start'
+          xcrun nm "$RUNNER_TEMP/nyxphone-ios/libNyxPhoneRuntime.a" | grep '_nyx_runtime_version'
+
+          cat > "$RUNNER_TEMP/nyxphone-ios/provenance.txt" <<EOF
+          VibeContainers=$VIBECONTAINERS_SHA
+          Nyxian=$NYXIAN_SHA
+          vphone-cli=$VPHONE_CLI_SHA
+          runtime-branch=$GITHUB_SHA
+          runtime-abi=3
+          execution=NyxPhone-custom-aarch64
+          apple-boot-staging=vp_runtime_stage_boot_images
+          qemu=none
+          virtualization-framework=none
+          EOF
+
+      - name: Typecheck Swift virtual-phone session for iphoneos
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/nyxphone"
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          xcrun swiftc \
+            -parse-as-library \
+            -target arm64-apple-ios17.0 \
+            -sdk "$SDK" \
+            -I "$ROOT/Runtime/Core" \
+            -Xcc -fmodule-map-file="$ROOT/Runtime/Core/module.modulemap" \
+            -module-name VPhoneHost \
+            -emit-module \
+            -emit-module-path "$RUNNER_TEMP/nyxphone-ios/VPhoneHost.swiftmodule" \
+            "$ROOT/HostIntegration/VPhoneMachineManifest.swift" \
+            "$ROOT/HostIntegration/VPhoneHardwareProfile.swift" \
+            "$ROOT/HostIntegration/VirtualPhoneSession.swift"
+            "$ROOT/HostIntegration/NyxVirtualMachine.swift"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nyxphone-ios-runtime-core
+          path: ${{ runner.temp }}/nyxphone-ios
+          if-no-files-found: error
+
+  nyxphone-ipa:
+    runs-on: macos-15
+    needs: runtime-core
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/darwin-vm-windows11
+
+      - name: Fetch pinned VibeContainers Nyxian and vphone-cli sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --recurse-submodules https://github.com/NightVibes33/VibeContainers.git VibeContainersHost
+          git -C VibeContainersHost checkout "$VIBECONTAINERS_SHA"
+          git -C VibeContainersHost submodule update --init --recursive
+          VibeContainersHost/scripts/prepare_dependencies.sh
+
+          git clone --filter=blob:none https://github.com/emexlab/Nyxian.git "$RUNNER_TEMP/Nyxian"
+          git -C "$RUNNER_TEMP/Nyxian" checkout "$NYXIAN_SHA"
+          git clone --filter=blob:none https://github.com/Lakr233/vphone-cli.git "$RUNNER_TEMP/vphone-cli"
+          git -C "$RUNNER_TEMP/vphone-cli" checkout "$VPHONE_CLI_SHA"
+          test -f "$RUNNER_TEMP/vphone-cli/scripts/cfw_install_jb.sh"
+          test -f "$RUNNER_TEMP/vphone-cli/research/iboot_patches.md"
+
+      - name: Apply pinned VibeContainers host build fixes
+        shell: bash
+        working-directory: VibeContainersHost
+        run: |
+          set -euo pipefail
+          python3 scripts/apply_installer_fixes.py
+          python3 scripts/apply_installer_followups.py
+          python3 scripts/apply_xcode26_fixes.py
+          python3 scripts/apply_virtual_host_lock.py
+          python3 scripts/apply_exact_appwindow_guest_control_v10.py
+          python3 scripts/apply_home_layout_persistence.py
+          python3 -c 'from pathlib import Path; p=Path("LiveContainer-3.8.0/MultitaskSupport/MultitaskDockView.swift"); s=p.read_text(); a=s.index("            .modifier { content in\n", s.index("public struct MultitaskDockSwiftView")); b=s.index("            .scaleEffect", a); n="            .background(\n                RoundedRectangle(cornerRadius: 15)\n                    .fill(Color.black.opacity(dockManager.isDockHidden ? 0.3 : 0.7))\n                    .overlay(\n                        RoundedRectangle(cornerRadius: 15)\n                            .stroke(Color.white.opacity(dockManager.isDockHidden ? 0.1 : 0.3), lineWidth: 1)\n                    )\n            )\n"; p.write_text(s[:a]+n+s[b:])'
+
+      - name: Build NyxPhone native runtime for iphoneos
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/nyxphone"
+          NYX="$RUNNER_TEMP/Nyxian"
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          mkdir -p "$GITHUB_WORKSPACE/build-nyxphone"
+          for SRC in VPhoneRuntimeCore VPhoneAArch64 VPhoneKernelSurface VPhoneHostRuntime VPhoneNyxianCompat NyxRuntime; do
+            xcrun --sdk iphoneos clang \
+              -target arm64-apple-ios17.0 -isysroot "$SDK" -O2 \
+              -std=c11 -Wall -Wextra -Werror \
+              -I "$ROOT/Runtime/Core" -I "$ROOT/Runtime/include" -I "$NYX" \
+              -c "$ROOT/Runtime/Core/$SRC.c" \
+              -o "$GITHUB_WORKSPACE/build-nyxphone/$SRC.o"
+          done
+          xcrun ar rcs "$GITHUB_WORKSPACE/build-nyxphone/libNyxPhoneRuntime.a" "$GITHUB_WORKSPACE/build-nyxphone/"*.o
+
+      - name: Merge NyxPhone runtime into current VibeContainers host
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/nyxphone"
+          mkdir -p VibeContainersHost/iOSSim/Runtime/NyxPhone
+          cp "$ROOT/HostIntegration/"*.swift VibeContainersHost/iOSSim/Runtime/NyxPhone/
+
+          python3 <<'PY'
+          from pathlib import Path
+          p = Path('VibeContainersHost/iOSSim/iOSSimApp.swift')
+          s = p.read_text()
+          marker = 'import LiveContainerSwiftUI\n'
+          decl = '''import LiveContainerSwiftUI\n\n@_silgen_name("vp_host_runtime_start")\nprivate func NyxPhoneRuntimeStart() -> Int32\n\n@_silgen_name("vp_host_runtime_abi")\nprivate func NyxPhoneRuntimeABI() -> UInt32\n\n@_silgen_name("vp_host_runtime_state")\nprivate func NyxPhoneRuntimeState() -> UInt32\n'''
+          if 'NyxPhoneRuntimeStart' not in s:
+              s = s.replace(marker, decl, 1)
+          needle = 'func IOSSimHostMain() -> Int32 {\n'
+          inject = '''func IOSSimHostMain() -> Int32 {\n    let vibePhoneStatus = NyxPhoneRuntimeStart()\n    NSLog("NyxPhone: custom runtime start=%d ABI=%u state=%u", vibePhoneStatus, NyxPhoneRuntimeABI(), NyxPhoneRuntimeState())\n'''
+          if 'custom runtime start=' not in s:
+              s = s.replace(needle, inject, 1)
+          p.write_text(s)
+          PY
+
+      - name: Build complete unsigned real-device NyxPhone IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/nyxphone"
+          LIB="$GITHUB_WORKSPACE/build-nyxphone/libNyxPhoneRuntime.a"
+          cd VibeContainersHost
+          xcodebuild \
+            -project iOSSim.xcodeproj \
+            -scheme iOSSim \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$GITHUB_WORKSPACE/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY= \
+            DEVELOPMENT_TEAM= \
+            SWIFT_INCLUDE_PATHS="$ROOT/Runtime/Core $ROOT/Runtime/include" \
+            'OTHER_SWIFT_FLAGS=$(inherited) -Xcc -fmodule-map-file='"$ROOT"'/Runtime/Core/module.modulemap -Xcc -I'"$ROOT"'/Runtime/Core -Xcc -I'"$ROOT"'/Runtime/include' \
+            'OTHER_LDFLAGS=$(inherited) -Wl,-force_load,'"$LIB" \
+            build
+
+          APP="$(find "$GITHUB_WORKSPACE/DerivedData/Build/Products/Release-iphoneos" -maxdepth 1 -name '*.app' -type d | head -1)"
+          test -n "$APP"
+          EXE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist")"
+          xcrun nm "$APP/$EXE" | grep '_vp_runtime_boot'
+          xcrun nm "$APP/$EXE" | grep '_vp_runtime_stage_boot_images'
+          xcrun nm "$APP/$EXE" | grep '_vp_aarch64_step'
+          xcrun nm "$APP/$EXE" | grep '_vp_host_runtime_start'
+          xcrun nm "$APP/$EXE" | grep '_nyx_runtime_version'
+
+          if find "$APP" -iname '*qemu*' -print -quit | grep -q .; then
+            echo 'QEMU payload detected; refusing NyxPhone IPA' >&2
+            exit 1
+          fi
+
+          /usr/libexec/PlistBuddy -c 'Set :CFBundleDisplayName NyxPhone' "$APP/Info.plist" 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c 'Add :CFBundleDisplayName string NyxPhone' "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Set :CFBundleName NyxPhone' "$APP/Info.plist" 2>/dev/null || true
+
+          cat > "$APP/NyxPhoneRuntime.json" <<EOF
+          {
+            "product": "NyxPhone",
+            "host": "VibeContainers",
+            "hostCommit": "$VIBECONTAINERS_SHA",
+            "nyxianCommit": "$NYXIAN_SHA",
+            "bootAndCFWDonor": "Lakr233/vphone-cli",
+            "vphoneCliCommit": "$VPHONE_CLI_SHA",
+            "runtimeABI": 3,
+            "execution": "NyxPhone custom AArch64 runtime",
+            "appleBootImageStaging": true,
+            "qemu": false,
+            "virtualizationFramework": false,
+            "companionPCRequired": false
+          }
+          EOF
+          cp "$RUNNER_TEMP/Nyxian/LICENSE" "$APP/Nyxian-LICENSE.txt" 2>/dev/null || true
+          cp "$RUNNER_TEMP/vphone-cli/LICENSE" "$APP/vphone-cli-LICENSE.txt"
+
+          rm -rf "$GITHUB_WORKSPACE/Payload"
+          mkdir -p "$GITHUB_WORKSPACE/Payload"
+          cp -R "$APP" "$GITHUB_WORKSPACE/Payload/"
+          cd "$GITHUB_WORKSPACE"
+          /usr/bin/zip -qry NyxPhone-unsigned.ipa Payload
+          test -s NyxPhone-unsigned.ipa
+          unzip -t NyxPhone-unsigned.ipa >/dev/null
+          shasum -a 256 NyxPhone-unsigned.ipa | tee NyxPhone-unsigned.sha256
+          ls -lh NyxPhone-unsigned.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NyxPhone-unsigned-real-device
+          path: |
+            NyxPhone-unsigned.ipa
+            NyxPhone-unsigned.sha256
+          if-no-files-found: error
