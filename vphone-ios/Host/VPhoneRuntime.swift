@@ -112,17 +112,17 @@ final class VPhoneRuntimeEngine {
         let reason = VKStopReason(rawValue: vk_runtime_run(runtime, instructionLimit))
         let count = vk_runtime_instruction_count(runtime)
         switch reason {
-        case .wfi:
+        case .some(.wfi):
             state = .trapped(reason: "WFI", instructions: count)
-        case .svc:
+        case .some(.svc):
             state = .trapped(reason: "SVC", instructions: count)
-        case .illegalInstruction:
+        case .some(.illegalInstruction):
             state = .trapped(reason: "Illegal instruction", instructions: count)
-        case .memoryFault:
+        case .some(.memoryFault):
             state = .trapped(reason: "Memory fault", instructions: count)
-        case .instructionLimit:
+        case .some(.instructionLimit):
             state = .trapped(reason: "Instruction limit", instructions: count)
-        case .none, .none:
+        case .some(.none), .none:
             state = .trapped(reason: "Stopped", instructions: count)
         }
     }
