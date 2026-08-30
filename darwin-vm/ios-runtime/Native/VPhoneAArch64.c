@@ -44,11 +44,30 @@ VPCPUStepResult vp_aarch64_step(VPRuntime *runtime, VPAArch64CPU *cpu, uint32_t 
         return VP_CPU_STEP_OK;
     }
 
-    /* HLT #imm16 -- useful for deterministic interpreter tests. */
+    /* HLT #imm16 */
     if ((insn & UINT32_C(0xFFE0001F)) == UINT32_C(0xD4400000)) {
         cpu->halted = 1;
         cpu->instructions_retired++;
         return VP_CPU_STEP_HALTED;
+    }
+
+    /*
+     * SVC #imm16.  Darwin places the syscall selector in X16 for the normal
+     * userspace convention.  Because this is interpreted code we can catch the
+     * supervisor call before it ever reaches the host iOS kernel and dispatch
+     * it through the Nyxian-compatible userspace kernel surface.
+     */
+    if ((insn & UINT32_C(0xFFE0001F)) == UINT32_C(0xD4000001)) {
+        uint64_t args[8];
+        for (uint32_t i = 0; i < 8; i++) args[i] = cpu->x[i];
+        uint64_t result = 0;
+        const VPStatus status = vp_runtime_dispatch_syscall(runtime, cpu->x[16], args, &result);
+        if (status != VP_STATUS_OK) return VP_CPU_STEP_SYSCALL_FAULT;
+        cpu->x[0] = result;
+        cpu->pc = next_pc;
+        cpu->instructions_retired++;
+        cpu->syscalls_retired++;
+        return VP_CPU_STEP_OK;
     }
 
     /* B / BL immediate. */
