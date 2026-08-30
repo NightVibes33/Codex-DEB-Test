@@ -1,0 +1,1 @@
+VibeContainers UI is host control shell only; real guest SpringBoard renders from guest framebuffer when available
