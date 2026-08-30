@@ -95,6 +95,14 @@ public final class VirtualPhoneSession: @unchecked Sendable {
         return UInt32(vp_runtime_state(runtime).rawValue)
     }
 
+    public var isWaiting: Bool {
+        state == UInt32(VP_RUNTIME_WAITING.rawValue)
+    }
+
+    public var isPaused: Bool {
+        state == UInt32(VP_RUNTIME_PAUSED.rawValue)
+    }
+
     public var committedGuestBytes: UInt64 {
         guard let runtime else { return 0 }
         return vp_runtime_committed_bytes(runtime)
@@ -213,11 +221,24 @@ public final class VirtualPhoneSession: @unchecked Sendable {
     }
 
     /// Runs synchronously; callers should dispatch guest execution away from
-    /// the main actor. Budget exhaustion is a cooperative yield, not a crash.
+    /// the main actor. Budget exhaustion and WFI/WFE are cooperative yields,
+    /// not crashes. Both preserve the guest CPU state for the next run.
     public func boot() throws {
         guard let runtime else { throw VirtualPhoneSessionError.runtimeCreationFailed }
         let status = vp_runtime_boot(runtime)
-        guard status == VP_STATUS_OK || status == VP_STATUS_BUDGET_EXHAUSTED else {
+        guard status == VP_STATUS_OK ||
+              status == VP_STATUS_BUDGET_EXHAUSTED ||
+              status == VP_STATUS_GUEST_WAITING else {
+            throw VirtualPhoneSessionError.runtimeFailure(Int32(status.rawValue))
+        }
+    }
+
+    /// Delivers the host-side event used to wake WFI/WFE. Interrupt-controller
+    /// devices will call the same runtime primitive once their IRQ model lands.
+    public func signalEvent() throws {
+        guard let runtime else { throw VirtualPhoneSessionError.runtimeCreationFailed }
+        let status = vp_runtime_signal_event(runtime)
+        guard status == VP_STATUS_OK else {
             throw VirtualPhoneSessionError.runtimeFailure(Int32(status.rawValue))
         }
     }
