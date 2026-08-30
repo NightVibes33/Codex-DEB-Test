@@ -4,6 +4,7 @@ import VPhoneRuntimeCore
 public enum VirtualPhoneSessionError: Error, LocalizedError {
     case runtimeCreationFailed
     case kernelSurfaceCreationFailed
+    case invalidBootSet
     case runtimeFailure(Int32)
 
     public var errorDescription: String? {
@@ -12,6 +13,8 @@ public enum VirtualPhoneSessionError: Error, LocalizedError {
             "Could not create the native virtual-phone runtime."
         case .kernelSurfaceCreationFailed:
             "Could not attach the Nyxian-compatible userspace kernel surface."
+        case .invalidBootSet:
+            "The imported boot set is incomplete."
         case .runtimeFailure(let code):
             "Virtual-phone runtime failed with status \(code)."
         }
@@ -60,7 +63,7 @@ public struct VPhoneBootArtifacts: Sendable {
 /// has no QEMU, macOS Virtualization.framework or companion-PC dependency.
 public final class VirtualPhoneSession: @unchecked Sendable {
     public let manifest: VPhoneMachineManifest
-    private var runtime: OpaquePointer?
+    var runtime: OpaquePointer?
     private var kernelSurface: OpaquePointer?
 
     public init(manifest: VPhoneMachineManifest) throws {
