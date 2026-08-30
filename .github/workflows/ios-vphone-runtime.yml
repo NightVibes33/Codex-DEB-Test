@@ -1,4 +1,4 @@
-name: iOS VPhone Runtime
+name: iOS VibePhone Runtime
 
 on:
   workflow_dispatch:
@@ -12,6 +12,11 @@ on:
 permissions:
   contents: read
 
+env:
+  VIBECONTAINERS_SHA: 9184712fbd751082a1376e4453387f3ecfeb8268
+  NYXIAN_SHA: ce890e57bcafee5aadfb994a5a0e12d2fe39795a
+  VPHONE_AIO_SHA: 1db79dccd95391d6247c41f3cc4eac523567f295
+
 jobs:
   runtime-core:
     runs-on: macos-15
@@ -20,14 +25,31 @@ jobs:
         with:
           ref: temp/darwin-vm-windows11
 
-      - name: Native sparse-memory and AArch64 self-test
+      - name: Fetch pinned Nyxian and vphone architecture sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/emexlab/Nyxian.git "$RUNNER_TEMP/Nyxian"
+          git -C "$RUNNER_TEMP/Nyxian" checkout "$NYXIAN_SHA"
+          test "$(git -C "$RUNNER_TEMP/Nyxian" rev-parse HEAD)" = "$NYXIAN_SHA"
+
+          git clone --filter=blob:none https://github.com/34306/vphone-aio.git "$RUNNER_TEMP/vphone-aio"
+          git -C "$RUNNER_TEMP/vphone-aio" checkout "$VPHONE_AIO_SHA"
+          test "$(git -C "$RUNNER_TEMP/vphone-aio" rev-parse HEAD)" = "$VPHONE_AIO_SHA"
+          test -f "$RUNNER_TEMP/vphone-aio/vphone-aio.sh"
+          grep -qi 'vphone' "$RUNNER_TEMP/vphone-aio/README.md"
+
+      - name: Native sparse-memory, microkernel and AArch64 self-test
         shell: bash
         run: |
           set -euo pipefail
           ROOT="$GITHUB_WORKSPACE/darwin-vm/ios-runtime"
+          NYX="$RUNNER_TEMP/Nyxian"
           cat > "$RUNNER_TEMP/runtime-smoke.c" <<'EOF'
           #include "VPhoneRuntimeCore.h"
           #include "VPhoneAArch64.h"
+          #include "VPhoneKernelSurface.h"
+          #include "VPhoneHostRuntime.h"
           #include <stdint.h>
           #include <stdio.h>
           #include <string.h>
@@ -49,82 +71,112 @@ jobs:
               VPMachineConfig cfg = {8, 8ULL * 1024 * 1024 * 1024, 1290, 2796, 460, 3.0};
               VPRuntime *rt = vp_runtime_create(&cfg);
               if (!rt) return 10;
+              VPKernelSurface *surface = vp_ksurface_attach(rt);
+              if (!surface) return 11;
 
               uint8_t zero[32];
               memset(zero, 0xAA, sizeof(zero));
-              if (vp_runtime_memory_read(rt, 0x1000, zero, sizeof(zero)) != VP_STATUS_OK) return 11;
-              for (size_t i = 0; i < sizeof(zero); i++) if (zero[i] != 0) return 12;
+              if (vp_runtime_memory_read(rt, 0x1000, zero, sizeof(zero)) != VP_STATUS_OK) return 12;
+              for (size_t i = 0; i < sizeof(zero); i++) if (zero[i] != 0) return 13;
 
               uint8_t input[64];
               for (size_t i = 0; i < sizeof(input); i++) input[i] = (uint8_t)(i ^ 0x5A);
               const uint64_t cross = VP_GUEST_PAGE_SIZE - 16;
-              if (vp_runtime_memory_write(rt, cross, input, sizeof(input)) != VP_STATUS_OK) return 13;
+              if (vp_runtime_memory_write(rt, cross, input, sizeof(input)) != VP_STATUS_OK) return 14;
               uint8_t output[64] = {0};
-              if (vp_runtime_memory_read(rt, cross, output, sizeof(output)) != VP_STATUS_OK) return 14;
-              if (memcmp(input, output, sizeof(input)) != 0) return 15;
+              if (vp_runtime_memory_read(rt, cross, output, sizeof(input)) != VP_STATUS_OK) return 15;
+              if (memcmp(input, output, sizeof(input)) != 0) return 16;
 
-              /* Execute native-decoded AArch64: MOVZ; ADD; STR; LDR; NOP; HLT. */
+              /* Arithmetic/memory plus an intercepted Darwin getpid SVC. */
               const uint64_t code_base = 0x20000;
               const uint32_t program[] = {
                   movz_x(0, 0x1234),
                   add_x_imm(1, 0, 5),
                   str_x(1, 31, 0),
                   ldr_x(2, 31, 0),
+                  movz_x(16, VP_DARWIN_SYS_GETPID),
+                  0xD4000001u,
                   0xD503201Fu,
                   0xD4400000u,
               };
-              if (vp_runtime_memory_write(rt, code_base, program, sizeof(program)) != VP_STATUS_OK) return 16;
+              if (vp_runtime_memory_write(rt, code_base, program, sizeof(program)) != VP_STATUS_OK) return 17;
               VPAArch64CPU cpu;
               vp_aarch64_reset(&cpu, code_base);
               cpu.sp = 0x40000;
-              for (unsigned i = 0; i < 6; i++) {
+              for (unsigned i = 0; i < 8; i++) {
                   VPCPUStepResult r = vp_aarch64_step(rt, &cpu, NULL);
-                  if (i < 5 && r != VP_CPU_STEP_OK) return 20 + (int)i;
-                  if (i == 5 && r != VP_CPU_STEP_HALTED) return 30;
+                  if (i < 7 && r != VP_CPU_STEP_OK) return 20 + (int)i;
+                  if (i == 7 && r != VP_CPU_STEP_HALTED) return 30;
               }
-              if (cpu.x[0] != 0x1234 || cpu.x[1] != 0x1239 || cpu.x[2] != 0x1239) return 31;
-              if (cpu.instructions_retired != 6) return 32;
+              if (cpu.x[1] != 0x1239 || cpu.x[2] != 0x1239) return 31;
+              if (cpu.x[0] != 1 || cpu.syscalls_retired != 1) return 32;
+              if (vp_ksurface_syscalls_handled(surface) != 1) return 33;
 
-              printf("ABI=%u retired=%llu committed_pages=%llu committed_bytes=%llu\n",
+              if (vp_runtime_set_boot_vector(rt, code_base) != VP_STATUS_OK) return 34;
+              if (vp_runtime_boot(rt) != VP_STATUS_OK) return 35;
+              if (vp_runtime_state(rt) != VP_RUNTIME_STOPPED) return 36;
+              if (vp_runtime_instructions_retired(rt) != 8) return 37;
+              if (vp_ksurface_syscalls_handled(surface) != 2) return 38;
+
+              printf("ABI=%u retired=%llu ksurface=%llu committed=%llu\n",
                      vp_runtime_abi_version(),
-                     (unsigned long long)cpu.instructions_retired,
-                     (unsigned long long)vp_runtime_committed_pages(rt),
+                     (unsigned long long)vp_runtime_instructions_retired(rt),
+                     (unsigned long long)vp_ksurface_syscalls_handled(surface),
                      (unsigned long long)vp_runtime_committed_bytes(rt));
+              vp_ksurface_destroy(surface);
               vp_runtime_destroy(rt);
               return 0;
           }
           EOF
+
           clang -std=c11 -Wall -Wextra -Werror \
-            -I "$ROOT/Native" \
+            -I "$ROOT/Native" -I "$NYX" \
             "$ROOT/Native/VPhoneRuntimeCore.c" \
             "$ROOT/Native/VPhoneAArch64.c" \
+            "$ROOT/Native/VPhoneKernelSurface.c" \
+            "$ROOT/Native/VPhoneHostRuntime.c" \
+            "$ROOT/Native/VPhoneNyxianCompat.c" \
             "$RUNNER_TEMP/runtime-smoke.c" \
+            -framework CoreFoundation \
             -o "$RUNNER_TEMP/runtime-smoke"
           "$RUNNER_TEMP/runtime-smoke"
 
-      - name: Compile native core for real iPhone/iPad
+      - name: Compile complete native core for real iPhone/iPad
         shell: bash
         run: |
           set -euo pipefail
           ROOT="$GITHUB_WORKSPACE/darwin-vm/ios-runtime"
+          NYX="$RUNNER_TEMP/Nyxian"
           SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
-          mkdir -p "$RUNNER_TEMP/vphone-ios"
-          for SRC in VPhoneRuntimeCore VPhoneAArch64; do
+          mkdir -p "$RUNNER_TEMP/vibephone-ios"
+          for SRC in VPhoneRuntimeCore VPhoneAArch64 VPhoneKernelSurface VPhoneHostRuntime VPhoneNyxianCompat; do
             xcrun --sdk iphoneos clang \
               -target arm64-apple-ios17.0 \
               -isysroot "$SDK" \
               -std=c11 -Wall -Wextra -Werror -O2 \
-              -I "$ROOT/Native" \
+              -I "$ROOT/Native" -I "$NYX" \
               -c "$ROOT/Native/$SRC.c" \
-              -o "$RUNNER_TEMP/vphone-ios/$SRC.o"
+              -o "$RUNNER_TEMP/vibephone-ios/$SRC.o"
           done
-          xcrun ar rcs "$RUNNER_TEMP/vphone-ios/libVPhoneRuntimeCore.a" \
-            "$RUNNER_TEMP/vphone-ios/VPhoneRuntimeCore.o" \
-            "$RUNNER_TEMP/vphone-ios/VPhoneAArch64.o"
-          xcrun nm "$RUNNER_TEMP/vphone-ios/libVPhoneRuntimeCore.a" | grep '_vp_runtime_abi_version'
-          xcrun nm "$RUNNER_TEMP/vphone-ios/libVPhoneRuntimeCore.a" | grep '_vp_aarch64_step'
+          xcrun ar rcs "$RUNNER_TEMP/vibephone-ios/libVibePhoneRuntime.a" \
+            "$RUNNER_TEMP/vibephone-ios/"*.o
+          xcrun nm "$RUNNER_TEMP/vibephone-ios/libVibePhoneRuntime.a" | grep '_vp_runtime_boot'
+          xcrun nm "$RUNNER_TEMP/vibephone-ios/libVibePhoneRuntime.a" | grep '_vp_ksurface_handle_syscall'
+          xcrun nm "$RUNNER_TEMP/vibephone-ios/libVibePhoneRuntime.a" | grep '_vp_host_runtime_start'
+          xcrun nm "$RUNNER_TEMP/vibephone-ios/libVibePhoneRuntime.a" | grep '_vp_nyxian_abi_compatible'
 
-      - name: Typecheck Swift host layer for iphoneos
+          cat > "$RUNNER_TEMP/vibephone-ios/provenance.txt" <<EOF
+          VibeContainers=$VIBECONTAINERS_SHA
+          Nyxian=$NYXIAN_SHA
+          vphone-aio=$VPHONE_AIO_SHA
+          runtime-branch=$GITHUB_SHA
+          runtime-abi=2
+          execution=custom-aarch64-interpreter
+          syscall-surface=nyxian-compatible-userspace
+          qemu=none
+          EOF
+
+      - name: Typecheck Swift virtual-phone session for iphoneos
         shell: bash
         run: |
           set -euo pipefail
@@ -138,18 +190,18 @@ jobs:
             -Xcc -fmodule-map-file="$ROOT/Native/module.modulemap" \
             -module-name VPhoneHost \
             -emit-module \
-            -emit-module-path "$RUNNER_TEMP/vphone-ios/VPhoneHost.swiftmodule" \
+            -emit-module-path "$RUNNER_TEMP/vibephone-ios/VPhoneHost.swiftmodule" \
             "$ROOT/Sources/VPhoneHost/VPhoneMachineManifest.swift" \
             "$ROOT/Sources/VPhoneHost/VPhoneHardwareProfile.swift" \
             "$ROOT/Sources/VPhoneHost/VirtualPhoneSession.swift"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: vphone-ios-runtime-core
-          path: ${{ runner.temp }}/vphone-ios
+          name: vibephone-ios-runtime-core
+          path: ${{ runner.temp }}/vibephone-ios
           if-no-files-found: error
 
-  vibecontainers-host:
+  vibephone-ipa:
     runs-on: macos-15
     needs: runtime-core
     steps:
@@ -157,56 +209,69 @@ jobs:
         with:
           ref: temp/darwin-vm-windows11
 
-      - name: Clone pinned VibeContainers host
+      - name: Fetch pinned combined sources
         shell: bash
         run: |
           set -euo pipefail
           git clone --recurse-submodules https://github.com/NightVibes33/VibeContainers.git VibeContainersHost
-          cd VibeContainersHost
-          git checkout 9184712fbd751082a1376e4453387f3ecfeb8268
-          git submodule update --init --recursive
-          ./scripts/prepare_dependencies.sh
+          git -C VibeContainersHost checkout "$VIBECONTAINERS_SHA"
+          git -C VibeContainersHost submodule update --init --recursive
+          VibeContainersHost/scripts/prepare_dependencies.sh
 
-      - name: Compile runtime library for iphoneos
+          git clone --filter=blob:none https://github.com/emexlab/Nyxian.git "$RUNNER_TEMP/Nyxian"
+          git -C "$RUNNER_TEMP/Nyxian" checkout "$NYXIAN_SHA"
+          git clone --filter=blob:none https://github.com/34306/vphone-aio.git "$RUNNER_TEMP/vphone-aio"
+          git -C "$RUNNER_TEMP/vphone-aio" checkout "$VPHONE_AIO_SHA"
+
+      - name: Build runtime static library for iphoneos
         shell: bash
         run: |
           set -euo pipefail
           ROOT="$GITHUB_WORKSPACE/darwin-vm/ios-runtime"
+          NYX="$RUNNER_TEMP/Nyxian"
           SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
-          mkdir -p "$GITHUB_WORKSPACE/build-vphone"
-          for SRC in VPhoneRuntimeCore VPhoneAArch64; do
+          mkdir -p "$GITHUB_WORKSPACE/build-vibephone"
+          for SRC in VPhoneRuntimeCore VPhoneAArch64 VPhoneKernelSurface VPhoneHostRuntime VPhoneNyxianCompat; do
             xcrun --sdk iphoneos clang \
               -target arm64-apple-ios17.0 -isysroot "$SDK" -O2 \
-              -I "$ROOT/Native" \
+              -std=c11 -Wall -Wextra -Werror \
+              -I "$ROOT/Native" -I "$NYX" \
               -c "$ROOT/Native/$SRC.c" \
-              -o "$GITHUB_WORKSPACE/build-vphone/$SRC.o"
+              -o "$GITHUB_WORKSPACE/build-vibephone/$SRC.o"
           done
-          xcrun ar rcs "$GITHUB_WORKSPACE/build-vphone/libVPhoneRuntimeCore.a" \
-            "$GITHUB_WORKSPACE/build-vphone/VPhoneRuntimeCore.o" \
-            "$GITHUB_WORKSPACE/build-vphone/VPhoneAArch64.o"
+          xcrun ar rcs "$GITHUB_WORKSPACE/build-vibephone/libVibePhoneRuntime.a" \
+            "$GITHUB_WORKSPACE/build-vibephone/"*.o
 
-      - name: Wire runtime ABI into VibeContainers host entrypoint
-        shell: python3 {0}
+      - name: Merge VibePhone session layer into VibeContainers host
+        shell: bash
         run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/darwin-vm/ios-runtime"
+          mkdir -p VibeContainersHost/iOSSim/Runtime/VibePhone
+          cp "$ROOT/Sources/VPhoneHost/"*.swift VibeContainersHost/iOSSim/Runtime/VibePhone/
+
+          python3 <<'PY'
           from pathlib import Path
           p = Path('VibeContainersHost/iOSSim/iOSSimApp.swift')
           s = p.read_text()
           marker = 'import LiveContainerSwiftUI\n'
-          decl = '''import LiveContainerSwiftUI\n\n@_silgen_name("vp_runtime_abi_version")\nprivate func VPhoneRuntimeABIVersion() -> UInt32\n'''
-          if 'VPhoneRuntimeABIVersion' not in s:
+          decl = '''import LiveContainerSwiftUI\n\n@_silgen_name("vp_host_runtime_start")\nprivate func VibePhoneRuntimeStart() -> Int32\n\n@_silgen_name("vp_host_runtime_abi")\nprivate func VibePhoneRuntimeABI() -> UInt32\n\n@_silgen_name("vp_host_runtime_state")\nprivate func VibePhoneRuntimeState() -> UInt32\n'''
+          if 'VibePhoneRuntimeStart' not in s:
               s = s.replace(marker, decl, 1)
           needle = 'func IOSSimHostMain() -> Int32 {\n'
-          replacement = needle + '    NSLog("DarwinVM: native vphone runtime ABI %u", VPhoneRuntimeABIVersion())\n'
-          if 'native vphone runtime ABI' not in s:
-              s = s.replace(needle, replacement, 1)
+          inject = '''func IOSSimHostMain() -> Int32 {\n    let vibePhoneStatus = VibePhoneRuntimeStart()\n    NSLog("VibePhone: custom runtime start=%d ABI=%u state=%u", vibePhoneStatus, VibePhoneRuntimeABI(), VibePhoneRuntimeState())\n'''
+          if 'custom runtime start=' not in s:
+              s = s.replace(needle, inject, 1)
           p.write_text(s)
+          PY
 
-      - name: Build unsigned real-device IPA with native runtime linked
+      - name: Build complete unsigned real-device VibePhone IPA
         shell: bash
         run: |
           set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/darwin-vm/ios-runtime"
+          LIB="$GITHUB_WORKSPACE/build-vibephone/libVibePhoneRuntime.a"
           cd VibeContainersHost
-          LIB="$GITHUB_WORKSPACE/build-vphone/libVPhoneRuntimeCore.a"
           xcodebuild \
             -project iOSSim.xcodeproj \
             -scheme iOSSim \
@@ -217,23 +282,54 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY= \
             DEVELOPMENT_TEAM= \
+            SWIFT_INCLUDE_PATHS="$ROOT/Native" \
+            OTHER_SWIFT_FLAGS="$(inherited) -Xcc -fmodule-map-file=$ROOT/Native/module.modulemap -Xcc -I$ROOT/Native" \
             OTHER_LDFLAGS="$(inherited) -Wl,-force_load,$LIB" \
             build
 
           APP="$(find "$GITHUB_WORKSPACE/DerivedData/Build/Products/Release-iphoneos" -maxdepth 1 -name '*.app' -type d | head -1)"
           test -n "$APP"
           EXE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist")"
-          xcrun nm "$APP/$EXE" | grep '_vp_runtime_abi_version'
+          xcrun nm "$APP/$EXE" | grep '_vp_runtime_boot'
           xcrun nm "$APP/$EXE" | grep '_vp_aarch64_step'
+          xcrun nm "$APP/$EXE" | grep '_vp_ksurface_handle_syscall'
+          xcrun nm "$APP/$EXE" | grep '_vp_host_runtime_start'
+          xcrun nm "$APP/$EXE" | grep '_vp_nyxian_abi_compatible'
+
+          /usr/libexec/PlistBuddy -c 'Set :CFBundleDisplayName VibePhone' "$APP/Info.plist" 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c 'Add :CFBundleDisplayName string VibePhone' "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Set :CFBundleName VibePhone' "$APP/Info.plist" 2>/dev/null || true
+
+          cat > "$APP/VibePhoneRuntime.json" <<EOF
+          {
+            "product": "VibePhone",
+            "host": "VibeContainers",
+            "hostCommit": "$VIBECONTAINERS_SHA",
+            "microkernelABI": "Nyxian ksurface",
+            "nyxianCommit": "$NYXIAN_SHA",
+            "virtualPhoneReference": "34306/vphone-aio",
+            "vphoneAioCommit": "$VPHONE_AIO_SHA",
+            "execution": "custom AArch64 interpreter",
+            "qemu": false,
+            "companionPCRequired": false
+          }
+          EOF
+          cp "$RUNNER_TEMP/Nyxian/LICENSE" "$APP/Nyxian-LICENSE.txt" 2>/dev/null || true
 
           rm -rf "$GITHUB_WORKSPACE/Payload"
           mkdir -p "$GITHUB_WORKSPACE/Payload"
           cp -R "$APP" "$GITHUB_WORKSPACE/Payload/"
           cd "$GITHUB_WORKSPACE"
-          /usr/bin/zip -qry DarwinVM-VibeContainers-unsigned.ipa Payload
+          /usr/bin/zip -qry VibePhone-unsigned.ipa Payload
+          test -s VibePhone-unsigned.ipa
+          unzip -t VibePhone-unsigned.ipa >/dev/null
+          shasum -a 256 VibePhone-unsigned.ipa | tee VibePhone-unsigned.sha256
+          ls -lh VibePhone-unsigned.ipa
 
       - uses: actions/upload-artifact@v4
         with:
-          name: DarwinVM-VibeContainers-unsigned-real-device
-          path: DarwinVM-VibeContainers-unsigned.ipa
+          name: VibePhone-unsigned-real-device
+          path: |
+            VibePhone-unsigned.ipa
+            VibePhone-unsigned.sha256
           if-no-files-found: error
