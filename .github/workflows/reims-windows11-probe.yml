@@ -120,9 +120,11 @@ jobs:
         working-directory: upstream/reims-vgpu
         env:
           REIMS_VGPU_BACKEND: vulkan
+          CARGO_NET_GIT_FETCH_WITH_CLI: "true"
         run: |
           set -euxo pipefail
           export PATH="/mingw64/bin:$PATH"
+          git --version
           cargo build -p reims-vgpu --release --no-default-features --features backend-vulkan,host-window
           find target/release -maxdepth 1 -iname '*reims_vgpu*' -ls
 
@@ -131,6 +133,7 @@ jobs:
         working-directory: upstream/reims-vgpu/vendor/qemu
         env:
           REIMS_VGPU_BACKEND: vulkan
+          CARGO_NET_GIT_FETCH_WITH_CLI: "true"
         run: |
           set -euxo pipefail
           rm -rf build
