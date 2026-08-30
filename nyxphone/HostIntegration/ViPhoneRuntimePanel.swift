@@ -5,7 +5,7 @@ import UniformTypeIdentifiers
 private func nyxRuntimeVersionCString() -> UnsafePointer<CChar>
 
 @MainActor
-final class NyxPhoneRuntimeModel: ObservableObject {
+final class ViPhoneRuntimeModel: ObservableObject {
     enum Artifact: String, CaseIterable, Identifiable {
         case iBoot
         case kernelcache
@@ -146,7 +146,7 @@ final class NyxPhoneRuntimeModel: ObservableObject {
         session?.stop()
         isBooting = false
         statusText = "Stop requested"
-        detailText = "The interpreter will return to the NyxPhone host."
+        detailText = "The interpreter will return to the ViPhone host."
         updateCounters()
     }
 
@@ -213,7 +213,7 @@ final class NyxPhoneRuntimeModel: ObservableObject {
 
     private var firmwareDirectory: URL {
         let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return base.appendingPathComponent("NyxPhone/DefaultPhone/Firmware", isDirectory: true)
+        return base.appendingPathComponent("ViPhone/DefaultPhone/Firmware", isDirectory: true)
     }
 
     private func url(for artifact: Artifact) -> URL {
@@ -236,8 +236,8 @@ final class NyxPhoneRuntimeModel: ObservableObject {
     )
 }
 
-struct NyxPhoneRuntimePanel: View {
-    @StateObject private var model = NyxPhoneRuntimeModel()
+struct ViPhoneRuntimePanel: View {
+    @StateObject private var model = ViPhoneRuntimeModel()
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -252,13 +252,13 @@ struct NyxPhoneRuntimePanel: View {
                     LabeledContent("QEMU", value: "None")
                     LabeledContent("Companion PC", value: "Not required")
                 } header: {
-                    Text("NyxPhone")
+                    Text("ViPhone")
                 } footer: {
-                    Text("Apple firmware is not bundled. Imported artifacts remain inside NyxPhone's app container.")
+                    Text("Apple firmware is not bundled. Imported artifacts remain inside ViPhone's app container.")
                 }
 
                 Section("Apple boot artifacts") {
-                    ForEach(NyxPhoneRuntimeModel.Artifact.allCases) { artifact in
+                    ForEach(ViPhoneRuntimeModel.Artifact.allCases) { artifact in
                         HStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(artifact.title)
@@ -323,7 +323,7 @@ struct NyxPhoneRuntimePanel: View {
                         .textSelection(.enabled)
                 }
             }
-            .navigationTitle("NyxPhone Runtime")
+            .navigationTitle("ViPhone Runtime")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
@@ -339,7 +339,7 @@ struct NyxPhoneRuntimePanel: View {
     }
 }
 
-struct NyxPhoneRuntimeOverlay: ViewModifier {
+struct ViPhoneRuntimeOverlay: ViewModifier {
     @State private var showingRuntime = false
 
     func body(content: Content) -> some View {
@@ -353,12 +353,12 @@ struct NyxPhoneRuntimeOverlay: ViewModifier {
                     .frame(width: 42, height: 42)
                     .background(.ultraThinMaterial, in: Circle())
             }
-            .accessibilityLabel("Open NyxPhone Runtime")
+            .accessibilityLabel("Open ViPhone Runtime")
             .padding(.top, 12)
             .padding(.trailing, 12)
         }
         .sheet(isPresented: $showingRuntime) {
-            NyxPhoneRuntimePanel()
+            ViPhoneRuntimePanel()
         }
     }
 }

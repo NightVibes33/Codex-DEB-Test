@@ -97,6 +97,7 @@ VPStatus vp_runtime_dispatch_syscall(
  */
 VPStatus vp_runtime_memory_read(VPRuntime *runtime, uint64_t guest_address, void *dst, size_t length);
 VPStatus vp_runtime_memory_write(VPRuntime *runtime, uint64_t guest_address, const void *src, size_t length);
+VPStatus vp_runtime_console_write(VPRuntime *runtime, uint64_t guest_address, size_t length);
 uint64_t vp_runtime_committed_bytes(const VPRuntime *runtime);
 uint64_t vp_runtime_committed_pages(const VPRuntime *runtime);
 

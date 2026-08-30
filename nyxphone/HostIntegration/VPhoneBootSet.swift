@@ -3,7 +3,7 @@ import VPhoneRuntimeCore
 
 /// The Apple boot artifacts resolved from a user-imported IPSW after the
 /// vphone-derived patch pipeline has produced bootable copies. No Apple bytes
-/// are compiled into NyxPhone; every Data value is supplied at runtime.
+/// are compiled into ViPhone; every Data value is supplied at runtime.
 public struct VPhoneBootSet: Sendable {
     public struct Artifact: Sendable {
         public let data: Data
