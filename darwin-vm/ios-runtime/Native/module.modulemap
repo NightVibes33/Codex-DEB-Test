@@ -1,0 +1,4 @@
+module VPhoneRuntimeCore {
+    header "VPhoneRuntimeCore.h"
+    export *
+}
