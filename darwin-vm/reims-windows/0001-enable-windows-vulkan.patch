@@ -1,0 +1,12 @@
+diff --git a/crates/reims-vgpu/src/lib.rs b/crates/reims-vgpu/src/lib.rs
+index 8fe8767..windows01 100644
+--- a/crates/reims-vgpu/src/lib.rs
++++ b/crates/reims-vgpu/src/lib.rs
+@@ -58,7 +58,7 @@ compile_error!(
+ #[cfg(all(
+     feature = "backend-vulkan",
+-    not(any(target_os = "macos", target_os = "linux"))
++    not(any(target_os = "macos", target_os = "linux", target_os = "windows"))
+ ))]
+ compile_error!(
+     "backend-vulkan is supported on target_os = \"macos\" (MoltenVK) and \
