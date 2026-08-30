@@ -8,9 +8,15 @@ on:
     paths:
       - .github/workflows/darwin-vm-windows11.yml
       - darwin-vm/windows-launcher.c
+      - darwin-vm/full-ui/**
+      - darwin-vm/qemu-patches/**
 
 permissions:
   contents: read
+
+env:
+  IPSW_VERSION: "3.1.712"
+  DEFAULT_IOS_URL: "https://updates.cdn-apple.com/2026SpringSeed/ad5a4f9d-f005-466b-bbcf-3b466040074b/iPhone17,3_27.0_24A5424a_Restore.ipsw"
 
 jobs:
   prepare-firmware:
@@ -24,8 +30,18 @@ jobs:
 
       - name: Install macOS dependencies
         run: |
-          brew install jq wget blacktop/tap/ipsw
-          ipsw version || ipsw --version || true
+          set -euxo pipefail
+          brew install jq wget
+          mkdir -p /tmp/ipsw-install
+          curl -fL --retry 3 \
+            "https://github.com/blacktop/ipsw/releases/download/v${IPSW_VERSION}/ipsw_${IPSW_VERSION}_macOS_arm64.tar.gz" \
+            -o /tmp/ipsw.tar.gz
+          tar -xzf /tmp/ipsw.tar.gz -C /tmp/ipsw-install
+          IPSW_BIN="$(find /tmp/ipsw-install -type f -name ipsw -print | head -n1)"
+          test -n "$IPSW_BIN"
+          chmod +x "$IPSW_BIN"
+          sudo install -m 0755 "$IPSW_BIN" /usr/local/bin/ipsw
+          ipsw version || ipsw --version
 
       - name: Download and patch default iPhone 16 firmware
         working-directory: upstream/darwin-vm
@@ -45,6 +61,47 @@ jobs:
           retention-days: 3
           compression-level: 1
 
+  probe-full-ui:
+    name: Probe full iOS UI / driver stack
+    runs-on: macos-15
+    timeout-minutes: 120
+    continue-on-error: true
+    steps:
+      - name: Checkout test branch
+        uses: actions/checkout@v4
+
+      - name: Install ipsw
+        run: |
+          set -euxo pipefail
+          mkdir -p /tmp/ipsw-install
+          curl -fL --retry 3 \
+            "https://github.com/blacktop/ipsw/releases/download/v${IPSW_VERSION}/ipsw_${IPSW_VERSION}_macOS_arm64.tar.gz" \
+            -o /tmp/ipsw.tar.gz
+          tar -xzf /tmp/ipsw.tar.gz -C /tmp/ipsw-install
+          IPSW_BIN="$(find /tmp/ipsw-install -type f -name ipsw -print | head -n1)"
+          test -n "$IPSW_BIN"
+          chmod +x "$IPSW_BIN"
+          sudo install -m 0755 "$IPSW_BIN" /usr/local/bin/ipsw
+          ipsw version || ipsw --version
+
+      - name: Inventory and mount full iOS filesystem
+        env:
+          URL: ${{ env.DEFAULT_IOS_URL }}
+          EXTRACT_SYSTEM_DMG: "1"
+          OUT: ${{ github.workspace }}/full-ui-probe
+        run: |
+          chmod +x darwin-vm/full-ui/probe-ui-stack.sh
+          darwin-vm/full-ui/probe-ui-stack.sh
+
+      - name: Upload full UI probe report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: darwin-vm-full-ui-probe
+          path: full-ui-probe
+          retention-days: 3
+          compression-level: 1
+
   build-windows:
     name: Build native Windows 11 executable
     needs: prepare-firmware
@@ -59,6 +116,17 @@ jobs:
         run: |
           git clone --recurse-submodules https://github.com/jprx/darwin-vm.git upstream/darwin-vm
           git -C upstream/darwin-vm submodule status
+
+      - name: Apply local qemu-sptm patches
+        shell: msys2 {0}
+        run: |
+          set -euxo pipefail
+          shopt -s nullglob
+          patches=("$GITHUB_WORKSPACE"/darwin-vm/qemu-patches/*.patch)
+          for patch in "${patches[@]}"; do
+            echo "Applying $patch"
+            git -C "$GITHUB_WORKSPACE/upstream/darwin-vm/qemu-sptm" apply "$patch"
+          done
 
       - name: Download prepared firmware
         uses: actions/download-artifact@v4
@@ -136,7 +204,6 @@ jobs:
             "$GITHUB_WORKSPACE/darwin-vm/windows-launcher.c" \
             -o "$DIST/DarwinVM-Windows11.exe"
 
-          # Copy every MinGW DLL required by this qemu binary.
           ldd "$QEMU" | tee "$DIST/qemu-runtime-deps.txt"
           ldd "$QEMU" | awk '/\/mingw64\/bin\// {print $3}' | while read -r dll; do
             [ -f "$dll" ] && cp -n "$dll" "$DIST/"
@@ -149,7 +216,7 @@ jobs:
           Self-test: DarwinVM-Windows11.exe --self-test
           Exit QEMU: Ctrl+A, then X
 
-          This is the darwin-vm barebones Darwin/iOS root-shell VM, not a graphical iPhone simulator.
+          Current baseline boots the darwin-vm root-shell environment. The temp branch also contains an active full-UI probe and a qemu patch lane for display/input/network device work.
           Firmware was prepared on a GitHub-hosted macOS runner; qemu-sptm and the launcher were built on a GitHub-hosted Windows runner.
           EOF
 
