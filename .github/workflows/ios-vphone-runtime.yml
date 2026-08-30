@@ -1,0 +1,193 @@
+name: iOS VPhone Runtime
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - temp/darwin-vm-windows11
+    paths:
+      - 'darwin-vm/ios-runtime/**'
+      - '.github/workflows/ios-vphone-runtime.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-core:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/darwin-vm-windows11
+
+      - name: Native sparse-memory self-test
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/darwin-vm/ios-runtime"
+          cat > "$RUNNER_TEMP/runtime-smoke.c" <<'EOF'
+          #include "VPhoneRuntimeCore.h"
+          #include <stdint.h>
+          #include <stdio.h>
+          #include <string.h>
+
+          int main(void) {
+              VPMachineConfig cfg = {8, 8ULL * 1024 * 1024 * 1024, 1290, 2796, 460, 3.0};
+              VPRuntime *rt = vp_runtime_create(&cfg);
+              if (!rt) return 10;
+
+              uint8_t zero[32];
+              memset(zero, 0xAA, sizeof(zero));
+              if (vp_runtime_memory_read(rt, 0x1000, zero, sizeof(zero)) != VP_STATUS_OK) return 11;
+              for (size_t i = 0; i < sizeof(zero); i++) if (zero[i] != 0) return 12;
+
+              uint8_t input[64];
+              for (size_t i = 0; i < sizeof(input); i++) input[i] = (uint8_t)(i ^ 0x5A);
+              const uint64_t cross = VP_GUEST_PAGE_SIZE - 16;
+              if (vp_runtime_memory_write(rt, cross, input, sizeof(input)) != VP_STATUS_OK) return 13;
+
+              uint8_t output[64] = {0};
+              if (vp_runtime_memory_read(rt, cross, output, sizeof(output)) != VP_STATUS_OK) return 14;
+              if (memcmp(input, output, sizeof(input)) != 0) return 15;
+              if (vp_runtime_committed_pages(rt) != 2) return 16;
+
+              printf("ABI=%u committed_pages=%llu committed_bytes=%llu\n",
+                     vp_runtime_abi_version(),
+                     (unsigned long long)vp_runtime_committed_pages(rt),
+                     (unsigned long long)vp_runtime_committed_bytes(rt));
+              vp_runtime_destroy(rt);
+              return 0;
+          }
+          EOF
+          clang -std=c11 -Wall -Wextra -Werror \
+            -I "$ROOT/Native" \
+            "$ROOT/Native/VPhoneRuntimeCore.c" "$RUNNER_TEMP/runtime-smoke.c" \
+            -o "$RUNNER_TEMP/runtime-smoke"
+          "$RUNNER_TEMP/runtime-smoke"
+
+      - name: Compile native core for real iPhone/iPad
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/darwin-vm/ios-runtime"
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          mkdir -p "$RUNNER_TEMP/vphone-ios"
+          xcrun --sdk iphoneos clang \
+            -target arm64-apple-ios17.0 \
+            -isysroot "$SDK" \
+            -std=c11 -Wall -Wextra -Werror -O2 \
+            -I "$ROOT/Native" \
+            -c "$ROOT/Native/VPhoneRuntimeCore.c" \
+            -o "$RUNNER_TEMP/vphone-ios/VPhoneRuntimeCore.o"
+          xcrun ar rcs "$RUNNER_TEMP/vphone-ios/libVPhoneRuntimeCore.a" \
+            "$RUNNER_TEMP/vphone-ios/VPhoneRuntimeCore.o"
+          xcrun nm "$RUNNER_TEMP/vphone-ios/libVPhoneRuntimeCore.a" | grep '_vp_runtime_abi_version'
+
+      - name: Typecheck Swift host layer for iphoneos
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/darwin-vm/ios-runtime"
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          xcrun swiftc \
+            -parse-as-library \
+            -target arm64-apple-ios17.0 \
+            -sdk "$SDK" \
+            -I "$ROOT/Native" \
+            -Xcc -fmodule-map-file="$ROOT/Native/module.modulemap" \
+            -module-name VPhoneHost \
+            -emit-module \
+            -emit-module-path "$RUNNER_TEMP/vphone-ios/VPhoneHost.swiftmodule" \
+            "$ROOT/Sources/VPhoneHost/VPhoneMachineManifest.swift" \
+            "$ROOT/Sources/VPhoneHost/VirtualPhoneSession.swift"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vphone-ios-runtime-core
+          path: ${{ runner.temp }}/vphone-ios
+          if-no-files-found: error
+
+  vibecontainers-host:
+    runs-on: macos-15
+    needs: runtime-core
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/darwin-vm-windows11
+
+      - name: Clone pinned VibeContainers host
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --recurse-submodules https://github.com/NightVibes33/VibeContainers.git VibeContainersHost
+          cd VibeContainersHost
+          git checkout 9184712fbd751082a1376e4453387f3ecfeb8268
+          git submodule update --init --recursive
+          ./scripts/prepare_dependencies.sh
+
+      - name: Compile runtime library for iphoneos
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/darwin-vm/ios-runtime"
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          mkdir -p "$GITHUB_WORKSPACE/build-vphone"
+          xcrun --sdk iphoneos clang \
+            -target arm64-apple-ios17.0 -isysroot "$SDK" -O2 \
+            -I "$ROOT/Native" \
+            -c "$ROOT/Native/VPhoneRuntimeCore.c" \
+            -o "$GITHUB_WORKSPACE/build-vphone/VPhoneRuntimeCore.o"
+          xcrun ar rcs "$GITHUB_WORKSPACE/build-vphone/libVPhoneRuntimeCore.a" \
+            "$GITHUB_WORKSPACE/build-vphone/VPhoneRuntimeCore.o"
+
+      - name: Wire runtime ABI into VibeContainers host entrypoint
+        shell: python3 {0}
+        run: |
+          from pathlib import Path
+          p = Path('VibeContainersHost/iOSSim/iOSSimApp.swift')
+          s = p.read_text()
+          marker = 'import LiveContainerSwiftUI\n'
+          decl = '''import LiveContainerSwiftUI\n\n@_silgen_name("vp_runtime_abi_version")\nprivate func VPhoneRuntimeABIVersion() -> UInt32\n'''
+          if 'VPhoneRuntimeABIVersion' not in s:
+              s = s.replace(marker, decl, 1)
+          needle = 'func IOSSimHostMain() -> Int32 {\n'
+          replacement = needle + '    NSLog("DarwinVM: native vphone runtime ABI %u", VPhoneRuntimeABIVersion())\n'
+          if 'native vphone runtime ABI' not in s:
+              s = s.replace(needle, replacement, 1)
+          p.write_text(s)
+
+      - name: Build unsigned real-device IPA with native runtime linked
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd VibeContainersHost
+          LIB="$GITHUB_WORKSPACE/build-vphone/libVPhoneRuntimeCore.a"
+          xcodebuild \
+            -project iOSSim.xcodeproj \
+            -scheme iOSSim \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$GITHUB_WORKSPACE/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY= \
+            DEVELOPMENT_TEAM= \
+            OTHER_LDFLAGS="$(inherited) -Wl,-force_load,$LIB" \
+            build
+
+          APP="$(find "$GITHUB_WORKSPACE/DerivedData/Build/Products/Release-iphoneos" -maxdepth 1 -name '*.app' -type d | head -1)"
+          test -n "$APP"
+          EXE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist")"
+          xcrun nm "$APP/$EXE" | grep '_vp_runtime_abi_version'
+
+          rm -rf "$GITHUB_WORKSPACE/Payload"
+          mkdir -p "$GITHUB_WORKSPACE/Payload"
+          cp -R "$APP" "$GITHUB_WORKSPACE/Payload/"
+          cd "$GITHUB_WORKSPACE"
+          /usr/bin/zip -qry DarwinVM-VibeContainers-unsigned.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DarwinVM-VibeContainers-unsigned-real-device
+          path: DarwinVM-VibeContainers-unsigned.ipa
+          if-no-files-found: error
