@@ -87,7 +87,6 @@ jobs:
               if (vp_runtime_memory_read(rt, cross, output, sizeof(input)) != VP_STATUS_OK) return 15;
               if (memcmp(input, output, sizeof(input)) != 0) return 16;
 
-              /* Arithmetic/memory plus an intercepted Darwin getpid SVC. */
               const uint64_t code_base = 0x20000;
               const uint32_t program[] = {
                   movz_x(0, 0x1234),
@@ -216,7 +215,7 @@ jobs:
           git clone --recurse-submodules https://github.com/NightVibes33/VibeContainers.git VibeContainersHost
           git -C VibeContainersHost checkout "$VIBECONTAINERS_SHA"
           git -C VibeContainersHost submodule update --init --recursive
-          VibeContainersHost/scripts/prepare_dependencies.sh
+          (cd VibeContainersHost && ./scripts/prepare_dependencies.sh)
 
           git clone --filter=blob:none https://github.com/emexlab/Nyxian.git "$RUNNER_TEMP/Nyxian"
           git -C "$RUNNER_TEMP/Nyxian" checkout "$NYXIAN_SHA"
@@ -283,8 +282,8 @@ jobs:
             CODE_SIGN_IDENTITY= \
             DEVELOPMENT_TEAM= \
             SWIFT_INCLUDE_PATHS="$ROOT/Native" \
-            OTHER_SWIFT_FLAGS="$(inherited) -Xcc -fmodule-map-file=$ROOT/Native/module.modulemap -Xcc -I$ROOT/Native" \
-            OTHER_LDFLAGS="$(inherited) -Wl,-force_load,$LIB" \
+            OTHER_SWIFT_FLAGS="\$(inherited) -Xcc -fmodule-map-file=$ROOT/Native/module.modulemap -Xcc -I$ROOT/Native" \
+            OTHER_LDFLAGS="\$(inherited) -Wl,-force_load,$LIB" \
             build
 
           APP="$(find "$GITHUB_WORKSPACE/DerivedData/Build/Products/Release-iphoneos" -maxdepth 1 -name '*.app' -type d | head -1)"
