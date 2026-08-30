@@ -99,3 +99,44 @@ uint32_t nyx_vm_state(const NyxVM *vm) {
 uint64_t nyx_vm_instructions_retired(const NyxVM *vm) {
     return vm && vm->runtime ? vp_runtime_instructions_retired(vm->runtime) : 0;
 }
+
+typedef struct {
+    char *bytes;
+    size_t capacity;
+    size_t length;
+} NyxCaptureBuffer;
+
+static void nyx_capture_log(const uint8_t *bytes, size_t length, void *context) {
+    NyxCaptureBuffer *capture = (NyxCaptureBuffer *)context;
+    if (!capture || !capture->bytes || capture->capacity == 0) return;
+    size_t available = capture->capacity - 1u - capture->length;
+    if (length > available) length = available;
+    if (length) memcpy(capture->bytes + capture->length, bytes, length);
+    capture->length += length;
+    capture->bytes[capture->length] = 0;
+}
+
+int32_t nyx_vm_boot_kernel_capture(
+    const void *bytes,
+    size_t length,
+    uint64_t load_address,
+    uint64_t entry_address,
+    char *log_buffer,
+    size_t log_capacity,
+    size_t *log_length
+) {
+    if (!bytes || length == 0 || !log_buffer || log_capacity == 0) {
+        return (int32_t)VP_STATUS_INVALID_ARGUMENT;
+    }
+    NyxVMConfig config = {1, UINT64_C(16) * 1024u * 1024u, 1290, 2796, 460, 3.0};
+    NyxVM *vm = nyx_vm_create(&config);
+    if (!vm) return (int32_t)VP_STATUS_OUT_OF_MEMORY;
+    NyxCaptureBuffer capture = {log_buffer, log_capacity, 0};
+    log_buffer[0] = 0;
+    nyx_vm_set_log_callback(vm, nyx_capture_log, &capture);
+    int32_t status = nyx_vm_load_kernel_bytes(vm, bytes, length, load_address, entry_address);
+    if (status == (int32_t)VP_STATUS_OK) status = nyx_vm_start(vm);
+    if (log_length) *log_length = capture.length;
+    nyx_vm_destroy(vm);
+    return status;
+}

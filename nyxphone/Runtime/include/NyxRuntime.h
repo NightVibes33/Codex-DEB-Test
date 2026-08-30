@@ -39,6 +39,15 @@ int32_t nyx_vm_start(NyxVM *vm);
 int32_t nyx_vm_stop(NyxVM *vm);
 uint32_t nyx_vm_state(const NyxVM *vm);
 uint64_t nyx_vm_instructions_retired(const NyxVM *vm);
+int32_t nyx_vm_boot_kernel_capture(
+    const void *bytes,
+    size_t length,
+    uint64_t load_address,
+    uint64_t entry_address,
+    char *log_buffer,
+    size_t log_capacity,
+    size_t *log_length
+);
 
 #ifdef __cplusplus
 }
