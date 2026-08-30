@@ -118,15 +118,18 @@ jobs:
           git -C upstream/darwin-vm submodule status
 
       - name: Apply local qemu-sptm patches
-        shell: msys2 {0}
+        shell: pwsh
         run: |
-          set -euxo pipefail
-          shopt -s nullglob
-          patches=("$GITHUB_WORKSPACE"/darwin-vm/qemu-patches/*.patch)
-          for patch in "${patches[@]}"; do
-            echo "Applying $patch"
-            git -C "$GITHUB_WORKSPACE/upstream/darwin-vm/qemu-sptm" apply "$patch"
-          done
+          $patchDir = Join-Path $env:GITHUB_WORKSPACE "darwin-vm/qemu-patches"
+          if (Test-Path $patchDir) {
+            Get-ChildItem $patchDir -Filter *.patch | Sort-Object Name | ForEach-Object {
+              Write-Host "Applying $($_.FullName)"
+              git -C "$env:GITHUB_WORKSPACE/upstream/darwin-vm/qemu-sptm" apply $_.FullName
+              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            }
+          } else {
+            Write-Host "No local qemu patches yet"
+          }
 
       - name: Download prepared firmware
         uses: actions/download-artifact@v4
