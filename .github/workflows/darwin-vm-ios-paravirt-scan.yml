@@ -1,0 +1,83 @@
+name: iPhone 16 Paravirt Driver Scan
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - temp/darwin-vm-windows11
+    paths:
+      - .github/workflows/darwin-vm-ios-paravirt-scan.yml
+
+permissions:
+  contents: read
+
+env:
+  IPSW_VERSION: "3.1.712"
+  IOS_URL: "https://updates.cdn-apple.com/2026SpringSeed/ad5a4f9d-f005-466b-bbcf-3b466040074b/iPhone17,3_27.0_24A5424a_Restore.ipsw"
+
+jobs:
+  scan:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ipsw
+        run: |
+          set -euxo pipefail
+          mkdir -p /tmp/ipsw-install
+          curl -fL --retry 3 \
+            "https://github.com/blacktop/ipsw/releases/download/v${IPSW_VERSION}/ipsw_${IPSW_VERSION}_macOS_arm64.tar.gz" \
+            -o /tmp/ipsw.tar.gz
+          tar -xzf /tmp/ipsw.tar.gz -C /tmp/ipsw-install
+          IPSW_BIN="$(find /tmp/ipsw-install -type f -name ipsw -print | head -n1)"
+          sudo install -m 0755 "$IPSW_BIN" /usr/local/bin/ipsw
+          ipsw version || ipsw --version
+
+      - name: Extract iPhone 16 kernelcache only
+        run: |
+          set -euxo pipefail
+          mkdir -p scan/download scan/out
+          ipsw extract --remote "$IOS_URL" --output scan/download --flat \
+            --pattern 'kernelcache.release.iphone17' -j | tee scan/extract.json
+          KC="$(find scan/download -type f -name '*kernelcache*' -print | head -n1)"
+          test -n "$KC"
+          ipsw img4 im4p extract "$KC" -o scan/out/bootkc
+          file scan/out/bootkc | tee scan/file.txt
+          ls -lh scan/out/bootkc
+
+      - name: Scan for virtual-platform drivers
+        run: |
+          set -euxo pipefail
+          strings -a scan/out/bootkc | \
+            grep -Ei 'AppleParavirt|AppleVirtIO|AppleVirtualPlatform|IOSurfaceParavirt|ParavirtGPU|ParavirtDisplay|VirtIONetwork|VirtIOInput|vmapple' | \
+            sort -u | tee scan/paravirt-strings.txt || true
+
+          set +e
+          ipsw kernel kexts scan/out/bootkc > scan/kexts.txt 2> scan/kexts.stderr
+          echo $? > scan/kexts.exit
+          set -e
+          grep -Ei 'AppleParavirt|AppleVirtIO|AppleVirtualPlatform|IOSurfaceParavirt|ParavirtGPU|ParavirtDisplay|VirtIONetwork|VirtIOInput|vmapple' \
+            scan/kexts.txt | tee scan/paravirt-kexts.txt || true
+
+          echo '=== matching strings ==='
+          cat scan/paravirt-strings.txt || true
+          echo '=== matching kexts ==='
+          cat scan/paravirt-kexts.txt || true
+
+      - name: Upload scan
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iphone16-ios27-paravirt-scan
+          path: |
+            scan/paravirt-strings.txt
+            scan/paravirt-kexts.txt
+            scan/kexts.txt
+            scan/kexts.stderr
+            scan/kexts.exit
+            scan/file.txt
+            scan/extract.json
+          if-no-files-found: ignore
+          retention-days: 3
