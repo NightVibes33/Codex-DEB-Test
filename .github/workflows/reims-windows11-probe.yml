@@ -1,0 +1,153 @@
+name: Reims VGPU Windows 11 Probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - temp/darwin-vm-windows11
+    paths:
+      - .github/workflows/reims-windows11-probe.yml
+      - darwin-vm/reims-windows/**
+
+permissions:
+  contents: read
+
+jobs:
+  rust-vulkan:
+    name: Reims Rust/Vulkan on Windows 11
+    runs-on: windows-2025
+    timeout-minutes: 90
+    steps:
+      - name: Checkout probe branch
+        uses: actions/checkout@v4
+
+      - name: Clone Reims
+        shell: pwsh
+        run: |
+          git clone --depth 1 https://github.com/steelbrain/reims-vgpu.git upstream/reims-vgpu
+          git -C upstream/reims-vgpu rev-parse HEAD
+          rustc -Vv
+          cargo -V
+
+      - name: Cargo check Vulkan core
+        shell: pwsh
+        working-directory: upstream/reims-vgpu
+        run: |
+          cargo check -p reims-vgpu --no-default-features --features backend-vulkan
+
+      - name: Cargo check Vulkan host window
+        shell: pwsh
+        working-directory: upstream/reims-vgpu
+        run: |
+          cargo check -p reims-vgpu --no-default-features --features backend-vulkan,host-window
+
+      - name: Build Reims Vulkan static library
+        shell: pwsh
+        working-directory: upstream/reims-vgpu
+        run: |
+          cargo build -p reims-vgpu --release --no-default-features --features backend-vulkan,host-window
+          Get-ChildItem target/release | Where-Object { $_.Name -match 'reims_vgpu' } | Format-Table Name,Length
+
+  qemu-tcg:
+    name: Reims QEMU aarch64 TCG on Windows 11
+    runs-on: windows-2025
+    timeout-minutes: 120
+    steps:
+      - name: Checkout probe branch
+        uses: actions/checkout@v4
+
+      - name: Clone Reims with QEMU
+        shell: pwsh
+        run: |
+          git clone https://github.com/steelbrain/reims-vgpu.git upstream/reims-vgpu
+          git -C upstream/reims-vgpu submodule update --init vendor/qemu
+          git -C upstream/reims-vgpu rev-parse HEAD
+          git -C upstream/reims-vgpu/vendor/qemu rev-parse HEAD
+
+      - name: Set up MSYS2 / MinGW64
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            base-devel
+            bison
+            diffutils
+            flex
+            git
+            grep
+            make
+            mingw-w64-x86_64-binutils
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-glib2
+            mingw-w64-x86_64-libslirp
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-pixman
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-python
+            mingw-w64-x86_64-rust
+            mingw-w64-x86_64-vulkan-headers
+            mingw-w64-x86_64-vulkan-loader
+
+      - name: Enable vmapple under TCG for compile probe
+        shell: msys2 {0}
+        working-directory: upstream/reims-vgpu/vendor/qemu
+        run: |
+          set -euxo pipefail
+          # vmapple's device model is useful outside HVF; this probe tests whether
+          # the current source can compile it for a Windows/TCG host.
+          sed -i '/depends on HVF/d' hw/vmapple/Kconfig
+          grep -n -A25 -B2 'config VMAPPLE' hw/vmapple/Kconfig
+
+      - name: Build Reims staticlib with MinGW Rust
+        shell: msys2 {0}
+        working-directory: upstream/reims-vgpu
+        env:
+          REIMS_VGPU_BACKEND: vulkan
+        run: |
+          set -euxo pipefail
+          export PATH="/mingw64/bin:$PATH"
+          cargo build -p reims-vgpu --release --no-default-features --features backend-vulkan,host-window
+          find target/release -maxdepth 1 -iname '*reims_vgpu*' -ls
+
+      - name: Configure QEMU aarch64-softmmu TCG
+        shell: msys2 {0}
+        working-directory: upstream/reims-vgpu/vendor/qemu
+        env:
+          REIMS_VGPU_BACKEND: vulkan
+        run: |
+          set -euxo pipefail
+          rm -rf build
+          ./configure \
+            --target-list=aarch64-softmmu \
+            --disable-hvf \
+            --disable-werror \
+            --disable-docs \
+            --disable-gtk \
+            --disable-sdl \
+            --disable-vnc \
+            -Dreims_vgpu_backend=vulkan
+
+      - name: Build QEMU/Reims Windows executable
+        shell: msys2 {0}
+        working-directory: upstream/reims-vgpu/vendor/qemu
+        run: |
+          set -euxo pipefail
+          ninja -C build qemu-system-aarch64.exe
+          test -f build/qemu-system-aarch64.exe
+          build/qemu-system-aarch64.exe --version
+          build/qemu-system-aarch64.exe -M help | tee build/machines.txt
+          build/qemu-system-aarch64.exe -device reims-vgpu-mmio,help | tee build/reims-device.txt || true
+          grep -i vmapple build/machines.txt || true
+
+      - name: Upload compile diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reims-windows11-probe
+          path: |
+            upstream/reims-vgpu/vendor/qemu/build/meson-logs
+            upstream/reims-vgpu/vendor/qemu/build/machines.txt
+            upstream/reims-vgpu/vendor/qemu/build/reims-device.txt
+          if-no-files-found: ignore
+          retention-days: 3
