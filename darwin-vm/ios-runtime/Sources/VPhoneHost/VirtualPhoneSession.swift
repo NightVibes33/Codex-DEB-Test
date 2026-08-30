@@ -3,24 +3,31 @@ import VPhoneRuntimeCore
 
 public enum VirtualPhoneSessionError: Error, LocalizedError {
     case runtimeCreationFailed
-    case bootBackendUnavailable
+    case kernelSurfaceCreationFailed
     case runtimeFailure(Int32)
 
     public var errorDescription: String? {
         switch self {
-        case .runtimeCreationFailed: "Could not create the native virtual-phone runtime."
-        case .bootBackendUnavailable: "The vphone600ap machine is configured, but the ARM64 execution backend is not installed yet."
-        case .runtimeFailure(let code): "Virtual-phone runtime failed with status \(code)."
+        case .runtimeCreationFailed:
+            "Could not create the native virtual-phone runtime."
+        case .kernelSurfaceCreationFailed:
+            "Could not attach the Nyxian-compatible userspace kernel surface."
+        case .runtimeFailure(let code):
+            "Virtual-phone runtime failed with status \(code)."
         }
     }
 }
 
-/// VibeContainers-facing owner for one native virtual phone.
-/// The guest lives in its own guest-physical address space; it is not a patched
-/// Mach-O launched inside the host process like a LiveContainer guest.
+/// VibeContainers-facing owner for one standalone virtual phone.
+///
+/// Guest AArch64 executes in the custom interpreter and SVC instructions are
+/// intercepted by the attached Nyxian-compatible userspace microkernel.  The
+/// session does not launch a patched guest Mach-O through LiveContainer and it
+/// has no QEMU, macOS Virtualization.framework or companion-PC dependency.
 public final class VirtualPhoneSession: @unchecked Sendable {
     public let manifest: VPhoneMachineManifest
     private var runtime: OpaquePointer?
+    private var kernelSurface: OpaquePointer?
 
     public init(manifest: VPhoneMachineManifest) throws {
         self.manifest = manifest
@@ -36,15 +43,42 @@ public final class VirtualPhoneSession: @unchecked Sendable {
             throw VirtualPhoneSessionError.runtimeCreationFailed
         }
         runtime = handle
+        guard let surface = vp_ksurface_attach(handle) else {
+            vp_runtime_destroy(handle)
+            runtime = nil
+            throw VirtualPhoneSessionError.kernelSurfaceCreationFailed
+        }
+        kernelSurface = surface
     }
 
     deinit {
+        if let kernelSurface { vp_ksurface_destroy(kernelSurface) }
         if let runtime { vp_runtime_destroy(runtime) }
+    }
+
+    public var state: UInt32 {
+        guard let runtime else { return UInt32(VP_RUNTIME_FAILED.rawValue) }
+        return UInt32(vp_runtime_state(runtime).rawValue)
     }
 
     public var committedGuestBytes: UInt64 {
         guard let runtime else { return 0 }
         return vp_runtime_committed_bytes(runtime)
+    }
+
+    public var instructionsRetired: UInt64 {
+        guard let runtime else { return 0 }
+        return vp_runtime_instructions_retired(runtime)
+    }
+
+    public var syscallsHandled: UInt64 {
+        guard let kernelSurface else { return 0 }
+        return vp_ksurface_syscalls_handled(kernelSurface)
+    }
+
+    public var syscallsRejected: UInt64 {
+        guard let kernelSurface else { return 0 }
+        return vp_ksurface_syscalls_rejected(kernelSurface)
     }
 
     public func writeGuestPhysicalMemory(address: UInt64, data: Data) throws {
@@ -69,13 +103,29 @@ public final class VirtualPhoneSession: @unchecked Sendable {
         return data
     }
 
+    public func loadImage(_ image: Data, at guestAddress: UInt64) throws {
+        try writeGuestPhysicalMemory(address: guestAddress, data: image)
+    }
+
+    public func setEntryPoint(_ guestAddress: UInt64) throws {
+        guard let runtime else { throw VirtualPhoneSessionError.runtimeCreationFailed }
+        let status = vp_runtime_set_boot_vector(runtime, guestAddress)
+        guard status == VP_STATUS_OK else {
+            throw VirtualPhoneSessionError.runtimeFailure(Int32(status.rawValue))
+        }
+    }
+
+    public func setInstructionBudget(_ count: UInt64) {
+        guard let runtime else { return }
+        vp_runtime_set_instruction_budget(runtime, count)
+    }
+
+    /// Runs synchronously; callers should dispatch guest execution away from
+    /// the main actor. Budget exhaustion is a cooperative yield, not a crash.
     public func boot() throws {
         guard let runtime else { throw VirtualPhoneSessionError.runtimeCreationFailed }
         let status = vp_runtime_boot(runtime)
-        if status == VP_STATUS_BACKEND_UNAVAILABLE {
-            throw VirtualPhoneSessionError.bootBackendUnavailable
-        }
-        guard status == VP_STATUS_OK else {
+        guard status == VP_STATUS_OK || status == VP_STATUS_BUDGET_EXHAUSTED else {
             throw VirtualPhoneSessionError.runtimeFailure(Int32(status.rawValue))
         }
     }
