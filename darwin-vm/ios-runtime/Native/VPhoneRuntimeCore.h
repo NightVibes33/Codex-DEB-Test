@@ -22,6 +22,7 @@ typedef enum {
     VP_STATUS_INVALID_STATE = 5,
     VP_STATUS_EXECUTION_FAULT = 6,
     VP_STATUS_BUDGET_EXHAUSTED = 7,
+    VP_STATUS_GUEST_WAITING = 8,
 } VPStatus;
 
 typedef enum {
@@ -30,6 +31,8 @@ typedef enum {
     VP_RUNTIME_RUNNING = 2,
     VP_RUNTIME_STOPPED = 3,
     VP_RUNTIME_FAILED = 4,
+    VP_RUNTIME_WAITING = 5,
+    VP_RUNTIME_PAUSED = 6,
 } VPRuntimeState;
 
 typedef struct {
@@ -111,11 +114,15 @@ uint64_t vp_runtime_boot_vector(const VPRuntime *runtime);
 uint64_t vp_runtime_instructions_retired(const VPRuntime *runtime);
 
 /*
- * Runs guest AArch64 directly through VPhoneAArch64. This is the mandatory
- * standalone fallback used by the IPA: no generic emulator process, companion
- * computer, remote JIT service or macOS Virtualization.framework is required.
+ * Runs or resumes guest AArch64 directly through VPhoneAArch64. CPU state is
+ * persistent across instruction-budget yields and WFI/WFE waits. No generic
+ * emulator process, companion computer, remote JIT service or macOS
+ * Virtualization.framework is required.
  */
 VPStatus vp_runtime_boot(VPRuntime *runtime);
+
+/* Wake a guest stopped in WFI/WFE; the next vp_runtime_boot() resumes at its saved PC. */
+VPStatus vp_runtime_signal_event(VPRuntime *runtime);
 VPStatus vp_runtime_stop(VPRuntime *runtime);
 
 #ifdef __cplusplus
