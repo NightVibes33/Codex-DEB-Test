@@ -10,7 +10,7 @@ extern "C" {
 
 /*
  * Nyxian ksurface ABI compatibility.
- * Values intentionally match emexlab/Nyxian ksurface_abi.h.  The combined
+ * Values intentionally match emexlab/Nyxian ksurface_abi.h. The combined
  * iOS runtime remains userspace-only; these numbers are dispatched by our
  * interpreter and are never forwarded to the host iOS kernel.
  */
@@ -31,7 +31,6 @@ extern "C" {
 #define VP_PECTL_USERSPACE_GETMODE 1u
 #define VP_PECTL_MISC_GETBUILDTYPE 0u
 
-/* A small Darwin-compatible base used by the userspace process model. */
 #define VP_DARWIN_SYS_GETPID  20u
 #define VP_DARWIN_SYS_GETUID  24u
 #define VP_DARWIN_SYS_GETEUID 25u
@@ -55,6 +54,7 @@ typedef struct {
 } VPProcessIdentity;
 
 VPKernelSurface *vp_ksurface_create(VPRuntime *runtime);
+VPKernelSurface *vp_ksurface_attach(VPRuntime *runtime);
 void vp_ksurface_destroy(VPKernelSurface *surface);
 void vp_ksurface_set_identity(VPKernelSurface *surface, const VPProcessIdentity *identity);
 VPProcessIdentity vp_ksurface_identity(const VPKernelSurface *surface);
