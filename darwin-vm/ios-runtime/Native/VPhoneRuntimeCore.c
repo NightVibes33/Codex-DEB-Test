@@ -199,6 +199,55 @@ uint64_t vp_runtime_committed_bytes(const VPRuntime *runtime) {
     return vp_runtime_committed_pages(runtime) * (uint64_t)VP_GUEST_PAGE_SIZE;
 }
 
+static int vp_boot_image_valid(const VPRuntime *runtime, const VPBootImage *image) {
+    if (!image) return 0;
+    if (image->length == 0) return image->bytes == NULL;
+    if (!image->bytes) return 0;
+    return vp_range_valid(runtime, image->guest_address, image->length);
+}
+
+static int vp_boot_image_contains(const VPBootImage *image, uint64_t address) {
+    if (!image || !image->bytes || image->length == 0) return 0;
+    if (address < image->guest_address) return 0;
+    return address - image->guest_address < (uint64_t)image->length;
+}
+
+static VPStatus vp_stage_one_boot_image(VPRuntime *runtime, const VPBootImage *image) {
+    if (!image || image->length == 0) return VP_STATUS_OK;
+    return vp_runtime_memory_write(runtime, image->guest_address, image->bytes, image->length);
+}
+
+VPStatus vp_runtime_stage_boot_images(VPRuntime *runtime, const VPBootImageLayout *layout) {
+    if (!runtime || !layout) return VP_STATUS_INVALID_ARGUMENT;
+    if (runtime->state == VP_RUNTIME_RUNNING) return VP_STATUS_INVALID_STATE;
+
+    const VPBootImage *images[] = {
+        &layout->iboot,
+        &layout->kernelcache,
+        &layout->device_tree,
+        &layout->trust_cache,
+        &layout->ramdisk,
+    };
+
+    int has_image = 0;
+    int entry_is_staged = 0;
+    for (size_t i = 0; i < sizeof(images) / sizeof(images[0]); i++) {
+        if (!vp_boot_image_valid(runtime, images[i])) return VP_STATUS_ADDRESS_OUT_OF_RANGE;
+        if (images[i]->length != 0) has_image = 1;
+        if (vp_boot_image_contains(images[i], layout->entry_address)) entry_is_staged = 1;
+    }
+    if (!has_image || !entry_is_staged) return VP_STATUS_INVALID_ARGUMENT;
+
+    for (size_t i = 0; i < sizeof(images) / sizeof(images[0]); i++) {
+        const VPStatus status = vp_stage_one_boot_image(runtime, images[i]);
+        if (status != VP_STATUS_OK) return status;
+    }
+
+    runtime->boot_vector = layout->entry_address;
+    vp_emit(runtime, "[VibePhone] staged Apple boot image set into guest physical memory\n");
+    return VP_STATUS_OK;
+}
+
 VPStatus vp_runtime_set_boot_vector(VPRuntime *runtime, uint64_t guest_address) {
     if (!runtime) return VP_STATUS_INVALID_ARGUMENT;
     if (runtime->state == VP_RUNTIME_RUNNING) return VP_STATUS_INVALID_STATE;
