@@ -1,6 +1,8 @@
 import Foundation
 import SwiftUI
 import UniformTypeIdentifiers
+@_silgen_name("nyx_runtime_version")
+private func nyxRuntimeVersionCString() -> UnsafePointer<CChar>
 
 @MainActor
 final class NyxPhoneRuntimeModel: ObservableObject {
@@ -243,6 +245,8 @@ struct NyxPhoneRuntimePanel: View {
             List {
                 Section {
                     LabeledContent("Engine", value: "Custom AArch64")
+                    LabeledContent("NyxRuntime", value: String(cString: nyxRuntimeVersionCString()))
+                    LabeledContent("Nyxian", value: "not booted")
                     LabeledContent("Guest platform", value: "vresearch101")
                     LabeledContent("Kernel surface", value: "Nyxian ABI")
                     LabeledContent("QEMU", value: "None")

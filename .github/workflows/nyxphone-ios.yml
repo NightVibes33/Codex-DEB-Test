@@ -310,7 +310,7 @@ jobs:
             DEVELOPMENT_TEAM= \
             SWIFT_INCLUDE_PATHS="$ROOT/Runtime/Core $ROOT/Runtime/include" \
             'OTHER_SWIFT_FLAGS=$(inherited) -Xcc -fmodule-map-file='"$ROOT"'/Runtime/Core/module.modulemap -Xcc -I'"$ROOT"'/Runtime/Core -Xcc -I'"$ROOT"'/Runtime/include' \
-            'OTHER_LDFLAGS=$(inherited) -Wl,-force_load,'"$LIB" \
+            'OTHER_LDFLAGS=$(inherited) -Wl,-u,_nyx_runtime_version -Wl,-force_load,'"$LIB" \
             build
 
           APP="$(find "$GITHUB_WORKSPACE/DerivedData/Build/Products/Release-iphoneos" -maxdepth 1 -name '*.app' -type d | head -1)"
