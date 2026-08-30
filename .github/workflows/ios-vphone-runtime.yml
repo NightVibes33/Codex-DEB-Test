@@ -243,6 +243,38 @@ jobs:
           python3 scripts/apply_virtual_host_lock.py
           python3 scripts/apply_exact_appwindow_guest_control_v10.py
           python3 scripts/apply_home_layout_persistence.py
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("LiveContainer-3.8.0/MultitaskSupport/MultitaskDockView.swift")
+          source = path.read_text()
+          old = """            .modifier { content in
+                if #available(iOS 26.0, *), SharedModel.isLiquidGlassEnabled {
+                    content.glassEffect(.regular, in: .rect(cornerRadius: 15))
+                } else {
+                    content.background(
+                        RoundedRectangle(cornerRadius: 15)
+                            .fill(Color.black.opacity(dockManager.isDockHidden ? 0.3 : 0.7))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 15)
+                                    .stroke(Color.white.opacity(dockManager.isDockHidden ? 0.1 : 0.3), lineWidth: 1)
+                            )
+                    )
+                }
+            }
+"""
+          new = """            .background(
+                RoundedRectangle(cornerRadius: 15)
+                    .fill(Color.black.opacity(dockManager.isDockHidden ? 0.3 : 0.7))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 15)
+                            .stroke(Color.white.opacity(dockManager.isDockHidden ? 0.1 : 0.3), lineWidth: 1)
+                    )
+            )
+"""
+          if old not in source:
+              raise SystemExit("Expected MultitaskDockSwiftView modifier not found")
+          path.write_text(source.replace(old, new, 1))
+          PY
 
       - name: Build VibePhone native runtime for iphoneos
         shell: bash
