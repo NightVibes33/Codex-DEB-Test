@@ -46,7 +46,8 @@ int main(void) {
     VPRuntime *rt = vp_runtime_create(&cfg);
     if (!rt) return 10;
 
-    const uint64_t base = UINT64_C(0x10000);
+    /* Keep the synthetic ERET target within MOVZ's low 16-bit range. */
+    const uint64_t base = UINT64_C(0x8000);
     const uint64_t eret_target = base + UINT64_C(0x80);
     const uint32_t program[] = {
         mrs(0, SYS_CURRENTEL),                /* x0 = 4 (EL1) */
@@ -57,7 +58,7 @@ int main(void) {
         UINT32_C(0xD4400000),                 /* HLT: must be skipped */
         UINT32_C(0xD503207F),                 /* WFI */
         mrs(4, SYS_CURRENTEL),
-        movz_x(5, (unsigned)(eret_target & 0xFFFFu)),
+        movz_x(5, (unsigned)eret_target),
         msr(SYS_ELR_EL1, 5),
         movz_x(6, 0x0005),                    /* SPSR: EL1h */
         msr(SYS_SPSR_EL1, 6),
@@ -74,18 +75,20 @@ int main(void) {
     VPAArch64CPU cpu;
     vp_aarch64_reset(&cpu, base);
 
-    for (int i = 0; i < 6; i++) {
+    /* Execute through CBZ. It must skip the HLT and land on WFI. */
+    for (int i = 0; i < 5; i++) {
         const int rc = step_expect(rt, &cpu, VP_CPU_STEP_OK, 20 + i);
         if (rc) return rc;
     }
     if (cpu.x[0] != 4 || cpu.x[2] != UINT64_C(0x1234)) return 30;
-    if (cpu.pc != base + 7 * 4) return 31; /* CBZ skipped HLT and WFI advanced PC. */
+    if (cpu.pc != base + 6 * 4) return 31;
 
-    /* The sixth executed instruction was WFI. */
-    if (!cpu.waiting) return 32;
-    if (vp_aarch64_step(rt, &cpu, NULL) != VP_CPU_STEP_WAITING) return 33;
+    if (step_expect(rt, &cpu, VP_CPU_STEP_WAITING, 32)) return 32;
+    if (!cpu.waiting || cpu.pc != base + 7 * 4) return 33;
+    if (vp_aarch64_step(rt, &cpu, NULL) != VP_CPU_STEP_WAITING) return 34;
     vp_aarch64_wake(&cpu);
 
+    /* MRS, ELR write, SPSR write and ERET. */
     for (int i = 0; i < 6; i++) {
         const int rc = step_expect(rt, &cpu, VP_CPU_STEP_OK, 40 + i);
         if (rc) return rc;
