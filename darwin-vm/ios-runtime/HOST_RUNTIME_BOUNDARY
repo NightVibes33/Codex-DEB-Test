@@ -1,0 +1,1 @@
+SwiftUI host shell drives a native runtime bridge; guest runs in virtualized/emulated guest address space, not as a patched host Mach-O
