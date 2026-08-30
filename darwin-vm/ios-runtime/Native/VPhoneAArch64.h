@@ -14,6 +14,7 @@ typedef struct {
     uint64_t pc;
     uint64_t pstate;
     uint64_t instructions_retired;
+    uint64_t syscalls_retired;
     uint32_t halted;
 } VPAArch64CPU;
 
@@ -22,6 +23,7 @@ typedef enum {
     VP_CPU_STEP_HALTED = 1,
     VP_CPU_STEP_MEMORY_FAULT = 2,
     VP_CPU_STEP_UNIMPLEMENTED = 3,
+    VP_CPU_STEP_SYSCALL_FAULT = 4,
 } VPCPUStepResult;
 
 void vp_aarch64_reset(VPAArch64CPU *cpu, uint64_t reset_vector);
