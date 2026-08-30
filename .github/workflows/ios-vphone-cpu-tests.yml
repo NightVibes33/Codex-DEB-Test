@@ -1,0 +1,52 @@
+name: iOS VibePhone CPU Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - temp/darwin-vm-windows11
+    paths:
+      - 'darwin-vm/ios-runtime/Native/VPhoneAArch64.*'
+      - 'darwin-vm/ios-runtime/Native/VPhoneRuntimeCore.*'
+      - 'darwin-vm/ios-runtime/Tests/**'
+      - '.github/workflows/ios-vphone-cpu-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  boot-control:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/darwin-vm-windows11
+
+      - name: Compile and run AArch64 boot-control tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/darwin-vm/ios-runtime"
+          clang -std=c11 -Wall -Wextra -Werror -O2 \
+            -I "$ROOT/Native" \
+            "$ROOT/Native/VPhoneRuntimeCore.c" \
+            "$ROOT/Native/VPhoneAArch64.c" \
+            "$ROOT/Tests/AArch64BootControlTests.c" \
+            -o "$RUNNER_TEMP/vibephone-aarch64-tests"
+          "$RUNNER_TEMP/vibephone-aarch64-tests"
+
+      - name: Cross-compile same CPU core for real iphoneos arm64
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/darwin-vm/ios-runtime"
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          xcrun --sdk iphoneos clang \
+            -target arm64-apple-ios17.0 \
+            -isysroot "$SDK" \
+            -std=c11 -Wall -Wextra -Werror -O2 \
+            -I "$ROOT/Native" \
+            -c "$ROOT/Native/VPhoneAArch64.c" \
+            -o "$RUNNER_TEMP/VPhoneAArch64-ios.o"
+          xcrun nm "$RUNNER_TEMP/VPhoneAArch64-ios.o" | grep '_vp_aarch64_step'
+          xcrun nm "$RUNNER_TEMP/VPhoneAArch64-ios.o" | grep '_vp_aarch64_wake'
