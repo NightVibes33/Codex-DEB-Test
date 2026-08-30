@@ -35,18 +35,34 @@ jobs:
             -o "$RUNNER_TEMP/vibephone-aarch64-tests"
           "$RUNNER_TEMP/vibephone-aarch64-tests"
 
-      - name: Cross-compile same CPU core for real iphoneos arm64
+      - name: Compile and run persistent runtime resume tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/darwin-vm/ios-runtime"
+          clang -std=c11 -Wall -Wextra -Werror -O2 \
+            -I "$ROOT/Native" \
+            "$ROOT/Native/VPhoneRuntimeCore.c" \
+            "$ROOT/Native/VPhoneAArch64.c" \
+            "$ROOT/Tests/RuntimeResumeTests.c" \
+            -o "$RUNNER_TEMP/vibephone-runtime-resume-tests"
+          "$RUNNER_TEMP/vibephone-runtime-resume-tests"
+
+      - name: Cross-compile same CPU runtime for real iphoneos arm64
         shell: bash
         run: |
           set -euo pipefail
           ROOT="$GITHUB_WORKSPACE/darwin-vm/ios-runtime"
           SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
-          xcrun --sdk iphoneos clang \
-            -target arm64-apple-ios17.0 \
-            -isysroot "$SDK" \
-            -std=c11 -Wall -Wextra -Werror -O2 \
-            -I "$ROOT/Native" \
-            -c "$ROOT/Native/VPhoneAArch64.c" \
-            -o "$RUNNER_TEMP/VPhoneAArch64-ios.o"
+          for SRC in VPhoneRuntimeCore VPhoneAArch64; do
+            xcrun --sdk iphoneos clang \
+              -target arm64-apple-ios17.0 \
+              -isysroot "$SDK" \
+              -std=c11 -Wall -Wextra -Werror -O2 \
+              -I "$ROOT/Native" \
+              -c "$ROOT/Native/$SRC.c" \
+              -o "$RUNNER_TEMP/$SRC-ios.o"
+          done
           xcrun nm "$RUNNER_TEMP/VPhoneAArch64-ios.o" | grep '_vp_aarch64_step'
           xcrun nm "$RUNNER_TEMP/VPhoneAArch64-ios.o" | grep '_vp_aarch64_wake'
+          xcrun nm "$RUNNER_TEMP/VPhoneRuntimeCore-ios.o" | grep '_vp_runtime_signal_event'
