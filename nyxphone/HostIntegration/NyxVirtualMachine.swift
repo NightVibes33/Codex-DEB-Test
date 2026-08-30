@@ -1,6 +1,6 @@
 import Foundation
 
-/// NyxPhone-facing Swift owner for one NyxRuntime interpreter instance.
+/// ViPhone-facing Swift owner for one NyxRuntime interpreter instance.
 public final class NyxVirtualMachine: @unchecked Sendable {
     private let session: VirtualPhoneSession
 

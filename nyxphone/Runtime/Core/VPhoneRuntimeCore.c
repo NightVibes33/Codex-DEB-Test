@@ -200,6 +200,24 @@ VPStatus vp_runtime_memory_write(VPRuntime *runtime, uint64_t address, const voi
     return VP_STATUS_OK;
 }
 
+VPStatus vp_runtime_console_write(VPRuntime *runtime, uint64_t guest_address, size_t length) {
+    if (!runtime) return VP_STATUS_INVALID_ARGUMENT;
+    if (!vp_range_valid(runtime, guest_address, length)) return VP_STATUS_ADDRESS_OUT_OF_RANGE;
+    uint8_t buffer[256];
+    size_t remaining = length;
+    while (remaining) {
+        size_t chunk = remaining < sizeof(buffer) ? remaining : sizeof(buffer);
+        VPStatus status = vp_runtime_memory_read(runtime, guest_address, buffer, chunk);
+        if (status != VP_STATUS_OK) return status;
+        if (runtime->serial_callback) {
+            runtime->serial_callback(buffer, chunk, runtime->serial_context);
+        }
+        guest_address += chunk;
+        remaining -= chunk;
+    }
+    return VP_STATUS_OK;
+}
+
 uint64_t vp_runtime_committed_pages(const VPRuntime *runtime) {
     return runtime ? runtime->committed_pages : 0;
 }

@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 
 @MainActor
-private enum NyxPhoneRuntimeUIInstaller {
+private enum ViPhoneRuntimeUIInstaller {
     private static var installed = false
     private static var observer: NSObjectProtocol?
     private static weak var runtimeButton: UIButton?
@@ -36,7 +36,7 @@ private enum NyxPhoneRuntimeUIInstaller {
         configuration.cornerStyle = .capsule
         configuration.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12)
         button.configuration = configuration
-        button.accessibilityLabel = "Open NyxPhone Runtime"
+        button.accessibilityLabel = "Open ViPhone Runtime"
         button.addAction(UIAction { _ in
             Task { @MainActor in presentRuntimePanel() }
         }, for: .touchUpInside)
@@ -57,8 +57,8 @@ private enum NyxPhoneRuntimeUIInstaller {
 
     private static func presentRuntimePanel() {
         guard let presenter = topPresenter(from: foregroundWindow()?.rootViewController) else { return }
-        if presenter is UIHostingController<NyxPhoneRuntimePanel> { return }
-        let controller = UIHostingController(rootView: NyxPhoneRuntimePanel())
+        if presenter is UIHostingController<ViPhoneRuntimePanel> { return }
+        let controller = UIHostingController(rootView: ViPhoneRuntimePanel())
         controller.modalPresentationStyle = .pageSheet
         if let sheet = controller.sheetPresentationController {
             sheet.detents = [.medium(), .large()]
@@ -97,9 +97,9 @@ private enum NyxPhoneRuntimeUIInstaller {
 /// Exported as a C symbol so the force-loaded native runtime can ask the
 /// VibeContainers host to install its control surface without modifying the
 /// upstream VibeContainers project file or requiring a second app entry point.
-@_cdecl("NyxPhoneInstallRuntimeUI")
-public func NyxPhoneInstallRuntimeUI() {
+@_cdecl("ViPhoneInstallRuntimeUI")
+public func ViPhoneInstallRuntimeUI() {
     Task { @MainActor in
-        NyxPhoneRuntimeUIInstaller.install()
+        ViPhoneRuntimeUIInstaller.install()
     }
 }
