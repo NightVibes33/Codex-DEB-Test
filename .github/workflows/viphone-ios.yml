@@ -191,6 +191,8 @@ jobs:
           grep -F "[NYXRT] runtime initialized" "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry.log"
           grep -F "[NYXRT] Nyxian loaded" "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry.log"
           grep -F "[NYXIAN] kernel entry reached" "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry.log"
+          grep -F "[NYXDARWIN] nyxinit started" "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry.log"
+          grep -F "hello from Nyxian userspace" "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry.log"
 
       - name: Compile custom native core for real iPhone and iPad
         shell: bash
@@ -258,11 +260,11 @@ jobs:
         with:
           ref: temp/darwin-vm-windows11
 
-      - name: Download verified Nyxian development entry
+      - name: Download verified built-in Nyxian guest
         uses: actions/download-artifact@v4
         with:
           name: viphone-ios-runtime-core
-          path: ${{ runner.temp }}/viphone-runtime-core
+          path: ${{ runner.temp }}/viphone-built-in-guest
 
       - name: Fetch pinned VibeContainers Nyxian and vphone-cli sources
         shell: bash
@@ -358,12 +360,17 @@ jobs:
 
           APP="$(find "$GITHUB_WORKSPACE/DerivedData/Build/Products/Release-iphoneos" -maxdepth 1 -name '*.app' -type d | head -1)"
           test -n "$APP"
-          DEV_KERNEL="$(find "$RUNNER_TEMP/viphone-runtime-core" -name nyxian-entry.bin -type f | head -1)"
-          test -s "$DEV_KERNEL"
-          mkdir -p "$APP/ViPhoneDevelopment"
-          cp "$DEV_KERNEL" "$APP/ViPhoneDevelopment/Nyxian.bin"
-          test -s "$APP/ViPhoneDevelopment/Nyxian.bin"
+          BUILTIN_GUEST="$(find "$RUNNER_TEMP/viphone-built-in-guest" -name nyxian-entry.bin -type f | head -1)"
+          test -s "$BUILTIN_GUEST"
+          mkdir -p "$APP/ViPhoneGuest"
+          cp "$BUILTIN_GUEST" "$APP/ViPhoneGuest/Nyxian.bin"
+          test -s "$APP/ViPhoneGuest/Nyxian.bin"
           EXE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist")"
+          file "$APP/$EXE" | tee "$RUNNER_TEMP/viphone-device-binary.txt"
+          file "$APP/$EXE" | grep -qi arm64
+          /usr/bin/plutil -p "$APP/Info.plist" | tee "$RUNNER_TEMP/viphone-info-plist.txt"
+          grep -q 'iPhoneOS' "$RUNNER_TEMP/viphone-info-plist.txt"
+          if grep -q 'iPhoneSimulator' "$RUNNER_TEMP/viphone-info-plist.txt"; then exit 1; fi
           xcrun nm "$APP/$EXE" | grep '_vp_runtime_boot'
           xcrun nm "$APP/$EXE" | grep '_vp_runtime_stage_boot_images'
           xcrun nm "$APP/$EXE" | grep '_vp_aarch64_step'
@@ -391,7 +398,8 @@ jobs:
             "coreABI": 3,
             "execution": "ViPhone custom AArch64 runtime",
             "appleBootImageStaging": true,
-            "developmentNyxianEmbedded": true,
+            "builtInNyxianEmbedded": true,
+            "builtInNyxinitEL0": true,
             "qemu": false,
             "virtualizationFramework": false,
             "companionPCRequired": false
@@ -402,7 +410,9 @@ jobs:
 
           rm -rf "$GITHUB_WORKSPACE/Payload"
           mkdir -p "$GITHUB_WORKSPACE/Payload"
-          cp -R "$APP" "$GITHUB_WORKSPACE/Payload/"
+          cp -R "$APP" "$GITHUB_WORKSPACE/Payload/ViPhone.app"
+          test -s "$GITHUB_WORKSPACE/Payload/ViPhone.app/$EXE"
+          test -s "$GITHUB_WORKSPACE/Payload/ViPhone.app/ViPhoneGuest/Nyxian.bin"
           cd "$GITHUB_WORKSPACE"
           /usr/bin/zip -qry ViPhone-unsigned.ipa Payload
           test -s ViPhone-unsigned.ipa

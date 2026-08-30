@@ -104,6 +104,20 @@ VPStatus vp_ksurface_handle_syscall(
     }
 
     switch (number) {
+        case VP_NYX_SYS_CONSOLE_WRITE:
+            if (args[1] > 4096u) {
+                *result = vp_errno_result(E2BIG);
+                surface->rejected++;
+                return VP_STATUS_OK;
+            }
+            if (vp_runtime_console_write(runtime, args[0], (size_t)args[1]) != VP_STATUS_OK) {
+                *result = vp_errno_result(EFAULT);
+                surface->rejected++;
+                return VP_STATUS_OK;
+            }
+            *result = 0;
+            surface->handled++;
+            return VP_STATUS_OK;
         case VP_DARWIN_SYS_GETPID:
             *result = (uint64_t)(uint32_t)surface->identity.pid;
             break;

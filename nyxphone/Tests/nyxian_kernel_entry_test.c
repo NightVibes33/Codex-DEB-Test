@@ -34,10 +34,12 @@ int main(int argc, char **argv) {
     nyx_vm_set_log_callback(vm, capture, NULL);
     if (nyx_vm_load_kernel_bytes(vm, image, (size_t)file_size, 0x100000, 0x100000) != 0) return 9;
     if (nyx_vm_start(vm) != 0) return 10;
-    if (nyx_vm_instructions_retired(vm) < 4) return 11;
+    if (nyx_vm_instructions_retired(vm) < 15) return 11;
     if (!strstr(logs, "[NYXRT] runtime initialized")) return 12;
     if (!strstr(logs, "[NYXRT] Nyxian loaded")) return 13;
     if (!strstr(logs, "[NYXIAN] kernel entry reached")) return 14;
+    if (!strstr(logs, "[NYXDARWIN] nyxinit started")) return 15;
+    if (!strstr(logs, "hello from Nyxian userspace")) return 16;
     fputs(logs, stdout);
     nyx_vm_destroy(vm);
     free(image);

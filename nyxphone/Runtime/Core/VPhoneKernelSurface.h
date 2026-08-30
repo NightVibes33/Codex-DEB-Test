@@ -20,6 +20,7 @@ extern "C" {
 #define VP_NYX_SYS_WAITTASK    759u
 #define VP_NYX_SYS_PECTL       760u
 #define VP_NYX_SYS_SIGN        761u
+#define VP_NYX_SYS_CONSOLE_WRITE 0x7F00u
 
 #define VP_PECTL_CATEGORY_LAUNCH_SERVICE 0u
 #define VP_PECTL_CATEGORY_CODE_SIGNING   1u
