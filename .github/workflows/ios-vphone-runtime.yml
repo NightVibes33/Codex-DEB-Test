@@ -232,6 +232,18 @@ jobs:
           test -f "$RUNNER_TEMP/vphone-cli/scripts/cfw_install_jb.sh"
           test -f "$RUNNER_TEMP/vphone-cli/research/iboot_patches.md"
 
+      - name: Apply pinned VibeContainers host build fixes
+        shell: bash
+        working-directory: VibeContainersHost
+        run: |
+          set -euo pipefail
+          python3 scripts/apply_installer_fixes.py
+          python3 scripts/apply_installer_followups.py
+          python3 scripts/apply_xcode26_fixes.py
+          python3 scripts/apply_virtual_host_lock.py
+          python3 scripts/apply_exact_appwindow_guest_control_v10.py
+          python3 scripts/apply_home_layout_persistence.py
+
       - name: Build VibePhone native runtime for iphoneos
         shell: bash
         run: |
