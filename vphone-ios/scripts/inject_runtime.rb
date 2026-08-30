@@ -29,5 +29,14 @@ headers.each do |name|
   kernel_group.files.find { |file| file.path == name } || kernel_group.new_file(name)
 end
 
+target.build_configurations.each do |config|
+  flags = config.build_settings['OTHER_LDFLAGS']
+  flags = ['$(inherited)'] if flags.nil?
+  flags = [flags] if flags.is_a?(String)
+  marker_flag = '-Wl,-u,_VPhoneRuntimeBuildMarker'
+  flags << marker_flag unless flags.include?(marker_flag)
+  config.build_settings['OTHER_LDFLAGS'] = flags
+end
+
 project.save
 puts "Injected VibeKernel sources into #{target.name}"
