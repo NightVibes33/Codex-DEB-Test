@@ -3,7 +3,7 @@
 .globl _nyxian_entry
 _nyxian_entry:
     adr x0, nyxian_entry_message
-    mov x1, #nyxian_entry_message_end - nyxian_entry_message
+    mov x1, #30
     hvc #0x4e58
     hlt #0
 
