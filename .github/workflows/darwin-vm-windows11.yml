@@ -98,9 +98,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: darwin-vm-full-ui-probe
-          path: full-ui-probe
+          path: |
+            full-ui-probe/report.txt
+            full-ui-probe/remote-files.txt
+            full-ui-probe/fs-extract.json
+            full-ui-probe/fs-extract.stderr
+          if-no-files-found: ignore
           retention-days: 3
-          compression-level: 1
+          compression-level: 6
 
   build-windows:
     name: Build native Windows 11 executable
