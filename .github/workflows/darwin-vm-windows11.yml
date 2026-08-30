@@ -1,0 +1,166 @@
+name: Darwin VM Windows 11
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - temp/darwin-vm-windows11
+    paths:
+      - .github/workflows/darwin-vm-windows11.yml
+      - darwin-vm/windows-launcher.c
+
+permissions:
+  contents: read
+
+jobs:
+  prepare-firmware:
+    name: Prepare iOS firmware on macOS
+    runs-on: macos-15
+    timeout-minutes: 120
+    steps:
+      - name: Clone darwin-vm
+        run: |
+          git clone --depth 1 https://github.com/jprx/darwin-vm.git upstream/darwin-vm
+
+      - name: Install macOS dependencies
+        run: |
+          brew install jq wget blacktop/tap/ipsw
+          ipsw version || ipsw --version || true
+
+      - name: Download and patch default iPhone 16 firmware
+        working-directory: upstream/darwin-vm
+        run: |
+          chmod +x get_files.sh fix_perms.sh
+          ./get_files.sh
+          printf 'y\n' | ./fix_perms.sh firmware/ramdisk.dmg
+          echo "Prepared firmware:"
+          du -sh firmware
+          ls -lh firmware
+
+      - name: Upload prepared firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: darwin-vm-firmware
+          path: upstream/darwin-vm/firmware
+          retention-days: 3
+          compression-level: 1
+
+  build-windows:
+    name: Build native Windows 11 executable
+    needs: prepare-firmware
+    runs-on: windows-2025
+    timeout-minutes: 120
+    steps:
+      - name: Checkout test branch
+        uses: actions/checkout@v4
+
+      - name: Clone darwin-vm with qemu-sptm
+        shell: pwsh
+        run: |
+          git clone --recurse-submodules https://github.com/jprx/darwin-vm.git upstream/darwin-vm
+          git -C upstream/darwin-vm submodule status
+
+      - name: Download prepared firmware
+        uses: actions/download-artifact@v4
+        with:
+          name: darwin-vm-firmware
+          path: upstream/darwin-vm/firmware
+
+      - name: Set up MSYS2 / MinGW64
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            base-devel
+            bison
+            diffutils
+            flex
+            git
+            grep
+            make
+            sed
+            mingw-w64-x86_64-binutils
+            mingw-w64-x86_64-ca-certificates
+            mingw-w64-x86_64-ccache
+            mingw-w64-x86_64-curl-winssl
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-glib2
+            mingw-w64-x86_64-libnfs
+            mingw-w64-x86_64-libssh
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-pixman
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-python
+            mingw-w64-x86_64-python-certifi
+            mingw-w64-x86_64-python-setuptools
+            mingw-w64-x86_64-python-wheel
+            mingw-w64-x86_64-rust
+            mingw-w64-x86_64-rust-bindgen
+            mingw-w64-x86_64-zstd
+
+      - name: Build qemu-sptm for Windows
+        shell: msys2 {0}
+        run: |
+          set -euxo pipefail
+          cd "$GITHUB_WORKSPACE/upstream/darwin-vm/qemu-sptm"
+          mkdir -p build
+          cd build
+          ../configure \
+            --target-list=aarch64-softmmu \
+            --disable-werror \
+            --disable-docs \
+            --disable-gtk \
+            --disable-sdl \
+            --disable-vnc \
+            --disable-opengl \
+            --disable-virglrenderer
+          make -j"$(nproc)"
+          test -f qemu-system-aarch64.exe
+          ./qemu-system-aarch64.exe --version
+          ./qemu-system-aarch64.exe -machine help | tee machine-help.txt
+          grep -i darwin machine-help.txt
+
+      - name: Build portable Windows launcher and bundle
+        shell: msys2 {0}
+        run: |
+          set -euxo pipefail
+          DIST="$GITHUB_WORKSPACE/dist/DarwinVM-Windows11"
+          QEMU="$GITHUB_WORKSPACE/upstream/darwin-vm/qemu-sptm/build/qemu-system-aarch64.exe"
+          mkdir -p "$DIST/firmware"
+
+          cp "$QEMU" "$DIST/qemu-system-aarch64.exe"
+          cp -R "$GITHUB_WORKSPACE/upstream/darwin-vm/firmware/." "$DIST/firmware/"
+
+          gcc -O2 -s -municode \
+            "$GITHUB_WORKSPACE/darwin-vm/windows-launcher.c" \
+            -o "$DIST/DarwinVM-Windows11.exe"
+
+          # Copy every MinGW DLL required by this qemu binary.
+          ldd "$QEMU" | tee "$DIST/qemu-runtime-deps.txt"
+          ldd "$QEMU" | awk '/\/mingw64\/bin\// {print $3}' | while read -r dll; do
+            [ -f "$dll" ] && cp -n "$dll" "$DIST/"
+          done
+
+          cat > "$DIST/README-Windows.txt" <<'EOF'
+          Darwin VM - Windows 11 test build
+
+          Run: DarwinVM-Windows11.exe
+          Self-test: DarwinVM-Windows11.exe --self-test
+          Exit QEMU: Ctrl+A, then X
+
+          This is the darwin-vm barebones Darwin/iOS root-shell VM, not a graphical iPhone simulator.
+          Firmware was prepared on a GitHub-hosted macOS runner; qemu-sptm and the launcher were built on a GitHub-hosted Windows runner.
+          EOF
+
+          "$DIST/DarwinVM-Windows11.exe" --self-test
+          ls -lah "$DIST"
+          du -sh "$DIST"
+
+      - name: Upload Windows 11 portable build
+        uses: actions/upload-artifact@v4
+        with:
+          name: DarwinVM-Windows11-portable
+          path: dist/DarwinVM-Windows11
+          retention-days: 3
+          compression-level: 1
