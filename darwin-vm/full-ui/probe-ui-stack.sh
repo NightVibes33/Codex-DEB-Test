@@ -58,9 +58,47 @@ if [[ -z "$DMG" ]]; then
 fi
 
 echo "filesystem image: $DMG"
+
+# Modern IPSWs ship their filesystem as an Apple Encrypted Archive (.dmg.aea).
+# Current ipsw releases know the AEA FCS keys; ask ipsw to unwrap it before
+# falling back to selective filesystem extraction.
 if [[ "$DMG" == *.aea ]]; then
-  echo "Filesystem remained AEA-encrypted; mount probe cannot continue yet."
-  exit 0
+  echo
+echo "== Decrypt AEA filesystem =="
+  mkdir -p "$OUT/decrypted"
+  set +e
+  ipsw fw aea "$DMG" --output "$OUT/decrypted" > "$OUT/aea-decrypt.stdout" 2> "$OUT/aea-decrypt.stderr"
+  AEA_RC=$?
+  set -e
+  cat "$OUT/aea-decrypt.stdout" || true
+  cat "$OUT/aea-decrypt.stderr" || true
+
+  DECRYPTED="$(find "$OUT/decrypted" -type f -name '*.dmg' -print | head -n1 || true)"
+  if [[ $AEA_RC -eq 0 && -n "$DECRYPTED" ]]; then
+    DMG="$DECRYPTED"
+    echo "decrypted filesystem image: $DMG"
+  else
+    echo "Direct AEA unwrap did not produce a DMG (rc=$AEA_RC)."
+    echo "Trying ipsw's filesystem-aware selective extraction path."
+    mkdir -p "$OUT/selected"
+    UI_PATTERN='SpringBoard\.app(/SpringBoard)?$|/backboardd$|/bluetoothd$|/wifid$|BackBoardServices\.framework|AppleParavirt(GPU|Display)|AppleVirtIO|AppleVirtualPlatform'
+    set +e
+    ipsw extract --remote --files --pattern "$UI_PATTERN" \
+      --output "$OUT/selected" "$URL" > "$OUT/selective-extract.stdout" 2> "$OUT/selective-extract.stderr"
+    SELECT_RC=$?
+    set -e
+    cat "$OUT/selective-extract.stdout" || true
+    cat "$OUT/selective-extract.stderr" || true
+    echo "selective extraction rc=$SELECT_RC"
+    find "$OUT/selected" -type f -print 2>/dev/null | sed "s#^$OUT/selected/##" | tee "$OUT/selected-files.txt" || true
+    if [[ ! -s "$OUT/selected-files.txt" ]]; then
+      echo "No selected UI files were extracted."
+    fi
+    # Do not keep extracted Apple binaries in the CI artifact; the report and
+    # relative file list are sufficient for the probe.
+    rm -rf "$OUT/selected"
+    exit 0
+  fi
 fi
 
 MNT="$(mktemp -d)"
@@ -109,7 +147,7 @@ probe_path bluetoothd \
 
 echo
 echo "== Graphics / input / wireless driver candidates =="
-find "$MNT/System/Library" -maxdepth 5 \( -iname '*AGX*' -o -iname '*DCP*' -o -iname '*Display*' -o -iname '*Multitouch*' -o -iname '*Touch*' -o -iname '*WLAN*' -o -iname '*WiFi*' -o -iname '*Bluetooth*' \) -print 2>/dev/null | head -n 500 || true
+find "$MNT/System/Library" -maxdepth 5 \( -iname '*AGX*' -o -iname '*DCP*' -o -iname '*Paravirt*' -o -iname '*VirtIO*' -o -iname '*Display*' -o -iname '*Multitouch*' -o -iname '*Touch*' -o -iname '*WLAN*' -o -iname '*WiFi*' -o -iname '*Bluetooth*' \) -print 2>/dev/null | head -n 500 || true
 
 echo
 echo "== Launch service candidates =="
