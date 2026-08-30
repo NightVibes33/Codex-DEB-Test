@@ -25,6 +25,8 @@ struct VPRuntime {
     uint64_t boot_vector;
     uint64_t instruction_budget;
     uint64_t instructions_retired;
+    VPAArch64CPU cpu;
+    int cpu_initialized;
     int stop_requested;
 };
 
@@ -84,6 +86,13 @@ static VPStatus vp_execution_failure(VPRuntime *runtime, const char *kind, const
     vp_emit(runtime, message);
     runtime->state = VP_RUNTIME_FAILED;
     return VP_STATUS_EXECUTION_FAULT;
+}
+
+static void vp_runtime_invalidate_cpu(VPRuntime *runtime) {
+    if (!runtime) return;
+    memset(&runtime->cpu, 0, sizeof(runtime->cpu));
+    runtime->cpu_initialized = 0;
+    runtime->instructions_retired = 0;
 }
 
 uint32_t vp_runtime_abi_version(void) {
@@ -244,6 +253,8 @@ VPStatus vp_runtime_stage_boot_images(VPRuntime *runtime, const VPBootImageLayou
     }
 
     runtime->boot_vector = layout->entry_address;
+    vp_runtime_invalidate_cpu(runtime);
+    runtime->state = VP_RUNTIME_READY;
     vp_emit(runtime, "[VibePhone] staged Apple boot image set into guest physical memory\n");
     return VP_STATUS_OK;
 }
@@ -253,6 +264,8 @@ VPStatus vp_runtime_set_boot_vector(VPRuntime *runtime, uint64_t guest_address) 
     if (runtime->state == VP_RUNTIME_RUNNING) return VP_STATUS_INVALID_STATE;
     if (!vp_range_valid(runtime, guest_address, sizeof(uint32_t))) return VP_STATUS_ADDRESS_OUT_OF_RANGE;
     runtime->boot_vector = guest_address;
+    vp_runtime_invalidate_cpu(runtime);
+    runtime->state = VP_RUNTIME_READY;
     return VP_STATUS_OK;
 }
 
@@ -271,52 +284,92 @@ uint64_t vp_runtime_instructions_retired(const VPRuntime *runtime) {
 
 VPStatus vp_runtime_boot(VPRuntime *runtime) {
     if (!runtime) return VP_STATUS_INVALID_ARGUMENT;
-    if (runtime->state != VP_RUNTIME_READY && runtime->state != VP_RUNTIME_STOPPED) {
+    if (runtime->state != VP_RUNTIME_READY &&
+        runtime->state != VP_RUNTIME_STOPPED &&
+        runtime->state != VP_RUNTIME_PAUSED &&
+        runtime->state != VP_RUNTIME_WAITING) {
         return VP_STATUS_INVALID_STATE;
     }
 
-    VPAArch64CPU cpu;
-    vp_aarch64_reset(&cpu, runtime->boot_vector);
+    if (runtime->state == VP_RUNTIME_WAITING && runtime->cpu.waiting) {
+        return VP_STATUS_GUEST_WAITING;
+    }
+
+    if (!runtime->cpu_initialized ||
+        runtime->state == VP_RUNTIME_READY ||
+        runtime->state == VP_RUNTIME_STOPPED) {
+        vp_aarch64_reset(&runtime->cpu, runtime->boot_vector);
+        runtime->cpu_initialized = 1;
+        runtime->instructions_retired = 0;
+        vp_emit(runtime, "[VibePhone] custom AArch64 runtime entered guest execution\n");
+    } else {
+        vp_emit(runtime, "[VibePhone] resuming saved guest CPU state\n");
+    }
+
     runtime->state = VP_RUNTIME_RUNNING;
     runtime->stop_requested = 0;
-    runtime->instructions_retired = 0;
-    vp_emit(runtime, "[VibePhone] custom AArch64 runtime entered guest execution\n");
-
+    const uint64_t start_retired = runtime->cpu.instructions_retired;
     const uint64_t budget = runtime->instruction_budget ? runtime->instruction_budget : VP_DEFAULT_INSTRUCTION_BUDGET;
-    while (!runtime->stop_requested && cpu.instructions_retired < budget) {
+
+    while (!runtime->stop_requested &&
+           runtime->cpu.instructions_retired - start_retired < budget) {
         uint32_t insn = 0;
-        const VPCPUStepResult step = vp_aarch64_step(runtime, &cpu, &insn);
-        runtime->instructions_retired = cpu.instructions_retired;
+        const VPCPUStepResult step = vp_aarch64_step(runtime, &runtime->cpu, &insn);
+        runtime->instructions_retired = runtime->cpu.instructions_retired;
         if (step == VP_CPU_STEP_OK) continue;
         if (step == VP_CPU_STEP_HALTED) {
             runtime->state = VP_RUNTIME_STOPPED;
+            runtime->cpu_initialized = 0;
             vp_emit(runtime, "[VibePhone] guest execution halted cleanly\n");
             return VP_STATUS_OK;
         }
+        if (step == VP_CPU_STEP_WAITING) {
+            runtime->state = VP_RUNTIME_WAITING;
+            vp_emit(runtime, "[VibePhone] guest CPU entered WFI/WFE wait state\n");
+            return VP_STATUS_GUEST_WAITING;
+        }
         if (step == VP_CPU_STEP_SYSCALL_FAULT) {
-            return vp_execution_failure(runtime, "userspace kernel syscall fault", &cpu, insn);
+            return vp_execution_failure(runtime, "userspace kernel syscall fault", &runtime->cpu, insn);
         }
         if (step == VP_CPU_STEP_MEMORY_FAULT) {
-            return vp_execution_failure(runtime, "guest memory fault", &cpu, insn);
+            return vp_execution_failure(runtime, "guest memory fault", &runtime->cpu, insn);
         }
-        return vp_execution_failure(runtime, "unimplemented AArch64 instruction", &cpu, insn);
+        if (step == VP_CPU_STEP_SYSTEM_REGISTER_FAULT) {
+            return vp_execution_failure(runtime, "unimplemented AArch64 system register", &runtime->cpu, insn);
+        }
+        return vp_execution_failure(runtime, "unimplemented AArch64 instruction", &runtime->cpu, insn);
     }
 
-    runtime->instructions_retired = cpu.instructions_retired;
+    runtime->instructions_retired = runtime->cpu.instructions_retired;
     if (runtime->stop_requested) {
         runtime->state = VP_RUNTIME_STOPPED;
+        runtime->cpu_initialized = 0;
         vp_emit(runtime, "[VibePhone] guest execution stopped by host\n");
         return VP_STATUS_OK;
     }
 
-    runtime->state = VP_RUNTIME_STOPPED;
-    vp_emit(runtime, "[VibePhone] instruction budget exhausted; session yielded to host\n");
+    runtime->state = VP_RUNTIME_PAUSED;
+    vp_emit(runtime, "[VibePhone] instruction budget exhausted; saved CPU state yielded to host\n");
     return VP_STATUS_BUDGET_EXHAUSTED;
+}
+
+VPStatus vp_runtime_signal_event(VPRuntime *runtime) {
+    if (!runtime) return VP_STATUS_INVALID_ARGUMENT;
+    if (runtime->state != VP_RUNTIME_WAITING && runtime->state != VP_RUNTIME_PAUSED) {
+        return VP_STATUS_INVALID_STATE;
+    }
+    vp_aarch64_wake(&runtime->cpu);
+    runtime->state = VP_RUNTIME_PAUSED;
+    vp_emit(runtime, "[VibePhone] guest wait state signaled; CPU ready to resume\n");
+    return VP_STATUS_OK;
 }
 
 VPStatus vp_runtime_stop(VPRuntime *runtime) {
     if (!runtime) return VP_STATUS_INVALID_ARGUMENT;
     runtime->stop_requested = 1;
-    if (runtime->state == VP_RUNTIME_RUNNING) runtime->state = VP_RUNTIME_STOPPED;
+    if (runtime->state != VP_RUNTIME_RUNNING) {
+        runtime->state = VP_RUNTIME_STOPPED;
+        vp_runtime_invalidate_cpu(runtime);
+    }
     return VP_STATUS_OK;
 }
