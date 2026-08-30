@@ -18,10 +18,44 @@ public enum VirtualPhoneSessionError: Error, LocalizedError {
     }
 }
 
+public struct VPhoneBootAddresses: Sendable, Equatable {
+    /// vresearch101 decoded iBoot base from the pinned vphone-cli research.
+    public var iBoot: UInt64 = 0x7006_C000
+    public var kernelcache: UInt64 = 0x8000_0000
+    public var deviceTree: UInt64 = 0x9000_0000
+    public var trustCache: UInt64 = 0x9100_0000
+    public var ramdisk: UInt64 = 0xA000_0000
+    public var entry: UInt64 = 0x7006_C000
+
+    public init() {}
+}
+
+public struct VPhoneBootArtifacts: Sendable {
+    public var iBoot: Data
+    public var kernelcache: Data?
+    public var deviceTree: Data?
+    public var trustCache: Data?
+    public var ramdisk: Data?
+
+    public init(
+        iBoot: Data,
+        kernelcache: Data? = nil,
+        deviceTree: Data? = nil,
+        trustCache: Data? = nil,
+        ramdisk: Data? = nil
+    ) {
+        self.iBoot = iBoot
+        self.kernelcache = kernelcache
+        self.deviceTree = deviceTree
+        self.trustCache = trustCache
+        self.ramdisk = ramdisk
+    }
+}
+
 /// VibeContainers-facing owner for one standalone virtual phone.
 ///
 /// Guest AArch64 executes in the custom interpreter and SVC instructions are
-/// intercepted by the attached Nyxian-compatible userspace microkernel.  The
+/// intercepted by the attached Nyxian-compatible userspace microkernel. The
 /// session does not launch a patched guest Mach-O through LiveContainer and it
 /// has no QEMU, macOS Virtualization.framework or companion-PC dependency.
 public final class VirtualPhoneSession: @unchecked Sendable {
@@ -105,6 +139,64 @@ public final class VirtualPhoneSession: @unchecked Sendable {
 
     public func loadImage(_ image: Data, at guestAddress: UInt64) throws {
         try writeGuestPhysicalMemory(address: guestAddress, data: image)
+    }
+
+    /// Stages a complete Apple boot set using runtime ABI v3. Optional images
+    /// are represented as empty C descriptors; iBoot is mandatory and contains
+    /// the reset vector by default.
+    public func stageBootArtifacts(
+        _ artifacts: VPhoneBootArtifacts,
+        addresses: VPhoneBootAddresses = .init()
+    ) throws {
+        guard let runtime else { throw VirtualPhoneSessionError.runtimeCreationFailed }
+        let kernelcache = artifacts.kernelcache ?? Data()
+        let deviceTree = artifacts.deviceTree ?? Data()
+        let trustCache = artifacts.trustCache ?? Data()
+        let ramdisk = artifacts.ramdisk ?? Data()
+
+        let status: VPStatus = artifacts.iBoot.withUnsafeBytes { ibootBytes in
+            kernelcache.withUnsafeBytes { kernelBytes in
+                deviceTree.withUnsafeBytes { deviceTreeBytes in
+                    trustCache.withUnsafeBytes { trustBytes in
+                        ramdisk.withUnsafeBytes { ramdiskBytes in
+                            var layout = VPBootImageLayout(
+                                iboot: VPBootImage(
+                                    bytes: ibootBytes.baseAddress,
+                                    length: ibootBytes.count,
+                                    guest_address: addresses.iBoot
+                                ),
+                                kernelcache: VPBootImage(
+                                    bytes: kernelBytes.baseAddress,
+                                    length: kernelBytes.count,
+                                    guest_address: addresses.kernelcache
+                                ),
+                                device_tree: VPBootImage(
+                                    bytes: deviceTreeBytes.baseAddress,
+                                    length: deviceTreeBytes.count,
+                                    guest_address: addresses.deviceTree
+                                ),
+                                trust_cache: VPBootImage(
+                                    bytes: trustBytes.baseAddress,
+                                    length: trustBytes.count,
+                                    guest_address: addresses.trustCache
+                                ),
+                                ramdisk: VPBootImage(
+                                    bytes: ramdiskBytes.baseAddress,
+                                    length: ramdiskBytes.count,
+                                    guest_address: addresses.ramdisk
+                                ),
+                                entry_address: addresses.entry
+                            )
+                            return vp_runtime_stage_boot_images(runtime, &layout)
+                        }
+                    }
+                }
+            }
+        }
+
+        guard status == VP_STATUS_OK else {
+            throw VirtualPhoneSessionError.runtimeFailure(Int32(status.rawValue))
+        }
     }
 
     public func setEntryPoint(_ guestAddress: UInt64) throws {
