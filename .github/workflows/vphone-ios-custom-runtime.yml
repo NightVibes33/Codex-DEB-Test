@@ -1,0 +1,201 @@
+name: VPhone iOS Custom Runtime
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'temp/darwin-vm-windows11'
+    paths:
+      - 'vphone-ios/**'
+      - '.github/workflows/vphone-ios-custom-runtime.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vphone-ios-custom-runtime-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build custom runtime and unsigned real-device IPA
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout temp branch
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 26.2
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.2'
+
+      - name: Show pinned architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat vphone-ios/vendor.lock.json
+          python3 - <<'PY'
+          import json
+          p=json.load(open('vphone-ios/vendor.lock.json'))
+          assert p['VibeContainers']['commit'] == '9184712fbd751082a1376e4453387f3ecfeb8268'
+          assert p['vphone-cli']['commit'] == '2af884b56c4d9044cdfad8ac94f034ec767d0fb3'
+          assert p['vphone-aio']['commit'] == '1db79dccd95391d6247c41f3cc4eac523567f295'
+          PY
+
+      - name: Prove runtime source is QEMU-free
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RIniE '\bqemu\b' vphone-ios/Runtime vphone-ios/Host; then
+            echo 'QEMU reference found in the custom runtime source.' >&2
+            exit 1
+          fi
+
+      - name: Run VibeKernel host smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          clang -std=c11 -Wall -Wextra -Werror \
+            vphone-ios/Runtime/VibeKernel.c \
+            vphone-ios/Tests/vibekernel_smoke.c \
+            -o "$RUNNER_TEMP/vibekernel-smoke"
+          "$RUNNER_TEMP/vibekernel-smoke" | tee "$RUNNER_TEMP/vibekernel-smoke.txt"
+          grep -F 'VIBEKERNEL-AARCH64-INTERPRETER-v0' "$RUNNER_TEMP/vibekernel-smoke.txt"
+          grep -F 'stop=2 instructions=5 x2=50' "$RUNNER_TEMP/vibekernel-smoke.txt"
+
+      - name: Cross-compile VibeKernel for iPhoneOS arm64
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          xcrun --sdk iphoneos clang \
+            -arch arm64 \
+            -miphoneos-version-min=17.0 \
+            -isysroot "$SDK" \
+            -std=c11 -Wall -Wextra -Werror \
+            -c vphone-ios/Runtime/VibeKernel.c \
+            -o "$RUNNER_TEMP/VibeKernel-ios-arm64.o"
+          file "$RUNNER_TEMP/VibeKernel-ios-arm64.o" | tee "$RUNNER_TEMP/vibekernel-object.txt"
+          file "$RUNNER_TEMP/VibeKernel-ios-arm64.o" | grep -qi arm64
+
+      - name: Fetch current VibeContainers host and vphone research source
+        shell: bash
+        run: |
+          set -euo pipefail
+          VIBE_COMMIT="$(python3 -c "import json; print(json.load(open('vphone-ios/vendor.lock.json'))['VibeContainers']['commit'])")"
+          VPHONE_COMMIT="$(python3 -c "import json; print(json.load(open('vphone-ios/vendor.lock.json'))['vphone-cli']['commit'])")"
+
+          git clone --recursive https://github.com/NightVibes33/VibeContainers.git "$RUNNER_TEMP/VibeContainers"
+          git -C "$RUNNER_TEMP/VibeContainers" checkout "$VIBE_COMMIT"
+          git -C "$RUNNER_TEMP/VibeContainers" submodule sync --recursive
+          git -C "$RUNNER_TEMP/VibeContainers" submodule update --init --recursive
+
+          git clone https://github.com/Lakr233/vphone-cli.git "$RUNNER_TEMP/vphone-cli"
+          git -C "$RUNNER_TEMP/vphone-cli" checkout "$VPHONE_COMMIT"
+
+          test -d "$RUNNER_TEMP/vphone-cli/sources/FirmwarePatcher"
+          test -d "$RUNNER_TEMP/vphone-cli/sources/VPhoneCore"
+          grep -F 'Firmware Variants' "$RUNNER_TEMP/vphone-cli/README.md"
+
+      - name: Apply current VibeContainers source fixes
+        shell: bash
+        working-directory: ${{ runner.temp }}/VibeContainers
+        run: |
+          set -euo pipefail
+          python3 scripts/apply_installer_fixes.py
+          python3 scripts/apply_installer_followups.py
+          python3 scripts/apply_xcode26_fixes.py
+          python3 scripts/apply_virtual_host_lock.py
+          python3 scripts/apply_exact_appwindow_guest_control_v10.py
+          python3 scripts/apply_home_layout_persistence.py
+
+      - name: Inject custom runtime into VibeContainers
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEST="$RUNNER_TEMP/VibeContainers/iOSSim/Runtime/VibeKernel"
+          mkdir -p "$DEST"
+          cp vphone-ios/Runtime/VibeKernel.c "$DEST/VibeKernel.c"
+          cp vphone-ios/Runtime/VibeKernel.h "$DEST/VibeKernel.h"
+          cp vphone-ios/Host/VPhoneRuntime.swift "$DEST/VPhoneRuntime.swift"
+
+          gem install xcodeproj --no-document
+          ruby vphone-ios/scripts/inject_runtime.rb "$RUNNER_TEMP/VibeContainers/iOSSim.xcodeproj"
+
+          grep -F 'VibeKernel.c' "$RUNNER_TEMP/VibeContainers/iOSSim.xcodeproj/project.pbxproj"
+          grep -F 'VPhoneRuntime.swift' "$RUNNER_TEMP/VibeContainers/iOSSim.xcodeproj/project.pbxproj"
+          grep -F '_VPhoneRuntimeBuildMarker' "$RUNNER_TEMP/VibeContainers/iOSSim.xcodeproj/project.pbxproj"
+
+      - name: Build unsigned physical-device IPA
+        shell: bash
+        working-directory: ${{ runner.temp }}/VibeContainers
+        run: |
+          set -o pipefail
+          chmod +x scripts/build_ipa.sh scripts/prepare_dependencies.sh
+          scripts/build_ipa.sh \
+            --unsigned \
+            --configuration Release \
+            --derived-data "$RUNNER_TEMP/VPhoneDerivedData" \
+            --output "$RUNNER_TEMP/VPhone-VibeKernel-unsigned.ipa" \
+            2>&1 | tee "$RUNNER_TEMP/vphone-ios-build.log"
+          status=${PIPESTATUS[0]}
+          grep -E '(^|[[:space:]])(error:|fatal error:)|BUILD FAILED|Command .* failed|The following build commands failed' \
+            "$RUNNER_TEMP/vphone-ios-build.log" | tail -n 300 > "$RUNNER_TEMP/vphone-ios-build-errors.txt" || true
+          exit "$status"
+
+      - name: Validate custom runtime is inside IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          IPA="$RUNNER_TEMP/VPhone-VibeKernel-unsigned.ipa"
+          CHECK="$RUNNER_TEMP/VPhoneIPA"
+          rm -rf "$CHECK"
+          mkdir -p "$CHECK"
+          unzip -tq "$IPA"
+          unzip -q "$IPA" -d "$CHECK"
+
+          APP="$CHECK/Payload/iOSSim.app"
+          BIN="$APP/iOSSim"
+          test -f "$BIN"
+          file "$BIN" | tee "$RUNNER_TEMP/vphone-main-binary.txt"
+          file "$BIN" | grep -qi arm64
+
+          strings "$BIN" | grep -F 'VIBEKERNEL-AARCH64-INTERPRETER-v0'
+          nm -gU "$BIN" | grep -E 'VPhoneRuntimeBuildMarker|vk_runtime_build_marker'
+
+          if find "$APP" -name embedded.mobileprovision -o -name '*.p12' -o -name '*.pfx' | grep -q .; then
+            echo 'Signing material unexpectedly present in unsigned IPA.' >&2
+            exit 1
+          fi
+          if find "$APP" -type d -name _CodeSignature | grep -q .; then
+            echo 'Code signature unexpectedly present in unsigned IPA.' >&2
+            exit 1
+          fi
+
+          shasum -a 256 "$IPA" | tee "$RUNNER_TEMP/VPhone-VibeKernel-unsigned.ipa.sha256"
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: VPhone-iOS-custom-runtime-diagnostics
+          path: |
+            ${{ runner.temp }}/vibekernel-smoke.txt
+            ${{ runner.temp }}/vibekernel-object.txt
+            ${{ runner.temp }}/vphone-ios-build.log
+            ${{ runner.temp }}/vphone-ios-build-errors.txt
+            ${{ runner.temp }}/vphone-main-binary.txt
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload unsigned real-device IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: VPhone-VibeKernel-unsigned-real-device-ipa
+          path: |
+            ${{ runner.temp }}/VPhone-VibeKernel-unsigned.ipa
+            ${{ runner.temp }}/VPhone-VibeKernel-unsigned.ipa.sha256
+          if-no-files-found: error
+          retention-days: 30
