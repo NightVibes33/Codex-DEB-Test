@@ -3,5 +3,6 @@ module VPhoneRuntimeCore {
     header "VPhoneAArch64.h"
     header "VPhoneKernelSurface.h"
     header "VPhoneHostRuntime.h"
+    header "../include/NyxRuntime.h"
     export *
 }

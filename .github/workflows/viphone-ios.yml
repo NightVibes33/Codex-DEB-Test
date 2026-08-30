@@ -242,10 +242,7 @@ jobs:
             -module-name VPhoneHost \
             -emit-module \
             -emit-module-path "$RUNNER_TEMP/viphone-ios/VPhoneHost.swiftmodule" \
-            "$ROOT/HostIntegration/VPhoneMachineManifest.swift" \
-            "$ROOT/HostIntegration/VPhoneHardwareProfile.swift" \
-            "$ROOT/HostIntegration/VirtualPhoneSession.swift" \
-            "$ROOT/HostIntegration/NyxVirtualMachine.swift"
+            "$ROOT/HostIntegration/"*.swift
 
       - uses: actions/upload-artifact@v4
         with:
@@ -260,6 +257,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: temp/darwin-vm-windows11
+
+      - name: Download verified Nyxian development entry
+        uses: actions/download-artifact@v4
+        with:
+          name: viphone-ios-runtime-core
+          path: ${{ runner.temp }}/viphone-runtime-core
 
       - name: Fetch pinned VibeContainers Nyxian and vphone-cli sources
         shell: bash
@@ -355,6 +358,11 @@ jobs:
 
           APP="$(find "$GITHUB_WORKSPACE/DerivedData/Build/Products/Release-iphoneos" -maxdepth 1 -name '*.app' -type d | head -1)"
           test -n "$APP"
+          DEV_KERNEL="$(find "$RUNNER_TEMP/viphone-runtime-core" -name nyxian-entry.bin -type f | head -1)"
+          test -s "$DEV_KERNEL"
+          mkdir -p "$APP/ViPhoneDevelopment"
+          cp "$DEV_KERNEL" "$APP/ViPhoneDevelopment/Nyxian.bin"
+          test -s "$APP/ViPhoneDevelopment/Nyxian.bin"
           EXE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist")"
           xcrun nm "$APP/$EXE" | grep '_vp_runtime_boot'
           xcrun nm "$APP/$EXE" | grep '_vp_runtime_stage_boot_images'
@@ -383,6 +391,7 @@ jobs:
             "coreABI": 3,
             "execution": "ViPhone custom AArch64 runtime",
             "appleBootImageStaging": true,
+            "developmentNyxianEmbedded": true,
             "qemu": false,
             "virtualizationFramework": false,
             "companionPCRequired": false

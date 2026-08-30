@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import UniformTypeIdentifiers
+import VPhoneRuntimeCore
 @_silgen_name("nyx_runtime_version")
 private func nyxRuntimeVersionCString() -> UnsafePointer<CChar>
 
@@ -49,6 +50,7 @@ final class ViPhoneRuntimeModel: ObservableObject {
     @Published private(set) var handledSyscalls: UInt64 = 0
     @Published private(set) var rejectedSyscalls: UInt64 = 0
     @Published private(set) var committedBytes: UInt64 = 0
+    @Published private(set) var developmentBootLog = ""
 
     private var session: VirtualPhoneSession?
     private let fileManager = FileManager.default
@@ -142,6 +144,46 @@ final class ViPhoneRuntimeModel: ObservableObject {
         }
     }
 
+    var developmentKernelAvailable: Bool { developmentKernelURL != nil }
+
+    func bootDevelopmentNyxian() {
+        guard let kernelURL = developmentKernelURL else {
+            statusText = "Development Nyxian unavailable"
+            detailText = "The development entry image is not present in this build."
+            return
+        }
+        do {
+            let image = try Data(contentsOf: kernelURL, options: .mappedIfSafe)
+            var log = [CChar](repeating: 0, count: 4096)
+            var logLength = 0
+            let status: Int32 = image.withUnsafeBytes { imageBytes in
+                log.withUnsafeMutableBufferPointer { logBytes in
+                    nyx_vm_boot_kernel_capture(
+                        imageBytes.baseAddress,
+                        imageBytes.count,
+                        0x100000,
+                        0x100000,
+                        logBytes.baseAddress,
+                        logBytes.count,
+                        &logLength
+                    )
+                }
+            }
+            developmentBootLog = String(cString: log)
+            try persistDevelopmentBootLog(developmentBootLog)
+            if status == 0 && developmentBootLog.contains("[NYXIAN] kernel entry reached") {
+                statusText = "Development Nyxian entry reached"
+                detailText = developmentBootLog
+            } else {
+                statusText = "Development Nyxian boot failed"
+                detailText = "status=\(status)\n\(developmentBootLog)"
+            }
+        } catch {
+            statusText = "Development Nyxian boot failed"
+            detailText = error.localizedDescription
+        }
+    }
+
     func stop() {
         session?.stop()
         isBooting = false
@@ -211,6 +253,17 @@ final class ViPhoneRuntimeModel: ObservableObject {
         )
     }
 
+    private var developmentKernelURL: URL? {
+        Bundle.main.url(forResource: "Nyxian", withExtension: "bin", subdirectory: "ViPhoneDevelopment")
+    }
+
+    private func persistDevelopmentBootLog(_ log: String) throws {
+        let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let directory = base.appendingPathComponent("ViPhone/Logs", isDirectory: true)
+        try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
+        try log.write(to: directory.appendingPathComponent("boot.log"), atomically: true, encoding: .utf8)
+    }
+
     private var firmwareDirectory: URL {
         let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return base.appendingPathComponent("ViPhone/DefaultPhone/Firmware", isDirectory: true)
@@ -255,6 +308,26 @@ struct ViPhoneRuntimePanel: View {
                     Text("ViPhone")
                 } footer: {
                     Text("Apple firmware is not bundled. Imported artifacts remain inside ViPhone's app container.")
+                }
+
+                Section("Development Nyxian") {
+                    LabeledContent(
+                        "Bundled entry image",
+                        value: model.developmentKernelAvailable ? "Ready" : "Missing"
+                    )
+                    Button {
+                        model.bootDevelopmentNyxian()
+                    } label: {
+                        Label("Boot Development Nyxian", systemImage: "terminal")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(!model.developmentKernelAvailable)
+
+                    if !model.developmentBootLog.isEmpty {
+                        Text(model.developmentBootLog)
+                            .font(.system(.caption, design: .monospaced))
+                            .textSelection(.enabled)
+                    }
                 }
 
                 Section("Apple boot artifacts") {
