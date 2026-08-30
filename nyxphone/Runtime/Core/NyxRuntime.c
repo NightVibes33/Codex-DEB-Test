@@ -136,6 +136,7 @@ int32_t nyx_vm_boot_kernel_capture(
     nyx_vm_set_log_callback(vm, nyx_capture_log, &capture);
     int32_t status = nyx_vm_load_kernel_bytes(vm, bytes, length, load_address, entry_address);
     if (status == (int32_t)VP_STATUS_OK) status = nyx_vm_start(vm);
+    if (status == (int32_t)VP_STATUS_GUEST_WAITING) status = (int32_t)VP_STATUS_OK;
     if (log_length) *log_length = capture.length;
     nyx_vm_destroy(vm);
     return status;

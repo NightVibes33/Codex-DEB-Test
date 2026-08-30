@@ -42,15 +42,15 @@ final class ViPhoneRuntimeModel: ObservableObject {
     @Published var importTarget: Artifact?
     @Published var showingImporter = false
     @Published private(set) var fileSizes: [Artifact: Int64] = [:]
-    @Published private(set) var statusText = "Runtime ready"
-    @Published private(set) var detailText = "Import a decoded vresearch101 iBoot/iBEC payload to start."
+    @Published private(set) var statusText = "ViPhone ready"
+    @Published private(set) var detailText = "Boot the built-in ViPhone guest or import user-supplied firmware."
     @Published private(set) var isBooting = false
     @Published private(set) var runtimeState: UInt32 = 0
     @Published private(set) var retiredInstructions: UInt64 = 0
     @Published private(set) var handledSyscalls: UInt64 = 0
     @Published private(set) var rejectedSyscalls: UInt64 = 0
     @Published private(set) var committedBytes: UInt64 = 0
-    @Published private(set) var developmentBootLog = ""
+    @Published private(set) var bundledBootLog = ""
 
     private var session: VirtualPhoneSession?
     private let fileManager = FileManager.default
@@ -144,12 +144,12 @@ final class ViPhoneRuntimeModel: ObservableObject {
         }
     }
 
-    var developmentKernelAvailable: Bool { developmentKernelURL != nil }
+    var bundledKernelAvailable: Bool { bundledKernelURL != nil }
 
-    func bootDevelopmentNyxian() {
-        guard let kernelURL = developmentKernelURL else {
-            statusText = "Development Nyxian unavailable"
-            detailText = "The development entry image is not present in this build."
+    func bootBundledNyxian() {
+        guard let kernelURL = bundledKernelURL else {
+            statusText = "ViPhone guest unavailable"
+            detailText = "The built-in guest image is not present in this build."
             return
         }
         do {
@@ -169,17 +169,17 @@ final class ViPhoneRuntimeModel: ObservableObject {
                     )
                 }
             }
-            developmentBootLog = String(cString: log)
-            try persistDevelopmentBootLog(developmentBootLog)
-            if status == 0 && developmentBootLog.contains("[NYXIAN] kernel entry reached") {
-                statusText = "Development Nyxian entry reached"
-                detailText = developmentBootLog
+            bundledBootLog = String(cString: log)
+            try persistBootLog(bundledBootLog)
+            if status == 0 && bundledBootLog.contains("[NYXIAN] kernel entry reached") && bundledBootLog.contains("[NYXDARWIN] nyxinit started") && bundledBootLog.contains("hello from Nyxian userspace") {
+                statusText = "ViPhone userspace reached"
+                detailText = bundledBootLog
             } else {
-                statusText = "Development Nyxian boot failed"
-                detailText = "status=\(status)\n\(developmentBootLog)"
+                statusText = "ViPhone boot failed"
+                detailText = "status=\(status)\n\(bundledBootLog)"
             }
         } catch {
-            statusText = "Development Nyxian boot failed"
+            statusText = "ViPhone boot failed"
             detailText = error.localizedDescription
         }
     }
@@ -253,11 +253,11 @@ final class ViPhoneRuntimeModel: ObservableObject {
         )
     }
 
-    private var developmentKernelURL: URL? {
-        Bundle.main.url(forResource: "Nyxian", withExtension: "bin", subdirectory: "ViPhoneDevelopment")
+    private var bundledKernelURL: URL? {
+        Bundle.main.url(forResource: "Nyxian", withExtension: "bin", subdirectory: "ViPhoneGuest")
     }
 
-    private func persistDevelopmentBootLog(_ log: String) throws {
+    private func persistBootLog(_ log: String) throws {
         let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let directory = base.appendingPathComponent("ViPhone/Logs", isDirectory: true)
         try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -310,21 +310,21 @@ struct ViPhoneRuntimePanel: View {
                     Text("Apple firmware is not bundled. Imported artifacts remain inside ViPhone's app container.")
                 }
 
-                Section("Development Nyxian") {
+                Section("ViPhone Guest") {
                     LabeledContent(
-                        "Bundled entry image",
-                        value: model.developmentKernelAvailable ? "Ready" : "Missing"
+                        "Built-in guest",
+                        value: model.bundledKernelAvailable ? "Ready" : "Missing"
                     )
                     Button {
-                        model.bootDevelopmentNyxian()
+                        model.bootBundledNyxian()
                     } label: {
-                        Label("Boot Development Nyxian", systemImage: "terminal")
+                        Label("Boot ViPhone", systemImage: "terminal")
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(!model.developmentKernelAvailable)
+                    .disabled(!model.bundledKernelAvailable)
 
-                    if !model.developmentBootLog.isEmpty {
-                        Text(model.developmentBootLog)
+                    if !model.bundledBootLog.isEmpty {
+                        Text(model.bundledBootLog)
                             .font(.system(.caption, design: .monospaced))
                             .textSelection(.enabled)
                     }
