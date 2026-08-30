@@ -1,0 +1,17 @@
+{
+  "VibeContainers": {
+    "repository": "https://github.com/NightVibes33/VibeContainers.git",
+    "commit": "9184712fbd751082a1376e4453387f3ecfeb8268",
+    "role": "real-device iPhone/iPad host shell and unsigned IPA packaging"
+  },
+  "vphone-aio": {
+    "repository": "https://github.com/34306/vphone-aio.git",
+    "commit": "1db79dccd95391d6247c41f3cc4eac523567f295",
+    "role": "reference distribution; not embedded as the iOS host runtime"
+  },
+  "vphone-cli": {
+    "repository": "https://github.com/Lakr233/vphone-cli.git",
+    "commit": "2af884b56c4d9044cdfad8ac94f034ec767d0fb3",
+    "role": "firmware patching, restore metadata, CFW and jailbreak research source"
+  }
+}
