@@ -54,6 +54,7 @@ final class ViPhoneRuntimeModel: ObservableObject {
     @Published private(set) var bundledBootLog = ""
     @Published private(set) var guestFrame: UIImage?
     @Published private(set) var persistentDiskBytes: Int64 = 0
+    @Published private(set) var networkStatus = "Not tested"
 
     private var session: VirtualPhoneSession?
     private var bundledVM: OpaquePointer?
@@ -192,6 +193,8 @@ final class ViPhoneRuntimeModel: ObservableObject {
                 persistentDiskBytes = size.int64Value
             }
             bundledBootLog = String(cString: log)
+            networkStatus = bundledBootLog.contains("[NYXNET] HTTPS request complete")
+                ? "HTTPS online" : "HTTPS unavailable"
             try persistBootLog(bundledBootLog)
             guestFrame = Self.makeGuestImage(frame, info: frameInfo)
             if status == 0
@@ -199,6 +202,7 @@ final class ViPhoneRuntimeModel: ObservableObject {
                 && bundledBootLog.contains("[NYXIAN] kernel entry reached")
                 && bundledBootLog.contains("[NYXDISPLAY] first frame")
                 && bundledBootLog.contains("[NYXSTORAGE] root mounted")
+                && bundledBootLog.contains("[NYXNET] HTTPS request complete")
                 && bundledBootLog.contains("[NYXDARWIN] nyxinit started")
                 && bundledBootLog.contains("hello from Nyxian userspace") {
                 statusText = "ViPhone guest display active"
@@ -224,6 +228,7 @@ final class ViPhoneRuntimeModel: ObservableObject {
                 try fileManager.removeItem(at: diskURL)
             }
             persistentDiskBytes = 0
+            networkStatus = "Not tested"
             guestFrame = nil
             statusText = "ViPhone storage reset"
             detailText = "The default guest disk will be recreated on next boot."
@@ -476,6 +481,7 @@ struct ViPhoneRuntimePanel: View {
                         "Built-in guest",
                         value: model.bundledKernelAvailable ? "Ready" : "Missing"
                     )
+                    LabeledContent("NyxBus network", value: model.networkStatus)
                     LabeledContent(
                         "Persistent disk",
                         value: model.persistentDiskBytes > 0

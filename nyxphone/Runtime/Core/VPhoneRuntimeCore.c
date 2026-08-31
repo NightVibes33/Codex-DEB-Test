@@ -26,6 +26,8 @@ struct VPRuntime {
     VPBlockWriteHandler block_write_handler;
     VPBlockFlushHandler block_flush_handler;
     void *block_context;
+    VPNetworkGetHandler network_get_handler;
+    void *network_context;
     uint64_t boot_vector;
     uint64_t instruction_budget;
     uint64_t instructions_retired;
@@ -161,6 +163,14 @@ void vp_runtime_set_block_handlers(
     runtime->block_write_handler = write_handler;
     runtime->block_flush_handler = flush_handler;
     runtime->block_context = context;
+}
+
+void vp_runtime_set_network_handler(
+    VPRuntime *runtime, VPNetworkGetHandler get_handler, void *context
+) {
+    if (!runtime || runtime->state == VP_RUNTIME_RUNNING) return;
+    runtime->network_get_handler = get_handler;
+    runtime->network_context = context;
 }
 
 VPStatus vp_runtime_dispatch_syscall(
@@ -319,6 +329,35 @@ VPStatus vp_runtime_block_write(VPRuntime *runtime, uint64_t guest_address, uint
 VPStatus vp_runtime_block_flush(VPRuntime *runtime) {
     if (!runtime || !runtime->block_flush_handler) return VP_STATUS_BACKEND_UNAVAILABLE;
     return runtime->block_flush_handler(runtime->block_context);
+}
+
+VPStatus vp_runtime_network_https_get(
+    VPRuntime *runtime, uint64_t url_address, size_t url_length,
+    uint64_t response_address, size_t response_capacity, size_t *response_length
+) {
+    if (!runtime || !response_length || !runtime->network_get_handler ||
+        url_length == 0 || url_length > 2047u || response_capacity == 0 || response_capacity > 4096u) {
+        return VP_STATUS_INVALID_ARGUMENT;
+    }
+    if (!vp_range_valid(runtime, url_address, url_length) ||
+        !vp_range_valid(runtime, response_address, response_capacity)) {
+        return VP_STATUS_ADDRESS_OUT_OF_RANGE;
+    }
+    char url[2048];
+    uint8_t response[4096];
+    VPStatus status = vp_runtime_memory_read(runtime, url_address, url, url_length);
+    if (status != VP_STATUS_OK) return status;
+    url[url_length] = 0;
+    if (url_length < 8u || memcmp(url, "https://", 8u) != 0) return VP_STATUS_INVALID_ARGUMENT;
+    size_t received = 0;
+    status = runtime->network_get_handler(
+        url, response, response_capacity, &received, runtime->network_context
+    );
+    if (status != VP_STATUS_OK) return status;
+    if (received == 0 || received > response_capacity) return VP_STATUS_EXECUTION_FAULT;
+    status = vp_runtime_memory_write(runtime, response_address, response, received);
+    if (status == VP_STATUS_OK) *response_length = received;
+    return status;
 }
 
 uint64_t vp_runtime_committed_pages(const VPRuntime *runtime) {

@@ -89,7 +89,7 @@ jobs:
           }
 
           int main(void) {
-              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.5-nyxbus-storage") != 0) return 9;
+              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.6-nyxbus-network") != 0) return 9;
               VPMachineConfig cfg = {8, 8ULL * 1024 * 1024 * 1024, 1290, 2796, 460, 3.0};
               VPRuntime *rt = vp_runtime_create(&cfg);
               if (!rt) return 10;
@@ -166,7 +166,7 @@ jobs:
             "$ROOT/Runtime/Core/VPhoneNyxianCompat.c" \
             "$ROOT/Runtime/Core/NyxRuntime.c" \
             "$RUNNER_TEMP/runtime-smoke.c" \
-            -framework CoreFoundation \
+            -framework CoreFoundation -framework CFNetwork \
             -o "$RUNNER_TEMP/runtime-smoke"
           "$RUNNER_TEMP/runtime-smoke"
 
@@ -183,7 +183,7 @@ jobs:
             "$ROOT/Runtime/Core/VPhoneKernelSurface.c" \
             "$ROOT/Runtime/Core/NyxRuntime.c" \
             "$ROOT/Tests/nyxian_kernel_entry_test.c" \
-            -framework CoreFoundation \
+            -framework CoreFoundation -framework CFNetwork \
             -o "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry-test"
           "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry-test" \
             "$RUNNER_TEMP/viphone-ios/nyxian-entry.bin" \
@@ -195,6 +195,7 @@ jobs:
           grep -F "[NYXTOUCH] event delivered" "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry.log"
           grep -F "[NYXSTORAGE] root mounted" "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry.log"
           grep -F "[NYXSTORAGE] persistence verified across VM recreation" "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry.log"
+          grep -F "[NYXNET] HTTPS request complete" "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry.log"
           grep -F "[NYXDARWIN] nyxinit started" "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry.log"
           grep -F "hello from Nyxian userspace" "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry.log"
 
@@ -223,14 +224,15 @@ jobs:
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_vp_runtime_copy_framebuffer'
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_nyx_vm_touch_capture_frame'
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_nyx_vm_boot_kernel_device_storage'
+          xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_vp_runtime_network_https_get'
 
           cat > "$RUNNER_TEMP/viphone-ios/provenance.txt" <<EOF
           VibeContainers=$VIBECONTAINERS_SHA
           Nyxian=$NYXIAN_SHA
           vphone-cli=$VPHONE_CLI_SHA
           runtime-branch=$GITHUB_SHA
-          runtime-abi=5
-          core-abi=6
+          runtime-abi=6
+          core-abi=7
           execution=ViPhone-custom-aarch64
           apple-boot-staging=vp_runtime_stage_boot_images
           qemu=none
@@ -363,7 +365,7 @@ jobs:
             DEVELOPMENT_TEAM= \
             SWIFT_INCLUDE_PATHS="$ROOT/Runtime/Core $ROOT/Runtime/include" \
             'OTHER_SWIFT_FLAGS=$(inherited) -Xcc -fmodule-map-file='"$ROOT"'/Runtime/Core/module.modulemap -Xcc -I'"$ROOT"'/Runtime/Core -Xcc -I'"$ROOT"'/Runtime/include' \
-            'OTHER_LDFLAGS=$(inherited) -Wl,-u,_nyx_runtime_version -Wl,-force_load,'"$LIB" \
+            'OTHER_LDFLAGS=$(inherited) -framework CFNetwork -Wl,-u,_nyx_runtime_version -Wl,-force_load,'"$LIB" \
             build
 
           APP="$(find "$GITHUB_WORKSPACE/DerivedData/Build/Products/Release-iphoneos" -maxdepth 1 -name '*.app' -type d | head -1)"
@@ -388,6 +390,7 @@ jobs:
           xcrun nm "$APP/$EXE" | grep '_vp_runtime_copy_framebuffer'
           xcrun nm "$APP/$EXE" | grep '_nyx_vm_touch_capture_frame'
           xcrun nm "$APP/$EXE" | grep '_nyx_vm_boot_kernel_device_storage'
+          xcrun nm "$APP/$EXE" | grep '_vp_runtime_network_https_get'
 
           if find "$APP" -iname '*qemu*' -print -quit | grep -q .; then
             echo 'QEMU payload detected; refusing ViPhone IPA' >&2
@@ -406,8 +409,8 @@ jobs:
             "nyxianCommit": "$NYXIAN_SHA",
             "bootAndCFWDonor": "Lakr233/vphone-cli",
             "vphoneCliCommit": "$VPHONE_CLI_SHA",
-            "runtimeABI": 5,
-            "coreABI": 6,
+            "runtimeABI": 6,
+            "coreABI": 7,
             "execution": "ViPhone custom AArch64 runtime",
             "appleBootImageStaging": true,
             "builtInNyxianEmbedded": true,
@@ -416,6 +419,9 @@ jobs:
             "builtInTouch": true,
             "builtInStorage": true,
             "persistentDisk": "Application Support/ViPhone/VMs/default/disk/disk.img",
+            "builtInNetworking": true,
+            "networkTransport": "CFNetwork HTTPS",
+            "networkTestEndpoint": "https://example.com/",
             "qemu": false,
             "virtualizationFramework": false,
             "companionPCRequired": false

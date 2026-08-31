@@ -2,6 +2,8 @@
 #include "VPhoneKernelSurface.h"
 #include "VPhoneRuntimeCore.h"
 
+#include <CFNetwork/CFNetwork.h>
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -18,13 +20,17 @@ struct NyxVM {
     uint64_t disk_size;
 };
 
+static VPStatus nyx_network_https_get(
+    const char *url, uint8_t *response, size_t capacity, size_t *response_length, void *context
+);
+
 static void nyx_emit(NyxVM *vm, const char *message) {
     if (!vm || !vm->log_callback || !message) return;
     vm->log_callback((const uint8_t *)message, strlen(message), vm->log_context);
 }
 
 const char *nyx_runtime_version(void) {
-    return "NyxRuntime/0.5-nyxbus-storage";
+    return "NyxRuntime/0.6-nyxbus-network";
 }
 
 uint32_t nyx_runtime_abi_version(void) {
@@ -49,6 +55,7 @@ NyxVM *nyx_vm_create(const NyxVMConfig *config) {
         free(vm);
         return NULL;
     }
+    vp_runtime_set_network_handler(vm->runtime, nyx_network_https_get, vm);
     vm->surface = vp_ksurface_attach(vm->runtime);
     if (!vm->surface) {
         vp_runtime_destroy(vm->runtime);
@@ -103,6 +110,59 @@ static VPStatus nyx_disk_flush(void *context) {
     NyxVM *vm = (NyxVM *)context;
     return vm && vm->disk_fd >= 0 && fsync(vm->disk_fd) == 0 ? VP_STATUS_OK : VP_STATUS_EXECUTION_FAULT;
 }
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+static VPStatus nyx_network_https_get(
+    const char *url_string, uint8_t *response, size_t capacity, size_t *response_length, void *context
+) {
+    (void)context;
+    if (!url_string || !response || !response_length || capacity == 0) return VP_STATUS_INVALID_ARGUMENT;
+    VPStatus status = VP_STATUS_EXECUTION_FAULT;
+    CFURLRef url = CFURLCreateWithBytes(
+        kCFAllocatorDefault, (const UInt8 *)url_string, (CFIndex)strlen(url_string),
+        kCFStringEncodingUTF8, NULL
+    );
+    if (!url) return VP_STATUS_INVALID_ARGUMENT;
+    CFHTTPMessageRef request = CFHTTPMessageCreateRequest(
+        kCFAllocatorDefault, CFSTR("GET"), url, kCFHTTPVersion1_1
+    );
+    if (!request) { CFRelease(url); return VP_STATUS_OUT_OF_MEMORY; }
+    CFHTTPMessageSetHeaderFieldValue(request, CFSTR("User-Agent"), CFSTR("ViPhone-Nyxian/0.6"));
+    CFHTTPMessageSetHeaderFieldValue(request, CFSTR("Accept"), CFSTR("*/*"));
+    CFReadStreamRef stream = CFReadStreamCreateForHTTPRequest(kCFAllocatorDefault, request);
+    if (!stream) { CFRelease(request); CFRelease(url); return VP_STATUS_OUT_OF_MEMORY; }
+    (void)CFReadStreamSetProperty(stream, kCFStreamPropertyHTTPShouldAutoredirect, kCFBooleanTrue);
+    if (CFReadStreamOpen(stream)) {
+        size_t total = 0;
+        while (total < capacity) {
+            const CFIndex count = CFReadStreamRead(
+                stream, response + total, (CFIndex)(capacity - total)
+            );
+            if (count > 0) { total += (size_t)count; continue; }
+            if (count == 0) break;
+            total = 0;
+            break;
+        }
+        CFHTTPMessageRef headers = (CFHTTPMessageRef)CFReadStreamCopyProperty(
+            stream, kCFStreamPropertyHTTPResponseHeader
+        );
+        if (headers) {
+            const CFIndex response_status = CFHTTPMessageGetResponseStatusCode(headers);
+            if (response_status >= 200 && response_status < 400 && total > 0) {
+                *response_length = total;
+                status = VP_STATUS_OK;
+            }
+            CFRelease(headers);
+        }
+    }
+    CFReadStreamClose(stream);
+    CFRelease(stream);
+    CFRelease(request);
+    CFRelease(url);
+    return status;
+}
+#pragma clang diagnostic pop
 
 int32_t nyx_vm_mount_disk(NyxVM *vm, const char *path, uint64_t disk_size) {
     if (!vm || !path || !path[0] || disk_size == 0 || disk_size > INT64_MAX || vm->disk_fd >= 0) {

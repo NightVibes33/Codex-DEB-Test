@@ -118,6 +118,20 @@ VPStatus vp_ksurface_handle_syscall(
             *result = 0;
             surface->handled++;
             return VP_STATUS_OK;
+        case VP_NYX_SYS_HTTPS_GET: {
+            size_t response_length = 0;
+            const VPStatus network_status = vp_runtime_network_https_get(
+                runtime, args[0], (size_t)args[1], args[2], (size_t)args[3], &response_length
+            );
+            if (network_status != VP_STATUS_OK) {
+                *result = 0;
+                surface->rejected++;
+                return VP_STATUS_OK;
+            }
+            *result = response_length;
+            surface->handled++;
+            return VP_STATUS_OK;
+        }
         case VP_NYX_SYS_BLOCK_READ:
             if (args[2] > 4096u || vp_runtime_block_read(runtime, args[0], args[1], (size_t)args[2]) != VP_STATUS_OK) {
                 *result = vp_errno_result(EIO);
