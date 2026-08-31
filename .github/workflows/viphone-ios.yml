@@ -217,7 +217,7 @@ jobs:
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_vp_runtime_stage_boot_images'
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_vp_host_runtime_start'
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_nyx_runtime_version'
-          xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_nyx_vm_boot_kernel_capture_frame'
+          xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_nyx_vm_boot_kernel_device'
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_vp_runtime_copy_framebuffer'
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_nyx_vm_touch_capture_frame'
 
@@ -381,7 +381,7 @@ jobs:
           xcrun nm "$APP/$EXE" | grep '_vp_aarch64_step'
           xcrun nm "$APP/$EXE" | grep '_vp_host_runtime_start'
           xcrun nm "$APP/$EXE" | grep '_nyx_runtime_version'
-          xcrun nm "$APP/$EXE" | grep '_nyx_vm_boot_kernel_capture_frame'
+          xcrun nm "$APP/$EXE" | grep '_nyx_vm_boot_kernel_device'
           xcrun nm "$APP/$EXE" | grep '_vp_runtime_copy_framebuffer'
           xcrun nm "$APP/$EXE" | grep '_nyx_vm_touch_capture_frame'
 
