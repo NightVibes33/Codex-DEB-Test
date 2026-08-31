@@ -1,7 +1,7 @@
 iPhone Tailscale SSH Bridge
-run_id=33425513802
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33425513802
-commit=c9dc4a9dde3aee0d9e9a0e6c4d6a8a828b1c3110
+run_id=33425712435
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33425712435
+commit=32f41b4ddc9a00c1d9a5e362ca38666d919877d7
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
@@ -19,6 +19,8 @@ SSH port attempt 1/18
 # 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
 iphone_ssh_port_ready=success
 Staging native rfmonctl and running probe as root...
-===LIVECONTAINER_FELIX_PROBE===
-PROBE_DONE=1
+===LIVECONTAINER_FELIX_LOCATE===
+SEARCH_ROOT=/private/var/mobile/Containers/Data/Application
+SEARCH_ROOT=/var/mobile/Containers/Data/Application
+LOCATE_DONE=1
 ssh_exit_code=0
