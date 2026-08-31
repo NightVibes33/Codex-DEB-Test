@@ -1,23 +1,15 @@
 iPhone Tailscale SSH Bridge
-run_id=33432068110
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33432068110
-commit=e9b6ddf7107ca57710c026305918c89cb12f8254
+run_id=33432416012
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33432416012
+commit=f987d9aff3d27ff29bc681ae202dbd3c8ae2a349
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
 tailscale=success
 install_ssh=success
-ssh=failure
+ssh=success
 
 --- sanitized SSH output ---
-SHA256 hash: 14775fb00acfc70f58c819ec638ca729c7794c329e0ef8b98a2c8c6d5cd6b0b4
-Encoding signed superblob...
-Writing superblob to MachO...
-Applying App Store code directory...
-Adding new signature blob...
-Updating TeamID...
-TeamID set to T8ALTGMVXN!
-Doing initial signing to calculate size...
 SHA1 hash: 51f9bca295be9c2e1dee77d093ce0fcf3fc93450
 SHA256 hash: 17992d5829051c1ae37fed759d703d6ddad429fc83a289b4474bf5da30048981
 Encoding unsigned superblob...
@@ -107,19 +99,19 @@ SHA1 hash: 51f9bca295be9c2e1dee77d093ce0fcf3fc93450
 SHA256 hash: 19431b0468ede03f89d1091c349263023183a5e9dd01189ab86a8d7774e8b522
 Encoding unsigned superblob...
 Updating load commands...
-Updating2026-08-31 14:44:05.203 trollstorehelper[6961:210322] [/private/var/tmp/1BF54433-7C15-442F-A448-DE8392CEE2FE/Payload/LiveContainer.app/Frameworks/TestJITLess.dylib] Applied CoreTrust bypass!
-2026-08-31 14:44:05.207 trollstorehelper[6961:210322] /private/var/tmp/1BF54433-7C15-442F-A448-DE8392CEE2FE/Payload/LiveContainer.app/Frameworks/SideStoreSupport.framework/SideStoreSupport is binary
-2026-08-31 14:44:05.210 trollstorehelper[6961:210322] [/private/var/tmp/1BF54433-7C15-442F-A448-DE8392CEE2FE/Payload/LiveContainer.app/Frameworks/SideStoreSupport.framework/SideStoreSupport] Applying CoreTrust bypass...
-2026-08-31 14:44:05.242 trollstorehelper[6961:210322] [/private/var/tmp/1BF54433-7C15-442F-A448-DE8392CEE2FE/Payload/LiveContainer.app/Frameworks/SideStoreSupport.framework/SideStoreSupport] Applied CoreTrust bypass!
-2026-08-31 14:44:05.243 trollstorehelper[6961:210322] /private/var/tmp/1BF54433-7C15-442F-A448-DE8392CEE2FE/Payload/LiveContainer.app/Frameworks/TweakLoader.dylib is binary
-2026-08-31 14:44:05.245 trollstorehelper[6961:210322] [/private/var/tmp/1BF54433-7C15-442F-A448-DE8392CEE2FE/Payload/LiveContainer.app/Frameworks/TweakLoader.dylib] Applying CoreTrust bypass...
-2026-08-31 14:44:05.269 trollstorehelper[6961:210322] [/private/var/tmp/1BF54433-7C15-442F-A448-DE8392CEE2FE/Payload/LiveContainer.app/Frameworks/TweakLoader.dylib] Applied CoreTrust bypass!
-2026-08-31 14:44:05.270 trollstorehelper[6961:210322] /private/var/tmp/1BF54433-7C15-442F-A448-DE8392CEE2FE/Payload/LiveContainer.app/Frameworks/ZSign.dylib is binary
-2026-08-31 14:44:05.274 trollstorehelper[6961:210322] [/private/var/tmp/1BF54433-7C15-442F-A448-DE8392CEE2FE/Payload/LiveContainer.app/Frameworks/ZSign.dylib] Applying CoreTrust bypass...
-2026-08-31 14:44:05.309 trollstorehelper[6961:210322] [/private/var/tmp/1BF54433-7C15-442F-A448-DE8392CEE2FE/Payload/LiveContainer.app/Frameworks/ZSign.dylib] Applied CoreTrust bypass!
-2026-08-31 14:44:05.345 trollstorehelper[6961:210322] [installApp] replacing existing app with new version
-2026-08-31 14:44:07.152 trollstorehelper[6961:210322] [installApp] new app path: /private/var/containers/Bundle/Application/4D6B5175-CDC5-4929-86D9-1EF347918F24/LiveContainer.app
-2026-08-31 14:44:08.245 trollstorehelper[6961:210322] [dumpEntitlements] dumped {
+Updating2026-08-31 14:47:49.597 trollstorehelper[7849:214565] [/private/var/tmp/4E69161F-7A67-48A4-8069-A939806D0473/Payload/LiveContainer.app/Frameworks/TestJITLess.dylib] Applied CoreTrust bypass!
+2026-08-31 14:47:49.602 trollstorehelper[7849:214565] /private/var/tmp/4E69161F-7A67-48A4-8069-A939806D0473/Payload/LiveContainer.app/Frameworks/SideStoreSupport.framework/SideStoreSupport is binary
+2026-08-31 14:47:49.606 trollstorehelper[7849:214565] [/private/var/tmp/4E69161F-7A67-48A4-8069-A939806D0473/Payload/LiveContainer.app/Frameworks/SideStoreSupport.framework/SideStoreSupport] Applying CoreTrust bypass...
+2026-08-31 14:47:49.639 trollstorehelper[7849:214565] [/private/var/tmp/4E69161F-7A67-48A4-8069-A939806D0473/Payload/LiveContainer.app/Frameworks/SideStoreSupport.framework/SideStoreSupport] Applied CoreTrust bypass!
+2026-08-31 14:47:49.641 trollstorehelper[7849:214565] /private/var/tmp/4E69161F-7A67-48A4-8069-A939806D0473/Payload/LiveContainer.app/Frameworks/TweakLoader.dylib is binary
+2026-08-31 14:47:49.643 trollstorehelper[7849:214565] [/private/var/tmp/4E69161F-7A67-48A4-8069-A939806D0473/Payload/LiveContainer.app/Frameworks/TweakLoader.dylib] Applying CoreTrust bypass...
+2026-08-31 14:47:49.669 trollstorehelper[7849:214565] [/private/var/tmp/4E69161F-7A67-48A4-8069-A939806D0473/Payload/LiveContainer.app/Frameworks/TweakLoader.dylib] Applied CoreTrust bypass!
+2026-08-31 14:47:49.670 trollstorehelper[7849:214565] /private/var/tmp/4E69161F-7A67-48A4-8069-A939806D0473/Payload/LiveContainer.app/Frameworks/ZSign.dylib is binary
+2026-08-31 14:47:49.674 trollstorehelper[7849:214565] [/private/var/tmp/4E69161F-7A67-48A4-8069-A939806D0473/Payload/LiveContainer.app/Frameworks/ZSign.dylib] Applying CoreTrust bypass...
+2026-08-31 14:47:49.709 trollstorehelper[7849:214565] [/private/var/tmp/4E69161F-7A67-48A4-8069-A939806D0473/Payload/LiveContainer.app/Frameworks/ZSign.dylib] Applied CoreTrust bypass!
+2026-08-31 14:47:49.728 trollstorehelper[7849:214565] [installApp] replacing existing app with new version
+2026-08-31 14:47:49.849 trollstorehelper[7849:214565] [installApp] new app path: /private/var/containers/Bundle/Application/4D6B5175-CDC5-4929-86D9-1EF347918F24/LiveContainer.app
+2026-08-31 14:47:51.392 trollstorehelper[7849:214565] [dumpEntitlements] dumped {
     "application-identifier" = "TROLLTROLL.*";
     "com.apple.developer.team-identifier" = TROLLTROLL;
     "com.apple.private.security.container-required" = "com.nightvibes33.livecontainer";
@@ -129,16 +121,16 @@ Updating2026-08-31 14:44:05.203 trollstorehelper[6961:210322] [/private/var/tmp/
         "com.apple.token"
     );
 }
-2026-08-31 14:44:08.254 trollstorehelper[6961:210322] [dumpEntitlements] dumped {
+2026-08-31 14:47:51.401 trollstorehelper[7849:214565] [dumpEntitlements] dumped {
     "com.apple.private.security.container-required" = "com.nightvibes33.livecontainer.LiveProcess";
 }
-2026-08-31 14:44:08.264 trollstorehelper[6961:210322] [dumpEntitlements] dumped {
+2026-08-31 14:47:51.409 trollstorehelper[7849:214565] [dumpEntitlements] dumped {
     "com.apple.private.security.container-required" = "com.nightvibes33.livecontainer.ShareExtension";
 }
-2026-08-31 14:44:08.275 trollstorehelper[6961:210322] [dumpEntitlements] dumped {
+2026-08-31 14:47:51.416 trollstorehelper[7849:214565] [dumpEntitlements] dumped {
     "com.apple.private.security.container-required" = "com.nightvibes33.livecontainer.LaunchAppExtension";
 }
-2026-08-31 14:44:09.333 trollstorehelper[6961:210322] trollstorehelper returning 0
+2026-08-31 14:47:52.580 trollstorehelper[7849:214565] trollstorehelper returning 0
  __LINKEDIT segment...
 Updating LC_CODE_SIGNATURE load command...
 Updating code slot hashes...
@@ -198,12 +190,12 @@ SHA1 hash: 51f9bca295be9c2e1dee77d093ce0fcf3fc93450
 SHA256 hash: 725ab7c6252db263e3aa0ff02a57f7172ef3059cd1bf43ac7ad88984fd6bca16
 Encoding signed superblob...
 Writing superblob to MachO...
-2026-08-31 14:44:10.305 trollstorehelper[6993:210761] [SnowBoard Launcher] Loader check passed. Loading SnowBoard...
-2026-08-31 14:44:10.328 trollstorehelper[6993:210761] Initialising Snowboard (Version: 1.5.37-Beta4-rootless Compiled: Jul  9 2024 : 00:24:46) in app: trollstorehelper...
-2026-08-31 14:44:10.518 trollstorehelper[6993:210761] trollstorehelper invoked with arguments: (
+2026-08-31 14:47:53.642 trollstorehelper[7883:214893] [SnowBoard Launcher] Loader check passed. Loading SnowBoard...
+2026-08-31 14:47:53.669 trollstorehelper[7883:214893] Initialising Snowboard (Version: 1.5.37-Beta4-rootless Compiled: Jul  9 2024 : 00:24:46) in app: trollstorehelper...
+2026-08-31 14:47:53.814 trollstorehelper[7883:214893] trollstorehelper invoked with arguments: (
     refresh
 )
-2026-08-31 14:44:10.681 trollstorehelper[6993:210761] [dumpEntitlements] dumped {
+2026-08-31 14:47:53.881 trollstorehelper[7883:214893] [dumpEntitlements] dumped {
     "application-identifier" = "com.opa334.TrollStore";
     "com.apple.CommCenter.fine-grained" =     (
         "data-allowed-write"
@@ -228,7 +220,7 @@ Writing superblob to MachO...
     "com.apple.springboard.opensensitiveurl" = 1;
     "platform-application" = 1;
 }
-2026-08-31 14:44:11.329 trollstorehelper[6993:210761] [dumpEntitlements] dumped {
+2026-08-31 14:47:54.239 trollstorehelper[7883:214893] [dumpEntitlements] dumped {
     "application-identifier" = "TROLLTROLL.*";
     "com.apple.developer.team-identifier" = TROLLTROLL;
     "com.apple.private.MobileContainerManager.allowed" = 1;
@@ -246,7 +238,7 @@ Writing superblob to MachO...
     );
     "platform-application" = 1;
 }
-2026-08-31 14:44:11.598 trollstorehelper[6993:210761] [dumpEntitlements] dumped {
+2026-08-31 14:47:54.723 trollstorehelper[7883:214893] [dumpEntitlements] dumped {
     "application-identifier" = "TROLLTROLL.*";
     "com.apple.developer.team-identifier" = TROLLTROLL;
     "com.apple.private.security.container-required" = "com.nightvibes33.livecontainer";
@@ -256,17 +248,25 @@ Writing superblob to MachO...
         "com.apple.token"
     );
 }
-2026-08-31 14:44:11.609 trollstorehelper[6993:210761] [dumpEntitlements] dumped {
+2026-08-31 14:47:54.731 trollstorehelper[7883:214893] [dumpEntitlements] dumped {
     "com.apple.private.security.container-required" = "com.nightvibes33.livecontainer.LiveProcess";
 }
-2026-08-31 14:44:11.620 trollstorehelper[6993:210761] [dumpEntitlements] dumped {
+2026-08-31 14:47:54.738 trollstorehelper[7883:214893] [dumpEntitlements] dumped {
     "com.apple.private.security.container-required" = "com.nightvibes33.livecontainer.ShareExtension";
 }
-2026-08-31 14:44:11.628 trollstorehelper[6993:210761] [dumpEntitlements] dumped {
+2026-08-31 14:47:54.745 trollstorehelper[7883:214893] [dumpEntitlements] dumped {
     "com.apple.private.security.container-required" = "com.nightvibes33.livecontainer.LaunchAppExtension";
 }
-2026-08-31 14:44:12.303 trollstorehelper[6993:210761] trollstorehelper returning 0
+2026-08-31 14:47:55.137 trollstorehelper[7883:214893] trollstorehelper returning 0
 registration=com.nightvibes33.livecontainer : /private/var/containers/Bundle/Application/4D6B5175-CDC5-4929-86D9-1EF347918F24/LiveContainer.app
 data_container=/private/var/mobile/Containers/Data/Application/047058B5-DA37-4627-86F3-539F98620DC5
-cp: cannot stat '/var/mobile/Media/felix-stage/Payload/com.disney.FixItFelixJr_FixItFelixJrAPPSTOREdistribution46144.app': No such file or directory
-ssh_exit_code=79
+felix_source=/var/mobile/Media/felix-stage/Payload/com.disney.FixItFelixJr_FixItFelixJrAPPSTOREdistribution46144.app
+drwxr-xr-x 34 root mobile 1088 Aug 31 14:48 /var/mobile/Media/felix-stage/Payload/com.disney.FixItFelixJr_FixItFelixJrAPPSTOREdistribution46144.app
+LIVEEXEC_INSTALLED=1
+FELIX_INSTALLED=0
+===PROCESS_STATE===
+===RECENT_CRASH_FILES===
+/var/mobile/Library/Logs/CrashReporter/SiriSearchFeedback-2026-08-31-144743.ips
+/var/mobile/Library/Logs/CrashReporter/Retired/rtcreportingd_2026-08-28-03-54-23_messageLog.ips
+DEVICE_INSTALL_AND_LAUNCH_COMPLETE=1
+ssh_exit_code=0
