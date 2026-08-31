@@ -42,6 +42,26 @@ nyxinit:
     mov x16, #0x7f00
     svc #0
 
+    // Request HTTPS through nyx0; DNS, TCP and TLS terminate in the native host transport.
+    adr x0, network_test_url
+    mov x1, #20
+    movz x2, #0x50, lsl #16
+    mov x3, #512
+    mov x16, #0x7f20
+    svc #0
+    cbz x0, nyx_network_failed
+    adr x0, network_complete_message
+    mov x1, #32
+    mov x16, #0x7f00
+    svc #0
+    b nyx_network_done
+nyx_network_failed:
+    adr x0, network_failed_message
+    mov x1, #30
+    mov x16, #0x7f00
+    svc #0
+nyx_network_done:
+
     // Mount the NyxBus block root and persist a boot counter at disk offset zero.
     movz x4, #0x40, lsl #16
     add x0, x4, #0
@@ -108,5 +128,11 @@ touch_delivered_message:
     .ascii "[NYXTOUCH] event delivered\n"
 storage_mounted_message:
     .ascii "[NYXSTORAGE] root mounted\n"
+network_test_url:
+    .ascii "https://example.com/"
+network_complete_message:
+    .ascii "[NYXNET] HTTPS request complete\n"
+network_failed_message:
+    .ascii "[NYXNET] HTTPS request failed\n"
 .globl _nyxian_image_end
 _nyxian_image_end:

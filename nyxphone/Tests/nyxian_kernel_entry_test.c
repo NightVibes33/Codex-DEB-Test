@@ -50,6 +50,8 @@ int main(int argc, char **argv) {
     if (!strstr(logs, "hello from Nyxian userspace")) return 16;
     if (!strstr(logs, "[NYXDISPLAY] first frame")) return 19;
     if (!strstr(logs, "[NYXSTORAGE] root mounted")) return 20;
+    if (!strstr(logs, "[NYXNET] HTTPS request complete")) return 27;
+    if (strstr(logs, "[NYXNET] HTTPS request failed")) return 28;
     uint8_t frame[64u * 96u * 4u] = {0};
     NyxFramebufferInfo frame_info = {0};
     if (nyx_vm_copy_framebuffer(vm, frame, sizeof(frame), &frame_info) != 0) return 18;
@@ -77,6 +79,7 @@ int main(int argc, char **argv) {
     start_status = nyx_vm_start(second_vm);
     if (start_status != 0 && start_status != 8) return 33;
     if (!strstr(logs, "[NYXSTORAGE] root mounted")) return 34;
+    if (!strstr(logs, "[NYXNET] HTTPS request complete")) return 37;
     nyx_vm_destroy(second_vm);
 
     disk_fd = open(disk_path, O_RDONLY);

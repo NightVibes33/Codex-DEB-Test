@@ -10,7 +10,7 @@ extern "C" {
 
 #define VP_GUEST_PAGE_SHIFT 14u
 #define VP_GUEST_PAGE_SIZE  (1u << VP_GUEST_PAGE_SHIFT)
-#define VP_RUNTIME_ABI_VERSION 6u
+#define VP_RUNTIME_ABI_VERSION 7u
 #define VP_DEFAULT_INSTRUCTION_BUDGET UINT64_C(1000000)
 
 typedef enum {
@@ -67,6 +67,9 @@ typedef void (*VPSerialCallback)(const uint8_t *bytes, size_t length, void *cont
 typedef VPStatus (*VPBlockReadHandler)(uint64_t offset, void *dst, size_t length, void *context);
 typedef VPStatus (*VPBlockWriteHandler)(uint64_t offset, const void *src, size_t length, void *context);
 typedef VPStatus (*VPBlockFlushHandler)(void *context);
+typedef VPStatus (*VPNetworkGetHandler)(
+    const char *url, uint8_t *response, size_t capacity, size_t *response_length, void *context
+);
 
 typedef VPStatus (*VPSyscallHandler)(
     VPRuntime *runtime,
@@ -108,6 +111,9 @@ void vp_runtime_set_block_handlers(
     VPRuntime *runtime, VPBlockReadHandler read_handler, VPBlockWriteHandler write_handler,
     VPBlockFlushHandler flush_handler, void *context
 );
+void vp_runtime_set_network_handler(
+    VPRuntime *runtime, VPNetworkGetHandler get_handler, void *context
+);
 VPStatus vp_runtime_dispatch_syscall(
     VPRuntime *runtime,
     uint64_t number,
@@ -134,6 +140,10 @@ VPStatus vp_runtime_dequeue_touch(VPRuntime *runtime, VPTouchEvent *event);
 VPStatus vp_runtime_block_read(VPRuntime *runtime, uint64_t guest_address, uint64_t offset, size_t length);
 VPStatus vp_runtime_block_write(VPRuntime *runtime, uint64_t guest_address, uint64_t offset, size_t length);
 VPStatus vp_runtime_block_flush(VPRuntime *runtime);
+VPStatus vp_runtime_network_https_get(
+    VPRuntime *runtime, uint64_t url_address, size_t url_length,
+    uint64_t response_address, size_t response_capacity, size_t *response_length
+);
 uint64_t vp_runtime_committed_bytes(const VPRuntime *runtime);
 uint64_t vp_runtime_committed_pages(const VPRuntime *runtime);
 
