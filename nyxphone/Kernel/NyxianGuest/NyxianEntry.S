@@ -42,6 +42,53 @@ nyxinit:
     mov x16, #0x7f00
     svc #0
 
+    // Execute a basic Darwin identity program at EL0.
+    mov x16, #20
+    svc #0
+    cbz x0, nyx_darwin_failed
+    mov x16, #24
+    svc #0
+    cbnz x0, nyx_darwin_failed
+    mov x16, #754
+    svc #0
+    cbz x0, nyx_darwin_failed
+    adr x0, darwin_abi_message
+    mov x1, #29
+    mov x16, #0x7f00
+    svc #0
+
+    // Allocate a Mach port and verify an eight-byte message round trip.
+    mov x16, #0x7e10
+    svc #0
+    cbz x0, nyx_darwin_failed
+    add x9, x0, #0
+    movz x10, #0x60, lsl #16
+    mov x11, #0x321
+    str x11, [x10]
+    add x0, x9, #0
+    add x1, x10, #0
+    mov x2, #8
+    mov x16, #0x7e11
+    svc #0
+    cbnz x0, nyx_darwin_failed
+    add x0, x9, #0
+    add x1, x10, #8
+    mov x2, #8
+    mov x16, #0x7e12
+    svc #0
+    cbz x0, nyx_darwin_failed
+    ldr x12, [x10, #8]
+    sub x12, x12, #0x321
+    cbnz x12, nyx_darwin_failed
+    adr x0, mach_ipc_message
+    mov x1, #31
+    mov x16, #0x7f00
+    svc #0
+    b nyx_darwin_done
+nyx_darwin_failed:
+    hlt #2
+nyx_darwin_done:
+
     // Request HTTPS through nyx0; DNS, TCP and TLS terminate in the native host transport.
     adr x0, network_test_url
     mov x1, #20
@@ -128,6 +175,10 @@ touch_delivered_message:
     .ascii "[NYXTOUCH] event delivered\n"
 storage_mounted_message:
     .ascii "[NYXSTORAGE] root mounted\n"
+darwin_abi_message:
+    .ascii "[NYXDARWIN] basic ABI passed\n"
+mach_ipc_message:
+    .ascii "[NYXMACH] IPC roundtrip passed\n"
 network_test_url:
     .ascii "https://example.com/"
 network_complete_message:

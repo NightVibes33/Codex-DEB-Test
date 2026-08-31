@@ -1,6 +1,7 @@
 #include "VPhoneKernelSurface.h"
 
 #include <errno.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -11,6 +12,11 @@ struct VPKernelSurface {
     uint64_t rejected;
     uint32_t mode;
     uint32_t build_type;
+    uint32_t next_port;
+    uint32_t message_port;
+    size_t message_length;
+    uint8_t message[256];
+    int message_ready;
 };
 
 static uint64_t vp_errno_result(int value) {
@@ -30,6 +36,7 @@ VPKernelSurface *vp_ksurface_create(VPRuntime *runtime) {
     surface->identity.egid = 0;
     surface->identity.task_handle = UINT64_C(0x4E595849414E0001);
     surface->mode = VP_KSURFACE_MODE_NORMAL;
+    surface->next_port = 100u;
 #ifdef DEBUG
     surface->build_type = VP_KSURFACE_BUILD_DEBUG;
 #else
@@ -188,6 +195,34 @@ VPStatus vp_ksurface_handle_syscall(
             surface->handled++;
             return VP_STATUS_OK;
         }
+        case VP_NYX_SYS_MACH_PORT_ALLOCATE:
+            *result = surface->next_port++;
+            surface->handled++;
+            return VP_STATUS_OK;
+        case VP_NYX_SYS_MACH_MSG_SEND:
+            if (args[0] < 100u || args[0] >= surface->next_port || args[2] == 0 || args[2] > sizeof(surface->message) ||
+                vp_runtime_memory_read(runtime, args[1], surface->message, (size_t)args[2]) != VP_STATUS_OK) {
+                *result = vp_errno_result(EINVAL);
+                surface->rejected++;
+                return VP_STATUS_OK;
+            }
+            surface->message_port = (uint32_t)args[0];
+            surface->message_length = (size_t)args[2];
+            surface->message_ready = 1;
+            *result = 0;
+            surface->handled++;
+            return VP_STATUS_OK;
+        case VP_NYX_SYS_MACH_MSG_RECEIVE:
+            if (!surface->message_ready || args[0] != surface->message_port || args[2] < surface->message_length ||
+                vp_runtime_memory_write(runtime, args[1], surface->message, surface->message_length) != VP_STATUS_OK) {
+                *result = 0;
+                surface->rejected++;
+                return VP_STATUS_OK;
+            }
+            *result = surface->message_length;
+            surface->message_ready = 0;
+            surface->handled++;
+            return VP_STATUS_OK;
         case VP_DARWIN_SYS_GETPID:
             *result = (uint64_t)(uint32_t)surface->identity.pid;
             break;
@@ -216,10 +251,20 @@ VPStatus vp_ksurface_handle_syscall(
             *result = vp_errno_result(ENOTSUP);
             surface->rejected++;
             return VP_STATUS_OK;
-        default:
+        default: {
+            char diagnostic[256];
+            (void)snprintf(
+                diagnostic, sizeof(diagnostic),
+                "NYX_MISSING_SYSCALL: pid=%d process=nyxinit number=%llu arguments=%llx,%llx,%llx,%llx\n",
+                surface->identity.pid, (unsigned long long)number,
+                (unsigned long long)args[0], (unsigned long long)args[1],
+                (unsigned long long)args[2], (unsigned long long)args[3]
+            );
+            vp_runtime_host_log(runtime, diagnostic);
             *result = vp_errno_result(ENOSYS);
             surface->rejected++;
             return VP_STATUS_OK;
+        }
     }
 
     surface->handled++;

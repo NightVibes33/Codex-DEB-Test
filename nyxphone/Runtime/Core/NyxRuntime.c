@@ -30,7 +30,7 @@ static void nyx_emit(NyxVM *vm, const char *message) {
 }
 
 const char *nyx_runtime_version(void) {
-    return "NyxRuntime/0.6-nyxbus-network";
+    return "NyxRuntime/0.7-darwin-mach";
 }
 
 uint32_t nyx_runtime_abi_version(void) {
