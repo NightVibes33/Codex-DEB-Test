@@ -17,6 +17,15 @@
 #define VP_LC_MAIN UINT32_C(0x80000028)
 #define VP_MACHO_MAX_COMMANDS 16384u
 #define VP_MACHO_MAX_SEGMENTS 256u
+#define VP_MAX_READONLY_MAPPINGS 64u
+
+typedef struct {
+    uint64_t guest_address;
+    uint64_t length;
+    uint64_t backing_offset;
+    VPReadOnlyBackingHandler handler;
+    void *context;
+} VPReadOnlyMapping;
 
 typedef struct VPPage {
     uint64_t index;
@@ -29,6 +38,8 @@ struct VPRuntime {
     VPRuntimeState state;
     VPPage *buckets[VP_PAGE_BUCKETS];
     uint64_t committed_pages;
+    VPReadOnlyMapping readonly_mappings[VP_MAX_READONLY_MAPPINGS];
+    uint32_t readonly_mapping_count;
     VPSerialCallback serial_callback;
     void *serial_context;
     VPSyscallHandler syscall_handler;
@@ -195,6 +206,61 @@ VPStatus vp_runtime_dispatch_syscall(
     return runtime->syscall_handler(runtime, number, args, result, runtime->syscall_context);
 }
 
+static const VPReadOnlyMapping *vp_find_readonly_mapping(
+    const VPRuntime *runtime, uint64_t address, uint64_t length
+) {
+    if (!runtime) return NULL;
+    for (uint32_t i = 0; i < runtime->readonly_mapping_count; i++) {
+        const VPReadOnlyMapping *mapping = &runtime->readonly_mappings[i];
+        if (address >= mapping->guest_address && length <= mapping->length &&
+            address - mapping->guest_address <= mapping->length - length) {
+            return mapping;
+        }
+    }
+    return NULL;
+}
+
+VPStatus vp_runtime_map_readonly_backing(
+    VPRuntime *runtime, uint64_t guest_address, uint64_t length, uint64_t backing_offset,
+    VPReadOnlyBackingHandler handler, void *context
+) {
+    if (!runtime || !handler || !length || runtime->state == VP_RUNTIME_RUNNING ||
+        runtime->readonly_mapping_count >= VP_MAX_READONLY_MAPPINGS ||
+        (guest_address & (VP_GUEST_PAGE_SIZE - 1u)) != 0 ||
+        (length & (VP_GUEST_PAGE_SIZE - 1u)) != 0 ||
+        (backing_offset & (VP_GUEST_PAGE_SIZE - 1u)) != 0 ||
+        length > runtime->config.guest_physical_memory_size ||
+        guest_address > runtime->config.guest_physical_memory_size - length) {
+        return VP_STATUS_INVALID_ARGUMENT;
+    }
+    for (uint32_t i = 0; i < runtime->readonly_mapping_count; i++) {
+        const VPReadOnlyMapping *existing = &runtime->readonly_mappings[i];
+        if (guest_address < existing->guest_address + existing->length &&
+            existing->guest_address < guest_address + length) {
+            return VP_STATUS_INVALID_STATE;
+        }
+    }
+    runtime->readonly_mappings[runtime->readonly_mapping_count++] = (VPReadOnlyMapping){
+        .guest_address = guest_address, .length = length, .backing_offset = backing_offset,
+        .handler = handler, .context = context,
+    };
+    return VP_STATUS_OK;
+}
+
+static VPStatus vp_read_readonly_backing(
+    const VPRuntime *runtime, uint64_t address, void *dst, size_t length, int *found
+) {
+    const VPReadOnlyMapping *mapping = vp_find_readonly_mapping(runtime, address, length);
+    if (!mapping) {
+        if (found) *found = 0;
+        return VP_STATUS_OK;
+    }
+    if (found) *found = 1;
+    const uint64_t relative = address - mapping->guest_address;
+    if (relative > UINT64_MAX - mapping->backing_offset) return VP_STATUS_ADDRESS_OUT_OF_RANGE;
+    return mapping->handler(mapping->backing_offset + relative, dst, length, mapping->context);
+}
+
 static uint32_t vp_macho_u32(const uint8_t *bytes) {
     uint32_t value;
     memcpy(&value, bytes, sizeof(value));
@@ -352,8 +418,14 @@ VPStatus vp_runtime_memory_read(VPRuntime *runtime, uint64_t address, void *dst,
         if (chunk > remaining) chunk = remaining;
 
         VPPage *page = vp_find_page(runtime, index, 0);
-        if (page) memcpy(out, page->bytes + offset, chunk);
-        else memset(out, 0, chunk);
+        if (page) {
+            memcpy(out, page->bytes + offset, chunk);
+        } else {
+            int backed = 0;
+            VPStatus backing_status = vp_read_readonly_backing(runtime, address, out, chunk, &backed);
+            if (backing_status != VP_STATUS_OK) return backing_status;
+            if (!backed) memset(out, 0, chunk);
+        }
 
         address += chunk;
         out += chunk;
@@ -374,8 +446,20 @@ VPStatus vp_runtime_memory_write(VPRuntime *runtime, uint64_t address, const voi
         size_t chunk = VP_GUEST_PAGE_SIZE - offset;
         if (chunk > remaining) chunk = remaining;
 
-        VPPage *page = vp_find_page(runtime, index, 1);
-        if (!page) return VP_STATUS_OUT_OF_MEMORY;
+        VPPage *page = vp_find_page(runtime, index, 0);
+        if (!page) {
+            uint8_t initial[VP_GUEST_PAGE_SIZE];
+            int backed = 0;
+            const uint64_t page_address = index << VP_GUEST_PAGE_SHIFT;
+            VPStatus backing_status = vp_read_readonly_backing(
+                runtime, page_address, initial, sizeof(initial), &backed
+            );
+            if (backing_status != VP_STATUS_OK) return backing_status;
+            if (!backed) memset(initial, 0, sizeof(initial));
+            page = vp_find_page(runtime, index, 1);
+            if (!page) return VP_STATUS_OUT_OF_MEMORY;
+            memcpy(page->bytes, initial, sizeof(initial));
+        }
         memcpy(page->bytes + offset, in, chunk);
 
         address += chunk;

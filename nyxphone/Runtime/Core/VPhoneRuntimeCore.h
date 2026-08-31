@@ -10,7 +10,7 @@ extern "C" {
 
 #define VP_GUEST_PAGE_SHIFT 14u
 #define VP_GUEST_PAGE_SIZE  (1u << VP_GUEST_PAGE_SHIFT)
-#define VP_RUNTIME_ABI_VERSION 9u
+#define VP_RUNTIME_ABI_VERSION 10u
 #define VP_DEFAULT_INSTRUCTION_BUDGET UINT64_C(1000000)
 
 typedef enum {
@@ -67,6 +67,7 @@ typedef void (*VPSerialCallback)(const uint8_t *bytes, size_t length, void *cont
 typedef VPStatus (*VPBlockReadHandler)(uint64_t offset, void *dst, size_t length, void *context);
 typedef VPStatus (*VPBlockWriteHandler)(uint64_t offset, const void *src, size_t length, void *context);
 typedef VPStatus (*VPBlockFlushHandler)(void *context);
+typedef VPStatus (*VPReadOnlyBackingHandler)(uint64_t offset, void *dst, size_t length, void *context);
 typedef VPStatus (*VPNetworkGetHandler)(
     const char *url, uint8_t *response, size_t capacity, size_t *response_length, void *context
 );
@@ -126,6 +127,10 @@ VPStatus vp_runtime_dispatch_syscall(
  * range without allocating the full iPhone RAM size in the host process.
  * Unwritten pages read as zero and are committed only on first write.
  */
+VPStatus vp_runtime_map_readonly_backing(
+    VPRuntime *runtime, uint64_t guest_address, uint64_t length, uint64_t backing_offset,
+    VPReadOnlyBackingHandler handler, void *context
+);
 VPStatus vp_runtime_memory_read(VPRuntime *runtime, uint64_t guest_address, void *dst, size_t length);
 VPStatus vp_runtime_memory_write(VPRuntime *runtime, uint64_t guest_address, const void *src, size_t length);
 VPStatus vp_runtime_console_write(VPRuntime *runtime, uint64_t guest_address, size_t length);

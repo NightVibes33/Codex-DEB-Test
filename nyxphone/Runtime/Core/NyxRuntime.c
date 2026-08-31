@@ -18,6 +18,8 @@ struct NyxVM {
     void *log_context;
     int disk_fd;
     uint64_t disk_size;
+    int dyld_cache_fd;
+    uint64_t dyld_cache_size;
 };
 
 static VPStatus nyx_network_https_get(
@@ -30,7 +32,7 @@ static void nyx_emit(NyxVM *vm, const char *message) {
 }
 
 const char *nyx_runtime_version(void) {
-    return "NyxRuntime/0.8-macho-launchd";
+    return "NyxRuntime/0.9-dyld-cache";
 }
 
 uint32_t nyx_runtime_abi_version(void) {
@@ -42,6 +44,7 @@ NyxVM *nyx_vm_create(const NyxVMConfig *config) {
     NyxVM *vm = (NyxVM *)calloc(1, sizeof(*vm));
     if (!vm) return NULL;
     vm->disk_fd = -1;
+    vm->dyld_cache_fd = -1;
     VPMachineConfig core_config = {
         .cpu_count = config->cpu_count,
         .guest_physical_memory_size = config->guest_physical_memory_size,
@@ -68,6 +71,7 @@ NyxVM *nyx_vm_create(const NyxVMConfig *config) {
 void nyx_vm_destroy(NyxVM *vm) {
     if (!vm) return;
     if (vm->disk_fd >= 0) close(vm->disk_fd);
+    if (vm->dyld_cache_fd >= 0) close(vm->dyld_cache_fd);
     if (vm->surface) vp_ksurface_destroy(vm->surface);
     if (vm->runtime) vp_runtime_destroy(vm->runtime);
     memset(vm, 0, sizeof(*vm));
@@ -190,6 +194,115 @@ void nyx_vm_set_log_callback(NyxVM *vm, NyxLogCallback callback, void *context) 
     nyx_emit(vm, "[NYXRT] runtime initialized\n");
 }
 
+typedef struct {
+    uint64_t address;
+    uint64_t size;
+    uint64_t file_offset;
+    uint32_t max_protection;
+    uint32_t initial_protection;
+} NyxDyldCacheMapping;
+
+static VPStatus nyx_dyld_cache_read(
+    uint64_t offset, void *dst, size_t length, void *context
+) {
+    NyxVM *vm = (NyxVM *)context;
+    if (!vm || vm->dyld_cache_fd < 0 || offset > vm->dyld_cache_size ||
+        length > vm->dyld_cache_size - offset) return VP_STATUS_ADDRESS_OUT_OF_RANGE;
+    uint8_t *bytes = (uint8_t *)dst;
+    size_t done = 0;
+    while (done < length) {
+        const ssize_t count = pread(
+            vm->dyld_cache_fd, bytes + done, length - done, (off_t)(offset + done)
+        );
+        if (count < 0 && errno == EINTR) continue;
+        if (count <= 0) return VP_STATUS_EXECUTION_FAULT;
+        done += (size_t)count;
+    }
+    return VP_STATUS_OK;
+}
+
+int32_t nyx_vm_map_dyld_cache(
+    NyxVM *vm, const char *path, uint32_t *mapping_count, uint64_t *mapped_bytes
+) {
+    if (!vm || !path || !path[0] || !mapping_count || !mapped_bytes || vm->dyld_cache_fd >= 0) {
+        return (int32_t)VP_STATUS_INVALID_ARGUMENT;
+    }
+    const int fd = open(path, O_RDONLY);
+    if (fd < 0) return (int32_t)VP_STATUS_BACKEND_UNAVAILABLE;
+    struct stat st;
+    uint8_t header[40];
+    if (fstat(fd, &st) != 0 || st.st_size < (off_t)sizeof(header) ||
+        pread(fd, header, sizeof(header), 0) != (ssize_t)sizeof(header)) {
+        close(fd);
+        return (int32_t)VP_STATUS_INVALID_ARGUMENT;
+    }
+    if (memcmp(header, "dyld_v1 ", 8u) != 0 ||
+        (!memchr(header + 8u, 'a', 8u) || memcmp(header + 8u, " arm64", 6u) != 0)) {
+        close(fd);
+        return (int32_t)VP_STATUS_INVALID_ARGUMENT;
+    }
+    uint32_t mappings_offset;
+    uint32_t mappings_count;
+    memcpy(&mappings_offset, header + 16u, sizeof(mappings_offset));
+    memcpy(&mappings_count, header + 20u, sizeof(mappings_count));
+    const uint64_t file_size = (uint64_t)st.st_size;
+    if (mappings_count == 0 || mappings_count > 64u || mappings_offset > file_size ||
+        (uint64_t)mappings_count * sizeof(NyxDyldCacheMapping) > file_size - mappings_offset) {
+        close(fd);
+        return (int32_t)VP_STATUS_INVALID_ARGUMENT;
+    }
+    NyxDyldCacheMapping mappings[64];
+    const size_t table_size = (size_t)mappings_count * sizeof(NyxDyldCacheMapping);
+    if (pread(fd, mappings, table_size, (off_t)mappings_offset) != (ssize_t)table_size) {
+        close(fd);
+        return (int32_t)VP_STATUS_EXECUTION_FAULT;
+    }
+    uint64_t total = 0;
+    const VPMachineConfig *config = vp_runtime_config(vm->runtime);
+    if (!config) { close(fd); return (int32_t)VP_STATUS_INVALID_STATE; }
+    for (uint32_t i = 0; i < mappings_count; i++) {
+        const NyxDyldCacheMapping *mapping = &mappings[i];
+        if (!mapping->size || (mapping->address & (VP_GUEST_PAGE_SIZE - 1u)) != 0 ||
+            (mapping->size & (VP_GUEST_PAGE_SIZE - 1u)) != 0 ||
+            (mapping->file_offset & (VP_GUEST_PAGE_SIZE - 1u)) != 0 ||
+            mapping->file_offset > file_size || mapping->size > file_size - mapping->file_offset ||
+            mapping->size > config->guest_physical_memory_size ||
+            mapping->address > config->guest_physical_memory_size - mapping->size ||
+            mapping->size > UINT64_MAX - total) {
+            close(fd);
+            return (int32_t)VP_STATUS_INVALID_ARGUMENT;
+        }
+        for (uint32_t prior = 0; prior < i; prior++) {
+            const NyxDyldCacheMapping *other = &mappings[prior];
+            if (mapping->address < other->address + other->size &&
+                other->address < mapping->address + mapping->size) {
+                close(fd);
+                return (int32_t)VP_STATUS_INVALID_ARGUMENT;
+            }
+        }
+        total += mapping->size;
+    }
+    vm->dyld_cache_fd = fd;
+    vm->dyld_cache_size = file_size;
+    for (uint32_t i = 0; i < mappings_count; i++) {
+        const NyxDyldCacheMapping *mapping = &mappings[i];
+        const VPStatus status = vp_runtime_map_readonly_backing(
+            vm->runtime, mapping->address, mapping->size, mapping->file_offset,
+            nyx_dyld_cache_read, vm
+        );
+        if (status != VP_STATUS_OK) {
+            close(vm->dyld_cache_fd);
+            vm->dyld_cache_fd = -1;
+            vm->dyld_cache_size = 0;
+            return (int32_t)status;
+        }
+    }
+    *mapping_count = mappings_count;
+    *mapped_bytes = total;
+    nyx_emit(vm, "[NYXDYLD] shared cache demand-mapped\n");
+    return (int32_t)VP_STATUS_OK;
+}
+
 int32_t nyx_vm_load_macho(
     NyxVM *vm, const void *bytes, size_t length, uint64_t slide,
     uint64_t *entry_address, uint32_t *dylib_count
@@ -309,7 +422,7 @@ static int32_t nyx_vm_boot_kernel_device_internal(
         return (int32_t)VP_STATUS_INVALID_ARGUMENT;
     }
     *vm_out = NULL;
-    NyxVMConfig config = {6, UINT64_C(8) * 1024u * 1024u * 1024u, 1290, 2796, 460, 3.0};
+    NyxVMConfig config = {6, UINT64_C(16) * 1024u * 1024u * 1024u, 1290, 2796, 460, 3.0};
     NyxVM *vm = nyx_vm_create(&config);
     if (!vm) return (int32_t)VP_STATUS_OUT_OF_MEMORY;
     if (disk_path) {
