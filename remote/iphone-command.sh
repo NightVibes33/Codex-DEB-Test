@@ -43,7 +43,9 @@ mkdir -p /var/mobile/Media/felix-stage
 unzip -q "$FELIX_IPA" -d /var/mobile/Media/felix-stage || exit 77
 SRC="$(find /var/mobile/Media/felix-stage/Payload -maxdepth 1 -type d -name '*.app' | head -n 1)"
 [ -d "$SRC" ] || exit 78
-cp -R "$SRC" "$APPS/com.disney.FixItFelixJr.app" || exit 79
+echo felix_source="$SRC"
+ls -ld "$SRC" 2>&1 || true
+mv "$SRC" "$APPS/com.disney.FixItFelixJr.app" || exit 79
 chown -R mobile:mobile "$APPS/LiveExec32.app" "$APPS/com.disney.FixItFelixJr.app" 2>/dev/null || true
 chmod -R u+rwX "$APPS/LiveExec32.app" "$APPS/com.disney.FixItFelixJr.app"
 echo LIVEEXEC_INSTALLED="$(test -x "$APPS/LiveExec32.app/LiveExec32" && echo 1 || echo 0)"
