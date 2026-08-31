@@ -41,6 +41,14 @@ int main(int argc, char **argv) {
     if (!strstr(logs, "[NYXIAN] kernel entry reached")) return 14;
     if (!strstr(logs, "[NYXDARWIN] nyxinit started")) return 15;
     if (!strstr(logs, "hello from Nyxian userspace")) return 16;
+    if (!strstr(logs, "[NYXDISPLAY] first frame")) return 17;
+    uint8_t frame[64u * 96u * 4u] = {0};
+    NyxFramebufferInfo frame_info = {0};
+    if (nyx_vm_copy_framebuffer(vm, frame, sizeof(frame), &frame_info) != 0) return 18;
+    if (frame_info.width != 64 || frame_info.height != 96 || frame_info.stride != 256) return 19;
+    if (frame_info.pixel_format != 1 || frame_info.byte_length != sizeof(frame)) return 20;
+    if (frame[0] == 0 && frame[1] == 0 && frame[2] == 0 && frame[3] == 0) return 21;
+    if (memcmp(frame, frame + sizeof(frame) - 4, 4) != 0) return 22;
     fputs(logs, stdout);
     nyx_vm_destroy(vm);
     free(image);

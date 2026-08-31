@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import UIKit
 import UniformTypeIdentifiers
 import VPhoneRuntimeCore
 @_silgen_name("nyx_runtime_version")
@@ -51,6 +52,7 @@ final class ViPhoneRuntimeModel: ObservableObject {
     @Published private(set) var rejectedSyscalls: UInt64 = 0
     @Published private(set) var committedBytes: UInt64 = 0
     @Published private(set) var bundledBootLog = ""
+    @Published private(set) var guestFrame: UIImage?
 
     private var session: VirtualPhoneSession?
     private let fileManager = FileManager.default
@@ -156,23 +158,31 @@ final class ViPhoneRuntimeModel: ObservableObject {
             let image = try Data(contentsOf: kernelURL, options: .mappedIfSafe)
             var log = [CChar](repeating: 0, count: 4096)
             var logLength = 0
+            var frame = [UInt8](repeating: 0, count: 64 * 96 * 4)
+            var frameInfo = NyxFramebufferInfo(
+                width: 0, height: 0, stride: 0, pixel_format: 0, byte_length: 0
+            )
             let status: Int32 = image.withUnsafeBytes { imageBytes in
                 log.withUnsafeMutableBufferPointer { logBytes in
-                    nyx_vm_boot_kernel_capture(
-                        imageBytes.baseAddress,
-                        imageBytes.count,
-                        0x100000,
-                        0x100000,
-                        logBytes.baseAddress,
-                        logBytes.count,
-                        &logLength
-                    )
+                    frame.withUnsafeMutableBytes { frameBytes in
+                        nyx_vm_boot_kernel_capture_frame(
+                            imageBytes.baseAddress, imageBytes.count, 0x100000, 0x100000,
+                            logBytes.baseAddress, logBytes.count, &logLength,
+                            frameBytes.baseAddress, frameBytes.count, &frameInfo
+                        )
+                    }
                 }
             }
             bundledBootLog = String(cString: log)
             try persistBootLog(bundledBootLog)
-            if status == 0 && bundledBootLog.contains("[NYXIAN] kernel entry reached") && bundledBootLog.contains("[NYXDARWIN] nyxinit started") && bundledBootLog.contains("hello from Nyxian userspace") {
-                statusText = "ViPhone userspace reached"
+            guestFrame = Self.makeGuestImage(frame, info: frameInfo)
+            if status == 0
+                && guestFrame != nil
+                && bundledBootLog.contains("[NYXIAN] kernel entry reached")
+                && bundledBootLog.contains("[NYXDISPLAY] first frame")
+                && bundledBootLog.contains("[NYXDARWIN] nyxinit started")
+                && bundledBootLog.contains("hello from Nyxian userspace") {
+                statusText = "ViPhone guest display active"
                 detailText = bundledBootLog
             } else {
                 statusText = "ViPhone boot failed"
@@ -182,6 +192,21 @@ final class ViPhoneRuntimeModel: ObservableObject {
             statusText = "ViPhone boot failed"
             detailText = error.localizedDescription
         }
+    }
+
+    private static func makeGuestImage(_ bytes: [UInt8], info: NyxFramebufferInfo) -> UIImage? {
+        guard info.pixel_format == 1, info.width > 0, info.height > 0,
+              info.stride >= info.width * 4, info.byte_length <= UInt64(bytes.count) else { return nil }
+        let data = Data(bytes.prefix(Int(info.byte_length)))
+        guard let provider = CGDataProvider(data: data as CFData),
+              let image = CGImage(
+                width: Int(info.width), height: Int(info.height),
+                bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: Int(info.stride),
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue).union(.byteOrder32Big),
+                provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent
+              ) else { return nil }
+        return UIImage(cgImage: image)
     }
 
     func stop() {
@@ -322,6 +347,21 @@ struct ViPhoneRuntimePanel: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(!model.bundledKernelAvailable)
+
+                    if let frame = model.guestFrame {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Guest Display")
+                                .font(.headline)
+                            Image(uiImage: frame)
+                                .interpolation(.none)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxWidth: .infinity, minHeight: 240)
+                                .background(Color.black)
+                                .clipShape(RoundedRectangle(cornerRadius: 18))
+                                .accessibilityLabel("Live ViPhone guest display")
+                        }
+                    }
 
                     if !model.bundledBootLog.isEmpty {
                         Text(model.bundledBootLog)
