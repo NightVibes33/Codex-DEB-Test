@@ -87,14 +87,44 @@ jobs:
           static uint32_t ldr_x(unsigned rt, unsigned rn, unsigned imm12_scaled) {
               return 0xF9400000u | ((imm12_scaled & 0xFFFu) << 10) | ((rn & 31u) << 5) | (rt & 31u);
           }
+          static void put32(uint8_t *p, uint32_t value) { memcpy(p, &value, sizeof(value)); }
+          static void put64(uint8_t *p, uint64_t value) { memcpy(p, &value, sizeof(value)); }
 
           int main(void) {
-              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.7-darwin-mach") != 0) return 9;
+              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.8-macho-launchd") != 0) return 9;
               VPMachineConfig cfg = {8, 8ULL * 1024 * 1024 * 1024, 1290, 2796, 460, 3.0};
               VPRuntime *rt = vp_runtime_create(&cfg);
               if (!rt) return 10;
               VPKernelSurface *surface = vp_ksurface_attach(rt);
               if (!surface) return 11;
+
+              uint8_t macho[0x240] = {0};
+              put32(macho, 0xfeedfacf);
+              put32(macho + 4, 0x0100000c);
+              put32(macho + 12, 2);
+              put32(macho + 16, 5);
+              put32(macho + 20, 200);
+              size_t mc = 32;
+              put32(macho + mc, 0x19); put32(macho + mc + 4, 72);
+              memcpy(macho + mc + 8, "__TEXT", 6);
+              put64(macho + mc + 24, 0x1000000); put64(macho + mc + 32, 0x4000);
+              put64(macho + mc + 40, 0); put64(macho + mc + 48, 0x200); mc += 72;
+              put32(macho + mc, 0x80000028); put32(macho + mc + 4, 24);
+              put64(macho + mc + 8, 0x180); mc += 24;
+              put32(macho + mc, 0x0e); put32(macho + mc + 4, 32); put32(macho + mc + 8, 12);
+              memcpy(macho + mc + 12, "/usr/lib/dyld", 14); mc += 32;
+              put32(macho + mc, 0x0c); put32(macho + mc + 4, 56); put32(macho + mc + 8, 24);
+              memcpy(macho + mc + 24, "/usr/lib/libSystem.B.dylib", 27); mc += 56;
+              put32(macho + mc, 0x1d); put32(macho + mc + 4, 16);
+              put32(macho + mc + 8, 0x220); put32(macho + mc + 12, 0x20);
+              macho[0x180] = 0x1f; macho[0x181] = 0x20; macho[0x182] = 0x03; macho[0x183] = 0xd5;
+              VPMachOImageInfo macho_info;
+              if (vp_runtime_load_macho(rt, macho, sizeof(macho), 0x2000000, &macho_info) != VP_STATUS_OK) return 41;
+              if (macho_info.entry_address != 0x3000180 || macho_info.segment_count != 1 ||
+                  macho_info.dylib_count != 1 || strcmp(macho_info.dylinker_path, "/usr/lib/dyld") != 0) return 42;
+              uint8_t entry_check[4] = {0};
+              if (vp_runtime_memory_read(rt, macho_info.entry_address, entry_check, sizeof(entry_check)) != VP_STATUS_OK ||
+                  memcmp(entry_check, macho + 0x180, sizeof(entry_check)) != 0) return 43;
 
               uint8_t zero[32];
               memset(zero, 0xAA, sizeof(zero));
@@ -220,6 +250,8 @@ jobs:
           xcrun ar rcs "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" "$RUNNER_TEMP/viphone-ios/"*.o
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_vp_runtime_boot'
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_vp_runtime_stage_boot_images'
+          xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_vp_runtime_load_macho'
+          xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_nyx_vm_load_macho'
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_vp_host_runtime_start'
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_nyx_runtime_version'
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_nyx_vm_boot_kernel_device'
@@ -233,8 +265,8 @@ jobs:
           Nyxian=$NYXIAN_SHA
           vphone-cli=$VPHONE_CLI_SHA
           runtime-branch=$GITHUB_SHA
-          runtime-abi=7
-          core-abi=8
+          runtime-abi=8
+          core-abi=9
           execution=ViPhone-custom-aarch64
           apple-boot-staging=vp_runtime_stage_boot_images
           qemu=none
@@ -385,6 +417,8 @@ jobs:
           if grep -q 'iPhoneSimulator' "$RUNNER_TEMP/viphone-info-plist.txt"; then exit 1; fi
           xcrun nm "$APP/$EXE" | grep '_vp_runtime_boot'
           xcrun nm "$APP/$EXE" | grep '_vp_runtime_stage_boot_images'
+          xcrun nm "$APP/$EXE" | grep '_vp_runtime_load_macho'
+          xcrun nm "$APP/$EXE" | grep '_nyx_vm_load_macho'
           xcrun nm "$APP/$EXE" | grep '_vp_aarch64_step'
           xcrun nm "$APP/$EXE" | grep '_vp_host_runtime_start'
           xcrun nm "$APP/$EXE" | grep '_nyx_runtime_version'
@@ -411,8 +445,8 @@ jobs:
             "nyxianCommit": "$NYXIAN_SHA",
             "bootAndCFWDonor": "Lakr233/vphone-cli",
             "vphoneCliCommit": "$VPHONE_CLI_SHA",
-            "runtimeABI": 7,
-            "coreABI": 8,
+            "runtimeABI": 8,
+            "coreABI": 9,
             "execution": "ViPhone custom AArch64 runtime",
             "appleBootImageStaging": true,
             "builtInNyxianEmbedded": true,
@@ -426,6 +460,9 @@ jobs:
             "networkTestEndpoint": "https://example.com/",
             "builtInDarwinABI": true,
             "builtInMachIPC": true,
+            "builtInMachOLoader": true,
+            "launchdImport": "user-supplied arm64 MH_EXECUTE",
+            "launchdStableEventLoop": false,
             "qemu": false,
             "virtualizationFramework": false,
             "companionPCRequired": false
