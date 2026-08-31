@@ -110,15 +110,21 @@ static void vp_emit(VPRuntime *runtime, const char *message) {
 }
 
 static VPStatus vp_execution_failure(VPRuntime *runtime, const char *kind, const VPAArch64CPU *cpu, uint32_t insn) {
-    char message[192];
+    char message[768];
     (void)snprintf(
-        message,
-        sizeof(message),
-        "[VibePhone] %s at pc=0x%llx insn=0x%08x retired=%llu\n",
-        kind,
-        (unsigned long long)(cpu ? cpu->pc : 0),
-        insn,
-        (unsigned long long)(cpu ? cpu->instructions_retired : 0)
+        message, sizeof(message),
+        "NYX_CPU_FAULT: kind=%s pc=0x%llx insn=0x%08x retired=%llu el=%u "
+        "sp=0x%llx nzcv=0x%llx x0=0x%llx x1=0x%llx x2=0x%llx x3=0x%llx "
+        "x4=0x%llx x5=0x%llx x6=0x%llx x7=0x%llx x16=0x%llx x29=0x%llx x30=0x%llx\n",
+        kind, (unsigned long long)(cpu ? cpu->pc : 0), insn,
+        (unsigned long long)(cpu ? cpu->instructions_retired : 0), cpu ? cpu->current_el : 0,
+        (unsigned long long)(cpu ? cpu->sp : 0), (unsigned long long)(cpu ? cpu->sys.nzcv : 0),
+        (unsigned long long)(cpu ? cpu->x[0] : 0), (unsigned long long)(cpu ? cpu->x[1] : 0),
+        (unsigned long long)(cpu ? cpu->x[2] : 0), (unsigned long long)(cpu ? cpu->x[3] : 0),
+        (unsigned long long)(cpu ? cpu->x[4] : 0), (unsigned long long)(cpu ? cpu->x[5] : 0),
+        (unsigned long long)(cpu ? cpu->x[6] : 0), (unsigned long long)(cpu ? cpu->x[7] : 0),
+        (unsigned long long)(cpu ? cpu->x[16] : 0), (unsigned long long)(cpu ? cpu->x[29] : 0),
+        (unsigned long long)(cpu ? cpu->x[30] : 0)
     );
     vp_emit(runtime, message);
     runtime->state = VP_RUNTIME_FAILED;

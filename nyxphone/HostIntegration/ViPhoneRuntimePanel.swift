@@ -638,6 +638,12 @@ struct ViPhoneRuntimePanel: View {
                     }
 
                     if !model.bundledBootLog.isEmpty {
+                        ShareLink(
+                            item: model.bundledBootLog,
+                            preview: SharePreview("ViPhone dyld diagnostic")
+                        ) {
+                            Label("Share Device Diagnostic", systemImage: "square.and.arrow.up")
+                        }
                         Text(model.bundledBootLog)
                             .font(.system(.caption, design: .monospaced))
                             .textSelection(.enabled)

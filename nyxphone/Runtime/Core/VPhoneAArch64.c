@@ -473,6 +473,35 @@ VPCPUStepResult vp_aarch64_step(VPRuntime *runtime, VPAArch64CPU *cpu, uint32_t 
         return vp_retire(cpu, next_pc);
     }
 
+    /* CSEL/CSINC/CSINV/CSNEG conditional select family. */
+    if ((insn & UINT32_C(0x1FE00000)) == UINT32_C(0x1A800000)) {
+        const int is64 = (int)((insn >> 31) & 1u);
+        const uint64_t lhs = vp_reg_read(cpu, (insn >> 5) & 31u, 0);
+        const uint64_t rhs = vp_reg_read(cpu, (insn >> 16) & 31u, 0);
+        const uint32_t operation = (((insn >> 30) & 1u) << 1) | ((insn >> 10) & 1u);
+        uint64_t result;
+        if (vp_condition_holds(cpu, (insn >> 12) & 15u)) result = lhs;
+        else if (operation == 0u) result = rhs;
+        else if (operation == 1u) result = rhs + 1u;
+        else if (operation == 2u) result = ~rhs;
+        else result = (uint64_t)(-(int64_t)rhs);
+        vp_reg_write(cpu, insn & 31u, result, is64, 0);
+        return vp_retire(cpu, next_pc);
+    }
+
+    /* MADD/MSUB, including MUL/MNEG aliases when Ra is XZR/WZR. */
+    if ((insn & UINT32_C(0x7FE00000)) == UINT32_C(0x1B000000)) {
+        const int is64 = (int)((insn >> 31) & 1u);
+        uint64_t lhs = vp_reg_read(cpu, (insn >> 5) & 31u, 0);
+        uint64_t rhs = vp_reg_read(cpu, (insn >> 16) & 31u, 0);
+        uint64_t addend = vp_reg_read(cpu, (insn >> 10) & 31u, 0);
+        if (!is64) { lhs = (uint32_t)lhs; rhs = (uint32_t)rhs; addend = (uint32_t)addend; }
+        const uint64_t product = lhs * rhs;
+        const uint64_t result = ((insn >> 15) & 1u) ? addend - product : addend + product;
+        vp_reg_write(cpu, insn & 31u, result, is64, 0);
+        return vp_retire(cpu, next_pc);
+    }
+
     /* STP/LDP GPR pairs: signed offset, pre-index, and post-index. */
     const uint32_t pair_class = insn & UINT32_C(0x7FC00000);
     if (pair_class == UINT32_C(0x28800000) || pair_class == UINT32_C(0x28C00000) ||

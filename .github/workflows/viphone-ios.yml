@@ -101,9 +101,18 @@ jobs:
               memcpy(dst, backing->bytes + offset, length);
               return VP_STATUS_OK;
           }
+          typedef struct { char bytes[2048]; size_t length; } SerialCapture;
+          static void capture_serial(const uint8_t *bytes, size_t length, void *context) {
+              SerialCapture *capture = (SerialCapture *)context;
+              if (!capture) return;
+              size_t available = sizeof(capture->bytes) - 1u - capture->length;
+              if (length > available) length = available;
+              if (length) memcpy(capture->bytes + capture->length, bytes, length);
+              capture->length += length; capture->bytes[capture->length] = 0;
+          }
 
           int main(void) {
-              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.11-dyld-cpu") != 0) return 9;
+              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.12-dyld-diagnostics") != 0) return 9;
               VPMachineConfig cfg = {8, 32ULL * 1024 * 1024 * 1024, 1290, 2796, 460, 3.0};
               VPRuntime *rt = vp_runtime_create(&cfg);
               if (!rt) return 10;
@@ -246,6 +255,9 @@ jobs:
                   0x54000040u,       /* B.EQ +8 */
                   0xD29BD5A3u,       /* MOVZ X3, #0xDEAD (skipped) */
                   0xD2824683u,       /* MOVZ X3, #0x1234 */
+                  0x9A810006u,       /* CSEL X6, X0, X1, EQ */
+                  0x9A811407u,       /* CSINC X7, X0, X1, NE */
+                  0x9B017C08u,       /* MUL X8, X0, X1 */
                   0x390043E3u,       /* STRB W3, [SP, #16] */
                   0x394043E4u,       /* LDRB W4, [SP, #16] */
                   0xF84003E5u,       /* LDUR X5, [SP] */
@@ -259,14 +271,15 @@ jobs:
               VPAArch64CPU dyld_cpu;
               vp_aarch64_reset(&dyld_cpu, dyld_cpu_base);
               dyld_cpu.sp = 0x80000; dyld_cpu.x[29] = 0xAAAA; dyld_cpu.x[30] = 0xBBBB;
-              for (unsigned i = 0; i < 15; i++) {
+              for (unsigned i = 0; i < 18; i++) {
                   const VPCPUStepResult step = vp_aarch64_step(rt, &dyld_cpu, NULL);
-                  if (i < 14 && step != VP_CPU_STEP_OK) return 58 + (int)i;
-                  if (i == 14 && step != VP_CPU_STEP_HALTED) return 73;
+                  if (i < 17 && step != VP_CPU_STEP_OK) return 58 + (int)i;
+                  if (i == 17 && step != VP_CPU_STEP_HALTED) return 76;
               }
               if (dyld_cpu.x[2] != 12 || dyld_cpu.x[3] != 0x1234 || dyld_cpu.x[4] != 0x34 ||
-                  dyld_cpu.x[5] != 0xAAAA || dyld_cpu.x[29] != 0xAAAA || dyld_cpu.x[30] != 0xBBBB ||
-                  dyld_cpu.sp != 0x80000 || ((dyld_cpu.sys.nzcv >> 30) & 1u) != 1u) return 74;
+                  dyld_cpu.x[5] != 0xAAAA || dyld_cpu.x[6] != 5 || dyld_cpu.x[7] != 8 ||
+                  dyld_cpu.x[8] != 35 || dyld_cpu.x[29] != 0xAAAA || dyld_cpu.x[30] != 0xBBBB ||
+                  dyld_cpu.sp != 0x80000 || ((dyld_cpu.sys.nzcv >> 30) & 1u) != 1u) return 77;
 
               if (vp_runtime_boot(rt) != VP_STATUS_OK) return 34;
               if (vp_runtime_state(rt) != VP_RUNTIME_STOPPED) return 35;
@@ -307,6 +320,19 @@ jobs:
                   !strstr(diagnostic_check, "[NYXDYLD] shared cache demand-mapped")) return 56;
               nyx_vm_destroy(cache_vm);
               unlink(cache_path);
+
+              VPMachineConfig fault_cfg = {1, 1024 * 1024, 1, 1, 1, 1.0};
+              VPRuntime *fault_rt = vp_runtime_create(&fault_cfg);
+              if (!fault_rt) return 78;
+              VPKernelSurface *fault_surface = vp_ksurface_attach(fault_rt);
+              SerialCapture fault_capture = {0};
+              vp_runtime_set_serial_callback(fault_rt, capture_serial, &fault_capture);
+              if (!fault_surface || vp_runtime_set_boot_vector(fault_rt, 0x1000) != VP_STATUS_OK ||
+                  vp_runtime_boot(fault_rt) != VP_STATUS_EXECUTION_FAULT ||
+                  !strstr(fault_capture.bytes, "NYX_CPU_FAULT:") ||
+                  !strstr(fault_capture.bytes, "x30=0x")) return 79;
+              vp_ksurface_destroy(fault_surface);
+              vp_runtime_destroy(fault_rt);
               return 0;
           }
           EOF
@@ -394,8 +420,8 @@ jobs:
           Nyxian=$NYXIAN_SHA
           vphone-cli=$VPHONE_CLI_SHA
           runtime-branch=$GITHUB_SHA
-          runtime-abi=11
-          core-abi=12
+          runtime-abi=12
+          core-abi=13
           execution=ViPhone-custom-aarch64
           apple-boot-staging=vp_runtime_stage_boot_images
           qemu=none
@@ -579,8 +605,8 @@ jobs:
             "nyxianCommit": "$NYXIAN_SHA",
             "bootAndCFWDonor": "Lakr233/vphone-cli",
             "vphoneCliCommit": "$VPHONE_CLI_SHA",
-            "runtimeABI": 11,
-            "coreABI": 12,
+            "runtimeABI": 12,
+            "coreABI": 13,
             "execution": "ViPhone custom AArch64 runtime",
             "appleBootImageStaging": true,
             "builtInNyxianEmbedded": true,
@@ -599,8 +625,10 @@ jobs:
             "builtInDyldMachOLoader": true,
             "builtInDarwinInitialStack": true,
             "builtInDyldEntryAttempt": true,
-            "builtInDyldCPUInstructions": ["PAC-hints", "STP-LDP", "ADDS-SUBS", "B.cond", "logical-register", "LDUR-STUR", "LDR-literal"],
+            "builtInDyldCPUInstructions": ["PAC-hints", "STP-LDP", "ADDS-SUBS", "B.cond", "logical-register", "LDUR-STUR", "LDR-literal", "CSEL-CSINC", "MADD-MSUB"],
             "builtInDeviceDiagnostics": true,
+            "builtInDeviceDiagnosticShare": true,
+            "cpuFaultMarker": "NYX_CPU_FAULT",
             "dyldSharedCacheImport": "user-supplied arm64e",
             "launchdImport": "user-supplied arm64 MH_EXECUTE",
             "launchdStableEventLoop": false,
