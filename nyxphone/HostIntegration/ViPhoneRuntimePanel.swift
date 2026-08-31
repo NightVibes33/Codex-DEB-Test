@@ -55,6 +55,7 @@ final class ViPhoneRuntimeModel: ObservableObject {
     @Published private(set) var guestFrame: UIImage?
 
     private var session: VirtualPhoneSession?
+    private var bundledVM: OpaquePointer?
     private let fileManager = FileManager.default
 
     init() {
@@ -67,6 +68,10 @@ final class ViPhoneRuntimeModel: ObservableObject {
             statusText = "Runtime initialization failed"
             detailText = error.localizedDescription
         }
+    }
+
+    deinit {
+        if let bundledVM { nyx_vm_destroy(bundledVM) }
     }
 
     var canBoot: Bool { fileSizes[.iBoot] != nil && !isBooting }
@@ -162,13 +167,17 @@ final class ViPhoneRuntimeModel: ObservableObject {
             var frameInfo = NyxFramebufferInfo(
                 width: 0, height: 0, stride: 0, pixel_format: 0, byte_length: 0
             )
+            if let bundledVM {
+                nyx_vm_destroy(bundledVM)
+                self.bundledVM = nil
+            }
             let status: Int32 = image.withUnsafeBytes { imageBytes in
                 log.withUnsafeMutableBufferPointer { logBytes in
                     frame.withUnsafeMutableBytes { frameBytes in
-                        nyx_vm_boot_kernel_capture_frame(
+                        nyx_vm_boot_kernel_device(
                             imageBytes.baseAddress, imageBytes.count, 0x100000, 0x100000,
                             logBytes.baseAddress, logBytes.count, &logLength,
-                            frameBytes.baseAddress, frameBytes.count, &frameInfo
+                            frameBytes.baseAddress, frameBytes.count, &frameInfo, &bundledVM
                         )
                     }
                 }
@@ -191,6 +200,23 @@ final class ViPhoneRuntimeModel: ObservableObject {
         } catch {
             statusText = "ViPhone boot failed"
             detailText = error.localizedDescription
+        }
+    }
+
+    func sendTouch(_ event: NyxTouchEvent) {
+        guard let bundledVM else { return }
+        var event = event
+        var frame = [UInt8](repeating: 0, count: 64 * 96 * 4)
+        var frameInfo = NyxFramebufferInfo(width: 0, height: 0, stride: 0, pixel_format: 0, byte_length: 0)
+        let status = frame.withUnsafeMutableBytes { bytes in
+            nyx_vm_touch_capture_frame(bundledVM, &event, bytes.baseAddress, bytes.count, &frameInfo)
+        }
+        if status == 0, let image = Self.makeGuestImage(frame, info: frameInfo) {
+            guestFrame = image
+            statusText = "ViPhone touch delivered"
+        } else {
+            statusText = "ViPhone touch failed"
+            detailText = "status=\(status)"
         }
     }
 
@@ -314,6 +340,79 @@ final class ViPhoneRuntimeModel: ObservableObject {
     )
 }
 
+struct GuestDisplayView: UIViewRepresentable {
+    let image: UIImage
+    let onTouch: (NyxTouchEvent) -> Void
+
+    func makeUIView(context: Context) -> GuestFramebufferView {
+        let view = GuestFramebufferView()
+        view.onTouch = onTouch
+        view.image = image
+        return view
+    }
+
+    func updateUIView(_ view: GuestFramebufferView, context: Context) {
+        view.onTouch = onTouch
+        view.image = image
+    }
+}
+
+final class GuestFramebufferView: UIView {
+    private let imageView = UIImageView()
+    private var touchIDs: [ObjectIdentifier: UInt32] = [:]
+    private var nextTouchID: UInt32 = 1
+    var onTouch: ((NyxTouchEvent) -> Void)?
+    var image: UIImage? {
+        didSet { imageView.image = image }
+    }
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isMultipleTouchEnabled = true
+        clipsToBounds = true
+        backgroundColor = .black
+        imageView.contentMode = .scaleAspectFit
+        imageView.isUserInteractionEnabled = false
+        addSubview(imageView)
+    }
+
+    required init?(coder: NSCoder) { return nil }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        imageView.frame = bounds
+    }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) { emit(touches, phase: 0) }
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) { emit(touches, phase: 1) }
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) { emit(touches, phase: 2) }
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) { emit(touches, phase: 2) }
+
+    private func emit(_ touches: Set<UITouch>, phase: UInt32) {
+        guard let image, image.size.width > 0, image.size.height > 0 else { return }
+        let scale = min(bounds.width / image.size.width, bounds.height / image.size.height)
+        let displayedSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+        let origin = CGPoint(x: (bounds.width - displayedSize.width) / 2, y: (bounds.height - displayedSize.height) / 2)
+        for touch in touches {
+            let key = ObjectIdentifier(touch)
+            let id: UInt32
+            if let existing = touchIDs[key] {
+                id = existing
+            } else {
+                id = nextTouchID
+                nextTouchID &+= 1
+                touchIDs[key] = id
+            }
+            let location = touch.location(in: self)
+            let x = Float(max(0, min(1, (location.x - origin.x) / displayedSize.width)))
+            let y = Float(max(0, min(1, (location.y - origin.y) / displayedSize.height)))
+            let pressure = touch.maximumPossibleForce > 0 ? Float(touch.force / touch.maximumPossibleForce) : 1
+            onTouch?(NyxTouchEvent(id: id, x: x, y: y, pressure: pressure, phase: phase))
+            if phase == 2 { touchIDs.removeValue(forKey: key) }
+        }
+    }
+}
+
 struct ViPhoneRuntimePanel: View {
     @StateObject private var model = ViPhoneRuntimeModel()
     @Environment(\.dismiss) private var dismiss
@@ -352,14 +451,11 @@ struct ViPhoneRuntimePanel: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Guest Display")
                                 .font(.headline)
-                            Image(uiImage: frame)
-                                .interpolation(.none)
-                                .resizable()
-                                .scaledToFit()
+                            GuestDisplayView(image: frame, onTouch: model.sendTouch)
+                                .aspectRatio(2.0 / 3.0, contentMode: .fit)
                                 .frame(maxWidth: .infinity, minHeight: 240)
-                                .background(Color.black)
                                 .clipShape(RoundedRectangle(cornerRadius: 18))
-                                .accessibilityLabel("Live ViPhone guest display")
+                                .accessibilityLabel("Interactive ViPhone guest display")
                         }
                     }
 

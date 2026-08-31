@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-#define NYX_RUNTIME_ABI_VERSION 3u
+#define NYX_RUNTIME_ABI_VERSION 4u
 
 typedef struct NyxVM NyxVM;
 
@@ -28,6 +28,14 @@ typedef struct {
     uint32_t pixel_format;
     uint64_t byte_length;
 } NyxFramebufferInfo;
+
+typedef struct {
+    uint32_t id;
+    float x;
+    float y;
+    float pressure;
+    uint32_t phase;
+} NyxTouchEvent;
 
 typedef void (*NyxLogCallback)(const uint8_t *bytes, size_t length, void *context);
 
@@ -50,6 +58,11 @@ uint64_t nyx_vm_instructions_retired(const NyxVM *vm);
 int32_t nyx_vm_copy_framebuffer(
     NyxVM *vm, void *frame_buffer, size_t frame_capacity, NyxFramebufferInfo *frame_info
 );
+int32_t nyx_vm_touch(NyxVM *vm, const NyxTouchEvent *event);
+int32_t nyx_vm_touch_capture_frame(
+    NyxVM *vm, const NyxTouchEvent *event,
+    void *frame_buffer, size_t frame_capacity, NyxFramebufferInfo *frame_info
+);
 int32_t nyx_vm_boot_kernel_capture(
     const void *bytes,
     size_t length,
@@ -60,6 +73,12 @@ int32_t nyx_vm_boot_kernel_capture(
     size_t *log_length
 );
 
+int32_t nyx_vm_boot_kernel_device(
+    const void *bytes, size_t length, uint64_t load_address, uint64_t entry_address,
+    char *log_buffer, size_t log_capacity, size_t *log_length,
+    void *frame_buffer, size_t frame_capacity, NyxFramebufferInfo *frame_info,
+    NyxVM **vm_out
+);
 int32_t nyx_vm_boot_kernel_capture_frame(
     const void *bytes, size_t length, uint64_t load_address, uint64_t entry_address,
     char *log_buffer, size_t log_capacity, size_t *log_length,

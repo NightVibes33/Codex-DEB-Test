@@ -118,6 +118,35 @@ VPStatus vp_ksurface_handle_syscall(
             *result = 0;
             surface->handled++;
             return VP_STATUS_OK;
+        case VP_NYX_SYS_FRAMEBUFFER_PUBLISH:
+            if (vp_runtime_publish_framebuffer(
+                    runtime, args[0], (uint32_t)args[1], (uint32_t)args[2], (uint32_t)args[3]
+                ) != VP_STATUS_OK) {
+                *result = vp_errno_result(EFAULT);
+                surface->rejected++;
+                return VP_STATUS_OK;
+            }
+            *result = 0;
+            surface->handled++;
+            return VP_STATUS_OK;
+        case VP_NYX_SYS_TOUCH_DEQUEUE: {
+            VPTouchEvent event;
+            const VPStatus touch_status = vp_runtime_dequeue_touch(runtime, &event);
+            if (touch_status == VP_STATUS_INVALID_STATE) {
+                *result = 0;
+                surface->handled++;
+                return VP_STATUS_OK;
+            }
+            if (touch_status != VP_STATUS_OK ||
+                vp_runtime_memory_write(runtime, args[0], &event, sizeof(event)) != VP_STATUS_OK) {
+                *result = vp_errno_result(EFAULT);
+                surface->rejected++;
+                return VP_STATUS_OK;
+            }
+            *result = 1;
+            surface->handled++;
+            return VP_STATUS_OK;
+        }
         case VP_DARWIN_SYS_GETPID:
             *result = (uint64_t)(uint32_t)surface->identity.pid;
             break;
