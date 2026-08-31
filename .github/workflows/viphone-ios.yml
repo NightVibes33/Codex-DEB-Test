@@ -71,8 +71,11 @@ jobs:
           #include "VPhoneKernelSurface.h"
           #include "VPhoneHostRuntime.h"
           #include "NyxRuntime.h"
+          #include <fcntl.h>
           #include <stdint.h>
           #include <stdio.h>
+          #include <stdlib.h>
+          #include <unistd.h>
           #include <string.h>
 
           static uint32_t movz_x(unsigned rd, unsigned imm16) {
@@ -89,14 +92,43 @@ jobs:
           }
           static void put32(uint8_t *p, uint32_t value) { memcpy(p, &value, sizeof(value)); }
           static void put64(uint8_t *p, uint64_t value) { memcpy(p, &value, sizeof(value)); }
+          typedef struct { const uint8_t *bytes; size_t length; } Backing;
+          static VPStatus backing_read(uint64_t offset, void *dst, size_t length, void *context) {
+              Backing *backing = (Backing *)context;
+              if (!backing || offset > backing->length || length > backing->length - offset) {
+                  return VP_STATUS_ADDRESS_OUT_OF_RANGE;
+              }
+              memcpy(dst, backing->bytes + offset, length);
+              return VP_STATUS_OK;
+          }
 
           int main(void) {
-              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.8-macho-launchd") != 0) return 9;
-              VPMachineConfig cfg = {8, 8ULL * 1024 * 1024 * 1024, 1290, 2796, 460, 3.0};
+              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.9-dyld-cache") != 0) return 9;
+              VPMachineConfig cfg = {8, 16ULL * 1024 * 1024 * 1024, 1290, 2796, 460, 3.0};
               VPRuntime *rt = vp_runtime_create(&cfg);
               if (!rt) return 10;
               VPKernelSurface *surface = vp_ksurface_attach(rt);
               if (!surface) return 11;
+
+              uint8_t backing_bytes[VP_GUEST_PAGE_SIZE * 2u];
+              for (size_t i = 0; i < sizeof(backing_bytes); i++) backing_bytes[i] = (uint8_t)(i * 17u + 3u);
+              Backing backing = {backing_bytes, sizeof(backing_bytes)};
+              const uint64_t backing_address = 0x6000000;
+              if (vp_runtime_map_readonly_backing(
+                      rt, backing_address, sizeof(backing_bytes), 0, backing_read, &backing
+                  ) != VP_STATUS_OK) return 44;
+              const uint64_t pages_before_cow = vp_runtime_committed_pages(rt);
+              uint8_t backing_check[32] = {0};
+              if (vp_runtime_memory_read(rt, backing_address + 9, backing_check, sizeof(backing_check)) != VP_STATUS_OK ||
+                  memcmp(backing_check, backing_bytes + 9, sizeof(backing_check)) != 0 ||
+                  vp_runtime_committed_pages(rt) != pages_before_cow) return 45;
+              const uint8_t replacement = 0xa5;
+              if (vp_runtime_memory_write(rt, backing_address + 17, &replacement, 1) != VP_STATUS_OK ||
+                  vp_runtime_committed_pages(rt) != pages_before_cow + 1) return 46;
+              memset(backing_check, 0, sizeof(backing_check));
+              if (vp_runtime_memory_read(rt, backing_address + 9, backing_check, sizeof(backing_check)) != VP_STATUS_OK ||
+                  backing_check[8] != replacement || backing_check[7] != backing_bytes[16] ||
+                  backing_check[9] != backing_bytes[18]) return 47;
 
               uint8_t macho[0x240] = {0};
               put32(macho, 0xfeedfacf);
@@ -183,6 +215,27 @@ jobs:
                      (unsigned long long)vp_runtime_committed_bytes(rt));
               vp_ksurface_destroy(surface);
               vp_runtime_destroy(rt);
+
+              char cache_path[] = "/tmp/viphone-dyld-cache-XXXXXX";
+              int cache_fd = mkstemp(cache_path);
+              if (cache_fd < 0) return 48;
+              uint8_t cache[VP_GUEST_PAGE_SIZE] = {0};
+              memcpy(cache, "dyld_v1  arm64e", 16);
+              put32(cache + 16, 0x100); put32(cache + 20, 1);
+              put64(cache + 0x100, 0x7000000);
+              put64(cache + 0x108, VP_GUEST_PAGE_SIZE);
+              put64(cache + 0x110, 0);
+              put32(cache + 0x118, 5); put32(cache + 0x11c, 5);
+              if (write(cache_fd, cache, sizeof(cache)) != (ssize_t)sizeof(cache) || close(cache_fd) != 0) return 49;
+              NyxVMConfig nyx_cfg = {1, 16ULL * 1024 * 1024 * 1024, 1290, 2796, 460, 3.0};
+              NyxVM *cache_vm = nyx_vm_create(&nyx_cfg);
+              if (!cache_vm) return 50;
+              uint32_t cache_mappings = 0;
+              uint64_t cache_bytes = 0;
+              if (nyx_vm_map_dyld_cache(cache_vm, cache_path, &cache_mappings, &cache_bytes) != 0 ||
+                  cache_mappings != 1 || cache_bytes != VP_GUEST_PAGE_SIZE) return 51;
+              nyx_vm_destroy(cache_vm);
+              unlink(cache_path);
               return 0;
           }
           EOF
@@ -251,6 +304,8 @@ jobs:
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_vp_runtime_boot'
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_vp_runtime_stage_boot_images'
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_vp_runtime_load_macho'
+          xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_vp_runtime_map_readonly_backing'
+          xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_nyx_vm_map_dyld_cache'
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_nyx_vm_load_macho'
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_vp_host_runtime_start'
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_nyx_runtime_version'
@@ -265,8 +320,8 @@ jobs:
           Nyxian=$NYXIAN_SHA
           vphone-cli=$VPHONE_CLI_SHA
           runtime-branch=$GITHUB_SHA
-          runtime-abi=8
-          core-abi=9
+          runtime-abi=9
+          core-abi=10
           execution=ViPhone-custom-aarch64
           apple-boot-staging=vp_runtime_stage_boot_images
           qemu=none
@@ -418,6 +473,8 @@ jobs:
           xcrun nm "$APP/$EXE" | grep '_vp_runtime_boot'
           xcrun nm "$APP/$EXE" | grep '_vp_runtime_stage_boot_images'
           xcrun nm "$APP/$EXE" | grep '_vp_runtime_load_macho'
+          xcrun nm "$APP/$EXE" | grep '_vp_runtime_map_readonly_backing'
+          xcrun nm "$APP/$EXE" | grep '_nyx_vm_map_dyld_cache'
           xcrun nm "$APP/$EXE" | grep '_nyx_vm_load_macho'
           xcrun nm "$APP/$EXE" | grep '_vp_aarch64_step'
           xcrun nm "$APP/$EXE" | grep '_vp_host_runtime_start'
@@ -445,8 +502,8 @@ jobs:
             "nyxianCommit": "$NYXIAN_SHA",
             "bootAndCFWDonor": "Lakr233/vphone-cli",
             "vphoneCliCommit": "$VPHONE_CLI_SHA",
-            "runtimeABI": 8,
-            "coreABI": 9,
+            "runtimeABI": 9,
+            "coreABI": 10,
             "execution": "ViPhone custom AArch64 runtime",
             "appleBootImageStaging": true,
             "builtInNyxianEmbedded": true,
@@ -461,6 +518,8 @@ jobs:
             "builtInDarwinABI": true,
             "builtInMachIPC": true,
             "builtInMachOLoader": true,
+            "builtInDyldCacheDemandPaging": true,
+            "dyldSharedCacheImport": "user-supplied arm64e",
             "launchdImport": "user-supplied arm64 MH_EXECUTE",
             "launchdStableEventLoop": false,
             "qemu": false,

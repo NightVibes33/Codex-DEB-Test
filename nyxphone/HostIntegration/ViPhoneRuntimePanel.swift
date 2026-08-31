@@ -15,6 +15,7 @@ final class ViPhoneRuntimeModel: ObservableObject {
         case trustCache
         case ramdisk
         case launchd
+        case dyldCache
 
         var id: String { rawValue }
 
@@ -26,6 +27,7 @@ final class ViPhoneRuntimeModel: ObservableObject {
             case .trustCache: "Trust Cache"
             case .ramdisk: "Ramdisk"
             case .launchd: "Apple /sbin/launchd"
+            case .dyldCache: "dyld shared cache (arm64e)"
             }
         }
 
@@ -37,6 +39,7 @@ final class ViPhoneRuntimeModel: ObservableObject {
             case .trustCache: "trustcache.img4"
             case .ramdisk: "ramdisk.dmg"
             case .launchd: "launchd"
+            case .dyldCache: "dyld_shared_cache_arm64e"
             }
         }
 
@@ -60,9 +63,11 @@ final class ViPhoneRuntimeModel: ObservableObject {
     @Published private(set) var networkStatus = "Not tested"
     @Published private(set) var darwinStatus = "Not started"
     @Published private(set) var launchdStatus = "Not imported"
+    @Published private(set) var dyldStatus = "Not imported"
 
     private var session: VirtualPhoneSession?
     private var bundledVM: OpaquePointer?
+    private var dyldCacheMapped = false
     private let fileManager = FileManager.default
 
     init() {
@@ -159,7 +164,9 @@ final class ViPhoneRuntimeModel: ObservableObject {
     }
 
     var bundledKernelAvailable: Bool { bundledKernelURL != nil }
-    var canStageLaunchd: Bool { bundledVM != nil && fileSizes[.launchd] != nil }
+    var canStageLaunchd: Bool {
+        bundledVM != nil && fileSizes[.launchd] != nil && fileSizes[.dyldCache] != nil
+    }
 
     func stageLaunchd() {
         guard let bundledVM, canStageLaunchd else {
@@ -167,6 +174,20 @@ final class ViPhoneRuntimeModel: ObservableObject {
             return
         }
         do {
+            if !dyldCacheMapped {
+                var mappingCount: UInt32 = 0
+                var mappedBytes: UInt64 = 0
+                let cacheStatus = url(for: .dyldCache).path.withCString { cachePath in
+                    nyx_vm_map_dyld_cache(bundledVM, cachePath, &mappingCount, &mappedBytes)
+                }
+                guard cacheStatus == 0 else {
+                    dyldStatus = "Cache rejected (status \(cacheStatus))"
+                    statusText = "dyld cache staging failed"
+                    return
+                }
+                dyldCacheMapped = true
+                dyldStatus = "\(mappingCount) mappings / \(ByteCountFormatter.string(fromByteCount: Int64(clamping: mappedBytes), countStyle: .memory))"
+            }
             let image = try Data(contentsOf: url(for: .launchd), options: .mappedIfSafe)
             var entryAddress: UInt64 = 0
             var dylibCount: UInt32 = 0
@@ -208,6 +229,9 @@ final class ViPhoneRuntimeModel: ObservableObject {
                 nyx_vm_destroy(bundledVM)
                 self.bundledVM = nil
             }
+            dyldCacheMapped = false
+            dyldStatus = fileSizes[.dyldCache] == nil ? "Not imported" : "Ready to map"
+            launchdStatus = fileSizes[.launchd] == nil ? "Not imported" : "Ready to stage"
             let diskURL = try persistentDiskURL()
             let status: Int32 = diskURL.path.withCString { diskPath in
                 image.withUnsafeBytes { imageBytes in
@@ -524,6 +548,7 @@ struct ViPhoneRuntimePanel: View {
                     LabeledContent("NyxBus network", value: model.networkStatus)
                     LabeledContent("NyxDarwin", value: model.darwinStatus)
                     LabeledContent("Apple launchd", value: model.launchdStatus)
+                    LabeledContent("dyld cache", value: model.dyldStatus)
                     Button {
                         model.stageLaunchd()
                     } label: {

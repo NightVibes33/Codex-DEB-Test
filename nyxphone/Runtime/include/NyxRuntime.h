@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-#define NYX_RUNTIME_ABI_VERSION 8u
+#define NYX_RUNTIME_ABI_VERSION 9u
 
 typedef struct NyxVM NyxVM;
 
@@ -45,6 +45,9 @@ NyxVM *nyx_vm_create(const NyxVMConfig *config);
 void nyx_vm_destroy(NyxVM *vm);
 int32_t nyx_vm_mount_disk(NyxVM *vm, const char *path, uint64_t disk_size);
 void nyx_vm_set_log_callback(NyxVM *vm, NyxLogCallback callback, void *context);
+int32_t nyx_vm_map_dyld_cache(
+    NyxVM *vm, const char *path, uint32_t *mapping_count, uint64_t *mapped_bytes
+);
 int32_t nyx_vm_load_macho(
     NyxVM *vm, const void *bytes, size_t length, uint64_t slide,
     uint64_t *entry_address, uint32_t *dylib_count
