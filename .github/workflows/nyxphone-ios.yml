@@ -113,7 +113,7 @@ jobs:
           }
 
           int main(void) {
-              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.14-dyld-bitfields") != 0) return 9;
+              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.15-dyld-two-source") != 0) return 9;
               VPMachineConfig cfg = {8, 32ULL * 1024 * 1024 * 1024, 1290, 2796, 460, 3.0};
               VPRuntime *rt = vp_runtime_create(&cfg);
               if (!rt) return 10;
@@ -321,6 +321,32 @@ jobs:
                   bitfield_cpu.x[6] != UINT64_C(0xFFFFFFFFFFFFFF80) ||
                   bitfield_cpu.x[7] != UINT64_C(0xFFFFFFFFFFFFFF80)) return 90;
 
+              const uint64_t two_source_cpu_base = 0x540000;
+              const uint32_t two_source_program[] = {
+                  0x9AC10804u,       /* UDIV X4, X0, X1 */
+                  0x9AC10C65u,       /* SDIV X5, X3, X1 */
+                  0x9AC72026u,       /* LSLV X6, X1, X7 */
+                  0x9AC72408u,       /* LSRV X8, X0, X7 */
+                  0x9AC72869u,       /* ASRV X9, X3, X7 */
+                  0x9AC72C0Au,       /* RORV X10, X0, X7 */
+                  0x9ADF080Bu,       /* UDIV X11, X0, XZR */
+                  0xD4400000u,       /* HLT 0 */
+              };
+              if (vp_runtime_memory_write(rt, two_source_cpu_base, two_source_program, sizeof(two_source_program)) != VP_STATUS_OK) return 91;
+              VPAArch64CPU two_source_cpu;
+              vp_aarch64_reset(&two_source_cpu, two_source_cpu_base);
+              two_source_cpu.x[0] = 100; two_source_cpu.x[1] = 7;
+              two_source_cpu.x[3] = (uint64_t)(int64_t)-100; two_source_cpu.x[7] = 3;
+              for (unsigned i = 0; i < 8; i++) {
+                  const VPCPUStepResult step = vp_aarch64_step(rt, &two_source_cpu, NULL);
+                  if (i < 7 && step != VP_CPU_STEP_OK) return 92 + (int)i;
+                  if (i == 7 && step != VP_CPU_STEP_HALTED) return 99;
+              }
+              if (two_source_cpu.x[4] != 14 || two_source_cpu.x[5] != (uint64_t)(int64_t)-14 ||
+                  two_source_cpu.x[6] != 56 || two_source_cpu.x[8] != 12 ||
+                  two_source_cpu.x[9] != (uint64_t)(int64_t)-13 ||
+                  two_source_cpu.x[10] != UINT64_C(0x800000000000000C) || two_source_cpu.x[11] != 0) return 100;
+
               if (vp_runtime_boot(rt) != VP_STATUS_OK) return 34;
               if (vp_runtime_state(rt) != VP_RUNTIME_STOPPED) return 35;
               if (vp_runtime_instructions_retired(rt) != 8) return 36;
@@ -461,7 +487,7 @@ jobs:
           vphone-cli=$VPHONE_CLI_SHA
           runtime-branch=$GITHUB_SHA
           runtime-abi=12
-          core-abi=15
+          core-abi=16
           execution=ViPhone-custom-aarch64
           apple-boot-staging=vp_runtime_stage_boot_images
           qemu=none
@@ -649,7 +675,7 @@ jobs:
             "bootAndCFWDonor": "Lakr233/vphone-cli",
             "vphoneCliCommit": "$VPHONE_CLI_SHA",
             "runtimeABI": 12,
-            "coreABI": 15,
+            "coreABI": 16,
             "execution": "NyxPhone custom AArch64 runtime",
             "appleBootImageStaging": true,
             "builtInNyxianEmbedded": true,
@@ -668,7 +694,7 @@ jobs:
             "builtInDyldMachOLoader": true,
             "builtInDarwinInitialStack": true,
             "builtInDyldEntryAttempt": true,
-            "builtInDyldCPUInstructions": ["PAC-hints", "STP-LDP", "ADDS-SUBS", "B.cond", "logical-register", "LDUR-STUR", "LDR-literal", "CSEL-CSINC", "MADD-MSUB", "SBFM-UBFM", "LDRSW-LDURSW"],
+            "builtInDyldCPUInstructions": ["PAC-hints", "STP-LDP", "ADDS-SUBS", "B.cond", "logical-register", "LDUR-STUR", "LDR-literal", "CSEL-CSINC", "MADD-MSUB", "SBFM-UBFM", "LDRSW-LDURSW", "UDIV-SDIV", "LSLV-LSRV-ASRV-RORV"],
             "builtInDeviceDiagnostics": true,
             "builtInDeviceDiagnosticShare": true,
             "cpuFaultMarker": "NYX_CPU_FAULT",

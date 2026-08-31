@@ -510,6 +510,39 @@ VPCPUStepResult vp_aarch64_step(VPRuntime *runtime, VPAArch64CPU *cpu, uint32_t 
         return vp_retire(cpu, next_pc);
     }
 
+    /* UDIV/SDIV and register-variable LSL/LSR/ASR/ROR. */
+    const uint32_t two_source_class = insn & UINT32_C(0x7FE0FC00);
+    if (two_source_class == UINT32_C(0x1AC00800) || two_source_class == UINT32_C(0x1AC00C00) ||
+        two_source_class == UINT32_C(0x1AC02000) || two_source_class == UINT32_C(0x1AC02400) ||
+        two_source_class == UINT32_C(0x1AC02800) || two_source_class == UINT32_C(0x1AC02C00)) {
+        const int is64 = (int)((insn >> 31) & 1u);
+        uint64_t lhs = vp_reg_read(cpu, (insn >> 5) & 31u, 0);
+        uint64_t rhs = vp_reg_read(cpu, (insn >> 16) & 31u, 0);
+        if (!is64) { lhs = (uint32_t)lhs; rhs = (uint32_t)rhs; }
+        uint64_t result = 0;
+        if (two_source_class == UINT32_C(0x1AC00800)) {
+            result = rhs == 0 ? 0 : lhs / rhs;
+        } else if (two_source_class == UINT32_C(0x1AC00C00)) {
+            if (rhs == 0) result = 0;
+            else if (is64) {
+                const int64_t dividend = (int64_t)lhs, divisor = (int64_t)rhs;
+                result = dividend == INT64_MIN && divisor == -1 ? (uint64_t)INT64_MIN
+                                                                  : (uint64_t)(dividend / divisor);
+            } else {
+                const int32_t dividend = (int32_t)lhs, divisor = (int32_t)rhs;
+                result = dividend == INT32_MIN && divisor == -1 ? (uint32_t)INT32_MIN
+                                                                  : (uint32_t)(dividend / divisor);
+            }
+        } else {
+            const uint32_t type = two_source_class == UINT32_C(0x1AC02000) ? 0u
+                                : two_source_class == UINT32_C(0x1AC02400) ? 1u
+                                : two_source_class == UINT32_C(0x1AC02800) ? 2u : 3u;
+            result = vp_shift_register(lhs, type, (uint32_t)(rhs & (is64 ? 63u : 31u)), is64);
+        }
+        vp_reg_write(cpu, insn & 31u, result, is64, 0);
+        return vp_retire(cpu, next_pc);
+    }
+
     /* CSEL/CSINC/CSINV/CSNEG conditional select family. */
     if ((insn & UINT32_C(0x1FE00000)) == UINT32_C(0x1A800000)) {
         const int is64 = (int)((insn >> 31) & 1u);
