@@ -50,7 +50,7 @@ static void nyx_emit(NyxVM *vm, const char *message) {
 }
 
 const char *nyx_runtime_version(void) {
-    return "NyxRuntime/0.11-dyld-cpu";
+    return "NyxRuntime/0.12-dyld-diagnostics";
 }
 
 uint32_t nyx_runtime_abi_version(void) {
