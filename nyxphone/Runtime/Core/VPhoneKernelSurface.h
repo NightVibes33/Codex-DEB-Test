@@ -67,6 +67,7 @@ VPKernelSurface *vp_ksurface_create(VPRuntime *runtime);
 VPKernelSurface *vp_ksurface_attach(VPRuntime *runtime);
 void vp_ksurface_destroy(VPKernelSurface *surface);
 void vp_ksurface_set_identity(VPKernelSurface *surface, const VPProcessIdentity *identity);
+void vp_ksurface_set_process_name(VPKernelSurface *surface, const char *process_name);
 VPProcessIdentity vp_ksurface_identity(const VPKernelSurface *surface);
 uint64_t vp_ksurface_syscalls_handled(const VPKernelSurface *surface);
 uint64_t vp_ksurface_syscalls_rejected(const VPKernelSurface *surface);

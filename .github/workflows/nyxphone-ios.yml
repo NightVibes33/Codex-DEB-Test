@@ -72,6 +72,7 @@ jobs:
           #include "VPhoneHostRuntime.h"
           #include "NyxRuntime.h"
           #include <fcntl.h>
+          #include <errno.h>
           #include <stdint.h>
           #include <stdio.h>
           #include <stdlib.h>
@@ -112,12 +113,23 @@ jobs:
           }
 
           int main(void) {
-              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.12-dyld-diagnostics") != 0) return 9;
+              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.13-launchd-diagnostics") != 0) return 9;
               VPMachineConfig cfg = {8, 32ULL * 1024 * 1024 * 1024, 1290, 2796, 460, 3.0};
               VPRuntime *rt = vp_runtime_create(&cfg);
               if (!rt) return 10;
               VPKernelSurface *surface = vp_ksurface_attach(rt);
               if (!surface) return 11;
+              SerialCapture syscall_capture = {0};
+              const uint64_t unknown_args[8] = {1, 2, 3, 4, 5, 6, 7, 8};
+              uint64_t unknown_result = 0;
+              vp_runtime_set_serial_callback(rt, capture_serial, &syscall_capture);
+              vp_ksurface_set_process_name(surface, "launchd");
+              if (vp_ksurface_handle_syscall(rt, UINT64_C(0xFFFF), unknown_args, &unknown_result, surface) != VP_STATUS_OK ||
+                  unknown_result != (uint64_t)(int64_t)-ENOSYS ||
+                  !strstr(syscall_capture.bytes, "process=launchd number=65535") ||
+                  !strstr(syscall_capture.bytes, "arguments=1,2,3,4,5,6,7,8")) return 80;
+              vp_ksurface_set_process_name(surface, "nyxinit");
+              vp_runtime_set_serial_callback(rt, NULL, NULL);
 
               uint8_t backing_bytes[VP_GUEST_PAGE_SIZE * 2u];
               for (size_t i = 0; i < sizeof(backing_bytes); i++) backing_bytes[i] = (uint8_t)(i * 17u + 3u);
@@ -421,7 +433,7 @@ jobs:
           vphone-cli=$VPHONE_CLI_SHA
           runtime-branch=$GITHUB_SHA
           runtime-abi=12
-          core-abi=13
+          core-abi=14
           execution=ViPhone-custom-aarch64
           apple-boot-staging=vp_runtime_stage_boot_images
           qemu=none
@@ -609,7 +621,7 @@ jobs:
             "bootAndCFWDonor": "Lakr233/vphone-cli",
             "vphoneCliCommit": "$VPHONE_CLI_SHA",
             "runtimeABI": 12,
-            "coreABI": 13,
+            "coreABI": 14,
             "execution": "NyxPhone custom AArch64 runtime",
             "appleBootImageStaging": true,
             "builtInNyxianEmbedded": true,

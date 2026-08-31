@@ -8,6 +8,7 @@
 struct VPKernelSurface {
     VPRuntime *runtime;
     VPProcessIdentity identity;
+    char process_name[32];
     uint64_t handled;
     uint64_t rejected;
     uint32_t mode;
@@ -35,6 +36,7 @@ VPKernelSurface *vp_ksurface_create(VPRuntime *runtime) {
     surface->identity.euid = 0;
     surface->identity.egid = 0;
     surface->identity.task_handle = UINT64_C(0x4E595849414E0001);
+    (void)snprintf(surface->process_name, sizeof(surface->process_name), "nyxinit");
     surface->mode = VP_KSURFACE_MODE_NORMAL;
     surface->next_port = 100u;
 #ifdef DEBUG
@@ -61,6 +63,11 @@ void vp_ksurface_destroy(VPKernelSurface *surface) {
 void vp_ksurface_set_identity(VPKernelSurface *surface, const VPProcessIdentity *identity) {
     if (!surface || !identity) return;
     surface->identity = *identity;
+}
+
+void vp_ksurface_set_process_name(VPKernelSurface *surface, const char *process_name) {
+    if (!surface || !process_name || !process_name[0]) return;
+    (void)snprintf(surface->process_name, sizeof(surface->process_name), "%s", process_name);
 }
 
 VPProcessIdentity vp_ksurface_identity(const VPKernelSurface *surface) {
@@ -255,10 +262,12 @@ VPStatus vp_ksurface_handle_syscall(
             char diagnostic[256];
             (void)snprintf(
                 diagnostic, sizeof(diagnostic),
-                "NYX_MISSING_SYSCALL: pid=%d process=nyxinit number=%llu arguments=%llx,%llx,%llx,%llx\n",
-                surface->identity.pid, (unsigned long long)number,
+                "NYX_MISSING_SYSCALL: pid=%d process=%s number=%llu arguments=%llx,%llx,%llx,%llx,%llx,%llx,%llx,%llx\n",
+                surface->identity.pid, surface->process_name, (unsigned long long)number,
                 (unsigned long long)args[0], (unsigned long long)args[1],
-                (unsigned long long)args[2], (unsigned long long)args[3]
+                (unsigned long long)args[2], (unsigned long long)args[3],
+                (unsigned long long)args[4], (unsigned long long)args[5],
+                (unsigned long long)args[6], (unsigned long long)args[7]
             );
             vp_runtime_host_log(runtime, diagnostic);
             *result = vp_errno_result(ENOSYS);
