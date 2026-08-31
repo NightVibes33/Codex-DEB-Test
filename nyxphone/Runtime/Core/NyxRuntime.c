@@ -151,7 +151,7 @@ static VPStatus nyx_network_https_get(
         kCFAllocatorDefault, CFSTR("GET"), url, kCFHTTPVersion1_1
     );
     if (!request) { CFRelease(url); return VP_STATUS_OUT_OF_MEMORY; }
-    CFHTTPMessageSetHeaderFieldValue(request, CFSTR("User-Agent"), CFSTR("ViPhone-Nyxian/0.6"));
+    CFHTTPMessageSetHeaderFieldValue(request, CFSTR("User-Agent"), CFSTR("NyxPhone-Nyxian/0.6"));
     CFHTTPMessageSetHeaderFieldValue(request, CFSTR("Accept"), CFSTR("*/*"));
     CFReadStreamRef stream = CFReadStreamCreateForHTTPRequest(kCFAllocatorDefault, request);
     if (!stream) { CFRelease(request); CFRelease(url); return VP_STATUS_OUT_OF_MEMORY; }
