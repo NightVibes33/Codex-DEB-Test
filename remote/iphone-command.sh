@@ -11,7 +11,6 @@ UICACHE=/var/jb/usr/bin/uicache
 
 echo ===INSTALL_LIVECONTAINER_AND_FELIX===
 fetch() { url="$1"; out="$2"; rm -f "$out"; curl -L --fail --retry 3 -o "$out" "$url" || wget -O "$out" "$url"; }
-hash() { set -- $(sha256sum "$1"); echo "$1"; }
 find_helper() {
   for p in /var/jb/usr/bin/trollstorehelper /var/jb/Applications/TrollStore.app/trollstorehelper /Applications/TrollStore.app/trollstorehelper /var/containers/Bundle/Application/*/*.app/trollstorehelper; do
     [ -x "$p" ] && { echo "$p"; return; }
@@ -19,8 +18,8 @@ find_helper() {
 }
 fetch "$BASE/LiveContainer-32bit-fresh-unsigned.ipa" "$LC_IPA"
 fetch "$BASE/com.disney.FixItFelixJr-iOS4.3-Clutch-2.0.4.ipa" "$FELIX_IPA"
-[ "$(hash "$LC_IPA")" = "$LC_SHA" ] || { echo LC_HASH_FAILED=1; exit 70; }
-[ "$(hash "$FELIX_IPA")" = "$FELIX_SHA" ] || { echo FELIX_HASH_FAILED=1; exit 71; }
+sha256sum "$LC_IPA" | grep -Fq "$LC_SHA" || { echo LC_HASH_FAILED=1; exit 70; }
+sha256sum "$FELIX_IPA" | grep -Fq "$FELIX_SHA" || { echo FELIX_HASH_FAILED=1; exit 71; }
 echo IPA_HASHES_OK=1
 H="$(find_helper)"; echo trollstorehelper="$H"; [ -n "$H" ] || exit 72
 "$H" install force "$LC_IPA"; [ $? -eq 0 ] || exit 73
