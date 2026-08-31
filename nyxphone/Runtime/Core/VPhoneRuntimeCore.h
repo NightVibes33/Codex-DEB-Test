@@ -10,7 +10,7 @@ extern "C" {
 
 #define VP_GUEST_PAGE_SHIFT 14u
 #define VP_GUEST_PAGE_SIZE  (1u << VP_GUEST_PAGE_SHIFT)
-#define VP_RUNTIME_ABI_VERSION 10u
+#define VP_RUNTIME_ABI_VERSION 11u
 #define VP_DEFAULT_INSTRUCTION_BUDGET UINT64_C(1000000)
 
 typedef enum {
@@ -162,6 +162,7 @@ typedef struct {
     uint32_t segment_count;
     uint32_t dylib_count;
     uint32_t has_dylinker;
+    uint32_t file_type;
     char dylinker_path[256];
 } VPMachOImageInfo;
 
@@ -180,6 +181,18 @@ VPStatus vp_runtime_load_macho(
  * memory, then selects entry_address as the next reset vector. This is the
  * native bridge used by the iOS host before the CPU executor begins.
  */
+typedef struct {
+    uint64_t stack_pointer;
+    uint64_t argv_address;
+    uint64_t envp_address;
+    uint64_t apple_address;
+    uint32_t argc;
+} VPDarwinProcessBootstrap;
+
+VPStatus vp_runtime_prepare_darwin_process(
+    VPRuntime *runtime, uint64_t entry_address, uint64_t stack_top,
+    const char *executable_path, VPDarwinProcessBootstrap *bootstrap
+);
 VPStatus vp_runtime_stage_boot_images(VPRuntime *runtime, const VPBootImageLayout *layout);
 
 /* Custom interpreter execution configuration. */

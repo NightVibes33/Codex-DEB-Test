@@ -20,19 +20,37 @@ struct NyxVM {
     uint64_t disk_size;
     int dyld_cache_fd;
     uint64_t dyld_cache_size;
+    uint64_t dyld_entry;
+    uint64_t launchd_entry;
+    char diagnostics[16384];
+    size_t diagnostics_length;
 };
+
+static void nyx_runtime_serial(const uint8_t *bytes, size_t length, void *context);
 
 static VPStatus nyx_network_https_get(
     const char *url, uint8_t *response, size_t capacity, size_t *response_length, void *context
 );
 
+static void nyx_runtime_serial(const uint8_t *bytes, size_t length, void *context) {
+    NyxVM *vm = (NyxVM *)context;
+    if (!vm || !bytes || !length) return;
+    const size_t delivered_length = length;
+    size_t available = sizeof(vm->diagnostics) - 1u - vm->diagnostics_length;
+    if (length > available) length = available;
+    if (length) memcpy(vm->diagnostics + vm->diagnostics_length, bytes, length);
+    vm->diagnostics_length += length;
+    vm->diagnostics[vm->diagnostics_length] = 0;
+    if (vm->log_callback) vm->log_callback(bytes, delivered_length, vm->log_context);
+}
+
 static void nyx_emit(NyxVM *vm, const char *message) {
-    if (!vm || !vm->log_callback || !message) return;
-    vm->log_callback((const uint8_t *)message, strlen(message), vm->log_context);
+    if (!vm || !message) return;
+    nyx_runtime_serial((const uint8_t *)message, strlen(message), vm);
 }
 
 const char *nyx_runtime_version(void) {
-    return "NyxRuntime/0.9-dyld-cache";
+    return "NyxRuntime/0.10-dyld-entry";
 }
 
 uint32_t nyx_runtime_abi_version(void) {
@@ -65,6 +83,7 @@ NyxVM *nyx_vm_create(const NyxVMConfig *config) {
         free(vm);
         return NULL;
     }
+    vp_runtime_set_serial_callback(vm->runtime, nyx_runtime_serial, vm);
     return vm;
 }
 
@@ -190,7 +209,6 @@ void nyx_vm_set_log_callback(NyxVM *vm, NyxLogCallback callback, void *context) 
     if (!vm) return;
     vm->log_callback = callback;
     vm->log_context = context;
-    vp_runtime_set_serial_callback(vm->runtime, callback, context);
     nyx_emit(vm, "[NYXRT] runtime initialized\n");
 }
 
@@ -219,6 +237,18 @@ static VPStatus nyx_dyld_cache_read(
         done += (size_t)count;
     }
     return VP_STATUS_OK;
+}
+
+int32_t nyx_vm_copy_diagnostics(
+    NyxVM *vm, char *buffer, size_t capacity, size_t *length
+) {
+    if (!vm || !buffer || capacity == 0) return (int32_t)VP_STATUS_INVALID_ARGUMENT;
+    size_t count = vm->diagnostics_length;
+    if (count >= capacity) count = capacity - 1u;
+    if (count) memcpy(buffer, vm->diagnostics, count);
+    buffer[count] = 0;
+    if (length) *length = count;
+    return (int32_t)VP_STATUS_OK;
 }
 
 int32_t nyx_vm_map_dyld_cache(
@@ -313,9 +343,39 @@ int32_t nyx_vm_load_macho(
     if (status == VP_STATUS_OK) {
         *entry_address = info.entry_address;
         *dylib_count = info.dylib_count;
-        nyx_emit(vm, "[NYXLAUNCHD] user Mach-O staged; dyld pending\n");
+        if (info.file_type == 7u) {
+            vm->dyld_entry = info.entry_address;
+            nyx_emit(vm, "[NYXDYLD] standalone dyld staged\n");
+        } else {
+            vm->launchd_entry = info.entry_address;
+            nyx_emit(vm, "[NYXLAUNCHD] user Mach-O staged\n");
+        }
     }
     return (int32_t)status;
+}
+
+int32_t nyx_vm_prepare_launchd(NyxVM *vm, uint64_t *stack_pointer) {
+    if (!vm || !stack_pointer || !vm->dyld_entry || !vm->launchd_entry || vm->dyld_cache_fd < 0) {
+        return (int32_t)VP_STATUS_INVALID_STATE;
+    }
+    VPDarwinProcessBootstrap bootstrap;
+    const VPStatus status = vp_runtime_prepare_darwin_process(
+        vm->runtime, vm->dyld_entry, UINT64_C(0x7F0000000), "/sbin/launchd", &bootstrap
+    );
+    if (status == VP_STATUS_OK) {
+        *stack_pointer = bootstrap.stack_pointer;
+        nyx_emit(vm, "[NYXLAUNCHD] dyld entry and initial stack ready\n");
+    }
+    return (int32_t)status;
+}
+
+int32_t nyx_vm_start_launchd(NyxVM *vm) {
+    if (!vm) return (int32_t)VP_STATUS_INVALID_ARGUMENT;
+    uint64_t stack_pointer = 0;
+    const int32_t status = nyx_vm_prepare_launchd(vm, &stack_pointer);
+    if (status != (int32_t)VP_STATUS_OK) return status;
+    vp_runtime_set_instruction_budget(vm->runtime, UINT64_C(500000));
+    return (int32_t)vp_runtime_boot(vm->runtime);
 }
 
 int32_t nyx_vm_load_kernel_bytes(
@@ -422,7 +482,7 @@ static int32_t nyx_vm_boot_kernel_device_internal(
         return (int32_t)VP_STATUS_INVALID_ARGUMENT;
     }
     *vm_out = NULL;
-    NyxVMConfig config = {6, UINT64_C(16) * 1024u * 1024u * 1024u, 1290, 2796, 460, 3.0};
+    NyxVMConfig config = {6, UINT64_C(32) * 1024u * 1024u * 1024u, 1290, 2796, 460, 3.0};
     NyxVM *vm = nyx_vm_create(&config);
     if (!vm) return (int32_t)VP_STATUS_OUT_OF_MEMORY;
     if (disk_path) {
