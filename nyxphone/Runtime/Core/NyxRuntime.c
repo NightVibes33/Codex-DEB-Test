@@ -2,7 +2,11 @@
 #include "VPhoneKernelSurface.h"
 #include "VPhoneRuntimeCore.h"
 
+#include <errno.h>
+#include <fcntl.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <string.h>
 
 struct NyxVM {
@@ -10,6 +14,8 @@ struct NyxVM {
     VPKernelSurface *surface;
     NyxLogCallback log_callback;
     void *log_context;
+    int disk_fd;
+    uint64_t disk_size;
 };
 
 static void nyx_emit(NyxVM *vm, const char *message) {
@@ -18,7 +24,7 @@ static void nyx_emit(NyxVM *vm, const char *message) {
 }
 
 const char *nyx_runtime_version(void) {
-    return "NyxRuntime/0.4-nyxbus-touch";
+    return "NyxRuntime/0.5-nyxbus-storage";
 }
 
 uint32_t nyx_runtime_abi_version(void) {
@@ -29,6 +35,7 @@ NyxVM *nyx_vm_create(const NyxVMConfig *config) {
     if (!config) return NULL;
     NyxVM *vm = (NyxVM *)calloc(1, sizeof(*vm));
     if (!vm) return NULL;
+    vm->disk_fd = -1;
     VPMachineConfig core_config = {
         .cpu_count = config->cpu_count,
         .guest_physical_memory_size = config->guest_physical_memory_size,
@@ -53,10 +60,66 @@ NyxVM *nyx_vm_create(const NyxVMConfig *config) {
 
 void nyx_vm_destroy(NyxVM *vm) {
     if (!vm) return;
+    if (vm->disk_fd >= 0) close(vm->disk_fd);
     if (vm->surface) vp_ksurface_destroy(vm->surface);
     if (vm->runtime) vp_runtime_destroy(vm->runtime);
     memset(vm, 0, sizeof(*vm));
     free(vm);
+}
+
+static VPStatus nyx_disk_read(uint64_t offset, void *dst, size_t length, void *context) {
+    NyxVM *vm = (NyxVM *)context;
+    if (!vm || vm->disk_fd < 0 || offset > vm->disk_size || length > vm->disk_size - offset) {
+        return VP_STATUS_ADDRESS_OUT_OF_RANGE;
+    }
+    uint8_t *bytes = (uint8_t *)dst;
+    size_t done = 0;
+    while (done < length) {
+        const ssize_t count = pread(vm->disk_fd, bytes + done, length - done, (off_t)(offset + done));
+        if (count < 0 && errno == EINTR) continue;
+        if (count <= 0) return VP_STATUS_EXECUTION_FAULT;
+        done += (size_t)count;
+    }
+    return VP_STATUS_OK;
+}
+
+static VPStatus nyx_disk_write(uint64_t offset, const void *src, size_t length, void *context) {
+    NyxVM *vm = (NyxVM *)context;
+    if (!vm || vm->disk_fd < 0 || offset > vm->disk_size || length > vm->disk_size - offset) {
+        return VP_STATUS_ADDRESS_OUT_OF_RANGE;
+    }
+    const uint8_t *bytes = (const uint8_t *)src;
+    size_t done = 0;
+    while (done < length) {
+        const ssize_t count = pwrite(vm->disk_fd, bytes + done, length - done, (off_t)(offset + done));
+        if (count < 0 && errno == EINTR) continue;
+        if (count <= 0) return VP_STATUS_EXECUTION_FAULT;
+        done += (size_t)count;
+    }
+    return VP_STATUS_OK;
+}
+
+static VPStatus nyx_disk_flush(void *context) {
+    NyxVM *vm = (NyxVM *)context;
+    return vm && vm->disk_fd >= 0 && fsync(vm->disk_fd) == 0 ? VP_STATUS_OK : VP_STATUS_EXECUTION_FAULT;
+}
+
+int32_t nyx_vm_mount_disk(NyxVM *vm, const char *path, uint64_t disk_size) {
+    if (!vm || !path || !path[0] || disk_size == 0 || disk_size > INT64_MAX || vm->disk_fd >= 0) {
+        return (int32_t)VP_STATUS_INVALID_ARGUMENT;
+    }
+    const int fd = open(path, O_RDWR | O_CREAT, 0600);
+    if (fd < 0) return (int32_t)VP_STATUS_BACKEND_UNAVAILABLE;
+    struct stat st;
+    if (fstat(fd, &st) != 0 || st.st_size < 0 ||
+        ((uint64_t)st.st_size < disk_size && ftruncate(fd, (off_t)disk_size) != 0)) {
+        close(fd);
+        return (int32_t)VP_STATUS_BACKEND_UNAVAILABLE;
+    }
+    vm->disk_fd = fd;
+    vm->disk_size = disk_size;
+    vp_runtime_set_block_handlers(vm->runtime, nyx_disk_read, nyx_disk_write, nyx_disk_flush, vm);
+    return (int32_t)VP_STATUS_OK;
 }
 
 void nyx_vm_set_log_callback(NyxVM *vm, NyxLogCallback callback, void *context) {
@@ -154,7 +217,7 @@ int32_t nyx_vm_touch_capture_frame(
     return status;
 }
 
-int32_t nyx_vm_boot_kernel_device(
+static int32_t nyx_vm_boot_kernel_device_internal(
     const void *bytes,
     size_t length,
     uint64_t load_address,
@@ -165,7 +228,7 @@ int32_t nyx_vm_boot_kernel_device(
     void *frame_buffer,
     size_t frame_capacity,
     NyxFramebufferInfo *frame_info,
-    NyxVM **vm_out
+    const char *disk_path, uint64_t disk_size, NyxVM **vm_out
 ) {
     if (!bytes || length == 0 || !log_buffer || log_capacity == 0 || !vm_out) {
         return (int32_t)VP_STATUS_INVALID_ARGUMENT;
@@ -174,6 +237,13 @@ int32_t nyx_vm_boot_kernel_device(
     NyxVMConfig config = {1, UINT64_C(16) * 1024u * 1024u, 1290, 2796, 460, 3.0};
     NyxVM *vm = nyx_vm_create(&config);
     if (!vm) return (int32_t)VP_STATUS_OUT_OF_MEMORY;
+    if (disk_path) {
+        const int32_t mount_status = nyx_vm_mount_disk(vm, disk_path, disk_size);
+        if (mount_status != (int32_t)VP_STATUS_OK) {
+            nyx_vm_destroy(vm);
+            return mount_status;
+        }
+    }
     NyxCaptureBuffer capture = {log_buffer, log_capacity, 0};
     log_buffer[0] = 0;
     nyx_vm_set_log_callback(vm, nyx_capture_log, &capture);
@@ -190,6 +260,30 @@ int32_t nyx_vm_boot_kernel_device(
     }
     else nyx_vm_destroy(vm);
     return status;
+}
+
+int32_t nyx_vm_boot_kernel_device(
+    const void *bytes, size_t length, uint64_t load_address, uint64_t entry_address,
+    char *log_buffer, size_t log_capacity, size_t *log_length,
+    void *frame_buffer, size_t frame_capacity, NyxFramebufferInfo *frame_info, NyxVM **vm_out
+) {
+    return nyx_vm_boot_kernel_device_internal(
+        bytes, length, load_address, entry_address, log_buffer, log_capacity, log_length,
+        frame_buffer, frame_capacity, frame_info, NULL, 0, vm_out
+    );
+}
+
+int32_t nyx_vm_boot_kernel_device_storage(
+    const void *bytes, size_t length, uint64_t load_address, uint64_t entry_address,
+    const char *disk_path, uint64_t disk_size,
+    char *log_buffer, size_t log_capacity, size_t *log_length,
+    void *frame_buffer, size_t frame_capacity, NyxFramebufferInfo *frame_info, NyxVM **vm_out
+) {
+    if (!disk_path) return (int32_t)VP_STATUS_INVALID_ARGUMENT;
+    return nyx_vm_boot_kernel_device_internal(
+        bytes, length, load_address, entry_address, log_buffer, log_capacity, log_length,
+        frame_buffer, frame_capacity, frame_info, disk_path, disk_size, vm_out
+    );
 }
 
 int32_t nyx_vm_boot_kernel_capture_frame(

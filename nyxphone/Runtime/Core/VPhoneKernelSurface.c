@@ -118,6 +118,33 @@ VPStatus vp_ksurface_handle_syscall(
             *result = 0;
             surface->handled++;
             return VP_STATUS_OK;
+        case VP_NYX_SYS_BLOCK_READ:
+            if (args[2] > 4096u || vp_runtime_block_read(runtime, args[0], args[1], (size_t)args[2]) != VP_STATUS_OK) {
+                *result = vp_errno_result(EIO);
+                surface->rejected++;
+                return VP_STATUS_OK;
+            }
+            *result = 0;
+            surface->handled++;
+            return VP_STATUS_OK;
+        case VP_NYX_SYS_BLOCK_WRITE:
+            if (args[2] > 4096u || vp_runtime_block_write(runtime, args[0], args[1], (size_t)args[2]) != VP_STATUS_OK) {
+                *result = vp_errno_result(EIO);
+                surface->rejected++;
+                return VP_STATUS_OK;
+            }
+            *result = 0;
+            surface->handled++;
+            return VP_STATUS_OK;
+        case VP_NYX_SYS_BLOCK_FLUSH:
+            if (vp_runtime_block_flush(runtime) != VP_STATUS_OK) {
+                *result = vp_errno_result(EIO);
+                surface->rejected++;
+                return VP_STATUS_OK;
+            }
+            *result = 0;
+            surface->handled++;
+            return VP_STATUS_OK;
         case VP_NYX_SYS_FRAMEBUFFER_PUBLISH:
             if (vp_runtime_publish_framebuffer(
                     runtime, args[0], (uint32_t)args[1], (uint32_t)args[2], (uint32_t)args[3]

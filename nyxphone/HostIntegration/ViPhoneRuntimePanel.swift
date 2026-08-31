@@ -53,6 +53,7 @@ final class ViPhoneRuntimeModel: ObservableObject {
     @Published private(set) var committedBytes: UInt64 = 0
     @Published private(set) var bundledBootLog = ""
     @Published private(set) var guestFrame: UIImage?
+    @Published private(set) var persistentDiskBytes: Int64 = 0
 
     private var session: VirtualPhoneSession?
     private var bundledVM: OpaquePointer?
@@ -171,16 +172,24 @@ final class ViPhoneRuntimeModel: ObservableObject {
                 nyx_vm_destroy(bundledVM)
                 self.bundledVM = nil
             }
-            let status: Int32 = image.withUnsafeBytes { imageBytes in
-                log.withUnsafeMutableBufferPointer { logBytes in
+            let diskURL = try persistentDiskURL()
+            let status: Int32 = diskURL.path.withCString { diskPath in
+                image.withUnsafeBytes { imageBytes in
+                    log.withUnsafeMutableBufferPointer { logBytes in
                     frame.withUnsafeMutableBytes { frameBytes in
-                        nyx_vm_boot_kernel_device(
+                        nyx_vm_boot_kernel_device_storage(
                             imageBytes.baseAddress, imageBytes.count, 0x100000, 0x100000,
+                            diskPath, 64 * 1024 * 1024,
                             logBytes.baseAddress, logBytes.count, &logLength,
                             frameBytes.baseAddress, frameBytes.count, &frameInfo, &bundledVM
                         )
                     }
                 }
+                }
+            }
+            if let attributes = try? fileManager.attributesOfItem(atPath: diskURL.path),
+               let size = attributes[.size] as? NSNumber {
+                persistentDiskBytes = size.int64Value
             }
             bundledBootLog = String(cString: log)
             try persistBootLog(bundledBootLog)
@@ -189,6 +198,7 @@ final class ViPhoneRuntimeModel: ObservableObject {
                 && guestFrame != nil
                 && bundledBootLog.contains("[NYXIAN] kernel entry reached")
                 && bundledBootLog.contains("[NYXDISPLAY] first frame")
+                && bundledBootLog.contains("[NYXSTORAGE] root mounted")
                 && bundledBootLog.contains("[NYXDARWIN] nyxinit started")
                 && bundledBootLog.contains("hello from Nyxian userspace") {
                 statusText = "ViPhone guest display active"
@@ -199,6 +209,26 @@ final class ViPhoneRuntimeModel: ObservableObject {
             }
         } catch {
             statusText = "ViPhone boot failed"
+            detailText = error.localizedDescription
+        }
+    }
+
+    func resetPersistentStorage() {
+        if let bundledVM {
+            nyx_vm_destroy(bundledVM)
+            self.bundledVM = nil
+        }
+        do {
+            let diskURL = try persistentDiskURL()
+            if fileManager.fileExists(atPath: diskURL.path) {
+                try fileManager.removeItem(at: diskURL)
+            }
+            persistentDiskBytes = 0
+            guestFrame = nil
+            statusText = "ViPhone storage reset"
+            detailText = "The default guest disk will be recreated on next boot."
+        } catch {
+            statusText = "Storage reset failed"
             detailText = error.localizedDescription
         }
     }
@@ -302,6 +332,13 @@ final class ViPhoneRuntimeModel: ObservableObject {
             trustCache: try data(.trustCache),
             ramdisk: try data(.ramdisk)
         )
+    }
+
+    private func persistentDiskURL() throws -> URL {
+        let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let directory = base.appendingPathComponent("ViPhone/VMs/default/disk", isDirectory: true)
+        try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory.appendingPathComponent("disk.img")
     }
 
     private var bundledKernelURL: URL? {
@@ -439,6 +476,18 @@ struct ViPhoneRuntimePanel: View {
                         "Built-in guest",
                         value: model.bundledKernelAvailable ? "Ready" : "Missing"
                     )
+                    LabeledContent(
+                        "Persistent disk",
+                        value: model.persistentDiskBytes > 0
+                            ? ByteCountFormatter.string(fromByteCount: model.persistentDiskBytes, countStyle: .file)
+                            : "Created on first boot"
+                    )
+                    Button(role: .destructive) {
+                        model.resetPersistentStorage()
+                    } label: {
+                        Label("Reset Guest Storage", systemImage: "externaldrive.badge.xmark")
+                    }
+                    .disabled(model.persistentDiskBytes == 0)
                     Button {
                         model.bootBundledNyxian()
                     } label: {
