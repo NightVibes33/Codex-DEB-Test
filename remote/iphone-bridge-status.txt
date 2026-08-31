@@ -1,68 +1,24 @@
 iPhone Tailscale SSH Bridge
-run_id=33424198104
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33424198104
-commit=0936b8489019e11420e8b6672915a00ab4df44c9
+run_id=33425513802
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33425513802
+commit=c9dc4a9dde3aee0d9e9a0e6c4d6a8a828b1c3110
 environment=TAILSCALE_AUTHKEY-
-target=100.79.177.16:22
+target=100.96.37.124:22
 validate=success
 tailscale=success
 install_ssh=success
-ssh=failure
+ssh=success
 
 --- sanitized SSH output ---
 Waking and checking iPhone SSH port over Tailscale...
 SSH port attempt 1/18
-ping "100.79.177.16" timed out
-no reply
-SSH port attempt 2/18
-ping "100.79.177.16" timed out
-no reply
-SSH port attempt 3/18
-ping "100.79.177.16" timed out
-no reply
-SSH port attempt 4/18
-ping "100.79.177.16" timed out
-no reply
-SSH port attempt 5/18
-ping "100.79.177.16" timed out
-no reply
-SSH port attempt 6/18
-ping "100.79.177.16" timed out
-no reply
-SSH port attempt 7/18
-ping "100.79.177.16" timed out
-no reply
-SSH port attempt 8/18
-ping "100.79.177.16" timed out
-no reply
-SSH port attempt 9/18
-ping "100.79.177.16" timed out
-no reply
-SSH port attempt 10/18
-ping "100.79.177.16" timed out
-no reply
-SSH port attempt 11/18
-ping "100.79.177.16" timed out
-no reply
-SSH port attempt 12/18
-ping "100.79.177.16" timed out
-no reply
-SSH port attempt 13/18
-ping "100.79.177.16" timed out
-no reply
-SSH port attempt 14/18
-ping "100.79.177.16" timed out
-no reply
-SSH port attempt 15/18
-ping "100.79.177.16" timed out
-no reply
-SSH port attempt 16/18
-ping "100.79.177.16" timed out
-no reply
-SSH port attempt 17/18
-ping "100.79.177.16" timed out
-no reply
-SSH port attempt 18/18
-ping "100.79.177.16" timed out
-no reply
-Could not reach iPhone TCP port 22
+# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
+# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
+# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
+# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
+# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
+iphone_ssh_port_ready=success
+Staging native rfmonctl and running probe as root...
+===LIVECONTAINER_FELIX_PROBE===
+PROBE_DONE=1
+ssh_exit_code=0
