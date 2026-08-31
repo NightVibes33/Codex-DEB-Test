@@ -103,8 +103,8 @@ jobs:
           }
 
           int main(void) {
-              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.9-dyld-cache") != 0) return 9;
-              VPMachineConfig cfg = {8, 16ULL * 1024 * 1024 * 1024, 1290, 2796, 460, 3.0};
+              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.10-dyld-entry") != 0) return 9;
+              VPMachineConfig cfg = {8, 32ULL * 1024 * 1024 * 1024, 1290, 2796, 460, 3.0};
               VPRuntime *rt = vp_runtime_create(&cfg);
               if (!rt) return 10;
               VPKernelSurface *surface = vp_ksurface_attach(rt);
@@ -157,6 +157,37 @@ jobs:
               uint8_t entry_check[4] = {0};
               if (vp_runtime_memory_read(rt, macho_info.entry_address, entry_check, sizeof(entry_check)) != VP_STATUS_OK ||
                   memcmp(entry_check, macho + 0x180, sizeof(entry_check)) != 0) return 43;
+
+              uint8_t dyld[0x440] = {0};
+              put32(dyld, 0xfeedfacf); put32(dyld + 4, 0x0100000c); put32(dyld + 12, 7);
+              put32(dyld + 16, 3); put32(dyld + 20, 376);
+              size_t dc = 32;
+              put32(dyld + dc, 0x19); put32(dyld + dc + 4, 72);
+              memcpy(dyld + dc + 8, "__TEXT", 6); put64(dyld + dc + 24, 0);
+              put64(dyld + dc + 32, 0x4000); put64(dyld + dc + 40, 0);
+              put64(dyld + dc + 48, 0x400); dc += 72;
+              put32(dyld + dc, 0x05); put32(dyld + dc + 4, 288);
+              put32(dyld + dc + 8, 6); put32(dyld + dc + 12, 68);
+              put64(dyld + dc + 272, 0x200); dc += 288;
+              put32(dyld + dc, 0x1d); put32(dyld + dc + 4, 16);
+              put32(dyld + dc + 8, 0x420); put32(dyld + dc + 12, 0x20);
+              dyld[0x200] = 0x1f; dyld[0x201] = 0x20; dyld[0x202] = 0x03; dyld[0x203] = 0xd5;
+              VPMachOImageInfo dyld_info;
+              if (vp_runtime_load_macho(rt, dyld, sizeof(dyld), 0x9000000, &dyld_info) != VP_STATUS_OK ||
+                  dyld_info.file_type != 7 || dyld_info.entry_address != 0x9000200) return 52;
+              VPDarwinProcessBootstrap process_bootstrap;
+              if (vp_runtime_prepare_darwin_process(
+                      rt, dyld_info.entry_address, 0xA000000, "/sbin/launchd", &process_bootstrap
+                  ) != VP_STATUS_OK || process_bootstrap.argc != 1 ||
+                  (process_bootstrap.stack_pointer & 15u) != 0) return 53;
+              uint64_t process_vectors[8] = {0};
+              if (vp_runtime_memory_read(
+                      rt, process_bootstrap.stack_pointer, process_vectors, sizeof(process_vectors)
+                  ) != VP_STATUS_OK || process_vectors[0] != 1 || process_vectors[1] == 0 ||
+                  process_vectors[2] != 0 || process_vectors[3] == 0 || process_vectors[4] != 0) return 54;
+              char launchd_path[14] = {0};
+              if (vp_runtime_memory_read(rt, process_vectors[1], launchd_path, sizeof(launchd_path)) != VP_STATUS_OK ||
+                  strcmp(launchd_path, "/sbin/launchd") != 0) return 55;
 
               uint8_t zero[32];
               memset(zero, 0xAA, sizeof(zero));
@@ -234,6 +265,12 @@ jobs:
               uint64_t cache_bytes = 0;
               if (nyx_vm_map_dyld_cache(cache_vm, cache_path, &cache_mappings, &cache_bytes) != 0 ||
                   cache_mappings != 1 || cache_bytes != VP_GUEST_PAGE_SIZE) return 51;
+              char diagnostic_check[1024] = {0};
+              size_t diagnostic_length = 0;
+              if (nyx_vm_copy_diagnostics(
+                      cache_vm, diagnostic_check, sizeof(diagnostic_check), &diagnostic_length
+                  ) != 0 || diagnostic_length == 0 ||
+                  !strstr(diagnostic_check, "[NYXDYLD] shared cache demand-mapped")) return 56;
               nyx_vm_destroy(cache_vm);
               unlink(cache_path);
               return 0;
@@ -306,6 +343,9 @@ jobs:
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_vp_runtime_load_macho'
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_vp_runtime_map_readonly_backing'
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_nyx_vm_map_dyld_cache'
+          xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_vp_runtime_prepare_darwin_process'
+          xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_nyx_vm_start_launchd'
+          xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_nyx_vm_copy_diagnostics'
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_nyx_vm_load_macho'
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_vp_host_runtime_start'
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_nyx_runtime_version'
@@ -320,8 +360,8 @@ jobs:
           Nyxian=$NYXIAN_SHA
           vphone-cli=$VPHONE_CLI_SHA
           runtime-branch=$GITHUB_SHA
-          runtime-abi=9
-          core-abi=10
+          runtime-abi=10
+          core-abi=11
           execution=ViPhone-custom-aarch64
           apple-boot-staging=vp_runtime_stage_boot_images
           qemu=none
@@ -475,6 +515,9 @@ jobs:
           xcrun nm "$APP/$EXE" | grep '_vp_runtime_load_macho'
           xcrun nm "$APP/$EXE" | grep '_vp_runtime_map_readonly_backing'
           xcrun nm "$APP/$EXE" | grep '_nyx_vm_map_dyld_cache'
+          xcrun nm "$APP/$EXE" | grep '_vp_runtime_prepare_darwin_process'
+          xcrun nm "$APP/$EXE" | grep '_nyx_vm_start_launchd'
+          xcrun nm "$APP/$EXE" | grep '_nyx_vm_copy_diagnostics'
           xcrun nm "$APP/$EXE" | grep '_nyx_vm_load_macho'
           xcrun nm "$APP/$EXE" | grep '_vp_aarch64_step'
           xcrun nm "$APP/$EXE" | grep '_vp_host_runtime_start'
@@ -502,8 +545,8 @@ jobs:
             "nyxianCommit": "$NYXIAN_SHA",
             "bootAndCFWDonor": "Lakr233/vphone-cli",
             "vphoneCliCommit": "$VPHONE_CLI_SHA",
-            "runtimeABI": 9,
-            "coreABI": 10,
+            "runtimeABI": 10,
+            "coreABI": 11,
             "execution": "ViPhone custom AArch64 runtime",
             "appleBootImageStaging": true,
             "builtInNyxianEmbedded": true,
@@ -519,6 +562,10 @@ jobs:
             "builtInMachIPC": true,
             "builtInMachOLoader": true,
             "builtInDyldCacheDemandPaging": true,
+            "builtInDyldMachOLoader": true,
+            "builtInDarwinInitialStack": true,
+            "builtInDyldEntryAttempt": true,
+            "builtInDeviceDiagnostics": true,
             "dyldSharedCacheImport": "user-supplied arm64e",
             "launchdImport": "user-supplied arm64 MH_EXECUTE",
             "launchdStableEventLoop": false,

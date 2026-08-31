@@ -10,11 +10,13 @@
 #define VP_MH_MAGIC_64 UINT32_C(0xfeedfacf)
 #define VP_CPU_TYPE_ARM64 UINT32_C(0x0100000c)
 #define VP_MH_EXECUTE 2u
+#define VP_MH_DYLINKER 7u
 #define VP_LC_SEGMENT_64 UINT32_C(0x19)
 #define VP_LC_LOAD_DYLIB UINT32_C(0x0c)
 #define VP_LC_LOAD_DYLINKER UINT32_C(0x0e)
 #define VP_LC_CODE_SIGNATURE UINT32_C(0x1d)
 #define VP_LC_MAIN UINT32_C(0x80000028)
+#define VP_LC_UNIXTHREAD UINT32_C(0x05)
 #define VP_MACHO_MAX_COMMANDS 16384u
 #define VP_MACHO_MAX_SEGMENTS 256u
 #define VP_MAX_READONLY_MAPPINGS 64u
@@ -51,6 +53,8 @@ struct VPRuntime {
     VPNetworkGetHandler network_get_handler;
     void *network_context;
     uint64_t boot_vector;
+    uint64_t initial_stack_pointer;
+    int initial_userspace;
     uint64_t instruction_budget;
     uint64_t instructions_retired;
     VPAArch64CPU cpu;
@@ -286,8 +290,9 @@ VPStatus vp_runtime_load_macho(
         return VP_STATUS_INVALID_ARGUMENT;
     }
     const uint8_t *bytes = (const uint8_t *)image;
+    const uint32_t file_type = vp_macho_u32(bytes + 12u);
     if (vp_macho_u32(bytes) != VP_MH_MAGIC_64 || vp_macho_u32(bytes + 4u) != VP_CPU_TYPE_ARM64 ||
-        vp_macho_u32(bytes + 12u) != VP_MH_EXECUTE) {
+        (file_type != VP_MH_EXECUTE && file_type != VP_MH_DYLINKER)) {
         return VP_STATUS_INVALID_ARGUMENT;
     }
     const uint32_t ncmds = vp_macho_u32(bytes + 16u);
@@ -299,7 +304,9 @@ VPStatus vp_runtime_load_macho(
     VPMachOImageInfo parsed;
     memset(&parsed, 0, sizeof(parsed));
     parsed.preferred_load_address = UINT64_MAX;
+    parsed.file_type = file_type;
     uint64_t entry_file_offset = UINT64_MAX;
+    uint64_t thread_entry_address = UINT64_MAX;
     size_t cursor = 32u;
     for (uint32_t index = 0; index < ncmds; index++) {
         if (cursor > 32u + sizeofcmds || 32u + sizeofcmds - cursor < 8u) return VP_STATUS_INVALID_ARGUMENT;
@@ -331,6 +338,10 @@ VPStatus vp_runtime_load_macho(
         } else if (command == VP_LC_MAIN) {
             if (command_size < 24u || entry_file_offset != UINT64_MAX) return VP_STATUS_INVALID_ARGUMENT;
             entry_file_offset = vp_macho_u64(bytes + cursor + 8u);
+        } else if (command == VP_LC_UNIXTHREAD) {
+            if (command_size < 288u || thread_entry_address != UINT64_MAX ||
+                vp_macho_u32(bytes + cursor + 12u) < 68u) return VP_STATUS_INVALID_ARGUMENT;
+            thread_entry_address = vp_macho_u64(bytes + cursor + 272u);
         } else if (command == VP_LC_LOAD_DYLINKER) {
             if (command_size < 12u || parsed.has_dylinker) return VP_STATUS_INVALID_ARGUMENT;
             const uint32_t path_offset = vp_macho_u32(bytes + cursor + 8u);
@@ -360,8 +371,9 @@ VPStatus vp_runtime_load_macho(
         }
         cursor += command_size;
     }
-    if (cursor != 32u + sizeofcmds || parsed.segment_count == 0 || entry_file_offset == UINT64_MAX ||
-        !parsed.has_dylinker || parsed.code_signature_size == 0) {
+    if (cursor != 32u + sizeofcmds || parsed.segment_count == 0 || parsed.code_signature_size == 0 ||
+        (file_type == VP_MH_EXECUTE && (entry_file_offset == UINT64_MAX || !parsed.has_dylinker)) ||
+        (file_type == VP_MH_DYLINKER && entry_file_offset == UINT64_MAX && thread_entry_address == UINT64_MAX)) {
         return VP_STATUS_INVALID_ARGUMENT;
     }
 
@@ -398,6 +410,8 @@ VPStatus vp_runtime_load_macho(
         }
         cursor += command_size;
     }
+    if (!entry_found && thread_entry_address != UINT64_MAX &&
+        vp_macho_add_u64(thread_entry_address, slide, &parsed.entry_address)) entry_found = 1;
     if (!entry_found) return VP_STATUS_INVALID_ARGUMENT;
     parsed.preferred_load_address += slide;
     *info = parsed;
@@ -624,6 +638,54 @@ static int vp_boot_image_contains(const VPBootImage *image, uint64_t address) {
     return address - image->guest_address < (uint64_t)image->length;
 }
 
+VPStatus vp_runtime_prepare_darwin_process(
+    VPRuntime *runtime, uint64_t entry_address, uint64_t stack_top,
+    const char *executable_path, VPDarwinProcessBootstrap *bootstrap
+) {
+    static const char environment[] = "PATH=/usr/bin:/bin:/usr/sbin:/sbin";
+    static const char os_version[] = "kern.osversion=Nyxian";
+    if (!runtime || !executable_path || !bootstrap || runtime->state == VP_RUNTIME_RUNNING ||
+        executable_path[0] != '/' || strlen(executable_path) > 1024u ||
+        !vp_range_valid(runtime, entry_address, sizeof(uint32_t)) || stack_top > runtime->config.guest_physical_memory_size ||
+        stack_top < VP_GUEST_PAGE_SIZE) return VP_STATUS_INVALID_ARGUMENT;
+
+    char executable_apple[1050];
+    const int apple_length = snprintf(
+        executable_apple, sizeof(executable_apple), "executable_path=%s", executable_path
+    );
+    if (apple_length <= 0 || (size_t)apple_length >= sizeof(executable_apple)) return VP_STATUS_INVALID_ARGUMENT;
+
+    uint64_t cursor = stack_top;
+    const char *strings[] = {executable_path, environment, executable_apple, os_version};
+    uint64_t addresses[4];
+    for (size_t i = 0; i < 4u; i++) {
+        const size_t string_length = strlen(strings[i]) + 1u;
+        if (cursor < string_length) return VP_STATUS_ADDRESS_OUT_OF_RANGE;
+        cursor -= string_length;
+        const VPStatus status = vp_runtime_memory_write(runtime, cursor, strings[i], string_length);
+        if (status != VP_STATUS_OK) return status;
+        addresses[i] = cursor;
+    }
+    cursor &= ~UINT64_C(15);
+    const uint64_t vector_bytes = 8u * sizeof(uint64_t);
+    if (cursor < vector_bytes) return VP_STATUS_ADDRESS_OUT_OF_RANGE;
+    const uint64_t stack_pointer = (cursor - vector_bytes) & ~UINT64_C(15);
+    const uint64_t vectors[8] = {1u, addresses[0], 0u, addresses[1], 0u, addresses[2], addresses[3], 0u};
+    VPStatus status = vp_runtime_memory_write(runtime, stack_pointer, vectors, sizeof(vectors));
+    if (status != VP_STATUS_OK) return status;
+    status = vp_runtime_set_boot_vector(runtime, entry_address);
+    if (status != VP_STATUS_OK) return status;
+    runtime->initial_stack_pointer = stack_pointer;
+    runtime->initial_userspace = 1;
+    *bootstrap = (VPDarwinProcessBootstrap){
+        .stack_pointer = stack_pointer, .argv_address = stack_pointer + sizeof(uint64_t),
+        .envp_address = stack_pointer + 3u * sizeof(uint64_t),
+        .apple_address = stack_pointer + 5u * sizeof(uint64_t), .argc = 1u,
+    };
+    vp_emit(runtime, "[NYXDARWIN] initial process stack ready\n");
+    return VP_STATUS_OK;
+}
+
 static VPStatus vp_stage_one_boot_image(VPRuntime *runtime, const VPBootImage *image) {
     if (!image || image->length == 0) return VP_STATUS_OK;
     return vp_runtime_memory_write(runtime, image->guest_address, image->bytes, image->length);
@@ -656,6 +718,8 @@ VPStatus vp_runtime_stage_boot_images(VPRuntime *runtime, const VPBootImageLayou
     }
 
     runtime->boot_vector = layout->entry_address;
+    runtime->initial_stack_pointer = 0;
+    runtime->initial_userspace = 0;
     runtime->framebuffer_ready = 0;
     memset(&runtime->framebuffer, 0, sizeof(runtime->framebuffer));
     runtime->touch_head = 0;
@@ -671,6 +735,8 @@ VPStatus vp_runtime_set_boot_vector(VPRuntime *runtime, uint64_t guest_address) 
     if (runtime->state == VP_RUNTIME_RUNNING) return VP_STATUS_INVALID_STATE;
     if (!vp_range_valid(runtime, guest_address, sizeof(uint32_t))) return VP_STATUS_ADDRESS_OUT_OF_RANGE;
     runtime->boot_vector = guest_address;
+    runtime->initial_stack_pointer = 0;
+    runtime->initial_userspace = 0;
     runtime->framebuffer_ready = 0;
     memset(&runtime->framebuffer, 0, sizeof(runtime->framebuffer));
     runtime->touch_head = 0;
@@ -710,6 +776,13 @@ VPStatus vp_runtime_boot(VPRuntime *runtime) {
         runtime->state == VP_RUNTIME_READY ||
         runtime->state == VP_RUNTIME_STOPPED) {
         vp_aarch64_reset(&runtime->cpu, runtime->boot_vector);
+        runtime->cpu.sp = runtime->initial_stack_pointer;
+        runtime->cpu.sys.sp_el0 = runtime->initial_stack_pointer;
+        if (runtime->initial_userspace) {
+            runtime->cpu.current_el = 0;
+            runtime->cpu.pstate = 0;
+            runtime->cpu.sys.spsel = 0;
+        }
         runtime->cpu_initialized = 1;
         runtime->instructions_retired = 0;
         vp_emit(runtime, "[VibePhone] custom AArch64 runtime entered guest execution\n");

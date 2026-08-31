@@ -16,6 +16,7 @@ final class ViPhoneRuntimeModel: ObservableObject {
         case ramdisk
         case launchd
         case dyldCache
+        case dyld
 
         var id: String { rawValue }
 
@@ -28,6 +29,7 @@ final class ViPhoneRuntimeModel: ObservableObject {
             case .ramdisk: "Ramdisk"
             case .launchd: "Apple /sbin/launchd"
             case .dyldCache: "dyld shared cache (arm64e)"
+            case .dyld: "Standalone Apple /usr/lib/dyld"
             }
         }
 
@@ -40,6 +42,7 @@ final class ViPhoneRuntimeModel: ObservableObject {
             case .ramdisk: "ramdisk.dmg"
             case .launchd: "launchd"
             case .dyldCache: "dyld_shared_cache_arm64e"
+            case .dyld: "dyld"
             }
         }
 
@@ -68,6 +71,7 @@ final class ViPhoneRuntimeModel: ObservableObject {
     private var session: VirtualPhoneSession?
     private var bundledVM: OpaquePointer?
     private var dyldCacheMapped = false
+    private var launchdPrepared = false
     private let fileManager = FileManager.default
 
     init() {
@@ -165,7 +169,7 @@ final class ViPhoneRuntimeModel: ObservableObject {
 
     var bundledKernelAvailable: Bool { bundledKernelURL != nil }
     var canStageLaunchd: Bool {
-        bundledVM != nil && fileSizes[.launchd] != nil && fileSizes[.dyldCache] != nil
+        bundledVM != nil && fileSizes[.launchd] != nil && fileSizes[.dyldCache] != nil && fileSizes[.dyld] != nil
     }
 
     func stageLaunchd() {
@@ -188,6 +192,21 @@ final class ViPhoneRuntimeModel: ObservableObject {
                 dyldCacheMapped = true
                 dyldStatus = "\(mappingCount) mappings / \(ByteCountFormatter.string(fromByteCount: Int64(clamping: mappedBytes), countStyle: .memory))"
             }
+            let dyldImage = try Data(contentsOf: url(for: .dyld), options: .mappedIfSafe)
+            var dyldEntry: UInt64 = 0
+            var dyldDylibs: UInt32 = 0
+            let dyldLoadStatus = dyldImage.withUnsafeBytes { bytes in
+                nyx_vm_load_macho(
+                    bundledVM, bytes.baseAddress, bytes.count, 0x300000000, &dyldEntry, &dyldDylibs
+                )
+            }
+            guard dyldLoadStatus == 0 else {
+                dyldStatus = "Standalone dyld rejected (status \(dyldLoadStatus))"
+                statusText = "dyld staging failed"
+                return
+            }
+            dyldStatus += "; entry=0x\(String(dyldEntry, radix: 16))"
+
             let image = try Data(contentsOf: url(for: .launchd), options: .mappedIfSafe)
             var entryAddress: UInt64 = 0
             var dylibCount: UInt32 = 0
@@ -197,9 +216,12 @@ final class ViPhoneRuntimeModel: ObservableObject {
                 )
             }
             if status == 0 {
-                launchdStatus = "Mach-O staged; dyld pending"
-                statusText = "Apple launchd mapped"
-                detailText = "entry=0x\(String(entryAddress, radix: 16)); dylibs=\(dylibCount). Stable event loop is not yet reached."
+                var stackPointer: UInt64 = 0
+                let prepareStatus = nyx_vm_prepare_launchd(bundledVM, &stackPointer)
+                launchdPrepared = prepareStatus == 0
+                launchdStatus = launchdPrepared ? "dyld entry ready" : "Stack preparation failed (status \(prepareStatus))"
+                statusText = launchdPrepared ? "Apple launchd ready to enter dyld" : "launchd preparation failed"
+                detailText = "launchd=0x\(String(entryAddress, radix: 16)); dylibs=\(dylibCount); stack=0x\(String(stackPointer, radix: 16)). Stable event loop is not yet reached."
             } else {
                 launchdStatus = "Mach-O rejected (status \(status))"
                 statusText = "launchd staging failed"
@@ -209,6 +231,26 @@ final class ViPhoneRuntimeModel: ObservableObject {
             launchdStatus = "Read failed"
             detailText = error.localizedDescription
         }
+    }
+
+    var canStartLaunchd: Bool { bundledVM != nil && launchdPrepared }
+
+    func startLaunchd() {
+        guard let bundledVM, launchdPrepared else { return }
+        let status = nyx_vm_start_launchd(bundledVM)
+        statusText = status == 0 ? "dyld execution returned" : "dyld execution stopped"
+        launchdStatus = "entry attempted (status \(status))"
+        detailText = "Executed \(nyx_vm_instructions_retired(bundledVM)) instructions. A stable launchd event loop is not yet proven."
+        var diagnostics = [CChar](repeating: 0, count: 16_384)
+        var diagnosticsLength = 0
+        let diagnosticStatus = diagnostics.withUnsafeMutableBufferPointer { buffer in
+            nyx_vm_copy_diagnostics(bundledVM, buffer.baseAddress, buffer.count, &diagnosticsLength)
+        }
+        if diagnosticStatus == 0 {
+            bundledBootLog = String(cString: diagnostics)
+            try? persistBootLog(bundledBootLog)
+        }
+        launchdPrepared = false
     }
 
     func bootBundledNyxian() {
@@ -230,6 +272,7 @@ final class ViPhoneRuntimeModel: ObservableObject {
                 self.bundledVM = nil
             }
             dyldCacheMapped = false
+            launchdPrepared = false
             dyldStatus = fileSizes[.dyldCache] == nil ? "Not imported" : "Ready to map"
             launchdStatus = fileSizes[.launchd] == nil ? "Not imported" : "Ready to stage"
             let diskURL = try persistentDiskURL()
@@ -555,6 +598,13 @@ struct ViPhoneRuntimePanel: View {
                         Label("Stage Imported launchd", systemImage: "shippingbox")
                     }
                     .disabled(!model.canStageLaunchd)
+                    Button {
+                        model.startLaunchd()
+                    } label: {
+                        Label("Enter dyld / launchd", systemImage: "play.fill")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(!model.canStartLaunchd)
                     LabeledContent(
                         "Persistent disk",
                         value: model.persistentDiskBytes > 0
