@@ -89,7 +89,7 @@ jobs:
           }
 
           int main(void) {
-              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.6-nyxbus-network") != 0) return 9;
+              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.7-darwin-mach") != 0) return 9;
               VPMachineConfig cfg = {8, 8ULL * 1024 * 1024 * 1024, 1290, 2796, 460, 3.0};
               VPRuntime *rt = vp_runtime_create(&cfg);
               if (!rt) return 10;
@@ -196,6 +196,8 @@ jobs:
           grep -F "[NYXSTORAGE] root mounted" "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry.log"
           grep -F "[NYXSTORAGE] persistence verified across VM recreation" "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry.log"
           grep -F "[NYXNET] HTTPS request complete" "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry.log"
+          grep -F "[NYXDARWIN] basic ABI passed" "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry.log"
+          grep -F "[NYXMACH] IPC roundtrip passed" "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry.log"
           grep -F "[NYXDARWIN] nyxinit started" "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry.log"
           grep -F "hello from Nyxian userspace" "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry.log"
 
@@ -231,8 +233,8 @@ jobs:
           Nyxian=$NYXIAN_SHA
           vphone-cli=$VPHONE_CLI_SHA
           runtime-branch=$GITHUB_SHA
-          runtime-abi=6
-          core-abi=7
+          runtime-abi=7
+          core-abi=8
           execution=ViPhone-custom-aarch64
           apple-boot-staging=vp_runtime_stage_boot_images
           qemu=none
@@ -409,8 +411,8 @@ jobs:
             "nyxianCommit": "$NYXIAN_SHA",
             "bootAndCFWDonor": "Lakr233/vphone-cli",
             "vphoneCliCommit": "$VPHONE_CLI_SHA",
-            "runtimeABI": 6,
-            "coreABI": 7,
+            "runtimeABI": 7,
+            "coreABI": 8,
             "execution": "ViPhone custom AArch64 runtime",
             "appleBootImageStaging": true,
             "builtInNyxianEmbedded": true,
@@ -422,6 +424,8 @@ jobs:
             "builtInNetworking": true,
             "networkTransport": "CFNetwork HTTPS",
             "networkTestEndpoint": "https://example.com/",
+            "builtInDarwinABI": true,
+            "builtInMachIPC": true,
             "qemu": false,
             "virtualizationFramework": false,
             "companionPCRequired": false

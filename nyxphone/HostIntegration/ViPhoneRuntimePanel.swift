@@ -55,6 +55,7 @@ final class ViPhoneRuntimeModel: ObservableObject {
     @Published private(set) var guestFrame: UIImage?
     @Published private(set) var persistentDiskBytes: Int64 = 0
     @Published private(set) var networkStatus = "Not tested"
+    @Published private(set) var darwinStatus = "Not started"
 
     private var session: VirtualPhoneSession?
     private var bundledVM: OpaquePointer?
@@ -195,6 +196,8 @@ final class ViPhoneRuntimeModel: ObservableObject {
             bundledBootLog = String(cString: log)
             networkStatus = bundledBootLog.contains("[NYXNET] HTTPS request complete")
                 ? "HTTPS online" : "HTTPS unavailable"
+            darwinStatus = bundledBootLog.contains("[NYXMACH] IPC roundtrip passed")
+                ? "ABI + Mach IPC ready" : "ABI incomplete"
             try persistBootLog(bundledBootLog)
             guestFrame = Self.makeGuestImage(frame, info: frameInfo)
             if status == 0
@@ -203,6 +206,8 @@ final class ViPhoneRuntimeModel: ObservableObject {
                 && bundledBootLog.contains("[NYXDISPLAY] first frame")
                 && bundledBootLog.contains("[NYXSTORAGE] root mounted")
                 && bundledBootLog.contains("[NYXNET] HTTPS request complete")
+                && bundledBootLog.contains("[NYXDARWIN] basic ABI passed")
+                && bundledBootLog.contains("[NYXMACH] IPC roundtrip passed")
                 && bundledBootLog.contains("[NYXDARWIN] nyxinit started")
                 && bundledBootLog.contains("hello from Nyxian userspace") {
                 statusText = "ViPhone guest display active"
@@ -229,6 +234,7 @@ final class ViPhoneRuntimeModel: ObservableObject {
             }
             persistentDiskBytes = 0
             networkStatus = "Not tested"
+            darwinStatus = "Not started"
             guestFrame = nil
             statusText = "ViPhone storage reset"
             detailText = "The default guest disk will be recreated on next boot."
@@ -482,6 +488,7 @@ struct ViPhoneRuntimePanel: View {
                         value: model.bundledKernelAvailable ? "Ready" : "Missing"
                     )
                     LabeledContent("NyxBus network", value: model.networkStatus)
+                    LabeledContent("NyxDarwin", value: model.darwinStatus)
                     LabeledContent(
                         "Persistent disk",
                         value: model.persistentDiskBytes > 0

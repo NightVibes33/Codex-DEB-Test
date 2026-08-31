@@ -10,7 +10,7 @@ extern "C" {
 
 #define VP_GUEST_PAGE_SHIFT 14u
 #define VP_GUEST_PAGE_SIZE  (1u << VP_GUEST_PAGE_SHIFT)
-#define VP_RUNTIME_ABI_VERSION 7u
+#define VP_RUNTIME_ABI_VERSION 8u
 #define VP_DEFAULT_INSTRUCTION_BUDGET UINT64_C(1000000)
 
 typedef enum {
@@ -129,6 +129,7 @@ VPStatus vp_runtime_dispatch_syscall(
 VPStatus vp_runtime_memory_read(VPRuntime *runtime, uint64_t guest_address, void *dst, size_t length);
 VPStatus vp_runtime_memory_write(VPRuntime *runtime, uint64_t guest_address, const void *src, size_t length);
 VPStatus vp_runtime_console_write(VPRuntime *runtime, uint64_t guest_address, size_t length);
+void vp_runtime_host_log(VPRuntime *runtime, const char *message);
 VPStatus vp_runtime_publish_framebuffer(
     VPRuntime *runtime, uint64_t guest_address, uint32_t width, uint32_t height, uint32_t stride
 );

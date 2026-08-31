@@ -248,6 +248,10 @@ VPStatus vp_runtime_console_write(VPRuntime *runtime, uint64_t guest_address, si
     return VP_STATUS_OK;
 }
 
+void vp_runtime_host_log(VPRuntime *runtime, const char *message) {
+    vp_emit(runtime, message);
+}
+
 VPStatus vp_runtime_publish_framebuffer(
     VPRuntime *runtime, uint64_t guest_address, uint32_t width, uint32_t height, uint32_t stride
 ) {
