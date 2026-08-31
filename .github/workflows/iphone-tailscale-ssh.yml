@@ -159,7 +159,7 @@ jobs:
         shell: bash
         env:
           TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
-          IPHONE_HOST: 100.79.177.16
+          IPHONE_HOST: 100.96.37.124
         run: |
           set -euo pipefail
           : > iphone-output.txt
@@ -195,7 +195,7 @@ jobs:
         id: ssh
         shell: bash
         env:
-          IPHONE_HOST: 100.79.177.16
+          IPHONE_HOST: 100.96.37.124
           IPHONE_PORT: "22"
           IPHONE_USER: mobile
           IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
@@ -289,7 +289,7 @@ jobs:
               f"run_url=https://github.com/{os.environ.get('GITHUB_REPOSITORY', '')}/actions/runs/{os.environ.get('GITHUB_RUN_ID', '')}",
               f"commit={os.environ.get('GITHUB_SHA', '')}",
               f"environment={os.environ.get('ENVIRONMENT_NAME', '')}",
-              "target=100.79.177.16:22",
+              "target=100.96.37.124:22",
               f"validate={os.environ.get('VALIDATE_OUTCOME', '')}",
               f"tailscale={os.environ.get('TAILSCALE_OUTCOME', '')}",
               f"install_ssh={os.environ.get('INSTALL_SSH_OUTCOME', '')}",
