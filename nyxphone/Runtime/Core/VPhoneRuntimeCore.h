@@ -10,7 +10,7 @@ extern "C" {
 
 #define VP_GUEST_PAGE_SHIFT 14u
 #define VP_GUEST_PAGE_SIZE  (1u << VP_GUEST_PAGE_SHIFT)
-#define VP_RUNTIME_ABI_VERSION 8u
+#define VP_RUNTIME_ABI_VERSION 9u
 #define VP_DEFAULT_INSTRUCTION_BUDGET UINT64_C(1000000)
 
 typedef enum {
@@ -147,6 +147,28 @@ VPStatus vp_runtime_network_https_get(
 );
 uint64_t vp_runtime_committed_bytes(const VPRuntime *runtime);
 uint64_t vp_runtime_committed_pages(const VPRuntime *runtime);
+
+typedef struct {
+    uint64_t entry_address;
+    uint64_t preferred_load_address;
+    uint64_t mapped_byte_count;
+    uint64_t code_signature_offset;
+    uint64_t code_signature_size;
+    uint32_t segment_count;
+    uint32_t dylib_count;
+    uint32_t has_dylinker;
+    char dylinker_path[256];
+} VPMachOImageInfo;
+
+/*
+ * Validate and map a user-supplied arm64 MH_EXECUTE Mach-O into guest memory.
+ * LC_SEGMENT_64 mappings, LC_MAIN, LC_LOAD_DYLINKER, LC_LOAD_DYLIB and
+ * LC_CODE_SIGNATURE are parsed with overflow/bounds checks. Apple binaries
+ * are never bundled; callers import them from their own IPSW/root filesystem.
+ */
+VPStatus vp_runtime_load_macho(
+    VPRuntime *runtime, const void *bytes, size_t length, uint64_t slide, VPMachOImageInfo *info
+);
 
 /*
  * Atomically validates and stages an Apple guest boot set into sparse physical

@@ -30,7 +30,7 @@ static void nyx_emit(NyxVM *vm, const char *message) {
 }
 
 const char *nyx_runtime_version(void) {
-    return "NyxRuntime/0.7-darwin-mach";
+    return "NyxRuntime/0.8-macho-launchd";
 }
 
 uint32_t nyx_runtime_abi_version(void) {
@@ -190,6 +190,21 @@ void nyx_vm_set_log_callback(NyxVM *vm, NyxLogCallback callback, void *context) 
     nyx_emit(vm, "[NYXRT] runtime initialized\n");
 }
 
+int32_t nyx_vm_load_macho(
+    NyxVM *vm, const void *bytes, size_t length, uint64_t slide,
+    uint64_t *entry_address, uint32_t *dylib_count
+) {
+    if (!vm || !bytes || !entry_address || !dylib_count) return (int32_t)VP_STATUS_INVALID_ARGUMENT;
+    VPMachOImageInfo info;
+    const VPStatus status = vp_runtime_load_macho(vm->runtime, bytes, length, slide, &info);
+    if (status == VP_STATUS_OK) {
+        *entry_address = info.entry_address;
+        *dylib_count = info.dylib_count;
+        nyx_emit(vm, "[NYXLAUNCHD] user Mach-O staged; dyld pending\n");
+    }
+    return (int32_t)status;
+}
+
 int32_t nyx_vm_load_kernel_bytes(
     NyxVM *vm,
     const void *bytes,
@@ -294,7 +309,7 @@ static int32_t nyx_vm_boot_kernel_device_internal(
         return (int32_t)VP_STATUS_INVALID_ARGUMENT;
     }
     *vm_out = NULL;
-    NyxVMConfig config = {1, UINT64_C(16) * 1024u * 1024u, 1290, 2796, 460, 3.0};
+    NyxVMConfig config = {6, UINT64_C(8) * 1024u * 1024u * 1024u, 1290, 2796, 460, 3.0};
     NyxVM *vm = nyx_vm_create(&config);
     if (!vm) return (int32_t)VP_STATUS_OUT_OF_MEMORY;
     if (disk_path) {

@@ -14,6 +14,7 @@ final class ViPhoneRuntimeModel: ObservableObject {
         case deviceTree
         case trustCache
         case ramdisk
+        case launchd
 
         var id: String { rawValue }
 
@@ -24,6 +25,7 @@ final class ViPhoneRuntimeModel: ObservableObject {
             case .deviceTree: "Device Tree"
             case .trustCache: "Trust Cache"
             case .ramdisk: "Ramdisk"
+            case .launchd: "Apple /sbin/launchd"
             }
         }
 
@@ -34,6 +36,7 @@ final class ViPhoneRuntimeModel: ObservableObject {
             case .deviceTree: "devicetree.img4"
             case .trustCache: "trustcache.img4"
             case .ramdisk: "ramdisk.dmg"
+            case .launchd: "launchd"
             }
         }
 
@@ -56,6 +59,7 @@ final class ViPhoneRuntimeModel: ObservableObject {
     @Published private(set) var persistentDiskBytes: Int64 = 0
     @Published private(set) var networkStatus = "Not tested"
     @Published private(set) var darwinStatus = "Not started"
+    @Published private(set) var launchdStatus = "Not imported"
 
     private var session: VirtualPhoneSession?
     private var bundledVM: OpaquePointer?
@@ -155,6 +159,36 @@ final class ViPhoneRuntimeModel: ObservableObject {
     }
 
     var bundledKernelAvailable: Bool { bundledKernelURL != nil }
+    var canStageLaunchd: Bool { bundledVM != nil && fileSizes[.launchd] != nil }
+
+    func stageLaunchd() {
+        guard let bundledVM, canStageLaunchd else {
+            launchdStatus = "Boot Nyxian and import launchd first"
+            return
+        }
+        do {
+            let image = try Data(contentsOf: url(for: .launchd), options: .mappedIfSafe)
+            var entryAddress: UInt64 = 0
+            var dylibCount: UInt32 = 0
+            let status = image.withUnsafeBytes { bytes in
+                nyx_vm_load_macho(
+                    bundledVM, bytes.baseAddress, bytes.count, 0, &entryAddress, &dylibCount
+                )
+            }
+            if status == 0 {
+                launchdStatus = "Mach-O staged; dyld pending"
+                statusText = "Apple launchd mapped"
+                detailText = "entry=0x\(String(entryAddress, radix: 16)); dylibs=\(dylibCount). Stable event loop is not yet reached."
+            } else {
+                launchdStatus = "Mach-O rejected (status \(status))"
+                statusText = "launchd staging failed"
+                detailText = "Import an unmodified arm64 launchd extracted from your own matching IPSW."
+            }
+        } catch {
+            launchdStatus = "Read failed"
+            detailText = error.localizedDescription
+        }
+    }
 
     func bootBundledNyxian() {
         guard let kernelURL = bundledKernelURL else {
@@ -489,6 +523,13 @@ struct ViPhoneRuntimePanel: View {
                     )
                     LabeledContent("NyxBus network", value: model.networkStatus)
                     LabeledContent("NyxDarwin", value: model.darwinStatus)
+                    LabeledContent("Apple launchd", value: model.launchdStatus)
+                    Button {
+                        model.stageLaunchd()
+                    } label: {
+                        Label("Stage Imported launchd", systemImage: "shippingbox")
+                    }
+                    .disabled(!model.canStageLaunchd)
                     LabeledContent(
                         "Persistent disk",
                         value: model.persistentDiskBytes > 0

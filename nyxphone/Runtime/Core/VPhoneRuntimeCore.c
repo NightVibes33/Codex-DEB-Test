@@ -7,6 +7,17 @@
 
 #define VP_PAGE_BUCKETS 4096u
 
+#define VP_MH_MAGIC_64 UINT32_C(0xfeedfacf)
+#define VP_CPU_TYPE_ARM64 UINT32_C(0x0100000c)
+#define VP_MH_EXECUTE 2u
+#define VP_LC_SEGMENT_64 UINT32_C(0x19)
+#define VP_LC_LOAD_DYLIB UINT32_C(0x0c)
+#define VP_LC_LOAD_DYLINKER UINT32_C(0x0e)
+#define VP_LC_CODE_SIGNATURE UINT32_C(0x1d)
+#define VP_LC_MAIN UINT32_C(0x80000028)
+#define VP_MACHO_MAX_COMMANDS 16384u
+#define VP_MACHO_MAX_SEGMENTS 256u
+
 typedef struct VPPage {
     uint64_t index;
     struct VPPage *next;
@@ -182,6 +193,150 @@ VPStatus vp_runtime_dispatch_syscall(
     if (!runtime || !result) return VP_STATUS_INVALID_ARGUMENT;
     if (!runtime->syscall_handler) return VP_STATUS_BACKEND_UNAVAILABLE;
     return runtime->syscall_handler(runtime, number, args, result, runtime->syscall_context);
+}
+
+static uint32_t vp_macho_u32(const uint8_t *bytes) {
+    uint32_t value;
+    memcpy(&value, bytes, sizeof(value));
+    return value;
+}
+
+static uint64_t vp_macho_u64(const uint8_t *bytes) {
+    uint64_t value;
+    memcpy(&value, bytes, sizeof(value));
+    return value;
+}
+
+static int vp_macho_add_u64(uint64_t a, uint64_t b, uint64_t *result) {
+    if (!result || b > UINT64_MAX - a) return 0;
+    *result = a + b;
+    return 1;
+}
+
+VPStatus vp_runtime_load_macho(
+    VPRuntime *runtime, const void *image, size_t length, uint64_t slide, VPMachOImageInfo *info
+) {
+    if (!runtime || !image || !info || length < 32u || runtime->state == VP_RUNTIME_RUNNING) {
+        return VP_STATUS_INVALID_ARGUMENT;
+    }
+    const uint8_t *bytes = (const uint8_t *)image;
+    if (vp_macho_u32(bytes) != VP_MH_MAGIC_64 || vp_macho_u32(bytes + 4u) != VP_CPU_TYPE_ARM64 ||
+        vp_macho_u32(bytes + 12u) != VP_MH_EXECUTE) {
+        return VP_STATUS_INVALID_ARGUMENT;
+    }
+    const uint32_t ncmds = vp_macho_u32(bytes + 16u);
+    const uint32_t sizeofcmds = vp_macho_u32(bytes + 20u);
+    if (ncmds == 0 || ncmds > VP_MACHO_MAX_COMMANDS || sizeofcmds > length - 32u) {
+        return VP_STATUS_INVALID_ARGUMENT;
+    }
+
+    VPMachOImageInfo parsed;
+    memset(&parsed, 0, sizeof(parsed));
+    parsed.preferred_load_address = UINT64_MAX;
+    uint64_t entry_file_offset = UINT64_MAX;
+    size_t cursor = 32u;
+    for (uint32_t index = 0; index < ncmds; index++) {
+        if (cursor > 32u + sizeofcmds || 32u + sizeofcmds - cursor < 8u) return VP_STATUS_INVALID_ARGUMENT;
+        const uint32_t command = vp_macho_u32(bytes + cursor);
+        const uint32_t command_size = vp_macho_u32(bytes + cursor + 4u);
+        if (command_size < 8u || command_size > 32u + sizeofcmds - cursor) return VP_STATUS_INVALID_ARGUMENT;
+        if (command == VP_LC_SEGMENT_64) {
+            if (command_size < 72u || parsed.segment_count >= VP_MACHO_MAX_SEGMENTS) return VP_STATUS_INVALID_ARGUMENT;
+            const uint64_t vm_address = vp_macho_u64(bytes + cursor + 24u);
+            const uint64_t vm_size = vp_macho_u64(bytes + cursor + 32u);
+            const uint64_t file_offset = vp_macho_u64(bytes + cursor + 40u);
+            const uint64_t file_size = vp_macho_u64(bytes + cursor + 48u);
+            uint64_t mapped_address;
+            if (file_size > vm_size || file_offset > length || file_size > length - file_offset ||
+                !vp_macho_add_u64(vm_address, slide, &mapped_address) ||
+                vm_size > runtime->config.guest_physical_memory_size ||
+                mapped_address > runtime->config.guest_physical_memory_size - vm_size) {
+                return VP_STATUS_ADDRESS_OUT_OF_RANGE;
+            }
+            const int is_pagezero = memcmp(bytes + cursor + 8u, "__PAGEZERO", 10u) == 0;
+            if (!is_pagezero && vm_size && vm_address < parsed.preferred_load_address) {
+                parsed.preferred_load_address = vm_address;
+            }
+            if (!is_pagezero) {
+                if (vm_size > UINT64_MAX - parsed.mapped_byte_count) return VP_STATUS_ADDRESS_OUT_OF_RANGE;
+                parsed.mapped_byte_count += vm_size;
+            }
+            parsed.segment_count++;
+        } else if (command == VP_LC_MAIN) {
+            if (command_size < 24u || entry_file_offset != UINT64_MAX) return VP_STATUS_INVALID_ARGUMENT;
+            entry_file_offset = vp_macho_u64(bytes + cursor + 8u);
+        } else if (command == VP_LC_LOAD_DYLINKER) {
+            if (command_size < 12u || parsed.has_dylinker) return VP_STATUS_INVALID_ARGUMENT;
+            const uint32_t path_offset = vp_macho_u32(bytes + cursor + 8u);
+            if (path_offset >= command_size) return VP_STATUS_INVALID_ARGUMENT;
+            const size_t capacity = command_size - path_offset;
+            const char *path = (const char *)(bytes + cursor + path_offset);
+            const void *terminator = memchr(path, 0, capacity);
+            if (!terminator) return VP_STATUS_INVALID_ARGUMENT;
+            size_t path_length = (const char *)terminator - path;
+            if (path_length == 0 || path_length >= sizeof(parsed.dylinker_path)) return VP_STATUS_INVALID_ARGUMENT;
+            memcpy(parsed.dylinker_path, path, path_length + 1u);
+            parsed.has_dylinker = 1u;
+        } else if (command == VP_LC_LOAD_DYLIB) {
+            if (command_size < 24u) return VP_STATUS_INVALID_ARGUMENT;
+            const uint32_t path_offset = vp_macho_u32(bytes + cursor + 8u);
+            if (path_offset >= command_size || !memchr(bytes + cursor + path_offset, 0, command_size - path_offset)) {
+                return VP_STATUS_INVALID_ARGUMENT;
+            }
+            parsed.dylib_count++;
+        } else if (command == VP_LC_CODE_SIGNATURE) {
+            if (command_size < 16u || parsed.code_signature_size != 0) return VP_STATUS_INVALID_ARGUMENT;
+            parsed.code_signature_offset = vp_macho_u32(bytes + cursor + 8u);
+            parsed.code_signature_size = vp_macho_u32(bytes + cursor + 12u);
+            if (parsed.code_signature_offset > length || parsed.code_signature_size > length - parsed.code_signature_offset) {
+                return VP_STATUS_INVALID_ARGUMENT;
+            }
+        }
+        cursor += command_size;
+    }
+    if (cursor != 32u + sizeofcmds || parsed.segment_count == 0 || entry_file_offset == UINT64_MAX ||
+        !parsed.has_dylinker || parsed.code_signature_size == 0) {
+        return VP_STATUS_INVALID_ARGUMENT;
+    }
+
+    cursor = 32u;
+    int entry_found = 0;
+    static const uint8_t zero_page[4096] = {0};
+    for (uint32_t index = 0; index < ncmds; index++) {
+        const uint32_t command = vp_macho_u32(bytes + cursor);
+        const uint32_t command_size = vp_macho_u32(bytes + cursor + 4u);
+        if (command == VP_LC_SEGMENT_64) {
+            const uint64_t vm_address = vp_macho_u64(bytes + cursor + 24u);
+            const uint64_t vm_size = vp_macho_u64(bytes + cursor + 32u);
+            const uint64_t file_offset = vp_macho_u64(bytes + cursor + 40u);
+            const uint64_t file_size = vp_macho_u64(bytes + cursor + 48u);
+            const uint64_t mapped_address = vm_address + slide;
+            const int is_pagezero = memcmp(bytes + cursor + 8u, "__PAGEZERO", 10u) == 0;
+            if (!is_pagezero && file_size) {
+                VPStatus status = vp_runtime_memory_write(runtime, mapped_address, bytes + file_offset, (size_t)file_size);
+                if (status != VP_STATUS_OK) return status;
+            }
+            uint64_t remaining = is_pagezero ? 0u : vm_size - file_size;
+            uint64_t zero_address = mapped_address + file_size;
+            while (remaining) {
+                const size_t chunk = remaining < sizeof(zero_page) ? (size_t)remaining : sizeof(zero_page);
+                VPStatus status = vp_runtime_memory_write(runtime, zero_address, zero_page, chunk);
+                if (status != VP_STATUS_OK) return status;
+                zero_address += chunk;
+                remaining -= chunk;
+            }
+            if (entry_file_offset >= file_offset && entry_file_offset - file_offset < file_size) {
+                parsed.entry_address = mapped_address + (entry_file_offset - file_offset);
+                entry_found = 1;
+            }
+        }
+        cursor += command_size;
+    }
+    if (!entry_found) return VP_STATUS_INVALID_ARGUMENT;
+    parsed.preferred_load_address += slide;
+    *info = parsed;
+    vp_emit(runtime, "[NYXMACHO] arm64 executable mapped\n");
+    return VP_STATUS_OK;
 }
 
 VPStatus vp_runtime_memory_read(VPRuntime *runtime, uint64_t address, void *dst, size_t length) {
