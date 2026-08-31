@@ -10,7 +10,7 @@ extern "C" {
 
 #define VP_GUEST_PAGE_SHIFT 14u
 #define VP_GUEST_PAGE_SIZE  (1u << VP_GUEST_PAGE_SHIFT)
-#define VP_RUNTIME_ABI_VERSION 4u
+#define VP_RUNTIME_ABI_VERSION 5u
 #define VP_DEFAULT_INSTRUCTION_BUDGET UINT64_C(1000000)
 
 typedef enum {
@@ -54,6 +54,14 @@ typedef struct {
     uint32_t pixel_format;
     uint64_t byte_length;
 } VPFramebufferInfo;
+
+typedef struct {
+    uint32_t id;
+    float x;
+    float y;
+    float pressure;
+    uint32_t phase;
+} VPTouchEvent;
 
 typedef void (*VPSerialCallback)(const uint8_t *bytes, size_t length, void *context);
 typedef VPStatus (*VPSyscallHandler)(
@@ -113,6 +121,8 @@ VPStatus vp_runtime_publish_framebuffer(
 VPStatus vp_runtime_copy_framebuffer(
     VPRuntime *runtime, void *dst, size_t capacity, VPFramebufferInfo *info
 );
+VPStatus vp_runtime_enqueue_touch(VPRuntime *runtime, const VPTouchEvent *event);
+VPStatus vp_runtime_dequeue_touch(VPRuntime *runtime, VPTouchEvent *event);
 uint64_t vp_runtime_committed_bytes(const VPRuntime *runtime);
 uint64_t vp_runtime_committed_pages(const VPRuntime *runtime);
 

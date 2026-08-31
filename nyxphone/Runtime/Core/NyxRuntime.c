@@ -18,7 +18,7 @@ static void nyx_emit(NyxVM *vm, const char *message) {
 }
 
 const char *nyx_runtime_version(void) {
-    return "NyxRuntime/0.3-nyxbus-display";
+    return "NyxRuntime/0.4-nyxbus-touch";
 }
 
 uint32_t nyx_runtime_abi_version(void) {
@@ -132,7 +132,29 @@ int32_t nyx_vm_copy_framebuffer(
     return (int32_t)status;
 }
 
-int32_t nyx_vm_boot_kernel_capture_frame(
+int32_t nyx_vm_touch(NyxVM *vm, const NyxTouchEvent *event) {
+    if (!vm || !event) return (int32_t)VP_STATUS_INVALID_ARGUMENT;
+    const VPTouchEvent core_event = {event->id, event->x, event->y, event->pressure, event->phase};
+    VPStatus status = vp_runtime_enqueue_touch(vm->runtime, &core_event);
+    if (status != VP_STATUS_OK) return (int32_t)status;
+    status = vp_runtime_signal_event(vm->runtime);
+    return (int32_t)status;
+}
+
+int32_t nyx_vm_touch_capture_frame(
+    NyxVM *vm, const NyxTouchEvent *event,
+    void *frame_buffer, size_t frame_capacity, NyxFramebufferInfo *frame_info
+) {
+    int32_t status = nyx_vm_touch(vm, event);
+    if (status == (int32_t)VP_STATUS_OK) status = nyx_vm_start(vm);
+    if (status == (int32_t)VP_STATUS_GUEST_WAITING) status = (int32_t)VP_STATUS_OK;
+    if (status == (int32_t)VP_STATUS_OK) {
+        status = nyx_vm_copy_framebuffer(vm, frame_buffer, frame_capacity, frame_info);
+    }
+    return status;
+}
+
+int32_t nyx_vm_boot_kernel_device(
     const void *bytes,
     size_t length,
     uint64_t load_address,
@@ -142,11 +164,13 @@ int32_t nyx_vm_boot_kernel_capture_frame(
     size_t *log_length,
     void *frame_buffer,
     size_t frame_capacity,
-    NyxFramebufferInfo *frame_info
+    NyxFramebufferInfo *frame_info,
+    NyxVM **vm_out
 ) {
-    if (!bytes || length == 0 || !log_buffer || log_capacity == 0) {
+    if (!bytes || length == 0 || !log_buffer || log_capacity == 0 || !vm_out) {
         return (int32_t)VP_STATUS_INVALID_ARGUMENT;
     }
+    *vm_out = NULL;
     NyxVMConfig config = {1, UINT64_C(16) * 1024u * 1024u, 1290, 2796, 460, 3.0};
     NyxVM *vm = nyx_vm_create(&config);
     if (!vm) return (int32_t)VP_STATUS_OUT_OF_MEMORY;
@@ -160,6 +184,24 @@ int32_t nyx_vm_boot_kernel_capture_frame(
         status = nyx_vm_copy_framebuffer(vm, frame_buffer, frame_capacity, frame_info);
     }
     if (log_length) *log_length = capture.length;
+    if (status == (int32_t)VP_STATUS_OK) {
+        nyx_vm_set_log_callback(vm, NULL, NULL);
+        *vm_out = vm;
+    }
+    else nyx_vm_destroy(vm);
+    return status;
+}
+
+int32_t nyx_vm_boot_kernel_capture_frame(
+    const void *bytes, size_t length, uint64_t load_address, uint64_t entry_address,
+    char *log_buffer, size_t log_capacity, size_t *log_length,
+    void *frame_buffer, size_t frame_capacity, NyxFramebufferInfo *frame_info
+) {
+    NyxVM *vm = NULL;
+    const int32_t status = nyx_vm_boot_kernel_device(
+        bytes, length, load_address, entry_address, log_buffer, log_capacity, log_length,
+        frame_buffer, frame_capacity, frame_info, &vm
+    );
     nyx_vm_destroy(vm);
     return status;
 }

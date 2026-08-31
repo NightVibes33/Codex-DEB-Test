@@ -30,6 +30,9 @@ struct VPRuntime {
     int stop_requested;
     VPFramebufferInfo framebuffer;
     int framebuffer_ready;
+    VPTouchEvent touch_queue[16];
+    uint32_t touch_head;
+    uint32_t touch_count;
 };
 
 static uint64_t vp_page_index(uint64_t address) {
@@ -238,8 +241,9 @@ VPStatus vp_runtime_publish_framebuffer(
         .pixel_format = 1u, /* RGBA8888 */
         .byte_length = byte_length,
     };
+    const int first_frame = !runtime->framebuffer_ready;
     runtime->framebuffer_ready = 1;
-    vp_emit(runtime, "[NYXDISPLAY] first frame\n");
+    vp_emit(runtime, first_frame ? "[NYXDISPLAY] first frame\n" : "[NYXDISPLAY] frame ready\n");
     return VP_STATUS_OK;
 }
 
@@ -253,6 +257,30 @@ VPStatus vp_runtime_copy_framebuffer(
     );
     if (status == VP_STATUS_OK) *info = runtime->framebuffer;
     return status;
+}
+
+VPStatus vp_runtime_enqueue_touch(VPRuntime *runtime, const VPTouchEvent *event) {
+    if (!runtime || !event || event->x < 0.0f || event->x > 1.0f ||
+        event->y < 0.0f || event->y > 1.0f || event->pressure < 0.0f || event->phase > 2u) {
+        return VP_STATUS_INVALID_ARGUMENT;
+    }
+    if (runtime->touch_count == 16u) {
+        runtime->touch_head = (runtime->touch_head + 1u) % 16u;
+        runtime->touch_count--;
+    }
+    const uint32_t tail = (runtime->touch_head + runtime->touch_count) % 16u;
+    runtime->touch_queue[tail] = *event;
+    runtime->touch_count++;
+    return VP_STATUS_OK;
+}
+
+VPStatus vp_runtime_dequeue_touch(VPRuntime *runtime, VPTouchEvent *event) {
+    if (!runtime || !event) return VP_STATUS_INVALID_ARGUMENT;
+    if (runtime->touch_count == 0) return VP_STATUS_INVALID_STATE;
+    *event = runtime->touch_queue[runtime->touch_head];
+    runtime->touch_head = (runtime->touch_head + 1u) % 16u;
+    runtime->touch_count--;
+    return VP_STATUS_OK;
 }
 
 uint64_t vp_runtime_committed_pages(const VPRuntime *runtime) {
@@ -310,6 +338,8 @@ VPStatus vp_runtime_stage_boot_images(VPRuntime *runtime, const VPBootImageLayou
     runtime->boot_vector = layout->entry_address;
     runtime->framebuffer_ready = 0;
     memset(&runtime->framebuffer, 0, sizeof(runtime->framebuffer));
+    runtime->touch_head = 0;
+    runtime->touch_count = 0;
     vp_runtime_invalidate_cpu(runtime);
     runtime->state = VP_RUNTIME_READY;
     vp_emit(runtime, "[VibePhone] staged Apple boot image set into guest physical memory\n");
@@ -323,6 +353,8 @@ VPStatus vp_runtime_set_boot_vector(VPRuntime *runtime, uint64_t guest_address) 
     runtime->boot_vector = guest_address;
     runtime->framebuffer_ready = 0;
     memset(&runtime->framebuffer, 0, sizeof(runtime->framebuffer));
+    runtime->touch_head = 0;
+    runtime->touch_count = 0;
     vp_runtime_invalidate_cpu(runtime);
     runtime->state = VP_RUNTIME_READY;
     return VP_STATUS_OK;

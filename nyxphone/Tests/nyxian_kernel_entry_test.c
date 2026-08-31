@@ -49,6 +49,13 @@ int main(int argc, char **argv) {
     if (frame_info.pixel_format != 1 || frame_info.byte_length != sizeof(frame)) return 20;
     if (frame[0] == 0 && frame[1] == 0 && frame[2] == 0 && frame[3] == 0) return 21;
     if (memcmp(frame, frame + sizeof(frame) - 4, 4) != 0) return 22;
+    uint8_t first_pixel[4];
+    memcpy(first_pixel, frame, sizeof(first_pixel));
+    NyxTouchEvent touch = {7u, 0.25f, 0.75f, 1.0f, 0u};
+    if (nyx_vm_touch_capture_frame(vm, &touch, frame, sizeof(frame), &frame_info) != 0) return 23;
+    if (memcmp(first_pixel, frame, sizeof(first_pixel)) == 0) return 24;
+    if (!strstr(logs, "[NYXTOUCH] event delivered")) return 25;
+    if (nyx_vm_state(vm) != 5u) return 26;
     fputs(logs, stdout);
     nyx_vm_destroy(vm);
     free(image);
