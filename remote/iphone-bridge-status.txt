@@ -1,7 +1,7 @@
 iPhone Tailscale SSH Bridge
-run_id=33432825149
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33432825149
-commit=e6c2a061214e70c0e8672460b62ce1a639f1e915
+run_id=33433137920
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33433137920
+commit=266614992cd9dac03928adbb35e0a1a3857a7baa
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
@@ -19,11 +19,10 @@ SSH port attempt 1/18
 # 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
 iphone_ssh_port_ready=success
 Staging native rfmonctl and running probe as root...
-===FIX_PERMISSIONS_AND_LAUNCH_FELIX===
--rwxr-xr-x 1 mobile mobile 17444416 Feb  7  2024 /private/var/mobile/Containers/Data/Application/047058B5-DA37-4627-86F3-539F98620DC5/Documents/Applications/com.disney.FixItFelixJr.app/FixItFelixJr
-FELIX_EXECUTABLE_READY=1
+===LAUNCH_FELIX_AS_MOBILE===
+uiopen_rc=0
 ===PROCESS_AFTER_3S===
 ===PROCESS_AFTER_15S===
 ===RECENT_CRASH_FILES===
-FELIX_LAUNCH_ATTEMPT_COMPLETE=1
+MOBILE_LAUNCH_COMPLETE=1
 ssh_exit_code=0
