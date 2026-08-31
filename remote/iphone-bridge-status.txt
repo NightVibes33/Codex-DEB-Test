@@ -1,13 +1,13 @@
 iPhone Tailscale SSH Bridge
-run_id=33425712435
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33425712435
-commit=32f41b4ddc9a00c1d9a5e362ca38666d919877d7
+run_id=33431643393
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33431643393
+commit=eae10af5b925e8d86fdf4ecff36d9a8ea26ecbbc
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
 tailscale=success
 install_ssh=success
-ssh=success
+ssh=failure
 
 --- sanitized SSH output ---
 Waking and checking iPhone SSH port over Tailscale...
@@ -19,8 +19,27 @@ SSH port attempt 1/18
 # 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
 iphone_ssh_port_ready=success
 Staging native rfmonctl and running probe as root...
-===LIVECONTAINER_FELIX_LOCATE===
-SEARCH_ROOT=/private/var/mobile/Containers/Data/Application
-SEARCH_ROOT=/var/mobile/Containers/Data/Application
-LOCATE_DONE=1
-ssh_exit_code=0
+===INSTALL_LIVECONTAINER_AND_FELIX===
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+
+  0 21.4M    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+ 33 21.4M   33 7265k    0     0  4424k      0  0:00:04  0:00:01  0:00:03 7178k
+ 57 21.4M   57 12.3M    0     0  4757k      0  0:00:04  0:00:02  0:00:02 6240k
+ 99 21.4M   99 21.3M    0     0  6017k      0  0:00:03  0:00:03 --:--:-- 7281k
+100 21.4M  100 21.4M    0     0  5992k      0  0:00:03  0:00:03 --:--:-- 7236k
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0
+  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0
+
+ 19 20.6M   19 4191k    0     0  2271k      0  0:00:09  0:00:01  0:00:08 2271k
+100 20.6M  100 20.6M    0     0  7866k      0  0:00:02  0:00:02 --:--:-- 19.6M
+/var/jb/usr/bin/sh: 17: awk: not found
+LC_HASH_FAILED=1
+ssh_exit_code=70
