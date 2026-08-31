@@ -50,7 +50,7 @@ static void nyx_emit(NyxVM *vm, const char *message) {
 }
 
 const char *nyx_runtime_version(void) {
-    return "NyxRuntime/0.12-dyld-diagnostics";
+    return "NyxRuntime/0.13-launchd-diagnostics";
 }
 
 uint32_t nyx_runtime_abi_version(void) {
@@ -374,6 +374,7 @@ int32_t nyx_vm_start_launchd(NyxVM *vm) {
     uint64_t stack_pointer = 0;
     const int32_t status = nyx_vm_prepare_launchd(vm, &stack_pointer);
     if (status != (int32_t)VP_STATUS_OK) return status;
+    vp_ksurface_set_process_name(vm->surface, "launchd");
     vp_runtime_set_instruction_budget(vm->runtime, UINT64_C(500000));
     return (int32_t)vp_runtime_boot(vm->runtime);
 }
