@@ -113,7 +113,7 @@ jobs:
           }
 
           int main(void) {
-              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.15-dyld-two-source") != 0) return 9;
+              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.16-dyld-indexing") != 0) return 9;
               VPMachineConfig cfg = {8, 32ULL * 1024 * 1024 * 1024, 1290, 2796, 460, 3.0};
               VPRuntime *rt = vp_runtime_create(&cfg);
               if (!rt) return 10;
@@ -347,6 +347,32 @@ jobs:
                   two_source_cpu.x[9] != (uint64_t)(int64_t)-13 ||
                   two_source_cpu.x[10] != UINT64_C(0x800000000000000C) || two_source_cpu.x[11] != 0) return 100;
 
+              const uint64_t indexing_cpu_base = 0x560000;
+              const uint64_t indexing_data_base = 0x570000;
+              const uint32_t indexing_program[] = {
+                  0x8B214804u,       /* ADD X4, X0, W1, UXTW, shift 2 */
+                  0xCB23C805u,       /* SUB X5, X0, W3, SXTW, shift 2 */
+                  0xB8215802u,       /* STR W2, [X0, W1, UXTW, shift 2] */
+                  0xB8615806u,       /* LDR W6, [X0, W1, UXTW, shift 2] */
+                  0xF8217802u,       /* STR X2, [X0, X1, LSL, shift 3] */
+                  0xF8617807u,       /* LDR X7, [X0, X1, LSL, shift 3] */
+                  0xD4400000u,       /* HLT 0 */
+              };
+              const uint8_t indexing_data[64] = {0};
+              if (vp_runtime_memory_write(rt, indexing_cpu_base, indexing_program, sizeof(indexing_program)) != VP_STATUS_OK ||
+                  vp_runtime_memory_write(rt, indexing_data_base, indexing_data, sizeof(indexing_data)) != VP_STATUS_OK) return 101;
+              VPAArch64CPU indexing_cpu;
+              vp_aarch64_reset(&indexing_cpu, indexing_cpu_base);
+              indexing_cpu.x[0] = indexing_data_base; indexing_cpu.x[1] = 3;
+              indexing_cpu.x[2] = UINT64_C(0x11223344); indexing_cpu.x[3] = UINT64_C(0xFFFFFFFF);
+              for (unsigned i = 0; i < 7; i++) {
+                  const VPCPUStepResult step = vp_aarch64_step(rt, &indexing_cpu, NULL);
+                  if (i < 6 && step != VP_CPU_STEP_OK) return 102 + (int)i;
+                  if (i == 6 && step != VP_CPU_STEP_HALTED) return 108;
+              }
+              if (indexing_cpu.x[4] != indexing_data_base + 12 || indexing_cpu.x[5] != indexing_data_base + 4 ||
+                  indexing_cpu.x[6] != UINT64_C(0x11223344) || indexing_cpu.x[7] != UINT64_C(0x11223344)) return 109;
+
               if (vp_runtime_boot(rt) != VP_STATUS_OK) return 34;
               if (vp_runtime_state(rt) != VP_RUNTIME_STOPPED) return 35;
               if (vp_runtime_instructions_retired(rt) != 8) return 36;
@@ -487,7 +513,7 @@ jobs:
           vphone-cli=$VPHONE_CLI_SHA
           runtime-branch=$GITHUB_SHA
           runtime-abi=12
-          core-abi=16
+          core-abi=17
           execution=ViPhone-custom-aarch64
           apple-boot-staging=vp_runtime_stage_boot_images
           qemu=none
@@ -675,7 +701,7 @@ jobs:
             "bootAndCFWDonor": "Lakr233/vphone-cli",
             "vphoneCliCommit": "$VPHONE_CLI_SHA",
             "runtimeABI": 12,
-            "coreABI": 16,
+            "coreABI": 17,
             "execution": "NyxPhone custom AArch64 runtime",
             "appleBootImageStaging": true,
             "builtInNyxianEmbedded": true,
@@ -694,7 +720,7 @@ jobs:
             "builtInDyldMachOLoader": true,
             "builtInDarwinInitialStack": true,
             "builtInDyldEntryAttempt": true,
-            "builtInDyldCPUInstructions": ["PAC-hints", "STP-LDP", "ADDS-SUBS", "B.cond", "logical-register", "LDUR-STUR", "LDR-literal", "CSEL-CSINC", "MADD-MSUB", "SBFM-UBFM", "LDRSW-LDURSW", "UDIV-SDIV", "LSLV-LSRV-ASRV-RORV"],
+            "builtInDyldCPUInstructions": ["PAC-hints", "STP-LDP", "ADDS-SUBS", "B.cond", "logical-register", "LDUR-STUR", "LDR-literal", "CSEL-CSINC", "MADD-MSUB", "SBFM-UBFM", "LDRSW-LDURSW", "UDIV-SDIV", "LSLV-LSRV-ASRV-RORV", "ADD-SUB-extended", "LDR-STR-register-offset"],
             "builtInDeviceDiagnostics": true,
             "builtInDeviceDiagnosticShare": true,
             "cpuFaultMarker": "NYX_CPU_FAULT",

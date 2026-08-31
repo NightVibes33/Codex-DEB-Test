@@ -146,6 +146,19 @@ static uint64_t vp_shift_register(uint64_t value, uint32_t type, uint32_t amount
            (is64 ? UINT64_MAX : UINT64_C(0xFFFFFFFF));
 }
 
+static uint64_t vp_extend_register(uint64_t value, uint32_t option) {
+    switch (option & 7u) {
+        case 0: return (uint8_t)value;
+        case 1: return (uint16_t)value;
+        case 2: return (uint32_t)value;
+        case 3: return value;
+        case 4: return (uint64_t)(int64_t)(int8_t)value;
+        case 5: return (uint64_t)(int64_t)(int16_t)value;
+        case 6: return (uint64_t)(int64_t)(int32_t)value;
+        default: return (uint64_t)(int64_t)value;
+    }
+}
+
 static VPCPUStepResult vp_retire(VPAArch64CPU *cpu, uint64_t next_pc) {
     cpu->pc = next_pc;
     cpu->instructions_retired++;
@@ -490,6 +503,28 @@ VPCPUStepResult vp_aarch64_step(VPRuntime *runtime, VPAArch64CPU *cpu, uint32_t 
         return vp_retire(cpu, next_pc);
     }
 
+    /* ADD/SUB extended register, including UXTW/SXTW pointer arithmetic. */
+    const uint32_t addsub_extended_class = insn & UINT32_C(0x7F200000);
+    if (addsub_extended_class == UINT32_C(0x0B200000) ||
+        addsub_extended_class == UINT32_C(0x2B200000) ||
+        addsub_extended_class == UINT32_C(0x4B200000) ||
+        addsub_extended_class == UINT32_C(0x6B200000)) {
+        const int is64 = (int)((insn >> 31) & 1u);
+        const int subtract = (int)((insn >> 30) & 1u);
+        const int set_flags = (int)((insn >> 29) & 1u);
+        const uint32_t amount = (insn >> 10) & 7u;
+        if (amount > 4u) return VP_CPU_STEP_UNIMPLEMENTED;
+        uint64_t lhs = vp_reg_read(cpu, (insn >> 5) & 31u, 1);
+        uint64_t rhs = vp_extend_register(
+            vp_reg_read(cpu, (insn >> 16) & 31u, 0), (insn >> 13) & 7u
+        ) << amount;
+        if (!is64) { lhs = (uint32_t)lhs; rhs = (uint32_t)rhs; }
+        const uint64_t result = subtract ? lhs - rhs : lhs + rhs;
+        if (set_flags) vp_set_nzcv_addsub(cpu, lhs, rhs, result, is64, subtract);
+        vp_reg_write(cpu, insn & 31u, result, is64, !set_flags);
+        return vp_retire(cpu, next_pc);
+    }
+
     /* AND/ORR/EOR/ANDS shifted register (MOV/TST aliases included). */
     const uint32_t logical_class = insn & UINT32_C(0x7F200000);
     if (logical_class == UINT32_C(0x0A000000) || logical_class == UINT32_C(0x2A000000) ||
@@ -634,6 +669,28 @@ VPCPUStepResult vp_aarch64_step(VPRuntime *runtime, VPAArch64CPU *cpu, uint32_t 
         const int is_load = unscaled_class == UINT32_C(0x38400000);
         const int64_t offset = vp_sign_extend((insn >> 12) & 0x1FFu, 9);
         const uint64_t address = (uint64_t)((int64_t)vp_reg_read(cpu, (insn >> 5) & 31u, 1) + offset);
+        const uint32_t rt = insn & 31u;
+        uint64_t value = vp_reg_read(cpu, rt, 0);
+        const VPStatus status = is_load ? vp_runtime_memory_read(runtime, address, &value, width)
+                                        : vp_runtime_memory_write(runtime, address, &value, width);
+        if (status != VP_STATUS_OK) return VP_CPU_STEP_MEMORY_FAULT;
+        if (is_load) vp_reg_write(cpu, rt, value, size_log2 == 3u, 0);
+        return vp_retire(cpu, next_pc);
+    }
+
+    /* STR/LDR register offset with UXTW/LSL/SXTW/SXTX indexing. */
+    if ((insn & UINT32_C(0x3B200C00)) == UINT32_C(0x38200800) &&
+        ((insn >> 22) & 3u) <= 1u) {
+        const uint32_t size_log2 = (insn >> 30) & 3u;
+        const size_t width = (size_t)1u << size_log2;
+        const int is_load = ((insn >> 22) & 3u) == 1u;
+        const uint32_t option = (insn >> 13) & 7u;
+        if (option != 2u && option != 3u && option != 6u && option != 7u) {
+            return VP_CPU_STEP_UNIMPLEMENTED;
+        }
+        uint64_t offset = vp_extend_register(vp_reg_read(cpu, (insn >> 16) & 31u, 0), option);
+        if ((insn >> 12) & 1u) offset <<= size_log2;
+        const uint64_t address = vp_reg_read(cpu, (insn >> 5) & 31u, 1) + offset;
         const uint32_t rt = insn & 31u;
         uint64_t value = vp_reg_read(cpu, rt, 0);
         const VPStatus status = is_load ? vp_runtime_memory_read(runtime, address, &value, width)
