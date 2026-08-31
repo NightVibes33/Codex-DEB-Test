@@ -89,7 +89,7 @@ jobs:
           }
 
           int main(void) {
-              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.2-interpreter") != 0) return 9;
+              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.3-nyxbus-display") != 0) return 9;
               VPMachineConfig cfg = {8, 8ULL * 1024 * 1024 * 1024, 1290, 2796, 460, 3.0};
               VPRuntime *rt = vp_runtime_create(&cfg);
               if (!rt) return 10;
@@ -191,6 +191,7 @@ jobs:
           grep -F "[NYXRT] runtime initialized" "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry.log"
           grep -F "[NYXRT] Nyxian loaded" "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry.log"
           grep -F "[NYXIAN] kernel entry reached" "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry.log"
+          grep -F "[NYXDISPLAY] first frame" "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry.log"
           grep -F "[NYXDARWIN] nyxinit started" "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry.log"
           grep -F "hello from Nyxian userspace" "$RUNNER_TEMP/viphone-ios/nyxian-kernel-entry.log"
 
@@ -215,14 +216,16 @@ jobs:
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_vp_runtime_stage_boot_images'
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_vp_host_runtime_start'
           xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_nyx_runtime_version'
+          xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_nyx_vm_boot_kernel_capture_frame'
+          xcrun nm "$RUNNER_TEMP/viphone-ios/libViPhoneRuntime.a" | grep '_vp_runtime_copy_framebuffer'
 
           cat > "$RUNNER_TEMP/viphone-ios/provenance.txt" <<EOF
           VibeContainers=$VIBECONTAINERS_SHA
           Nyxian=$NYXIAN_SHA
           vphone-cli=$VPHONE_CLI_SHA
           runtime-branch=$GITHUB_SHA
-          runtime-abi=2
-          core-abi=3
+          runtime-abi=3
+          core-abi=4
           execution=ViPhone-custom-aarch64
           apple-boot-staging=vp_runtime_stage_boot_images
           qemu=none
@@ -376,6 +379,8 @@ jobs:
           xcrun nm "$APP/$EXE" | grep '_vp_aarch64_step'
           xcrun nm "$APP/$EXE" | grep '_vp_host_runtime_start'
           xcrun nm "$APP/$EXE" | grep '_nyx_runtime_version'
+          xcrun nm "$APP/$EXE" | grep '_nyx_vm_boot_kernel_capture_frame'
+          xcrun nm "$APP/$EXE" | grep '_vp_runtime_copy_framebuffer'
 
           if find "$APP" -iname '*qemu*' -print -quit | grep -q .; then
             echo 'QEMU payload detected; refusing ViPhone IPA' >&2
@@ -394,12 +399,13 @@ jobs:
             "nyxianCommit": "$NYXIAN_SHA",
             "bootAndCFWDonor": "Lakr233/vphone-cli",
             "vphoneCliCommit": "$VPHONE_CLI_SHA",
-            "runtimeABI": 2,
-            "coreABI": 3,
+            "runtimeABI": 3,
+            "coreABI": 4,
             "execution": "ViPhone custom AArch64 runtime",
             "appleBootImageStaging": true,
             "builtInNyxianEmbedded": true,
             "builtInNyxinitEL0": true,
+            "builtInFramebuffer": true,
             "qemu": false,
             "virtualizationFramework": false,
             "companionPCRequired": false

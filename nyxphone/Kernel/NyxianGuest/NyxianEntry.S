@@ -6,6 +6,23 @@ _nyxian_entry:
     mov x1, #30
     hvc #0x4e58
 
+    // Draw a 64x96 RGBA8888 first frame into Nyxian guest memory.
+    movz x0, #0x20, lsl #16
+    movz w1, #0x40ff
+    movk w1, #0xff20, lsl #16
+    mov x2, #6144
+nyxian_draw_frame:
+    str w1, [x0]
+    add x0, x0, #4
+    sub x2, x2, #1
+    cbnz x2, nyxian_draw_frame
+
+    movz x0, #0x20, lsl #16
+    mov x1, #64
+    mov x2, #96
+    mov x3, #256
+    hvc #0x4e59
+
     adr x0, nyxinit
     msr elr_el1, x0
     msr spsr_el1, xzr

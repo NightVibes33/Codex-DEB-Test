@@ -28,6 +28,8 @@ struct VPRuntime {
     VPAArch64CPU cpu;
     int cpu_initialized;
     int stop_requested;
+    VPFramebufferInfo framebuffer;
+    int framebuffer_ready;
 };
 
 static uint64_t vp_page_index(uint64_t address) {
@@ -218,6 +220,41 @@ VPStatus vp_runtime_console_write(VPRuntime *runtime, uint64_t guest_address, si
     return VP_STATUS_OK;
 }
 
+VPStatus vp_runtime_publish_framebuffer(
+    VPRuntime *runtime, uint64_t guest_address, uint32_t width, uint32_t height, uint32_t stride
+) {
+    if (!runtime || width == 0 || height == 0 || width > UINT32_MAX / 4u || stride < width * 4u) {
+        return VP_STATUS_INVALID_ARGUMENT;
+    }
+    const uint64_t byte_length = (uint64_t)stride * height;
+    if (byte_length > SIZE_MAX || !vp_range_valid(runtime, guest_address, (size_t)byte_length)) {
+        return VP_STATUS_ADDRESS_OUT_OF_RANGE;
+    }
+    runtime->framebuffer = (VPFramebufferInfo){
+        .guest_address = guest_address,
+        .width = width,
+        .height = height,
+        .stride = stride,
+        .pixel_format = 1u, /* RGBA8888 */
+        .byte_length = byte_length,
+    };
+    runtime->framebuffer_ready = 1;
+    vp_emit(runtime, "[NYXDISPLAY] first frame\n");
+    return VP_STATUS_OK;
+}
+
+VPStatus vp_runtime_copy_framebuffer(
+    VPRuntime *runtime, void *dst, size_t capacity, VPFramebufferInfo *info
+) {
+    if (!runtime || !dst || !info || !runtime->framebuffer_ready) return VP_STATUS_INVALID_STATE;
+    if (runtime->framebuffer.byte_length > capacity) return VP_STATUS_INVALID_ARGUMENT;
+    VPStatus status = vp_runtime_memory_read(
+        runtime, runtime->framebuffer.guest_address, dst, (size_t)runtime->framebuffer.byte_length
+    );
+    if (status == VP_STATUS_OK) *info = runtime->framebuffer;
+    return status;
+}
+
 uint64_t vp_runtime_committed_pages(const VPRuntime *runtime) {
     return runtime ? runtime->committed_pages : 0;
 }
@@ -271,6 +308,8 @@ VPStatus vp_runtime_stage_boot_images(VPRuntime *runtime, const VPBootImageLayou
     }
 
     runtime->boot_vector = layout->entry_address;
+    runtime->framebuffer_ready = 0;
+    memset(&runtime->framebuffer, 0, sizeof(runtime->framebuffer));
     vp_runtime_invalidate_cpu(runtime);
     runtime->state = VP_RUNTIME_READY;
     vp_emit(runtime, "[VibePhone] staged Apple boot image set into guest physical memory\n");
@@ -282,6 +321,8 @@ VPStatus vp_runtime_set_boot_vector(VPRuntime *runtime, uint64_t guest_address) 
     if (runtime->state == VP_RUNTIME_RUNNING) return VP_STATUS_INVALID_STATE;
     if (!vp_range_valid(runtime, guest_address, sizeof(uint32_t))) return VP_STATUS_ADDRESS_OUT_OF_RANGE;
     runtime->boot_vector = guest_address;
+    runtime->framebuffer_ready = 0;
+    memset(&runtime->framebuffer, 0, sizeof(runtime->framebuffer));
     vp_runtime_invalidate_cpu(runtime);
     runtime->state = VP_RUNTIME_READY;
     return VP_STATUS_OK;

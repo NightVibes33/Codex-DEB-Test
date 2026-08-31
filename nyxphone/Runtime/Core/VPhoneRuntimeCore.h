@@ -10,7 +10,7 @@ extern "C" {
 
 #define VP_GUEST_PAGE_SHIFT 14u
 #define VP_GUEST_PAGE_SIZE  (1u << VP_GUEST_PAGE_SHIFT)
-#define VP_RUNTIME_ABI_VERSION 3u
+#define VP_RUNTIME_ABI_VERSION 4u
 #define VP_DEFAULT_INSTRUCTION_BUDGET UINT64_C(1000000)
 
 typedef enum {
@@ -45,6 +45,15 @@ typedef struct {
 } VPMachineConfig;
 
 typedef struct VPRuntime VPRuntime;
+
+typedef struct {
+    uint64_t guest_address;
+    uint32_t width;
+    uint32_t height;
+    uint32_t stride;
+    uint32_t pixel_format;
+    uint64_t byte_length;
+} VPFramebufferInfo;
 
 typedef void (*VPSerialCallback)(const uint8_t *bytes, size_t length, void *context);
 typedef VPStatus (*VPSyscallHandler)(
@@ -98,6 +107,12 @@ VPStatus vp_runtime_dispatch_syscall(
 VPStatus vp_runtime_memory_read(VPRuntime *runtime, uint64_t guest_address, void *dst, size_t length);
 VPStatus vp_runtime_memory_write(VPRuntime *runtime, uint64_t guest_address, const void *src, size_t length);
 VPStatus vp_runtime_console_write(VPRuntime *runtime, uint64_t guest_address, size_t length);
+VPStatus vp_runtime_publish_framebuffer(
+    VPRuntime *runtime, uint64_t guest_address, uint32_t width, uint32_t height, uint32_t stride
+);
+VPStatus vp_runtime_copy_framebuffer(
+    VPRuntime *runtime, void *dst, size_t capacity, VPFramebufferInfo *info
+);
 uint64_t vp_runtime_committed_bytes(const VPRuntime *runtime);
 uint64_t vp_runtime_committed_pages(const VPRuntime *runtime);
 

@@ -206,14 +206,24 @@ VPCPUStepResult vp_aarch64_step(VPRuntime *runtime, VPAArch64CPU *cpu, uint32_t 
         return VP_CPU_STEP_OK;
     }
 
-    /* Nyx hypervisor console ABI: HVC #0x4E58 writes X1 bytes at guest X0. */
+    /* NyxBus host ABI: console (0x4E58) and RGBA framebuffer publication (0x4E59). */
     if ((insn & UINT32_C(0xFFE0001F)) == UINT32_C(0xD4000002)) {
         const uint32_t immediate = (insn >> 5) & UINT32_C(0xFFFF);
-        if (immediate != UINT32_C(0x4E58)) return VP_CPU_STEP_SYSTEM_REGISTER_FAULT;
-        if (vp_runtime_console_write(runtime, cpu->x[0], (size_t)cpu->x[1]) != VP_STATUS_OK) {
-            return VP_CPU_STEP_MEMORY_FAULT;
+        if (immediate == UINT32_C(0x4E58)) {
+            if (vp_runtime_console_write(runtime, cpu->x[0], (size_t)cpu->x[1]) != VP_STATUS_OK) {
+                return VP_CPU_STEP_MEMORY_FAULT;
+            }
+            return vp_retire(cpu, next_pc);
         }
-        return vp_retire(cpu, next_pc);
+        if (immediate == UINT32_C(0x4E59)) {
+            if (vp_runtime_publish_framebuffer(
+                    runtime, cpu->x[0], (uint32_t)cpu->x[1], (uint32_t)cpu->x[2], (uint32_t)cpu->x[3]
+                ) != VP_STATUS_OK) {
+                return VP_CPU_STEP_MEMORY_FAULT;
+            }
+            return vp_retire(cpu, next_pc);
+        }
+        return VP_CPU_STEP_SYSTEM_REGISTER_FAULT;
     }
 
     /* HLT #imm16 */

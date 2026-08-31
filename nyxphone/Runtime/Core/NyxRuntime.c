@@ -18,7 +18,7 @@ static void nyx_emit(NyxVM *vm, const char *message) {
 }
 
 const char *nyx_runtime_version(void) {
-    return "NyxRuntime/0.2-interpreter";
+    return "NyxRuntime/0.3-nyxbus-display";
 }
 
 uint32_t nyx_runtime_abi_version(void) {
@@ -116,14 +116,33 @@ static void nyx_capture_log(const uint8_t *bytes, size_t length, void *context) 
     capture->bytes[capture->length] = 0;
 }
 
-int32_t nyx_vm_boot_kernel_capture(
+int32_t nyx_vm_copy_framebuffer(
+    NyxVM *vm, void *frame_buffer, size_t frame_capacity, NyxFramebufferInfo *frame_info
+) {
+    if (!vm || !frame_buffer || !frame_info) return (int32_t)VP_STATUS_INVALID_ARGUMENT;
+    VPFramebufferInfo core_info = {0};
+    const VPStatus status = vp_runtime_copy_framebuffer(vm->runtime, frame_buffer, frame_capacity, &core_info);
+    if (status == VP_STATUS_OK) {
+        frame_info->width = core_info.width;
+        frame_info->height = core_info.height;
+        frame_info->stride = core_info.stride;
+        frame_info->pixel_format = core_info.pixel_format;
+        frame_info->byte_length = core_info.byte_length;
+    }
+    return (int32_t)status;
+}
+
+int32_t nyx_vm_boot_kernel_capture_frame(
     const void *bytes,
     size_t length,
     uint64_t load_address,
     uint64_t entry_address,
     char *log_buffer,
     size_t log_capacity,
-    size_t *log_length
+    size_t *log_length,
+    void *frame_buffer,
+    size_t frame_capacity,
+    NyxFramebufferInfo *frame_info
 ) {
     if (!bytes || length == 0 || !log_buffer || log_capacity == 0) {
         return (int32_t)VP_STATUS_INVALID_ARGUMENT;
@@ -137,7 +156,19 @@ int32_t nyx_vm_boot_kernel_capture(
     int32_t status = nyx_vm_load_kernel_bytes(vm, bytes, length, load_address, entry_address);
     if (status == (int32_t)VP_STATUS_OK) status = nyx_vm_start(vm);
     if (status == (int32_t)VP_STATUS_GUEST_WAITING) status = (int32_t)VP_STATUS_OK;
+    if (status == (int32_t)VP_STATUS_OK && frame_buffer && frame_info) {
+        status = nyx_vm_copy_framebuffer(vm, frame_buffer, frame_capacity, frame_info);
+    }
     if (log_length) *log_length = capture.length;
     nyx_vm_destroy(vm);
     return status;
+}
+
+int32_t nyx_vm_boot_kernel_capture(
+    const void *bytes, size_t length, uint64_t load_address, uint64_t entry_address,
+    char *log_buffer, size_t log_capacity, size_t *log_length
+) {
+    return nyx_vm_boot_kernel_capture_frame(
+        bytes, length, load_address, entry_address, log_buffer, log_capacity, log_length, NULL, 0, NULL
+    );
 }
