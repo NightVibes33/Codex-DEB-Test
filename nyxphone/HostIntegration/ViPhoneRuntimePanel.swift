@@ -52,8 +52,8 @@ final class ViPhoneRuntimeModel: ObservableObject {
     @Published var importTarget: Artifact?
     @Published var showingImporter = false
     @Published private(set) var fileSizes: [Artifact: Int64] = [:]
-    @Published private(set) var statusText = "ViPhone ready"
-    @Published private(set) var detailText = "Boot the built-in ViPhone guest or import user-supplied firmware."
+    @Published private(set) var statusText = "NyxPhone ready"
+    @Published private(set) var detailText = "Boot the built-in NyxPhone guest or import user-supplied firmware."
     @Published private(set) var isBooting = false
     @Published private(set) var runtimeState: UInt32 = 0
     @Published private(set) var retiredInstructions: UInt64 = 0
@@ -448,25 +448,25 @@ final class ViPhoneRuntimeModel: ObservableObject {
 
     private func persistentDiskURL() throws -> URL {
         let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        let directory = base.appendingPathComponent("ViPhone/VMs/default/disk", isDirectory: true)
+        let directory = base.appendingPathComponent("NyxPhone/VMs/default/disk", isDirectory: true)
         try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
         return directory.appendingPathComponent("disk.img")
     }
 
     private var bundledKernelURL: URL? {
-        Bundle.main.url(forResource: "Nyxian", withExtension: "bin", subdirectory: "ViPhoneGuest")
+        Bundle.main.url(forResource: "Nyxian", withExtension: "bin", subdirectory: "NyxPhoneGuest")
     }
 
     private func persistBootLog(_ log: String) throws {
         let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        let directory = base.appendingPathComponent("ViPhone/Logs", isDirectory: true)
+        let directory = base.appendingPathComponent("NyxPhone/Logs", isDirectory: true)
         try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
         try log.write(to: directory.appendingPathComponent("boot.log"), atomically: true, encoding: .utf8)
     }
 
     private var firmwareDirectory: URL {
         let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return base.appendingPathComponent("ViPhone/DefaultPhone/Firmware", isDirectory: true)
+        return base.appendingPathComponent("NyxPhone/DefaultPhone/Firmware", isDirectory: true)
     }
 
     private func url(for artifact: Artifact) -> URL {
@@ -578,12 +578,12 @@ struct ViPhoneRuntimePanel: View {
                     LabeledContent("QEMU", value: "None")
                     LabeledContent("Companion PC", value: "Not required")
                 } header: {
-                    Text("ViPhone")
+                    Text("NyxPhone")
                 } footer: {
-                    Text("Apple firmware is not bundled. Imported artifacts remain inside ViPhone's app container.")
+                    Text("Apple firmware is not bundled. Imported artifacts remain inside NyxPhone's app container.")
                 }
 
-                Section("ViPhone Guest") {
+                Section("NyxPhone Guest") {
                     LabeledContent(
                         "Built-in guest",
                         value: model.bundledKernelAvailable ? "Ready" : "Missing"
@@ -620,7 +620,7 @@ struct ViPhoneRuntimePanel: View {
                     Button {
                         model.bootBundledNyxian()
                     } label: {
-                        Label("Boot ViPhone", systemImage: "terminal")
+                        Label("Boot NyxPhone", systemImage: "terminal")
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(!model.bundledKernelAvailable)
@@ -640,7 +640,7 @@ struct ViPhoneRuntimePanel: View {
                     if !model.bundledBootLog.isEmpty {
                         ShareLink(
                             item: model.bundledBootLog,
-                            preview: SharePreview("ViPhone dyld diagnostic")
+                            preview: SharePreview("NyxPhone dyld diagnostic")
                         ) {
                             Label("Share Device Diagnostic", systemImage: "square.and.arrow.up")
                         }
@@ -716,7 +716,7 @@ struct ViPhoneRuntimePanel: View {
                         .textSelection(.enabled)
                 }
             }
-            .navigationTitle("ViPhone Runtime")
+            .navigationTitle("NyxPhone Runtime")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }

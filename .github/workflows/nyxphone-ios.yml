@@ -1,4 +1,4 @@
-name: iOS ViPhone Runtime
+name: iOS NyxPhone Runtime
 
 on:
   workflow_dispatch:
@@ -535,7 +535,7 @@ jobs:
           p.write_text(s)
           PY
 
-      - name: Build complete unsigned real-device ViPhone IPA
+      - name: Build complete unsigned real-device NyxPhone IPA
         shell: bash
         run: |
           set -euo pipefail
@@ -561,10 +561,13 @@ jobs:
           test -n "$APP"
           BUILTIN_GUEST="$(find "$RUNNER_TEMP/viphone-built-in-guest" -name nyxian-entry.bin -type f | head -1)"
           test -s "$BUILTIN_GUEST"
-          mkdir -p "$APP/ViPhoneGuest"
-          cp "$BUILTIN_GUEST" "$APP/ViPhoneGuest/Nyxian.bin"
-          test -s "$APP/ViPhoneGuest/Nyxian.bin"
+          mkdir -p "$APP/NyxPhoneGuest"
+          cp "$BUILTIN_GUEST" "$APP/NyxPhoneGuest/Nyxian.bin"
+          test -s "$APP/NyxPhoneGuest/Nyxian.bin"
           EXE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist")"
+          mv "$APP/$EXE" "$APP/NyxPhone"
+          EXE=NyxPhone
+          /usr/libexec/PlistBuddy -c 'Set :CFBundleExecutable NyxPhone' "$APP/Info.plist"
           file "$APP/$EXE" | tee "$RUNNER_TEMP/viphone-device-binary.txt"
           file "$APP/$EXE" | grep -qi arm64
           /usr/bin/plutil -p "$APP/Info.plist" | tee "$RUNNER_TEMP/viphone-info-plist.txt"
@@ -589,17 +592,17 @@ jobs:
           xcrun nm "$APP/$EXE" | grep '_vp_runtime_network_https_get'
 
           if find "$APP" -iname '*qemu*' -print -quit | grep -q .; then
-            echo 'QEMU payload detected; refusing ViPhone IPA' >&2
+            echo 'QEMU payload detected; refusing NyxPhone IPA' >&2
             exit 1
           fi
 
-          /usr/libexec/PlistBuddy -c 'Set :CFBundleDisplayName ViPhone' "$APP/Info.plist" 2>/dev/null || \
-            /usr/libexec/PlistBuddy -c 'Add :CFBundleDisplayName string ViPhone' "$APP/Info.plist"
-          /usr/libexec/PlistBuddy -c 'Set :CFBundleName ViPhone' "$APP/Info.plist" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c 'Set :CFBundleDisplayName NyxPhone' "$APP/Info.plist" 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c 'Add :CFBundleDisplayName string NyxPhone' "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Set :CFBundleName NyxPhone' "$APP/Info.plist" 2>/dev/null || true
 
-          cat > "$APP/ViPhoneRuntime.json" <<EOF
+          cat > "$APP/NyxPhoneRuntime.json" <<EOF
           {
-            "product": "ViPhone",
+            "product": "NyxPhone",
             "host": "VibeContainers",
             "hostCommit": "$VIBECONTAINERS_SHA",
             "nyxianCommit": "$NYXIAN_SHA",
@@ -607,14 +610,14 @@ jobs:
             "vphoneCliCommit": "$VPHONE_CLI_SHA",
             "runtimeABI": 12,
             "coreABI": 13,
-            "execution": "ViPhone custom AArch64 runtime",
+            "execution": "NyxPhone custom AArch64 runtime",
             "appleBootImageStaging": true,
             "builtInNyxianEmbedded": true,
             "builtInNyxinitEL0": true,
             "builtInFramebuffer": true,
             "builtInTouch": true,
             "builtInStorage": true,
-            "persistentDisk": "Application Support/ViPhone/VMs/default/disk/disk.img",
+            "persistentDisk": "Application Support/NyxPhone/VMs/default/disk/disk.img",
             "builtInNetworking": true,
             "networkTransport": "CFNetwork HTTPS",
             "networkTestEndpoint": "https://example.com/",
@@ -642,20 +645,23 @@ jobs:
 
           rm -rf "$GITHUB_WORKSPACE/Payload"
           mkdir -p "$GITHUB_WORKSPACE/Payload"
-          cp -R "$APP" "$GITHUB_WORKSPACE/Payload/ViPhone.app"
-          test -s "$GITHUB_WORKSPACE/Payload/ViPhone.app/$EXE"
-          test -s "$GITHUB_WORKSPACE/Payload/ViPhone.app/ViPhoneGuest/Nyxian.bin"
+          cp -R "$APP" "$GITHUB_WORKSPACE/Payload/NyxPhone.app"
+          test -s "$GITHUB_WORKSPACE/Payload/NyxPhone.app/NyxPhone"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$GITHUB_WORKSPACE/Payload/NyxPhone.app/Info.plist")" = NyxPhone
+          file "$GITHUB_WORKSPACE/Payload/NyxPhone.app/NyxPhone" | grep -qi 'Mach-O 64-bit executable arm64'
+          /usr/bin/plutil -p "$GITHUB_WORKSPACE/Payload/NyxPhone.app/Info.plist" | grep -q 'iphoneos'
+          test -s "$GITHUB_WORKSPACE/Payload/NyxPhone.app/NyxPhoneGuest/Nyxian.bin"
           cd "$GITHUB_WORKSPACE"
-          /usr/bin/zip -qry ViPhone-unsigned.ipa Payload
-          test -s ViPhone-unsigned.ipa
-          unzip -t ViPhone-unsigned.ipa >/dev/null
-          shasum -a 256 ViPhone-unsigned.ipa | tee ViPhone-unsigned.sha256
-          ls -lh ViPhone-unsigned.ipa
+          /usr/bin/zip -qry NyxPhone-unsigned.ipa Payload
+          test -s NyxPhone-unsigned.ipa
+          unzip -t NyxPhone-unsigned.ipa >/dev/null
+          shasum -a 256 NyxPhone-unsigned.ipa | tee NyxPhone-unsigned.sha256
+          ls -lh NyxPhone-unsigned.ipa
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ViPhone-unsigned-real-device
+          name: NyxPhone-unsigned-real-device
           path: |
-            ViPhone-unsigned.ipa
-            ViPhone-unsigned.sha256
+            NyxPhone-unsigned.ipa
+            NyxPhone-unsigned.sha256
           if-no-files-found: error

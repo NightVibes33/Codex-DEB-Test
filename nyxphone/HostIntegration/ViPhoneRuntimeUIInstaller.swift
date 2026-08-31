@@ -36,7 +36,7 @@ private enum ViPhoneRuntimeUIInstaller {
         configuration.cornerStyle = .capsule
         configuration.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12)
         button.configuration = configuration
-        button.accessibilityLabel = "Open ViPhone Runtime"
+        button.accessibilityLabel = "Open NyxPhone Runtime"
         button.addAction(UIAction { _ in
             Task { @MainActor in presentRuntimePanel() }
         }, for: .touchUpInside)
