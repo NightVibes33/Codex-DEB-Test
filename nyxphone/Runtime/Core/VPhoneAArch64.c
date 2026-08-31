@@ -98,6 +98,54 @@ static int vp_sysreg_write(VPAArch64CPU *cpu, uint16_t reg, uint64_t value) {
     }
 }
 
+static void vp_set_nzcv_addsub(
+    VPAArch64CPU *cpu, uint64_t lhs, uint64_t rhs, uint64_t result, int is64, int subtract
+) {
+    const uint64_t mask = is64 ? UINT64_MAX : UINT64_C(0xFFFFFFFF);
+    const uint64_t sign = is64 ? UINT64_C(1) << 63 : UINT64_C(1) << 31;
+    lhs &= mask; rhs &= mask; result &= mask;
+    const int n = (result & sign) != 0;
+    const int z = result == 0;
+    const int c = subtract ? lhs >= rhs : result < lhs;
+    const int v = subtract ? (((lhs ^ rhs) & (lhs ^ result) & sign) != 0)
+                           : (((~(lhs ^ rhs)) & (lhs ^ result) & sign) != 0);
+    cpu->sys.nzcv = ((uint64_t)n << 31) | ((uint64_t)z << 30) |
+                    ((uint64_t)c << 29) | ((uint64_t)v << 28);
+}
+
+static void vp_set_nzcv_logical(VPAArch64CPU *cpu, uint64_t result, int is64) {
+    if (!is64) result = (uint32_t)result;
+    cpu->sys.nzcv = ((uint64_t)((result >> (is64 ? 63u : 31u)) & 1u) << 31) |
+                    ((uint64_t)(result == 0) << 30);
+}
+
+static int vp_condition_holds(const VPAArch64CPU *cpu, uint32_t condition) {
+    const int n = (int)((cpu->sys.nzcv >> 31) & 1u);
+    const int z = (int)((cpu->sys.nzcv >> 30) & 1u);
+    const int c = (int)((cpu->sys.nzcv >> 29) & 1u);
+    const int v = (int)((cpu->sys.nzcv >> 28) & 1u);
+    switch (condition & 15u) {
+        case 0: return z; case 1: return !z; case 2: return c; case 3: return !c;
+        case 4: return n; case 5: return !n; case 6: return v; case 7: return !v;
+        case 8: return c && !z; case 9: return !c || z; case 10: return n == v;
+        case 11: return n != v; case 12: return !z && n == v; case 13: return z || n != v;
+        case 14: return 1; default: return 0;
+    }
+}
+
+static uint64_t vp_shift_register(uint64_t value, uint32_t type, uint32_t amount, int is64) {
+    const uint32_t width = is64 ? 64u : 32u;
+    if (!is64) value = (uint32_t)value;
+    if (amount == 0) return value;
+    if (type == 0u) return (value << amount) & (is64 ? UINT64_MAX : UINT64_C(0xFFFFFFFF));
+    if (type == 1u) return value >> amount;
+    if (type == 2u) return is64 ? (uint64_t)((int64_t)value >> amount)
+                                : (uint32_t)((int32_t)value >> amount);
+    amount %= width;
+    return ((value >> amount) | (value << (width - amount))) &
+           (is64 ? UINT64_MAX : UINT64_C(0xFFFFFFFF));
+}
+
 static VPCPUStepResult vp_retire(VPAArch64CPU *cpu, uint64_t next_pc) {
     cpu->pc = next_pc;
     cpu->instructions_retired++;
@@ -135,11 +183,9 @@ VPCPUStepResult vp_aarch64_step(VPRuntime *runtime, VPAArch64CPU *cpu, uint32_t 
     const uint64_t current_pc = cpu->pc;
     const uint64_t next_pc = current_pc + 4u;
 
-    /* Common hints. */
-    if (insn == UINT32_C(0xD503201F) || /* NOP */
-        insn == UINT32_C(0xD503203F) || /* YIELD */
-        insn == UINT32_C(0xD503209F) || /* SEV */
-        insn == UINT32_C(0xD50320BF)) { /* SEVL */
+    /* Architectural hints, including BTI and arm64e PAC/AUT stack hints. */
+    if ((insn & UINT32_C(0xFFFFF01F)) == UINT32_C(0xD503201F) &&
+        insn != UINT32_C(0xD503205F) && insn != UINT32_C(0xD503207F)) {
         return vp_retire(cpu, next_pc);
     }
 
@@ -264,6 +310,14 @@ VPCPUStepResult vp_aarch64_step(VPRuntime *runtime, VPAArch64CPU *cpu, uint32_t 
         return VP_CPU_STEP_OK;
     }
 
+    /* arm64e authenticated returns. Pointer authentication is identity until PAC keys are modeled. */
+    if (insn == UINT32_C(0xD65F0BFF) || insn == UINT32_C(0xD65F0FFF)) {
+        cpu->pc = cpu->x[30];
+        cpu->instructions_retired++;
+        cpu->sys.counter_ticks++;
+        return VP_CPU_STEP_OK;
+    }
+
     /* BR / BLR / RET Xn. */
     const uint32_t branch_reg = insn & UINT32_C(0xFFFFFC1F);
     if (branch_reg == UINT32_C(0xD61F0000) ||
@@ -275,6 +329,15 @@ VPCPUStepResult vp_aarch64_step(VPRuntime *runtime, VPAArch64CPU *cpu, uint32_t 
         cpu->instructions_retired++;
         cpu->sys.counter_ticks++;
         return VP_CPU_STEP_OK;
+    }
+
+    /* B.cond. */
+    if ((insn & UINT32_C(0xFF000010)) == UINT32_C(0x54000000)) {
+        const int64_t offset = vp_sign_extend((insn >> 5) & UINT32_C(0x7FFFF), 19) << 2;
+        return vp_retire(
+            cpu, vp_condition_holds(cpu, insn & 15u)
+                ? (uint64_t)((int64_t)current_pc + offset) : next_pc
+        );
     }
 
     /* CBZ / CBNZ, 32- and 64-bit. */
@@ -317,16 +380,32 @@ VPCPUStepResult vp_aarch64_step(VPRuntime *runtime, VPAArch64CPU *cpu, uint32_t 
         return vp_retire(cpu, next_pc);
     }
 
-    /* MOVZ / MOVK (wide immediate), 32- and 64-bit. */
+    /* LDR literal for W/X registers. */
+    if ((insn & UINT32_C(0x3B000000)) == UINT32_C(0x18000000) &&
+        ((insn >> 30) & 3u) < 2u) {
+        const int is64 = ((insn >> 30) & 3u) == 1u;
+        const uint32_t rt = insn & 31u;
+        const int64_t offset = vp_sign_extend((insn >> 5) & UINT32_C(0x7FFFF), 19) << 2;
+        const uint64_t address = (uint64_t)((int64_t)current_pc + offset);
+        uint64_t value = 0;
+        if (vp_runtime_memory_read(runtime, address, &value, is64 ? 8u : 4u) != VP_STATUS_OK) {
+            return VP_CPU_STEP_MEMORY_FAULT;
+        }
+        vp_reg_write(cpu, rt, value, is64, 0);
+        return vp_retire(cpu, next_pc);
+    }
+
+    /* MOVN / MOVZ / MOVK (wide immediate), 32- and 64-bit. */
     const uint32_t wide_class = insn & UINT32_C(0x7F800000);
-    if (wide_class == UINT32_C(0x52800000) || wide_class == UINT32_C(0x72800000)) {
+    if (wide_class == UINT32_C(0x12800000) || wide_class == UINT32_C(0x52800000) ||
+        wide_class == UINT32_C(0x72800000)) {
         const int is64 = (int)((insn >> 31) & 1u);
         const uint32_t hw = (insn >> 21) & 3u;
         if (!is64 && hw > 1u) return VP_CPU_STEP_UNIMPLEMENTED;
         const uint32_t shift = hw * 16u;
         const uint64_t imm = (uint64_t)((insn >> 5) & UINT32_C(0xFFFF)) << shift;
         const uint32_t rd = insn & 31u;
-        uint64_t value = imm;
+        uint64_t value = wide_class == UINT32_C(0x12800000) ? ~imm : imm;
         if (wide_class == UINT32_C(0x72800000)) {
             const uint64_t mask = ~(UINT64_C(0xFFFF) << shift);
             value = (vp_reg_read(cpu, rd, 0) & mask) | imm;
@@ -335,45 +414,134 @@ VPCPUStepResult vp_aarch64_step(VPRuntime *runtime, VPAArch64CPU *cpu, uint32_t 
         return vp_retire(cpu, next_pc);
     }
 
-    /* ADD/SUB (immediate), without flags. X31 is SP in this encoding. */
+    /* ADD/SUB immediate, including ADDS/SUBS (CMP/CMN aliases). */
     const uint32_t addsub_class = insn & UINT32_C(0x7F000000);
-    if (addsub_class == UINT32_C(0x11000000) || addsub_class == UINT32_C(0x51000000)) {
+    if (addsub_class == UINT32_C(0x11000000) || addsub_class == UINT32_C(0x31000000) ||
+        addsub_class == UINT32_C(0x51000000) || addsub_class == UINT32_C(0x71000000)) {
         const int is64 = (int)((insn >> 31) & 1u);
-        const uint32_t shift = (insn >> 22) & 1u;
+        const int subtract = (int)((insn >> 30) & 1u);
+        const int set_flags = (int)((insn >> 29) & 1u);
         uint64_t imm = (insn >> 10) & UINT32_C(0xFFF);
-        if (shift) imm <<= 12;
+        if ((insn >> 22) & 1u) imm <<= 12;
         const uint32_t rn = (insn >> 5) & 31u;
         const uint32_t rd = insn & 31u;
-        const uint64_t lhs = vp_reg_read(cpu, rn, 1);
-        const uint64_t result = addsub_class == UINT32_C(0x51000000) ? lhs - imm : lhs + imm;
-        vp_reg_write(cpu, rd, result, is64, 1);
+        uint64_t lhs = vp_reg_read(cpu, rn, 1);
+        if (!is64) lhs = (uint32_t)lhs;
+        const uint64_t result = subtract ? lhs - imm : lhs + imm;
+        if (set_flags) vp_set_nzcv_addsub(cpu, lhs, imm, result, is64, subtract);
+        vp_reg_write(cpu, rd, result, is64, !set_flags);
         return vp_retire(cpu, next_pc);
     }
 
-    /* STR/LDR unsigned immediate for W/X registers. */
-    const uint32_t ls_class = insn & UINT32_C(0xFFC00000);
-    if (ls_class == UINT32_C(0xF9000000) || ls_class == UINT32_C(0xF9400000) ||
-        ls_class == UINT32_C(0xB9000000) || ls_class == UINT32_C(0xB9400000)) {
-        const int is64 = (ls_class & UINT32_C(0x40000000)) != 0;
-        const int is_load = (ls_class & UINT32_C(0x00400000)) != 0;
+    /* ADD/SUB shifted register, including flag-setting forms. */
+    const uint32_t addsub_reg_class = insn & UINT32_C(0x7F200000);
+    if (addsub_reg_class == UINT32_C(0x0B000000) || addsub_reg_class == UINT32_C(0x2B000000) ||
+        addsub_reg_class == UINT32_C(0x4B000000) || addsub_reg_class == UINT32_C(0x6B000000)) {
+        const int is64 = (int)((insn >> 31) & 1u);
+        const int subtract = (int)((insn >> 30) & 1u);
+        const int set_flags = (int)((insn >> 29) & 1u);
+        const uint32_t amount = (insn >> 10) & 63u;
+        if (!is64 && amount >= 32u) return VP_CPU_STEP_UNIMPLEMENTED;
+        uint64_t lhs = vp_reg_read(cpu, (insn >> 5) & 31u, 0);
+        const uint64_t rhs = vp_shift_register(
+            vp_reg_read(cpu, (insn >> 16) & 31u, 0), (insn >> 22) & 3u, amount, is64
+        );
+        if (!is64) lhs = (uint32_t)lhs;
+        const uint64_t result = subtract ? lhs - rhs : lhs + rhs;
+        if (set_flags) vp_set_nzcv_addsub(cpu, lhs, rhs, result, is64, subtract);
+        vp_reg_write(cpu, insn & 31u, result, is64, 0);
+        return vp_retire(cpu, next_pc);
+    }
+
+    /* AND/ORR/EOR/ANDS shifted register (MOV/TST aliases included). */
+    const uint32_t logical_class = insn & UINT32_C(0x7F200000);
+    if (logical_class == UINT32_C(0x0A000000) || logical_class == UINT32_C(0x2A000000) ||
+        logical_class == UINT32_C(0x4A000000) || logical_class == UINT32_C(0x6A000000)) {
+        const int is64 = (int)((insn >> 31) & 1u);
+        const uint32_t amount = (insn >> 10) & 63u;
+        if (!is64 && amount >= 32u) return VP_CPU_STEP_UNIMPLEMENTED;
+        const uint64_t lhs = vp_reg_read(cpu, (insn >> 5) & 31u, 0);
+        const uint64_t rhs = vp_shift_register(
+            vp_reg_read(cpu, (insn >> 16) & 31u, 0), (insn >> 22) & 3u, amount, is64
+        );
+        const uint32_t operation = (insn >> 29) & 3u;
+        uint64_t result = operation == 0u || operation == 3u ? lhs & rhs
+                          : operation == 1u ? lhs | rhs : lhs ^ rhs;
+        if (!is64) result = (uint32_t)result;
+        if (operation == 3u) vp_set_nzcv_logical(cpu, result, is64);
+        vp_reg_write(cpu, insn & 31u, result, is64, 0);
+        return vp_retire(cpu, next_pc);
+    }
+
+    /* STP/LDP GPR pairs: signed offset, pre-index, and post-index. */
+    const uint32_t pair_class = insn & UINT32_C(0x7FC00000);
+    if (pair_class == UINT32_C(0x28800000) || pair_class == UINT32_C(0x28C00000) ||
+        pair_class == UINT32_C(0x29000000) || pair_class == UINT32_C(0x29400000) ||
+        pair_class == UINT32_C(0x29800000) || pair_class == UINT32_C(0x29C00000)) {
+        const int is64 = (int)((insn >> 31) & 1u);
+        const int is_load = (int)((insn >> 22) & 1u);
+        const size_t width = is64 ? 8u : 4u;
+        const int64_t offset = vp_sign_extend((insn >> 15) & 0x7Fu, 7) * (int64_t)width;
         const uint32_t rn = (insn >> 5) & 31u;
         const uint32_t rt = insn & 31u;
-        const uint64_t scale = is64 ? 8u : 4u;
-        const uint64_t address = vp_reg_read(cpu, rn, 1) + (((insn >> 10) & UINT32_C(0xFFF)) * scale);
+        const uint32_t rt2 = (insn >> 10) & 31u;
+        const int post_index = pair_class == UINT32_C(0x28800000) || pair_class == UINT32_C(0x28C00000);
+        const int pre_index = pair_class == UINT32_C(0x29800000) || pair_class == UINT32_C(0x29C00000);
+        const uint64_t base = vp_reg_read(cpu, rn, 1);
+        const uint64_t address = post_index ? base : (uint64_t)((int64_t)base + offset);
         if (is_load) {
-            uint64_t value = 0;
-            const size_t width = is64 ? 8u : 4u;
-            if (vp_runtime_memory_read(runtime, address, &value, width) != VP_STATUS_OK) {
+            uint64_t first = 0, second = 0;
+            if (vp_runtime_memory_read(runtime, address, &first, width) != VP_STATUS_OK ||
+                vp_runtime_memory_read(runtime, address + width, &second, width) != VP_STATUS_OK) {
                 return VP_CPU_STEP_MEMORY_FAULT;
             }
-            vp_reg_write(cpu, rt, value, is64, 0);
+            vp_reg_write(cpu, rt, first, is64, 0);
+            vp_reg_write(cpu, rt2, second, is64, 0);
         } else {
-            uint64_t value = vp_reg_read(cpu, rt, 0);
-            const size_t width = is64 ? 8u : 4u;
-            if (vp_runtime_memory_write(runtime, address, &value, width) != VP_STATUS_OK) {
+            const uint64_t first = vp_reg_read(cpu, rt, 0);
+            const uint64_t second = vp_reg_read(cpu, rt2, 0);
+            if (vp_runtime_memory_write(runtime, address, &first, width) != VP_STATUS_OK ||
+                vp_runtime_memory_write(runtime, address + width, &second, width) != VP_STATUS_OK) {
                 return VP_CPU_STEP_MEMORY_FAULT;
             }
         }
+        if (pre_index || post_index) {
+            vp_reg_write(cpu, rn, (uint64_t)((int64_t)base + offset), 1, 1);
+        }
+        return vp_retire(cpu, next_pc);
+    }
+
+    /* LDUR/STUR unscaled immediate for byte, halfword, W, and X registers. */
+    const uint32_t unscaled_class = insn & UINT32_C(0x3B600C00);
+    if (unscaled_class == UINT32_C(0x38000000) || unscaled_class == UINT32_C(0x38400000)) {
+        const uint32_t size_log2 = (insn >> 30) & 3u;
+        const size_t width = (size_t)1u << size_log2;
+        const int is_load = unscaled_class == UINT32_C(0x38400000);
+        const int64_t offset = vp_sign_extend((insn >> 12) & 0x1FFu, 9);
+        const uint64_t address = (uint64_t)((int64_t)vp_reg_read(cpu, (insn >> 5) & 31u, 1) + offset);
+        const uint32_t rt = insn & 31u;
+        uint64_t value = vp_reg_read(cpu, rt, 0);
+        const VPStatus status = is_load ? vp_runtime_memory_read(runtime, address, &value, width)
+                                        : vp_runtime_memory_write(runtime, address, &value, width);
+        if (status != VP_STATUS_OK) return VP_CPU_STEP_MEMORY_FAULT;
+        if (is_load) vp_reg_write(cpu, rt, value, size_log2 == 3u, 0);
+        return vp_retire(cpu, next_pc);
+    }
+
+    /* STR/LDR unsigned immediate for byte, halfword, W, and X registers. */
+    if ((insn & UINT32_C(0x3B000000)) == UINT32_C(0x39000000) &&
+        ((insn >> 22) & 3u) <= 1u) {
+        const uint32_t size_log2 = (insn >> 30) & 3u;
+        const size_t width = (size_t)1u << size_log2;
+        const int is_load = ((insn >> 22) & 3u) == 1u;
+        const uint64_t address = vp_reg_read(cpu, (insn >> 5) & 31u, 1) +
+                                 (((insn >> 10) & UINT32_C(0xFFF)) * width);
+        const uint32_t rt = insn & 31u;
+        uint64_t value = vp_reg_read(cpu, rt, 0);
+        const VPStatus status = is_load ? vp_runtime_memory_read(runtime, address, &value, width)
+                                        : vp_runtime_memory_write(runtime, address, &value, width);
+        if (status != VP_STATUS_OK) return VP_CPU_STEP_MEMORY_FAULT;
+        if (is_load) vp_reg_write(cpu, rt, value, size_log2 == 3u, 0);
         return vp_retire(cpu, next_pc);
     }
 

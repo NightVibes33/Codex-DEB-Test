@@ -103,7 +103,7 @@ jobs:
           }
 
           int main(void) {
-              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.10-dyld-entry") != 0) return 9;
+              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.11-dyld-cpu") != 0) return 9;
               VPMachineConfig cfg = {8, 32ULL * 1024 * 1024 * 1024, 1290, 2796, 460, 3.0};
               VPRuntime *rt = vp_runtime_create(&cfg);
               if (!rt) return 10;
@@ -234,6 +234,40 @@ jobs:
               if (cpu.x[0] != 1 || cpu.syscalls_retired != 1) return 32;
               if (vp_ksurface_syscalls_handled(surface) != 1) return 33;
 
+              const uint64_t dyld_cpu_base = 0xB0000;
+              const uint32_t dyld_cpu_program[] = {
+                  0xD503233Fu,       /* PACIASP */
+                  0xA9BF7BFDu,       /* STP X29, X30, [SP, #-16]! */
+                  0x910003FDu,       /* MOV X29, SP */
+                  0xD28000A0u,       /* MOVZ X0, #5 */
+                  0xD28000E1u,       /* MOVZ X1, #7 */
+                  0x8B010002u,       /* ADD X2, X0, X1 */
+                  0xF100305Fu,       /* CMP X2, #12 */
+                  0x54000040u,       /* B.EQ +8 */
+                  0xD29BD5A3u,       /* MOVZ X3, #0xDEAD (skipped) */
+                  0xD2824683u,       /* MOVZ X3, #0x1234 */
+                  0x390043E3u,       /* STRB W3, [SP, #16] */
+                  0x394043E4u,       /* LDRB W4, [SP, #16] */
+                  0xF84003E5u,       /* LDUR X5, [SP] */
+                  0xA8C17BFDu,       /* LDP X29, X30, [SP], #16 */
+                  0xD50323BFu,       /* AUTIASP */
+                  0xD4400000u,       /* HLT #0 */
+              };
+              if (vp_runtime_memory_write(
+                      rt, dyld_cpu_base, dyld_cpu_program, sizeof(dyld_cpu_program)
+                  ) != VP_STATUS_OK) return 57;
+              VPAArch64CPU dyld_cpu;
+              vp_aarch64_reset(&dyld_cpu, dyld_cpu_base);
+              dyld_cpu.sp = 0x80000; dyld_cpu.x[29] = 0xAAAA; dyld_cpu.x[30] = 0xBBBB;
+              for (unsigned i = 0; i < 15; i++) {
+                  const VPCPUStepResult step = vp_aarch64_step(rt, &dyld_cpu, NULL);
+                  if (i < 14 && step != VP_CPU_STEP_OK) return 58 + (int)i;
+                  if (i == 14 && step != VP_CPU_STEP_HALTED) return 73;
+              }
+              if (dyld_cpu.x[2] != 12 || dyld_cpu.x[3] != 0x1234 || dyld_cpu.x[4] != 0x34 ||
+                  dyld_cpu.x[5] != 0xAAAA || dyld_cpu.x[29] != 0xAAAA || dyld_cpu.x[30] != 0xBBBB ||
+                  dyld_cpu.sp != 0x80000 || ((dyld_cpu.sys.nzcv >> 30) & 1u) != 1u) return 74;
+
               if (vp_runtime_boot(rt) != VP_STATUS_OK) return 34;
               if (vp_runtime_state(rt) != VP_RUNTIME_STOPPED) return 35;
               if (vp_runtime_instructions_retired(rt) != 8) return 36;
@@ -360,8 +394,8 @@ jobs:
           Nyxian=$NYXIAN_SHA
           vphone-cli=$VPHONE_CLI_SHA
           runtime-branch=$GITHUB_SHA
-          runtime-abi=10
-          core-abi=11
+          runtime-abi=11
+          core-abi=12
           execution=ViPhone-custom-aarch64
           apple-boot-staging=vp_runtime_stage_boot_images
           qemu=none
@@ -545,8 +579,8 @@ jobs:
             "nyxianCommit": "$NYXIAN_SHA",
             "bootAndCFWDonor": "Lakr233/vphone-cli",
             "vphoneCliCommit": "$VPHONE_CLI_SHA",
-            "runtimeABI": 10,
-            "coreABI": 11,
+            "runtimeABI": 11,
+            "coreABI": 12,
             "execution": "ViPhone custom AArch64 runtime",
             "appleBootImageStaging": true,
             "builtInNyxianEmbedded": true,
@@ -565,6 +599,7 @@ jobs:
             "builtInDyldMachOLoader": true,
             "builtInDarwinInitialStack": true,
             "builtInDyldEntryAttempt": true,
+            "builtInDyldCPUInstructions": ["PAC-hints", "STP-LDP", "ADDS-SUBS", "B.cond", "logical-register", "LDUR-STUR", "LDR-literal"],
             "builtInDeviceDiagnostics": true,
             "dyldSharedCacheImport": "user-supplied arm64e",
             "launchdImport": "user-supplied arm64 MH_EXECUTE",
