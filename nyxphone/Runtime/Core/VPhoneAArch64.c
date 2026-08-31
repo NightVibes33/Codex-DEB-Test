@@ -380,10 +380,12 @@ VPCPUStepResult vp_aarch64_step(VPRuntime *runtime, VPAArch64CPU *cpu, uint32_t 
         return vp_retire(cpu, next_pc);
     }
 
-    /* LDR literal for W/X registers. */
+    /* LDR literal for W/X registers and signed LDRSW literal. */
     if ((insn & UINT32_C(0x3B000000)) == UINT32_C(0x18000000) &&
-        ((insn >> 30) & 3u) < 2u) {
-        const int is64 = ((insn >> 30) & 3u) == 1u;
+        ((insn >> 30) & 3u) <= 2u) {
+        const uint32_t opc = (insn >> 30) & 3u;
+        const int is64 = opc == 1u;
+        const int is_signed_word = opc == 2u;
         const uint32_t rt = insn & 31u;
         const int64_t offset = vp_sign_extend((insn >> 5) & UINT32_C(0x7FFFF), 19) << 2;
         const uint64_t address = (uint64_t)((int64_t)current_pc + offset);
@@ -391,7 +393,42 @@ VPCPUStepResult vp_aarch64_step(VPRuntime *runtime, VPAArch64CPU *cpu, uint32_t 
         if (vp_runtime_memory_read(runtime, address, &value, is64 ? 8u : 4u) != VP_STATUS_OK) {
             return VP_CPU_STEP_MEMORY_FAULT;
         }
-        vp_reg_write(cpu, rt, value, is64, 0);
+        if (is_signed_word) value = (uint64_t)(int64_t)(int32_t)value;
+        vp_reg_write(cpu, rt, value, is64 || is_signed_word, 0);
+        return vp_retire(cpu, next_pc);
+    }
+
+    /* SBFM/UBFM aliases used for sign extension and immediate shifts. */
+    const uint32_t bitfield_class = insn & UINT32_C(0x7F800000);
+    if (bitfield_class == UINT32_C(0x13000000) || bitfield_class == UINT32_C(0x53000000)) {
+        const int is64 = (int)((insn >> 31) & 1u);
+        const uint32_t width = is64 ? 64u : 32u;
+        const uint32_t immr = (insn >> 16) & 63u;
+        const uint32_t imms = (insn >> 10) & 63u;
+        if (((insn >> 22) & 1u) != (uint32_t)is64 || immr >= width || imms >= width) {
+            return VP_CPU_STEP_UNIMPLEMENTED;
+        }
+        uint64_t source = vp_reg_read(cpu, (insn >> 5) & 31u, 0);
+        if (!is64) source = (uint32_t)source;
+        uint64_t result;
+        if (imms == width - 1u) {
+            result = bitfield_class == UINT32_C(0x13000000)
+                ? (is64 ? (uint64_t)((int64_t)source >> immr)
+                        : (uint32_t)((int32_t)source >> immr))
+                : source >> immr;
+        } else if (immr == 0u) {
+            const uint32_t bits = imms + 1u;
+            const uint64_t mask = bits == 64u ? UINT64_MAX : ((UINT64_C(1) << bits) - 1u);
+            result = source & mask;
+            if (bitfield_class == UINT32_C(0x13000000) && (result & (UINT64_C(1) << (bits - 1u)))) {
+                result |= ~mask;
+            }
+        } else if (bitfield_class == UINT32_C(0x53000000) && imms + 1u == immr) {
+            result = source << (width - immr);
+        } else {
+            return VP_CPU_STEP_UNIMPLEMENTED;
+        }
+        vp_reg_write(cpu, insn & 31u, result, is64, 0);
         return vp_retire(cpu, next_pc);
     }
 
@@ -537,6 +574,22 @@ VPCPUStepResult vp_aarch64_step(VPRuntime *runtime, VPAArch64CPU *cpu, uint32_t 
         if (pre_index || post_index) {
             vp_reg_write(cpu, rn, (uint64_t)((int64_t)base + offset), 1, 1);
         }
+        return vp_retire(cpu, next_pc);
+    }
+
+    /* LDRSW/LDURSW: load a signed 32-bit word into an X register. */
+    if ((insn & UINT32_C(0xFFC00000)) == UINT32_C(0xB9800000) ||
+        (insn & UINT32_C(0xFFE00C00)) == UINT32_C(0xB8800000)) {
+        const int unscaled = (insn & UINT32_C(0xFFE00C00)) == UINT32_C(0xB8800000);
+        const int64_t offset = unscaled
+            ? vp_sign_extend((insn >> 12) & 0x1FFu, 9)
+            : (int64_t)(((insn >> 10) & UINT32_C(0xFFF)) * 4u);
+        const uint64_t address = (uint64_t)((int64_t)vp_reg_read(cpu, (insn >> 5) & 31u, 1) + offset);
+        uint32_t word = 0;
+        if (vp_runtime_memory_read(runtime, address, &word, sizeof(word)) != VP_STATUS_OK) {
+            return VP_CPU_STEP_MEMORY_FAULT;
+        }
+        vp_reg_write(cpu, insn & 31u, (uint64_t)(int64_t)(int32_t)word, 1, 0);
         return vp_retire(cpu, next_pc);
     }
 
