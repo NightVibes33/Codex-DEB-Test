@@ -10,7 +10,7 @@ extern "C" {
 
 #define VP_GUEST_PAGE_SHIFT 14u
 #define VP_GUEST_PAGE_SIZE  (1u << VP_GUEST_PAGE_SHIFT)
-#define VP_RUNTIME_ABI_VERSION 5u
+#define VP_RUNTIME_ABI_VERSION 6u
 #define VP_DEFAULT_INSTRUCTION_BUDGET UINT64_C(1000000)
 
 typedef enum {
@@ -64,6 +64,10 @@ typedef struct {
 } VPTouchEvent;
 
 typedef void (*VPSerialCallback)(const uint8_t *bytes, size_t length, void *context);
+typedef VPStatus (*VPBlockReadHandler)(uint64_t offset, void *dst, size_t length, void *context);
+typedef VPStatus (*VPBlockWriteHandler)(uint64_t offset, const void *src, size_t length, void *context);
+typedef VPStatus (*VPBlockFlushHandler)(void *context);
+
 typedef VPStatus (*VPSyscallHandler)(
     VPRuntime *runtime,
     uint64_t number,
@@ -100,6 +104,10 @@ VPRuntimeState vp_runtime_state(const VPRuntime *runtime);
 const VPMachineConfig *vp_runtime_config(const VPRuntime *runtime);
 void vp_runtime_set_serial_callback(VPRuntime *runtime, VPSerialCallback callback, void *context);
 void vp_runtime_set_syscall_handler(VPRuntime *runtime, VPSyscallHandler handler, void *context);
+void vp_runtime_set_block_handlers(
+    VPRuntime *runtime, VPBlockReadHandler read_handler, VPBlockWriteHandler write_handler,
+    VPBlockFlushHandler flush_handler, void *context
+);
 VPStatus vp_runtime_dispatch_syscall(
     VPRuntime *runtime,
     uint64_t number,
@@ -123,6 +131,9 @@ VPStatus vp_runtime_copy_framebuffer(
 );
 VPStatus vp_runtime_enqueue_touch(VPRuntime *runtime, const VPTouchEvent *event);
 VPStatus vp_runtime_dequeue_touch(VPRuntime *runtime, VPTouchEvent *event);
+VPStatus vp_runtime_block_read(VPRuntime *runtime, uint64_t guest_address, uint64_t offset, size_t length);
+VPStatus vp_runtime_block_write(VPRuntime *runtime, uint64_t guest_address, uint64_t offset, size_t length);
+VPStatus vp_runtime_block_flush(VPRuntime *runtime);
 uint64_t vp_runtime_committed_bytes(const VPRuntime *runtime);
 uint64_t vp_runtime_committed_pages(const VPRuntime *runtime);
 

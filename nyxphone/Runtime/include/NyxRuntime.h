@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-#define NYX_RUNTIME_ABI_VERSION 4u
+#define NYX_RUNTIME_ABI_VERSION 5u
 
 typedef struct NyxVM NyxVM;
 
@@ -43,6 +43,7 @@ const char *nyx_runtime_version(void);
 uint32_t nyx_runtime_abi_version(void);
 NyxVM *nyx_vm_create(const NyxVMConfig *config);
 void nyx_vm_destroy(NyxVM *vm);
+int32_t nyx_vm_mount_disk(NyxVM *vm, const char *path, uint64_t disk_size);
 void nyx_vm_set_log_callback(NyxVM *vm, NyxLogCallback callback, void *context);
 int32_t nyx_vm_load_kernel_bytes(
     NyxVM *vm,
@@ -78,6 +79,12 @@ int32_t nyx_vm_boot_kernel_device(
     char *log_buffer, size_t log_capacity, size_t *log_length,
     void *frame_buffer, size_t frame_capacity, NyxFramebufferInfo *frame_info,
     NyxVM **vm_out
+);
+int32_t nyx_vm_boot_kernel_device_storage(
+    const void *bytes, size_t length, uint64_t load_address, uint64_t entry_address,
+    const char *disk_path, uint64_t disk_size,
+    char *log_buffer, size_t log_capacity, size_t *log_length,
+    void *frame_buffer, size_t frame_capacity, NyxFramebufferInfo *frame_info, NyxVM **vm_out
 );
 int32_t nyx_vm_boot_kernel_capture_frame(
     const void *bytes, size_t length, uint64_t load_address, uint64_t entry_address,

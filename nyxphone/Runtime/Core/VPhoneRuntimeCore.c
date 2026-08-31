@@ -22,6 +22,10 @@ struct VPRuntime {
     void *serial_context;
     VPSyscallHandler syscall_handler;
     void *syscall_context;
+    VPBlockReadHandler block_read_handler;
+    VPBlockWriteHandler block_write_handler;
+    VPBlockFlushHandler block_flush_handler;
+    void *block_context;
     uint64_t boot_vector;
     uint64_t instruction_budget;
     uint64_t instructions_retired;
@@ -146,6 +150,17 @@ void vp_runtime_set_syscall_handler(VPRuntime *runtime, VPSyscallHandler handler
     if (!runtime || runtime->state == VP_RUNTIME_RUNNING) return;
     runtime->syscall_handler = handler;
     runtime->syscall_context = context;
+}
+
+void vp_runtime_set_block_handlers(
+    VPRuntime *runtime, VPBlockReadHandler read_handler, VPBlockWriteHandler write_handler,
+    VPBlockFlushHandler flush_handler, void *context
+) {
+    if (!runtime || runtime->state == VP_RUNTIME_RUNNING) return;
+    runtime->block_read_handler = read_handler;
+    runtime->block_write_handler = write_handler;
+    runtime->block_flush_handler = flush_handler;
+    runtime->block_context = context;
 }
 
 VPStatus vp_runtime_dispatch_syscall(
@@ -281,6 +296,29 @@ VPStatus vp_runtime_dequeue_touch(VPRuntime *runtime, VPTouchEvent *event) {
     runtime->touch_head = (runtime->touch_head + 1u) % 16u;
     runtime->touch_count--;
     return VP_STATUS_OK;
+}
+
+VPStatus vp_runtime_block_read(VPRuntime *runtime, uint64_t guest_address, uint64_t offset, size_t length) {
+    if (!runtime || !runtime->block_read_handler || length > 4096u) return VP_STATUS_BACKEND_UNAVAILABLE;
+    if (!vp_range_valid(runtime, guest_address, length)) return VP_STATUS_ADDRESS_OUT_OF_RANGE;
+    uint8_t buffer[4096];
+    VPStatus status = runtime->block_read_handler(offset, buffer, length, runtime->block_context);
+    if (status != VP_STATUS_OK) return status;
+    return vp_runtime_memory_write(runtime, guest_address, buffer, length);
+}
+
+VPStatus vp_runtime_block_write(VPRuntime *runtime, uint64_t guest_address, uint64_t offset, size_t length) {
+    if (!runtime || !runtime->block_write_handler || length > 4096u) return VP_STATUS_BACKEND_UNAVAILABLE;
+    if (!vp_range_valid(runtime, guest_address, length)) return VP_STATUS_ADDRESS_OUT_OF_RANGE;
+    uint8_t buffer[4096];
+    VPStatus status = vp_runtime_memory_read(runtime, guest_address, buffer, length);
+    if (status != VP_STATUS_OK) return status;
+    return runtime->block_write_handler(offset, buffer, length, runtime->block_context);
+}
+
+VPStatus vp_runtime_block_flush(VPRuntime *runtime) {
+    if (!runtime || !runtime->block_flush_handler) return VP_STATUS_BACKEND_UNAVAILABLE;
+    return runtime->block_flush_handler(runtime->block_context);
 }
 
 uint64_t vp_runtime_committed_pages(const VPRuntime *runtime) {

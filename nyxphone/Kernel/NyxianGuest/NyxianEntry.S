@@ -42,6 +42,29 @@ nyxinit:
     mov x16, #0x7f00
     svc #0
 
+    // Mount the NyxBus block root and persist a boot counter at disk offset zero.
+    movz x4, #0x40, lsl #16
+    add x0, x4, #0
+    mov x1, #0
+    mov x2, #8
+    mov x16, #0x7f10
+    svc #0
+    ldr x5, [x4]
+    add x5, x5, #1
+    str x5, [x4]
+    add x0, x4, #0
+    mov x1, #0
+    mov x2, #8
+    mov x16, #0x7f11
+    svc #0
+    mov x16, #0x7f12
+    svc #0
+
+    adr x0, storage_mounted_message
+    mov x1, #26
+    mov x16, #0x7f00
+    svc #0
+
 nyx_touch_wait:
     wfi
     movz x0, #0x30, lsl #16
@@ -83,5 +106,7 @@ userspace_hello_message:
     .ascii "hello from Nyxian userspace\n"
 touch_delivered_message:
     .ascii "[NYXTOUCH] event delivered\n"
+storage_mounted_message:
+    .ascii "[NYXSTORAGE] root mounted\n"
 .globl _nyxian_image_end
 _nyxian_image_end:
