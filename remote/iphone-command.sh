@@ -11,7 +11,7 @@ UICACHE=/var/jb/usr/bin/uicache
 
 echo ===INSTALL_LIVECONTAINER_AND_FELIX===
 fetch() { url="$1"; out="$2"; rm -f "$out"; curl -L --fail --retry 3 -o "$out" "$url" || wget -O "$out" "$url"; }
-hash() { sha256sum "$1" | awk '{print $1}'; }
+hash() { set -- $(sha256sum "$1"); echo "$1"; }
 find_helper() {
   for p in /var/jb/usr/bin/trollstorehelper /var/jb/Applications/TrollStore.app/trollstorehelper /Applications/TrollStore.app/trollstorehelper /var/containers/Bundle/Application/*/*.app/trollstorehelper; do
     [ -x "$p" ] && { echo "$p"; return; }
