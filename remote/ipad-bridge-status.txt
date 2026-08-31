@@ -1,12 +1,12 @@
 iPad Tailscale SSH Bridge
-run_id=33432825003
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33432825003
-commit=e6c2a061214e70c0e8672460b62ce1a639f1e915
+run_id=33433138053
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33433138053
+commit=266614992cd9dac03928adbb35e0a1a3857a7baa
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
 install_ssh=success
-ssh=cancelled
+ssh=failure
 
 --- sanitized SSH output ---
 Waking and checking iPad SSH port over Tailscale...
@@ -34,3 +34,56 @@ no reply
 SSH port attempt 8/18
 ping "100.116.117.65" timed out
 no reply
+SSH port attempt 9/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 10/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 11/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 12/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 13/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 14/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 15/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 16/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 17/18
+ping "100.116.117.65" timed out
+no reply
+SSH port attempt 18/18
+ping "100.116.117.65" timed out
+no reply
+Could not reach iPad TCP port 22 after wake and retry attempts.
+100.71.195.55   github-ipad-33433138053-1    NightVibes33@  linux    -                                                               
+100.116.117.65  bobbys-ipad                  NightVibes33@  iOS      active; relay "dfw"; offline, last seen 19h ago, tx 12636 rx 0  
+100.127.94.70   desktop-o56xs                NightVibes33@  windows  offline, last seen 37d ago                                      
+100.118.20.47   github-ipad-33431643382-1    NightVibes33@  linux    offline, last seen 21m ago                                      
+100.87.241.126  github-ipad-33431833596-1    NightVibes33@  linux    offline, last seen 19m ago                                      
+100.93.96.26    github-ipad-33432068049-1    NightVibes33@  linux    offline, last seen 15m ago                                      
+100.70.198.70   github-ipad-33432415981-3    NightVibes33@  linux    offline, last seen 13m ago                                      
+100.104.201.5   github-ipad-33432825003-1    NightVibes33@  linux    offline, last seen 7m ago                                       
+100.103.27.34   github-iphone-33431643382    NightVibes33@  linux    offline, last seen 23m ago                                      
+100.116.8.0     github-iphone-33431643393-1  NightVibes33@  linux    offline, last seen 23m ago                                      
+100.91.211.17   github-iphone-33431833596    NightVibes33@  linux    offline, last seen 19m ago                                      
+100.98.169.18   github-iphone-33431833713-1  NightVibes33@  linux    offline, last seen 20m ago                                      
+100.99.70.44    github-iphone-33432068049    NightVibes33@  linux    offline, last seen 16m ago                                      
+100.69.15.125   github-iphone-33432068110-1  NightVibes33@  linux    offline, last seen 17m ago                                      
+100.115.5.48    github-iphone-33432415981    NightVibes33@  linux    offline, last seen 12m ago                                      
+100.71.173.38   github-iphone-33432416012-1  NightVibes33@  linux    offline, last seen 13m ago                                      
+100.75.90.109   github-iphone-33432825003    NightVibes33@  linux    offline, last seen 9m ago                                       
+100.123.48.110  github-iphone-33432825149-1  NightVibes33@  linux    offline, last seen 9m ago                                       
+100.89.76.14    github-iphone-33433137920-1  NightVibes33@  linux    offline, last seen 2m ago                                       
+100.98.190.30   github-iphone-33433138053    NightVibes33@  linux    offline, last seen 2m ago                                       
+100.96.37.124   iphone                       NightVibes33@  iOS      -                                                               
+100.79.177.16   iphone173                    NightVibes33@  iOS      -                                                               
