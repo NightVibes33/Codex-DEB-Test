@@ -113,7 +113,7 @@ jobs:
           }
 
           int main(void) {
-              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.13-launchd-diagnostics") != 0) return 9;
+              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.14-dyld-bitfields") != 0) return 9;
               VPMachineConfig cfg = {8, 32ULL * 1024 * 1024 * 1024, 1290, 2796, 460, 3.0};
               VPRuntime *rt = vp_runtime_create(&cfg);
               if (!rt) return 10;
@@ -293,6 +293,34 @@ jobs:
                   dyld_cpu.x[8] != 35 || dyld_cpu.x[29] != 0xAAAA || dyld_cpu.x[30] != 0xBBBB ||
                   dyld_cpu.sp != 0x80000 || ((dyld_cpu.sys.nzcv >> 30) & 1u) != 1u) return 77;
 
+              const uint64_t bitfield_cpu_base = 0x520000;
+              const uint64_t bitfield_data = bitfield_cpu_base + 32;
+              const uint32_t bitfield_program[] = {
+                  0xB9800001u,       /* LDRSW X1, [X0] */
+                  0x93407C22u,       /* SXTW X2, W1 */
+                  0x53001C23u,       /* UXTB W3, W1 */
+                  0xD344FC24u,       /* LSR X4, X1, immediate 4 */
+                  0x531D7065u,       /* LSL W5, W3, immediate 3 */
+                  0xB8800006u,       /* LDURSW X6, [X0] */
+                  0x98000047u,       /* LDRSW X7, literal plus 8 */
+                  0xD4400000u,       /* HLT 0 */
+                  0xFFFFFF80u,       /* signed word test data */
+              };
+              if (vp_runtime_memory_write(rt, bitfield_cpu_base, bitfield_program, sizeof(bitfield_program)) != VP_STATUS_OK) return 81;
+              VPAArch64CPU bitfield_cpu;
+              vp_aarch64_reset(&bitfield_cpu, bitfield_cpu_base);
+              bitfield_cpu.x[0] = bitfield_data;
+              for (unsigned i = 0; i < 8; i++) {
+                  const VPCPUStepResult step = vp_aarch64_step(rt, &bitfield_cpu, NULL);
+                  if (i < 7 && step != VP_CPU_STEP_OK) return 82 + (int)i;
+                  if (i == 7 && step != VP_CPU_STEP_HALTED) return 89;
+              }
+              if (bitfield_cpu.x[1] != UINT64_C(0xFFFFFFFFFFFFFF80) ||
+                  bitfield_cpu.x[2] != UINT64_C(0xFFFFFFFFFFFFFF80) || bitfield_cpu.x[3] != 0x80 ||
+                  bitfield_cpu.x[4] != UINT64_C(0x0FFFFFFFFFFFFFF8) || bitfield_cpu.x[5] != 0x400 ||
+                  bitfield_cpu.x[6] != UINT64_C(0xFFFFFFFFFFFFFF80) ||
+                  bitfield_cpu.x[7] != UINT64_C(0xFFFFFFFFFFFFFF80)) return 90;
+
               if (vp_runtime_boot(rt) != VP_STATUS_OK) return 34;
               if (vp_runtime_state(rt) != VP_RUNTIME_STOPPED) return 35;
               if (vp_runtime_instructions_retired(rt) != 8) return 36;
@@ -433,7 +461,7 @@ jobs:
           vphone-cli=$VPHONE_CLI_SHA
           runtime-branch=$GITHUB_SHA
           runtime-abi=12
-          core-abi=14
+          core-abi=15
           execution=ViPhone-custom-aarch64
           apple-boot-staging=vp_runtime_stage_boot_images
           qemu=none
@@ -621,7 +649,7 @@ jobs:
             "bootAndCFWDonor": "Lakr233/vphone-cli",
             "vphoneCliCommit": "$VPHONE_CLI_SHA",
             "runtimeABI": 12,
-            "coreABI": 14,
+            "coreABI": 15,
             "execution": "NyxPhone custom AArch64 runtime",
             "appleBootImageStaging": true,
             "builtInNyxianEmbedded": true,
@@ -640,7 +668,7 @@ jobs:
             "builtInDyldMachOLoader": true,
             "builtInDarwinInitialStack": true,
             "builtInDyldEntryAttempt": true,
-            "builtInDyldCPUInstructions": ["PAC-hints", "STP-LDP", "ADDS-SUBS", "B.cond", "logical-register", "LDUR-STUR", "LDR-literal", "CSEL-CSINC", "MADD-MSUB"],
+            "builtInDyldCPUInstructions": ["PAC-hints", "STP-LDP", "ADDS-SUBS", "B.cond", "logical-register", "LDUR-STUR", "LDR-literal", "CSEL-CSINC", "MADD-MSUB", "SBFM-UBFM", "LDRSW-LDURSW"],
             "builtInDeviceDiagnostics": true,
             "builtInDeviceDiagnosticShare": true,
             "cpuFaultMarker": "NYX_CPU_FAULT",
