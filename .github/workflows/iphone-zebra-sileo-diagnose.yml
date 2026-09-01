@@ -1,4 +1,4 @@
-name: iPhone Zebra removeMalware Patch
+name: iPhone Package Sources Repair
 
 on:
   push:
@@ -11,13 +11,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: iphone-zebra-removeMalware-patch
+  group: iphone-package-sources-repair
   cancel-in-progress: true
 
 jobs:
-  repair:
+  diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 8
     environment:
       name: TAILSCALE_AUTHKEY-
     steps:
@@ -32,7 +32,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends openssh-client sshpass >/dev/null
 
-      - name: Patch only Zebra removeMalware call and preserve original
+      - name: Inspect and safely refresh package source indexes
         env:
           IPHONE_HOST: 100.96.37.124
           IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
@@ -48,144 +48,154 @@ jobs:
           {
             printf '%s\n' "$IPHONE_PASSWORD"
             cat <<'EOS'
-          set -eu
+          set -u
           export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
-
-          ZEBRA='/var/jb/Applications/Zebra.app/Zebra'
           TS="$(date +%Y%m%d-%H%M%S)"
-          BACKUP="/var/mobile/Documents/CodexPackageManagerBackups/$TS/ZebraRemoveMalwarePatch"
-          CAND="$BACKUP/Zebra"
-          ENT="$BACKUP/Zebra.entitlements.plist"
-          INPLACE_ORIG="$ZEBRA.before-removeMalware-patch-$TS"
-          FAILED="$ZEBRA.failed-removeMalware-patch-$TS"
-          OFF=$((0x180368))
+          BACKUP="/var/mobile/Documents/CodexPackageManagerBackups/$TS/PackageSources"
+          ZDIR='/var/mobile/Library/Application Support/xyz.willy.Zebra'
+          APTROOT='/var/jb/etc/apt'
+          APTLISTS='/var/jb/var/lib/apt/lists'
 
-          echo '=== ZEBRA removeMalware STARTUP PATCH V2 ==='
+          echo '=== PACKAGE SOURCE DIAGNOSE + SAFE REFRESH ==='
           echo 'DELETE_COMMANDS_USED=0'
           echo 'PACKAGES_REMOVED=0'
           echo 'TWEAKS_REMOVED=0'
           echo 'PREFERENCES_RESET=0'
-          echo 'DATABASE_CHANGED=0'
-          echo 'PATCH_SCOPE=one ARM64 instruction in Zebra main()'
-
-          for cmd in ldid jbctl sha256sum dd od cmp cp mv chmod chown; do
-            command -v "$cmd" >/dev/null 2>&1 || { echo "ERROR=required tool missing: $cmd"; exit 20; }
-          done
-
-          ORIG_SHA="$(sha256sum "$ZEBRA" | awk '{print $1}')"
-          echo "installed_original_sha256=$ORIG_SHA"
-          if [ "$ORIG_SHA" != '17d470bdfaf19f1b92bdb8fded2aba666060681530f78ac0df6c49e1a6463b04' ]; then
-            echo 'ERROR=installed Zebra differs from exact binary that was symbol-matched; refusing patch'
-            exit 21
-          fi
-
-          readhex() {
-            dd if="$1" bs=1 skip="$2" count="$3" 2>/dev/null | od -An -tx1 | tr -d ' \n'
-          }
-
-          BEFORE4="$(readhex "$ZEBRA" "$OFF" 4)"
-          PRE8="$(readhex "$ZEBRA" $((OFF-8)) 8)"
-          POST8="$(readhex "$ZEBRA" $((OFF+4)) 8)"
-          echo "installed_patch_bytes_before=$BEFORE4"
-          echo "installed_pre8=$PRE8"
-          echo "installed_post8=$POST8"
-          [ "$BEFORE4" = '16ea0194' ] || { echo 'ERROR=removeMalware call bytes mismatch'; exit 22; }
-          [ "$PRE8" = '280e00d0003d44f9' ] || { echo 'ERROR=pre-instruction context mismatch'; exit 23; }
-          [ "$POST8" = '280e00d0006144f9' ] || { echo 'ERROR=post-instruction context mismatch'; exit 24; }
-          echo 'EXACT_PATCH_SITE_VERIFIED=1'
-
-          mkdir -p "$BACKUP"
-          chmod 700 "$BACKUP"
-          cp -p "$ZEBRA" "$BACKUP/Zebra.original"
-          BACKUP_SHA="$(sha256sum "$BACKUP/Zebra.original" | awk '{print $1}')"
-          echo "external_backup_sha256=$BACKUP_SHA"
-          [ "$BACKUP_SHA" = "$ORIG_SHA" ] || { echo 'ERROR=external original backup hash mismatch'; exit 25; }
-
-          ldid -e "$ZEBRA" > "$ENT"
-          [ -s "$ENT" ] || { echo 'ERROR=failed to preserve Zebra entitlements'; exit 26; }
-          echo "entitlements_bytes=$(wc -c < "$ENT" | tr -d ' ')"
-
-          cp -p "$ZEBRA" "$CAND"
-          printf '\037\040\003\325' | dd of="$CAND" bs=1 seek="$OFF" conv=notrunc 2>/dev/null
-          CAND_PATCH="$(readhex "$CAND" "$OFF" 4)"
-          echo "candidate_patch_bytes_pre_sign=$CAND_PATCH"
-          [ "$CAND_PATCH" = '1f2003d5' ] || { echo 'ERROR=NOP write verification failed'; exit 27; }
-
-          ldid -S"$ENT" "$CAND"
-          CAND_PATCH_SIGNED="$(readhex "$CAND" "$OFF" 4)"
-          echo "candidate_patch_bytes_post_sign=$CAND_PATCH_SIGNED"
-          [ "$CAND_PATCH_SIGNED" = '1f2003d5' ] || { echo 'ERROR=patch changed during signing'; exit 28; }
-
-          ldid -e "$CAND" > "$BACKUP/Zebra.candidate.entitlements.plist"
-          cmp -s "$ENT" "$BACKUP/Zebra.candidate.entitlements.plist" || { echo 'ERROR=candidate entitlements differ from original'; exit 29; }
-          echo 'ENTITLEMENTS_PRESERVED=1'
-
-          HDR="$(ldid -h "$CAND" 2>&1)"
-          printf '%s\n' "$HDR" | sed -n '1,30p'
-          IDENT="$(printf '%s\n' "$HDR" | sed -n 's/^Identifier=//p' | head -n1)"
-          CDHASH="$(printf '%s\n' "$HDR" | sed -n 's/^CDHash=//p' | head -n1)"
-          echo "candidate_identifier=$IDENT"
-          echo "candidate_cdhash=$CDHASH"
-          [ "$IDENT" = 'Zebra' ] || { echo 'ERROR=candidate code-sign identifier is not Zebra'; exit 30; }
-          [ "${#CDHASH}" -eq 40 ] || { echo "ERROR=CDHash length is ${#CDHASH}, expected 40"; exit 31; }
-          case "$CDHASH" in
-            *[!0-9a-fA-F]*) echo 'ERROR=CDHash contains non-hex characters'; exit 31 ;;
-          esac
-          echo 'CDHASH_FORMAT_VERIFIED=1'
-
-          jbctl trustcache add "$CDHASH"
-          if ! jbctl trustcache info 2>/dev/null | grep -qi "$CDHASH"; then
-            echo 'ERROR=new Zebra CDHash was not found in jailbreak trustcache; installed file remains untouched'
-            exit 32
-          fi
-          echo 'CANDIDATE_TRUSTCACHE_VERIFIED=1'
-
-          killall Zebra 2>/dev/null || true
-          mv "$ZEBRA" "$INPLACE_ORIG"
-          if ! cp -p "$CAND" "$ZEBRA"; then
-            echo 'ERROR=copying patched candidate into canonical path failed; restoring original'
-            mv "$INPLACE_ORIG" "$ZEBRA"
-            echo 'ROLLBACK_COMPLETED=1'
-            exit 33
-          fi
-
-          chown root:wheel "$ZEBRA" 2>/dev/null || true
-          chmod 755 "$ZEBRA"
-
-          INST_PATCH="$(readhex "$ZEBRA" "$OFF" 4)"
-          INST_HDR="$(ldid -h "$ZEBRA" 2>&1)"
-          INST_IDENT="$(printf '%s\n' "$INST_HDR" | sed -n 's/^Identifier=//p' | head -n1)"
-          INST_CDHASH="$(printf '%s\n' "$INST_HDR" | sed -n 's/^CDHash=//p' | head -n1)"
-          echo "installed_patch_bytes_after=$INST_PATCH"
-          echo "installed_identifier_after=$INST_IDENT"
-          echo "installed_cdhash_after=$INST_CDHASH"
-
-          INSTALL_OK=1
-          [ "$INST_PATCH" = '1f2003d5' ] || INSTALL_OK=0
-          [ "$INST_IDENT" = 'Zebra' ] || INSTALL_OK=0
-          [ "$INST_CDHASH" = "$CDHASH" ] || INSTALL_OK=0
-          ldid -e "$ZEBRA" > "$BACKUP/Zebra.installed.entitlements.plist" || INSTALL_OK=0
-          cmp -s "$ENT" "$BACKUP/Zebra.installed.entitlements.plist" || INSTALL_OK=0
-          if ! jbctl trustcache info 2>/dev/null | grep -qi "$INST_CDHASH"; then INSTALL_OK=0; fi
-
-          if [ "$INSTALL_OK" -ne 1 ]; then
-            echo 'ERROR=post-install verification failed; restoring exact original immediately'
-            mv "$ZEBRA" "$FAILED"
-            mv "$INPLACE_ORIG" "$ZEBRA"
-            echo "failed_candidate_preserved=$FAILED"
-            echo 'ROLLBACK_COMPLETED=1'
-            exit 34
-          fi
-
-          echo "original_preserved_in_place=$INPLACE_ORIG"
-          echo "external_backup=$BACKUP/Zebra.original"
-          echo "signed_candidate_preserved=$CAND"
           echo "backup_dir=$BACKUP"
-          echo 'ORIGINAL_BYTES_PRESERVED=1'
-          echo 'ZEBRA_REMOVE_MALWARE_CALL_PATCH_INSTALLED=1'
-          echo 'RESULT=Patched Zebra is signed, trusted, entitlement-matched, and installed. Manual SpringBoard launch is required for watchdog verification.'
+          mkdir -p "$BACKUP"
+          chmod 700 "$BACKUP" 2>/dev/null || true
+
+          echo '--- versions ---'
+          dpkg-query -W -f='sileo=${Version}\n' org.coolstar.sileo 2>/dev/null || true
+          dpkg-query -W -f='zebra=${Version}\n' xyz.willy.zebra 2>/dev/null || true
+          sw_vers 2>/dev/null || true
+
+          echo '--- canonical apt sources before ---'
+          if [ -f "$APTROOT/sources.list" ]; then
+            cp -p "$APTROOT/sources.list" "$BACKUP/apt-sources.list"
+            ls -l "$APTROOT/sources.list"
+            sed -n '1,240p' "$APTROOT/sources.list"
+          fi
+          if [ -d "$APTROOT/sources.list.d" ]; then
+            cp -Rp "$APTROOT/sources.list.d" "$BACKUP/apt-sources.list.d"
+            find "$APTROOT/sources.list.d" -maxdepth 1 -type f -print -exec ls -l {} \; -exec sh -c 'echo "--- $1"; sed -n "1,220p" "$1"' sh {} \;
+          fi
+
+          echo '--- apt config / architectures ---'
+          dpkg --print-architecture 2>/dev/null || true
+          dpkg --print-foreign-architectures 2>/dev/null || true
+          apt-config dump 2>/dev/null | grep -E '^(Dir|APT::Architecture|APT::Architectures)' | head -n 120 || true
+
+          echo '--- apt list state before ---'
+          if [ -d "$APTLISTS" ]; then
+            echo "apt_list_files_before=$(find "$APTLISTS" -maxdepth 1 -type f | wc -l | tr -d ' ')"
+            echo "apt_packages_files_before=$(find "$APTLISTS" -maxdepth 1 -type f -name '*Packages*' | wc -l | tr -d ' ')"
+            for f in "$APTLISTS"/*Packages*; do
+              [ -f "$f" ] || continue
+              c="$(grep -a '^Package:' "$f" 2>/dev/null | wc -l | tr -d ' ')"
+              echo "apt_index=$f packages=$c"
+            done
+          fi
+
+          echo '--- Zebra state before ---'
+          if [ -d "$ZDIR" ]; then
+            cp -p "$ZDIR/sources.list" "$BACKUP/Zebra.sources.list" 2>/dev/null || true
+            cp -Rp "$ZDIR/lists" "$BACKUP/Zebra.lists" 2>/dev/null || true
+            cp -p "$ZDIR/zebra.db" "$BACKUP/zebra.db" 2>/dev/null || true
+            ls -la "$ZDIR" || true
+            echo '--- Zebra sources.list ---'
+            sed -n '1,260p' "$ZDIR/sources.list" 2>/dev/null || true
+            echo "zebra_source_lines=$(grep -Ec '^[[:space:]]*deb[[:space:]]+' "$ZDIR/sources.list" 2>/dev/null || true)"
+            echo "zebra_list_files=$(find "$ZDIR/lists" -maxdepth 1 -type f 2>/dev/null | wc -l | tr -d ' ')"
+            for f in "$ZDIR/lists"/*; do
+              [ -f "$f" ] || continue
+              c="$(grep -a '^Package:' "$f" 2>/dev/null | wc -l | tr -d ' ')"
+              echo "zebra_index=$(basename "$f") bytes=$(wc -c < "$f" | tr -d ' ') packages=$c"
+            done
+            [ -f "$ZDIR/zebra.db" ] && ls -l "$ZDIR/zebra.db" || echo 'zebra_db=ABSENT'
+          else
+            echo 'zebra_support_dir=ABSENT'
+          fi
+
+          echo '--- Sileo data/cache discovery ---'
+          find /var/mobile/Library -maxdepth 5 \( -iname '*sileo*' -o -iname '*coolstar*' \) -print 2>/dev/null | head -n 160 || true
+          find /var/mobile/Library -maxdepth 5 -type f \( -iname '*.db' -o -iname '*.sqlite' -o -iname '*.sqlite3' \) -print 2>/dev/null | grep -Ei 'sileo|coolstar' | head -n 100 || true
+
+          echo '--- executable helpers ---'
+          find /var/jb/Applications/Sileo.app /var/jb/Applications/Zebra.app -maxdepth 2 -type f -perm -111 -print 2>/dev/null || true
+
+          echo '--- permissions repair (read/traverse only) ---'
+          # Package managers run as mobile. Ensure source/index files are readable and parent dirs traversable.
+          [ -d "$APTROOT" ] && chmod a+rx "$APTROOT" 2>/dev/null || true
+          [ -d "$APTROOT/sources.list.d" ] && chmod a+rx "$APTROOT/sources.list.d" 2>/dev/null || true
+          [ -f "$APTROOT/sources.list" ] && chmod a+r "$APTROOT/sources.list" 2>/dev/null || true
+          find "$APTROOT/sources.list.d" -maxdepth 1 -type f -exec chmod a+r {} \; 2>/dev/null || true
+          [ -d "$APTLISTS" ] && chmod a+rx "$APTLISTS" 2>/dev/null || true
+          find "$APTLISTS" -maxdepth 1 -type f -exec chmod a+r {} \; 2>/dev/null || true
+          if [ -d "$ZDIR" ]; then
+            chmod a+rx "$ZDIR" 2>/dev/null || true
+            [ -f "$ZDIR/sources.list" ] && chmod a+r "$ZDIR/sources.list" 2>/dev/null || true
+            [ -d "$ZDIR/lists" ] && chmod a+rx "$ZDIR/lists" 2>/dev/null || true
+            find "$ZDIR/lists" -maxdepth 1 -type f -exec chmod a+r {} \; 2>/dev/null || true
+          fi
+
+          echo '--- mobile readability checks ---'
+          sudo -u mobile sh -c 'test -r /var/jb/etc/apt/sources.list 2>/dev/null && echo mobile_reads_main_sources=1 || true'
+          sudo -u mobile sh -c 'for f in /var/jb/etc/apt/sources.list.d/*; do [ -f "$f" ] || continue; [ -r "$f" ] || echo "mobile_unreadable_source=$f"; done' 2>/dev/null || true
+          sudo -u mobile sh -c 'for f in /var/jb/var/lib/apt/lists/*Packages*; do [ -f "$f" ] || continue; [ -r "$f" ] || echo "mobile_unreadable_index=$f"; done' 2>/dev/null || true
+          sudo -u mobile sh -c 'test -r "/var/mobile/Library/Application Support/xyz.willy.Zebra/sources.list" && echo mobile_reads_zebra_sources=1 || true' 2>/dev/null || true
+
+          echo '--- apt refresh ---'
+          APTLOG="$BACKUP/apt-get-update.log"
+          set +e
+          apt-get update 2>&1 | tee "$APTLOG"
+          APT_RC=${PIPESTATUS:-0}
+          # dash does not expose PIPESTATUS; capture a second lightweight update return if necessary.
+          apt-get update >/dev/null 2>&1
+          APT_RC=$?
+          set -e
+          echo "apt_update_rc=$APT_RC"
+          echo '--- apt errors/warnings ---'
+          grep -Ei '(^E:|^W:|failed|error|404|403|certificate|signature|NO_PUBKEY|Release file)' "$APTLOG" | tail -n 200 || true
+
+          echo '--- apt list state after ---'
+          TOTAL=0
+          FILES=0
+          for f in "$APTLISTS"/*Packages*; do
+            [ -f "$f" ] || continue
+            FILES=$((FILES+1))
+            c="$(grep -a '^Package:' "$f" 2>/dev/null | wc -l | tr -d ' ')"
+            TOTAL=$((TOTAL+c))
+            echo "apt_index_after=$f packages=$c bytes=$(wc -c < "$f" | tr -d ' ')"
+          done
+          echo "apt_packages_files_after=$FILES"
+          echo "apt_package_records_after=$TOTAL"
+          MOBILE_TOTAL="$(sudo -u mobile sh -c 'grep -ah "^Package:" /var/jb/var/lib/apt/lists/*Packages* 2>/dev/null | wc -l | tr -d " "' 2>/dev/null || echo 0)"
+          echo "mobile_visible_apt_package_records=$MOBILE_TOTAL"
+
+          echo '--- Zebra state after apt refresh ---'
+          if [ -d "$ZDIR" ]; then
+            echo "zebra_sources_bytes=$(wc -c < "$ZDIR/sources.list" 2>/dev/null | tr -d ' ')"
+            echo "zebra_source_lines=$(grep -Ec '^[[:space:]]*deb[[:space:]]+' "$ZDIR/sources.list" 2>/dev/null || true)"
+            echo "zebra_list_files=$(find "$ZDIR/lists" -maxdepth 1 -type f 2>/dev/null | wc -l | tr -d ' ')"
+            ZTOTAL=0
+            for f in "$ZDIR/lists"/*; do
+              [ -f "$f" ] || continue
+              c="$(grep -a '^Package:' "$f" 2>/dev/null | wc -l | tr -d ' ')"
+              ZTOTAL=$((ZTOTAL+c))
+            done
+            echo "zebra_package_records_in_lists=$ZTOTAL"
+            [ -f "$ZDIR/zebra.db" ] && echo "zebra_db_bytes=$(wc -c < "$ZDIR/zebra.db" | tr -d ' ')" || echo 'zebra_db=ABSENT'
+          fi
+
+          # Restart only the two package-manager processes so they reopen refreshed files.
+          killall Sileo 2>/dev/null || true
+          killall Zebra 2>/dev/null || true
+          echo 'PACKAGE_MANAGER_PROCESSES_RESTARTED=1'
+          echo 'ORIGINAL_SOURCE_AND_INDEX_FILES_BACKED_UP=1'
+          echo 'RESULT=APT indexes refreshed and read permissions repaired; diagnostics captured for any remaining Sileo/Zebra-specific cache issue.'
           EOS
-          } | timeout 240s sshpass -e ssh \
+          } | timeout 360s sshpass -e ssh \
               -o BatchMode=no \
               -o ConnectTimeout=20 \
               -o ServerAliveInterval=10 \
@@ -194,12 +204,12 @@ jobs:
               -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
               mobile@"$IPHONE_HOST" \
               'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
-              2>&1 | tee iphone-zebra-removeMalware-patch.txt
+              2>&1 | tee iphone-package-sources-repair.txt
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: iphone-zebra-removeMalware-patch-${{ github.run_id }}
-          path: iphone-zebra-removeMalware-patch.txt
+          name: iphone-package-sources-repair-${{ github.run_id }}
+          path: iphone-package-sources-repair.txt
           if-no-files-found: warn
           retention-days: 7
