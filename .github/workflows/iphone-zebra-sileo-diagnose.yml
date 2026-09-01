@@ -1,4 +1,4 @@
-name: iPhone Zebra Symbol Match
+name: iPhone Zebra LicGenerator Repair
 
 on:
   push:
@@ -11,11 +11,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: iphone-zebra-symbol-match
+  group: iphone-zebra-licgenerator-repair
   cancel-in-progress: true
 
 jobs:
-  inspect:
+  repair:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     environment:
@@ -32,7 +32,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends openssh-client sshpass >/dev/null
 
-      - name: Fetch installed Zebra executable and inspect symbols
+      - name: Quarantine only LicGenerator without deleting anything
         env:
           IPHONE_HOST: 100.96.37.124
           IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
@@ -44,76 +44,151 @@ jobs:
           chmod 700 "$HOME/.ssh"
           ssh-keyscan -T 15 -H "$IPHONE_HOST" > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/known_hosts"
-          SSH_OPTS=(-o BatchMode=no -o ConnectTimeout=20 -o ServerAliveInterval=10 -o ServerAliveCountMax=3 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts")
 
           {
             printf '%s\n' "$IPHONE_PASSWORD"
             cat <<'EOS'
-          set +e
+          set -u
           export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
-          echo '=== ZEBRA EXECUTABLE LOCATE ==='
+          TS="$(date +%Y%m%d-%H%M%S)"
+          BACKUP="/var/mobile/Documents/CodexPackageManagerBackups/$TS/LicGenerator"
+          ZDIR='/var/mobile/Library/Application Support/xyz.willy.Zebra'
+          CRASHDIR='/var/mobile/Library/Logs/CrashReporter'
+
+          echo '=== ZEBRA LICGENERATOR TARGETED REPAIR ==='
+          echo 'DELETE_COMMANDS_USED=0'
+          echo 'PACKAGES_REMOVED=0'
+          echo 'TWEAKS_REMOVED=0'
+          echo 'PREFERENCES_RESET=0'
+          echo 'TARGET=LicGenerator only'
           dpkg-query -W -f='zebra_version=${Version}\n' xyz.willy.zebra 2>/dev/null || true
-          dpkg -L xyz.willy.zebra 2>/dev/null | grep -E '/Zebra\.app/Zebra$' | head -n 5
-          EOS
-          } | timeout 60s sshpass -e ssh "${SSH_OPTS[@]}" mobile@"$IPHONE_HOST" \
-              'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
-              2>&1 | tee zebra-locate.txt
+          dpkg-query -W -f='ellekit_version=${Version}\n' ellekit 2>/dev/null || true
 
-          ZEBRA_PATH=$(grep -E '^/.*Zebra\.app/Zebra$' zebra-locate.txt | head -n1)
-          if [ -z "$ZEBRA_PATH" ]; then
-            echo 'ERROR=no Zebra executable path found'
-            exit 20
+          echo '--- exact LicGenerator discovery ---'
+          CANDIDATES=''
+          for d in \
+            /var/jb/Library/MobileSubstrate/DynamicLibraries \
+            /var/jb/usr/lib/TweakInject \
+            /Library/MobileSubstrate/DynamicLibraries \
+            /usr/lib/TweakInject; do
+            if [ -d "$d" ]; then
+              find "$d" -maxdepth 1 -type f \( -iname 'LicGenerator.dylib' -o -iname 'LicGenerator.plist' \) -print 2>/dev/null || true
+            fi
+          done | awk '!seen[$0]++' > /tmp/codex-licgenerator-paths.txt
+
+          # Also inspect the rootless tree in case the injector uses a nonstandard directory.
+          if [ -d /var/jb ]; then
+            find /var/jb -type f \( -iname 'LicGenerator.dylib' -o -iname 'LicGenerator.plist' \) -print 2>/dev/null | awk '!seen[$0]++' >> /tmp/codex-licgenerator-paths.txt || true
           fi
-          echo "zebra_executable=$ZEBRA_PATH"
+          awk 'NF && !seen[$0]++' /tmp/codex-licgenerator-paths.txt > /tmp/codex-licgenerator-unique.txt
+          cat /tmp/codex-licgenerator-unique.txt
 
-          {
-            printf '%s\n' "$IPHONE_PASSWORD"
-            printf 'cat %q\n' "$ZEBRA_PATH"
-          } | timeout 90s sshpass -e ssh "${SSH_OPTS[@]}" mobile@"$IPHONE_HOST" \
+          FOUND="$(wc -l < /tmp/codex-licgenerator-unique.txt | tr -d ' ')"
+          echo "exact_files_found=$FOUND"
+
+          echo '--- package ownership / metadata ---'
+          while IFS= read -r f; do
+            [ -f "$f" ] || continue
+            echo "file=$f"
+            ls -l "$f" || true
+            command -v file >/dev/null 2>&1 && file "$f" || true
+            command -v sha256sum >/dev/null 2>&1 && sha256sum "$f" || true
+            echo -n 'dpkg_owner='
+            dpkg -S "$f" 2>/dev/null || echo 'unowned_or_path_not_registered'
+          done < /tmp/codex-licgenerator-unique.txt
+
+          # If exact files are absent, collect only evidence and stop. Never guess another target.
+          if [ "$FOUND" -eq 0 ]; then
+            echo '--- references in injection metadata ---'
+            for d in /var/jb/Library/MobileSubstrate/DynamicLibraries /var/jb/usr/lib/TweakInject; do
+              [ -d "$d" ] || continue
+              grep -Ril --include='*.plist' --include='*.json' --include='*.conf' 'LicGenerator' "$d" 2>/dev/null | head -n 50 || true
+            done
+            echo 'LICGENERATOR_QUARANTINED=0'
+            echo 'RESULT=No exact LicGenerator file found; no changes made.'
+            exit 30
+          fi
+
+          echo '--- preserve exact bytes before quarantine ---'
+          mkdir -p "$BACKUP"
+          chown mobile:mobile "$BACKUP" 2>/dev/null || true
+          chmod 700 "$BACKUP" 2>/dev/null || true
+
+          # Deduplicate by canonical path so /var/jb and preboot aliases cannot be renamed twice.
+          : > /tmp/codex-licgenerator-realpaths.txt
+          while IFS= read -r f; do
+            [ -f "$f" ] || continue
+            rp="$(readlink -f "$f" 2>/dev/null || echo "$f")"
+            grep -Fxq "$rp" /tmp/codex-licgenerator-realpaths.txt 2>/dev/null && continue
+            echo "$rp" >> /tmp/codex-licgenerator-realpaths.txt
+
+            base="$(basename "$f")"
+            safe="$(printf '%s' "$rp" | tr '/' '_')"
+            cp -p "$f" "$BACKUP/$safe"
+            echo "backup=$BACKUP/$safe"
+
+            if command -v sha256sum >/dev/null 2>&1; then
+              orig_hash="$(sha256sum "$f" | awk '{print $1}')"
+              backup_hash="$(sha256sum "$BACKUP/$safe" | awk '{print $1}')"
+              echo "original_sha256=$orig_hash"
+              echo "backup_sha256=$backup_hash"
+              if [ "$orig_hash" != "$backup_hash" ]; then
+                echo "ERROR=backup hash mismatch for $f; refusing rename"
+                exit 31
+              fi
+            fi
+
+            disabled="$f.codex-disabled-$TS"
+            mv "$f" "$disabled"
+            echo "quarantined=$f"
+            echo "preserved_as=$disabled"
+          done < /tmp/codex-licgenerator-unique.txt
+
+          echo '--- verification ---'
+          ACTIVE=0
+          for d in /var/jb/Library/MobileSubstrate/DynamicLibraries /var/jb/usr/lib/TweakInject /Library/MobileSubstrate/DynamicLibraries /usr/lib/TweakInject; do
+            [ -d "$d" ] || continue
+            if find "$d" -maxdepth 1 -type f \( -iname 'LicGenerator.dylib' -o -iname 'LicGenerator.plist' \) -print 2>/dev/null | grep -q .; then
+              ACTIVE=1
+            fi
+          done
+          echo "active_exact_licgenerator_after=$ACTIVE"
+          echo "backup_dir=$BACKUP"
+          echo '--- preserved disabled files ---'
+          find /var/jb /Library -type f -name 'LicGenerator.*.codex-disabled-*' -print 2>/dev/null | head -n 30 || true
+
+          # Stop only Zebra if a stale failed-launch process somehow remains. No respring/reboot.
+          killall Zebra 2>/dev/null || true
+
+          BEFORE="$(ls -1t "$CRASHDIR"/stacks+Zebra*.ips 2>/dev/null | head -n1 || true)"
+          echo "watchdog_before_manual_test=$BEFORE"
+          echo "zebra_db_active=$([ -f "$ZDIR/zebra.db" ] && echo YES || echo NO)"
+
+          if [ "$ACTIVE" -ne 0 ]; then
+            echo 'LICGENERATOR_QUARANTINED=0'
+            echo 'RESULT=An exact active LicGenerator file remains; refusing to claim repair complete.'
+            exit 32
+          fi
+
+          echo 'LICGENERATOR_QUARANTINED=1'
+          echo 'ORIGINAL_BYTES_PRESERVED=1'
+          echo 'RESULT=LicGenerator exact injection files quarantined non-destructively. Zebra is ready for a real SpringBoard launch.'
+          EOS
+          } | timeout 180s sshpass -e ssh \
+              -o BatchMode=no \
+              -o ConnectTimeout=20 \
+              -o ServerAliveInterval=10 \
+              -o ServerAliveCountMax=3 \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              mobile@"$IPHONE_HOST" \
               'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
-              > Zebra.bin
-
-          chmod +x Zebra.bin
-          echo '=== FILE ===' | tee zebra-symbols.txt
-          file Zebra.bin | tee -a zebra-symbols.txt
-          sha256sum Zebra.bin | tee -a zebra-symbols.txt
-
-          echo '=== MACH-O LOAD COMMANDS / UUID ===' | tee -a zebra-symbols.txt
-          llvm-objdump --macho --private-headers Zebra.bin 2>&1 | grep -A4 -B2 -E 'LC_UUID|uuid' | tee -a zebra-symbols.txt || true
-
-          echo '=== HOT FRAME NEAREST SYMBOLS ===' | tee -a zebra-symbols.txt
-          python3 - <<'PY' | tee -a zebra-symbols.txt
-          import subprocess,re
-          targets=[1910732,1573740]
-          try:
-              out=subprocess.check_output(['llvm-nm','-n','Zebra.bin'],stderr=subprocess.STDOUT,text=True,errors='replace')
-          except Exception as e:
-              print('llvm_nm_error=',e); raise SystemExit
-          syms=[]
-          for line in out.splitlines():
-              m=re.match(r'^([0-9a-fA-F]+)\s+\S\s+(.*)$',line)
-              if m:
-                  syms.append((int(m.group(1),16),m.group(2)))
-          print('symbol_count=',len(syms))
-          for target in targets:
-              prior=[s for s in syms if s[0] <= target]
-              nxt=[s for s in syms if s[0] > target]
-              print('target_offset=',target,hex(target))
-              for a,n in prior[-8:]: print('  prior',hex(a),target-a,n[:300])
-              for a,n in nxt[:4]: print('  next ',hex(a),a-target,n[:300])
-          PY
-
-          echo '=== RELEVANT STRINGS AROUND STARTUP ===' | tee -a zebra-symbols.txt
-          strings -a Zebra.bin | grep -Ei 'database|migration|refresh|source|featured|package|tabbar|scene|launch' | head -n 180 | tee -a zebra-symbols.txt || true
-          echo 'SYMBOL_MATCH_COMPLETE=1' | tee -a zebra-symbols.txt
+              2>&1 | tee iphone-zebra-licgenerator-repair.txt
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: iphone-zebra-symbol-match-${{ github.run_id }}
-          path: |
-            zebra-locate.txt
-            zebra-symbols.txt
-            Zebra.bin
+          name: iphone-zebra-licgenerator-repair-${{ github.run_id }}
+          path: iphone-zebra-licgenerator-repair.txt
           if-no-files-found: warn
           retention-days: 7
