@@ -1,4 +1,4 @@
-run=2026-09-01T15:07:00-05:00
-purpose=iphone-zebra-removeMalware-call-patch-install-v2
-mode=single-instruction-patch-original-and-candidate-preserved
-workflow_commit=dc440e07e726520575a35857c7a868da7f036959
+run=2026-09-01T15:12:00-05:00
+purpose=iphone-sileo-zebra-empty-sources-repair
+mode=backup-refresh-permissions-diagnose-no-delete
+workflow_commit=75e66dbfd1f9779d0f5e7191825b6ade450e96a6
