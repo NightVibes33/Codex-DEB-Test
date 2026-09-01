@@ -1,3 +1,4 @@
-run=2026-09-01T13:41:00-05:00
-purpose=iphone-zebra-hot-stack
-mode=read-only-no-data-changes
+run=2026-09-01T21:00:00-05:00
+purpose=iphone-zebra-clean-db-repair
+mode=preserve-originals-no-delete
+workflow_commit=55fe27e938d5a8655ac474007490e364d74decc3
