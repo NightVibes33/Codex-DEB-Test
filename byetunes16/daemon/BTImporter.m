@@ -184,16 +184,61 @@ static NSString *BTRelativeArtworkPath(NSString *token) {
 }
 
 static BOOL BTWriteArtwork(sqlite3 *db, NSData *data, int64_t itemPID, int64_t albumPID, NSString **errorOut) {
-    if(!data.length||!BTTable(db,@"artwork")||!BTTable(db,@"artwork_token")||!BTTable(db,@"best_artwork_token"))return YES;
-    NSString *token=[NSString stringWithFormat:@"%lld",itemPID];NSString*rel=BTRelativeArtworkPath(token);NSString*path=[BTArtworkDir stringByAppendingPathComponent:rel];
+    if (!data.length || !BTTable(db, @"artwork") || !BTTable(db, @"artwork_token") || !BTTable(db, @"best_artwork_token")) return YES;
+    NSString *token = [NSString stringWithFormat:@"%lld", itemPID];
+    NSString *rel = BTRelativeArtworkPath(token);
+    NSString *path = [BTArtworkDir stringByAppendingPathComponent:rel];
     [[NSFileManager defaultManager] createDirectoryAtPath:path.stringByDeletingLastPathComponent withIntermediateDirectories:YES attributes:@{NSFilePosixPermissions:@0755} error:nil];
-    NSError *e=nil;if(![data writeToFile:path options:NSDataWritingAtomic error:&e]){if(errorOut)*errorOut=e.localizedDescription;return NO;}chown(path.fileSystemRepresentation,501,501);chmod(path.fileSystemRepresentation,0644);
-    sqlite3_stmt*s=NULL;
-    if(sqlite3_prepare_v2(db,"INSERT OR REPLACE INTO artwork(artwork_token,artwork_source_type,relative_path,artwork_type,artwork_variant_type) VALUES(?,1,?,1,0)",-1,&s,NULL)==SQLITE_OK){sqlite3_bind_text(s,1,token.UTF8String,-1,SQLITE_TRANSIENT);sqlite3_bind_text(s,2,rel.UTF8String,-1,SQLITE_TRANSIENT);if(sqlite3_step(s)!=SQLITE_DONE){if(errorOut)*errorOut=[NSString stringWithUTF8String:sqlite3_errmsg(db)];sqlite3_finalize(s);return NO;}}sqlite3_finalize(s);
-    int64_t entities[2]={itemPID,albumPID};int types[2]={0,1};for(int i=0;i<2;i++){
-        if(sqlite3_prepare_v2(db,"INSERT OR REPLACE INTO artwork_token(artwork_token,artwork_source_type,artwork_type,entity_pid,entity_type,artwork_variant_type) VALUES(?,1,1,?,?,0)",-1,&s,NULL)==SQLITE_OK){sqlite3_bind_text(s,1,token.UTF8String,-1,SQLITE_TRANSIENT);sqlite3_bind_int64(s,2,entities[i]);sqlite3_bind_int(s,3,types[i]);sqlite3_step(s);}sqlite3_finalize(s);
-        if(sqlite3_prepare_v2(db,"INSERT OR REPLACE INTO best_artwork_token(entity_pid,entity_type,artwork_type,available_artwork_token,fetchable_artwork_token,fetchable_artwork_source_type,artwork_variant_type) VALUES(?,?,1,?,'',0,0)",-1,&s,NULL)==SQLITE_OK){sqlite3_bind_int64(s,1,entities[i]);sqlite3_bind_int(s,2,types[i]);sqlite3_bind_text(s,3,token.UTF8String,-1,SQLITE_TRANSIENT);sqlite3_step(s);}sqlite3_finalize(s);
-    }return YES;
+    NSError *writeError = nil;
+    if (![data writeToFile:path options:NSDataWritingAtomic error:&writeError]) {
+        if (errorOut) *errorOut = writeError.localizedDescription;
+        return NO;
+    }
+    chown(path.fileSystemRepresentation, 501, 501);
+    chmod(path.fileSystemRepresentation, 0644);
+
+    BOOL artworkVariant = BTColumn(db, @"artwork", @"artwork_variant_type");
+    BOOL tokenVariant = BTColumn(db, @"artwork_token", @"artwork_variant_type");
+    BOOL bestVariant = BTColumn(db, @"best_artwork_token", @"artwork_variant_type");
+    sqlite3_stmt *stmt = NULL;
+
+    NSString *artworkSQL = artworkVariant
+        ? @"INSERT OR REPLACE INTO artwork(artwork_token,artwork_source_type,relative_path,artwork_type,artwork_variant_type) VALUES(?,1,?,1,0)"
+        : @"INSERT OR REPLACE INTO artwork(artwork_token,artwork_source_type,relative_path,artwork_type) VALUES(?,1,?,1)";
+    if (sqlite3_prepare_v2(db, artworkSQL.UTF8String, -1, &stmt, NULL) != SQLITE_OK) goto fail;
+    sqlite3_bind_text(stmt, 1, token.UTF8String, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, rel.UTF8String, -1, SQLITE_TRANSIENT);
+    if (sqlite3_step(stmt) != SQLITE_DONE) goto fail;
+    sqlite3_finalize(stmt); stmt = NULL;
+
+    int64_t entities[2] = { itemPID, albumPID };
+    int types[2] = { 0, 1 };
+    for (int i = 0; i < 2; i++) {
+        NSString *tokenSQL = tokenVariant
+            ? @"INSERT OR REPLACE INTO artwork_token(artwork_token,artwork_source_type,artwork_type,entity_pid,entity_type,artwork_variant_type) VALUES(?,1,1,?,?,0)"
+            : @"INSERT OR REPLACE INTO artwork_token(artwork_token,artwork_source_type,artwork_type,entity_pid,entity_type) VALUES(?,1,1,?,?)";
+        if (sqlite3_prepare_v2(db, tokenSQL.UTF8String, -1, &stmt, NULL) != SQLITE_OK) goto fail;
+        sqlite3_bind_text(stmt, 1, token.UTF8String, -1, SQLITE_TRANSIENT);
+        sqlite3_bind_int64(stmt, 2, entities[i]);
+        sqlite3_bind_int(stmt, 3, types[i]);
+        if (sqlite3_step(stmt) != SQLITE_DONE) goto fail;
+        sqlite3_finalize(stmt); stmt = NULL;
+
+        NSString *bestSQL = bestVariant
+            ? @"INSERT OR REPLACE INTO best_artwork_token(entity_pid,entity_type,artwork_type,available_artwork_token,fetchable_artwork_token,fetchable_artwork_source_type,artwork_variant_type) VALUES(?,?,1,?,'',0,0)"
+            : @"INSERT OR REPLACE INTO best_artwork_token(entity_pid,entity_type,artwork_type,available_artwork_token,fetchable_artwork_token,fetchable_artwork_source_type) VALUES(?,?,1,?,'',0)";
+        if (sqlite3_prepare_v2(db, bestSQL.UTF8String, -1, &stmt, NULL) != SQLITE_OK) goto fail;
+        sqlite3_bind_int64(stmt, 1, entities[i]);
+        sqlite3_bind_int(stmt, 2, types[i]);
+        sqlite3_bind_text(stmt, 3, token.UTF8String, -1, SQLITE_TRANSIENT);
+        if (sqlite3_step(stmt) != SQLITE_DONE) goto fail;
+        sqlite3_finalize(stmt); stmt = NULL;
+    }
+    return YES;
+fail:
+    if (errorOut) *errorOut = [NSString stringWithUTF8String:sqlite3_errmsg(db)];
+    sqlite3_finalize(stmt);
+    return NO;
 }
 
 static NSString *BTBackup(sqlite3 *db, NSString **errorOut) {
