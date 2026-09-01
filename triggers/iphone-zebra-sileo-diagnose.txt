@@ -1,4 +1,4 @@
-run=2026-09-01T14:42:00-05:00
-purpose=iphone-zebra-exact-post-failure-watchdog
-mode=read-only-forensics
-workflow_commit=0c234d2d1c143be5ee5c137f317451dd19dae90b
+run=2026-09-01T14:45:00-05:00
+purpose=iphone-zebra-hot-frame-symbol-match
+mode=read-only-binary-inspection
+workflow_commit=2458820b37b117ba27336ae37af20c8828871a9b
