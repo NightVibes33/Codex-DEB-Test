@@ -1,0 +1,2 @@
+trigger=2026-08-31T21:50:00-05:00
+reason=Patch container_item inserts for iOS 15 schema without uuid
