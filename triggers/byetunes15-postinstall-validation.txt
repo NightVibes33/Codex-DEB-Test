@@ -1,0 +1,4 @@
+trigger=2026-08-31T23:05:00-05:00
+target=100.96.37.124 iPhone8,1 iOS 15.8.8
+installed_package=com.nightvibes.byetunes16 0.2.2
+mode=postinstall-readonly-validation
