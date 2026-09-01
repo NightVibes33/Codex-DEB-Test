@@ -1,4 +1,4 @@
-run=2026-09-01T14:53:00-05:00
-purpose=iphone-zebra-removeMalware-call-patch-dry-run
-mode=copy-only-no-installed-binary-change
-workflow_commit=849f14620883434fb3ab0c98875c29fd78c3d142
+run=2026-09-01T15:04:00-05:00
+purpose=iphone-zebra-removeMalware-call-patch-install
+mode=single-instruction-patch-original-preserved
+workflow_commit=6560fd7632abb70a89f33b48fddbd0190615d183
