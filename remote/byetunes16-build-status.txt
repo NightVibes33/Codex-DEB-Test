@@ -1,14 +1,9 @@
 ByeTunes16 iOS 16 Rootless Build
-run_id=33461511057
-commit=552c52291e076d902bbc5284c8e09af428b278ef
-compile=success
-validate=success
+run_id=33461551752
+commit=55e18dc7128b99a8c4af7895478bea8b9c702acd
+compile=failure
+validate=skipped
 
-validation=success
-version=0.1.0
-package=com.nightvibes.byetunes16
-architecture=iphoneos-arm64
-788fa4cae6b23d9bf860c65d6044779a0cd2afdfb5a4a4065c9d16fdd4c4c47e  byetunes16/packages/com.nightvibes.byetunes16_0.1.0_iphoneos-arm64.deb
 
 --- build tail ---
 [0;36m==> [1;39mCleaning…[m
@@ -26,11 +21,26 @@ ld: warning: -multiply_defined is obsolete
 [1;31m> [1;3;39mMaking all for tool byetunes16d…[m
 [0;32m==> [1;39mCompiling daemon/main.m (arm64)…[m
 [0;32m==> [1;39mCompiling daemon/BTImporter.m (arm64)…[m
-[0;33m==> [1;39mLinking tool byetunes16d (arm64)…[m
-ld: warning: -multiply_defined is obsolete
-[0;34m==> [1;39mGenerating debug symbols for byetunes16d…[m
-[0;34m==> [1;39mStripping byetunes16d (arm64)…[m
-[0;34m==> [1;39mSigning byetunes16d…[m
-[1;31m> [1;3;39mMaking stage for tweak ByeTunes16…[m
-[1;31m> [1;3;39mMaking stage for tool byetunes16d…[m
-dm.pl: building package `com.nightvibes.byetunes16:iphoneos-arm64' in `./packages/com.nightvibes.byetunes16_0.1.0_iphoneos-arm64.deb'
+[1mdaemon/BTImporter.m:208:17: [0m[0;1;31merror: [0m[1mmethod definition for 'addItemPIDs:toPlaylistPID:' not found [-Werror,-Wincomplete-implementation][0m
+@implementation BTImporter
+[0;1;32m                ^
+[0m[1mdaemon/BTImporter.h:14:1: [0m[0;1;30mnote: [0mmethod 'addItemPIDs:toPlaylistPID:' declared here[0m
++ (NSDictionary *)addItemPIDs:(NSArray<NSNumber *> *)itemPIDs toPlaylistPID:(int64_t)playlistPID;
+[0;1;32m^
+[0m[1mdaemon/BTImporter.m:208:17: [0m[0;1;31merror: [0m[1mmethod definition for 'searchMetadataForQuery:' not found [-Werror,-Wincomplete-implementation][0m
+@implementation BTImporter
+[0;1;32m                ^
+[0m[1mdaemon/BTImporter.h:15:1: [0m[0;1;30mnote: [0mmethod 'searchMetadataForQuery:' declared here[0m
++ (NSDictionary *)searchMetadataForQuery:(NSString *)query;
+[0;1;32m^
+[0m[1mdaemon/BTImporter.m:208:17: [0m[0;1;31merror: [0m[1mmethod definition for 'applyMetadataCandidate:toItemPID:' not found [-Werror,-Wincomplete-implementation][0m
+@implementation BTImporter
+[0;1;32m                ^
+[0m[1mdaemon/BTImporter.h:16:1: [0m[0;1;30mnote: [0mmethod 'applyMetadataCandidate:toItemPID:' declared here[0m
++ (NSDictionary *)applyMetadataCandidate:(NSDictionary *)candidate toItemPID:(int64_t)itemPID;
+[0;1;32m^
+[0m3 errors generated.
+make[3]: *** [/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/byetunes16/.theos/obj/arm64/daemon/BTImporter.m.afb368b3.o] Error 1
+make[2]: *** [/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/byetunes16/.theos/obj/arm64/byetunes16d] Error 2
+make[1]: *** [internal-tool-all_] Error 2
+make: *** [byetunes16d.all.tool.variables] Error 2
