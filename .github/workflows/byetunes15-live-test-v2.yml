@@ -1,0 +1,258 @@
+name: ByeTunes15 Live iPhone Smoke Test v2
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - temp/byetunes-ios16-rootless
+    paths:
+      - 'triggers/byetunes15-live-test-v2.txt'
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  env:
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.e.outputs.name }}
+    steps:
+      - id: e
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fsSL -H 'Accept: application/vnd.github+json' -H "Authorization: Bearer $GH_TOKEN" -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" >/tmp/e.json
+          python3 - <<'PY' >>"$GITHUB_OUTPUT"
+          import json
+          for e in json.load(open('/tmp/e.json')).get('environments', []):
+              if int(e.get('id', -1)) == 18728387881:
+                  print('name=' + e['name'])
+                  break
+          else:
+              raise SystemExit('environment not found')
+          PY
+
+  test:
+    needs: env
+    environment:
+      name: ${{ needs.env.outputs.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      HOST: '100.96.37.124'
+      PORT: '22'
+      SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+      PASS: ${{ secrets.IPAD_PASSWORD }}
+      EXPECTED_SHA256: '7dc0f3d27763b9564b8606915f23b6319d87db9b53a05afea4d4ebcc4e585033'
+    steps:
+      - name: Download and verify green 0.2.2 DEB
+        uses: actions/download-artifact@v4
+        with:
+          name: ByeTunes15-16-Dopamine-rootless
+          run-id: 33463885528
+          github-token: ${{ github.token }}
+          path: /tmp/a
+
+      - name: Prepare runner
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq openssh-client sshpass sqlite3 netcat-openbsd
+          DEB="$(find /tmp/a -type f -name '*.deb' -print | head -n1)"
+          test -n "$DEB"
+          cp "$DEB" /tmp/ByeTunes15-16-0.2.2.deb
+          ACTUAL="$(sha256sum /tmp/ByeTunes15-16-0.2.2.deb | cut -d' ' -f1)"
+          SIZE="$(wc -c </tmp/ByeTunes15-16-0.2.2.deb | tr -d ' ')"
+          test "$ACTUAL" = "$EXPECTED_SHA256"
+          test "$(dpkg-deb --field /tmp/ByeTunes15-16-0.2.2.deb Package)" = com.nightvibes.byetunes16
+          test "$(dpkg-deb --field /tmp/ByeTunes15-16-0.2.2.deb Version)" = 0.2.2
+          test "$(dpkg-deb --field /tmp/ByeTunes15-16-0.2.2.deb Architecture)" = iphoneos-arm64
+          printf 'sha256=%s\nsize=%s\n' "$ACTUAL" "$SIZE" | tee artifact-verification.txt
+
+      - name: Join Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: Verify exact iPhone target
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          tailscale status --json > tailscale.json
+          tailscale ping --timeout=5s --c 1 "$HOST" | tee device-probes.txt || true
+          timeout 8s ssh-keyscan -T 5 -H -p "$PORT" "$HOST" > "$HOME/.ssh/known_hosts" 2>>device-probes.txt
+          test -s "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+          cat >/tmp/gate.sh <<'SH'
+          set -eu
+          P=/System/Library/CoreServices/SystemVersion.plist
+          V="$(sed -n '/<key>ProductVersion<\/key>/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' "$P" | head -n1)"
+          B="$(sed -n '/<key>ProductBuildVersion<\/key>/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' "$P" | head -n1)"
+          M="$(sysctl -n hw.machine 2>/dev/null || /usr/sbin/sysctl -n hw.machine 2>/dev/null || uname -m)"
+          echo "machine=$M version=$V build=$B"
+          [ "$M" = iPhone8,1 ] || exit 20
+          [ "$V" = 15.8.8 ] || exit 21
+          [ -d /var/jb ] || exit 22
+          Q=/var/jb/usr/bin/dpkg-query
+          [ -x "$Q" ] || Q="$(command -v dpkg-query || true)"
+          [ -n "$Q" ] || exit 23
+          E="$($Q -W -f='${Status}' ellekit 2>/dev/null || true)"
+          echo "ellekit=$E"
+          echo "$E" | grep -q 'install ok installed' || exit 24
+          test -f /var/mobile/Media/iTunes_Control/iTunes/MediaLibrary.sqlitedb || exit 25
+          echo IOS15_EXACT_GATE_PASS
+          SH
+          { printf '%s\n' "$PASS"; cat /tmp/gate.sh; } | timeout 35s sshpass -e ssh -p "$PORT" -o BatchMode=no -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s' | tee gate.txt
+          grep -q IOS15_EXACT_GATE_PASS gate.txt
+
+      - name: Pre-install Music DB integrity check
+        run: |
+          set -euo pipefail
+          cat >/tmp/snapshot.sh <<'SH'
+          set -eu
+          DB=/var/mobile/Media/iTunes_Control/iTunes/MediaLibrary.sqlitedb
+          TMP=/var/mobile/ByeTunes15LiveSnapshot
+          killall Music >/dev/null 2>&1 || true
+          sleep 1
+          rm -rf "$TMP"; mkdir -p "$TMP"
+          cp "$DB" "$TMP/MediaLibrary.sqlitedb"
+          [ ! -f "$DB-wal" ] || cp "$DB-wal" "$TMP/MediaLibrary.sqlitedb-wal"
+          [ ! -f "$DB-shm" ] || cp "$DB-shm" "$TMP/MediaLibrary.sqlitedb-shm"
+          chown -R mobile:mobile "$TMP" 2>/dev/null || true
+          chmod 700 "$TMP"; chmod 600 "$TMP"/*
+          echo SNAPSHOT_READY
+          SH
+          { printf '%s\n' "$PASS"; cat /tmp/snapshot.sh; } | timeout 35s sshpass -e ssh -p "$PORT" -o BatchMode=no -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s'
+          rm -rf /tmp/pre-db; mkdir -p /tmp/pre-db
+          sshpass -e scp -P "$PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST:/var/mobile/ByeTunes15LiveSnapshot/MediaLibrary.sqlitedb*" /tmp/pre-db/
+          QC="$(sqlite3 /tmp/pre-db/MediaLibrary.sqlitedb 'PRAGMA quick_check;')"
+          UV="$(sqlite3 /tmp/pre-db/MediaLibrary.sqlitedb 'PRAGMA user_version;')"
+          printf 'quick_check=%s\nuser_version=%s\n' "$QC" "$UV" | tee db-preflight.txt
+          test "$QC" = ok
+          { printf '%s\n' "$PASS"; echo 'rm -rf /var/mobile/ByeTunes15LiveSnapshot'; } | sshpass -e ssh -p "$PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s'
+
+      - name: Transfer and round-trip verify DEB
+        run: |
+          set -euo pipefail
+          sshpass -e scp -P "$PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" /tmp/ByeTunes15-16-0.2.2.deb "mobile@$HOST:/var/mobile/ByeTunes15-16-0.2.2.deb"
+          rm -f /tmp/roundtrip.deb
+          sshpass -e scp -P "$PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST:/var/mobile/ByeTunes15-16-0.2.2.deb" /tmp/roundtrip.deb
+          RH="$(sha256sum /tmp/roundtrip.deb | cut -d' ' -f1)"
+          RS="$(wc -c </tmp/roundtrip.deb | tr -d ' ')"
+          printf 'roundtrip_sha256=%s\nroundtrip_size=%s\n' "$RH" "$RS" | tee roundtrip-verification.txt
+          test "$RH" = "$EXPECTED_SHA256"
+          echo ROUNDTRIP_DEB_VERIFIED
+
+      - name: Install package and verify daemon starts
+        run: |
+          set -euo pipefail
+          cat >/tmp/install.sh <<'SH'
+          set -eu
+          D=/var/jb/usr/bin/dpkg
+          [ -x "$D" ] || D="$(command -v dpkg)"
+          "$D" -i /var/mobile/ByeTunes15-16-0.2.2.deb
+          "$D" -s com.nightvibes.byetunes16 | sed -n '1,24p'
+          "$D" -s com.nightvibes.byetunes16 | grep -q '^Version: 0.2.2$'
+          test -f /var/jb/Library/MobileSubstrate/DynamicLibraries/ByeTunes16.dylib
+          test -f /var/jb/Library/MobileSubstrate/DynamicLibraries/ByeTunes16.plist
+          test -x /var/jb/usr/libexec/byetunes16d
+          test -f /var/jb/Library/LaunchDaemons/com.nightvibes.byetunes16d.plist
+          launchctl bootout system/com.nightvibes.byetunes16d >/dev/null 2>&1 || true
+          launchctl bootstrap system /var/jb/Library/LaunchDaemons/com.nightvibes.byetunes16d.plist >/dev/null 2>&1 || launchctl load /var/jb/Library/LaunchDaemons/com.nightvibes.byetunes16d.plist >/dev/null 2>&1 || true
+          sleep 3
+          pgrep -fl byetunes16d || true
+          pgrep -f byetunes16d >/dev/null
+          echo DAEMON_STARTED
+          SH
+          { printf '%s\n' "$PASS"; cat /tmp/install.sh; } | timeout 90s sshpass -e ssh -p "$PORT" -o BatchMode=no -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s' | tee install.txt
+          grep -q DAEMON_STARTED install.txt
+
+      - name: Read-only daemon API through SSH tunnel
+        run: |
+          set -euo pipefail
+          sshpass -e ssh -f -N -L 45981:127.0.0.1:45981 -p "$PORT" -o ExitOnForwardFailure=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST"
+          sleep 2
+          call() { printf '%s\n' "$1" | nc -w 8 127.0.0.1 45981; }
+          R="$(call '{"op":"probe"}')"; echo "$R" | tee daemon-probe.txt
+          echo "$R" | grep -q '"ok":true'
+          echo "$R" | grep -q '"quickCheck":"ok"'
+          R="$(call '{"op":"library","limit":5}')"; echo "$R" | tee daemon-library.txt
+          echo "$R" | grep -q '"ok":true'
+          R="$(call '{"op":"playlists"}')"; echo "$R" | tee daemon-playlists.txt
+          echo "$R" | grep -q '"ok":true'
+          echo READ_ONLY_DAEMON_API_PASS
+
+      - name: Post-smoke Music DB integrity check
+        run: |
+          set -euo pipefail
+          cat >/tmp/snapshot.sh <<'SH'
+          set -eu
+          DB=/var/mobile/Media/iTunes_Control/iTunes/MediaLibrary.sqlitedb
+          TMP=/var/mobile/ByeTunes15LiveSnapshot
+          rm -rf "$TMP"; mkdir -p "$TMP"
+          cp "$DB" "$TMP/MediaLibrary.sqlitedb"
+          [ ! -f "$DB-wal" ] || cp "$DB-wal" "$TMP/MediaLibrary.sqlitedb-wal"
+          [ ! -f "$DB-shm" ] || cp "$DB-shm" "$TMP/MediaLibrary.sqlitedb-shm"
+          chown -R mobile:mobile "$TMP" 2>/dev/null || true
+          chmod 700 "$TMP"; chmod 600 "$TMP"/*
+          echo SNAPSHOT_READY
+          SH
+          { printf '%s\n' "$PASS"; cat /tmp/snapshot.sh; } | timeout 35s sshpass -e ssh -p "$PORT" -o BatchMode=no -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s'
+          rm -rf /tmp/post-db; mkdir -p /tmp/post-db
+          sshpass -e scp -P "$PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST:/var/mobile/ByeTunes15LiveSnapshot/MediaLibrary.sqlitedb*" /tmp/post-db/
+          QC="$(sqlite3 /tmp/post-db/MediaLibrary.sqlitedb 'PRAGMA quick_check;')"
+          echo "quick_check=$QC" | tee db-postflight.txt
+          test "$QC" = ok
+          { printf '%s\n' "$PASS"; echo 'rm -rf /var/mobile/ByeTunes15LiveSnapshot'; } | sshpass -e ssh -p "$PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s'
+
+      - name: Launch Music and check immediate injection stability
+        run: |
+          set -euo pipefail
+          cat >/tmp/music.sh <<'SH'
+          set -eu
+          MARK=/var/mobile/.byetunes15-v2-start
+          touch "$MARK"
+          killall Music >/dev/null 2>&1 || true
+          sleep 1
+          OPEN=''
+          if command -v uiopen >/dev/null 2>&1; then OPEN="$(command -v uiopen)"; elif [ -x /var/jb/usr/bin/uiopen ]; then OPEN=/var/jb/usr/bin/uiopen; fi
+          [ -n "$OPEN" ] || { echo NO_UIOPEN; exit 60; }
+          "$OPEN" music:// >/dev/null 2>&1 || true
+          sleep 8
+          pgrep -fl Music || true
+          pgrep -f Music >/dev/null || { echo MUSIC_NOT_RUNNING; exit 61; }
+          pgrep -fl byetunes16d || true
+          pgrep -f byetunes16d >/dev/null || { echo DAEMON_DIED; exit 62; }
+          C="$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'Music-*.ips' -o -name 'Music-*.crash' \) -newer "$MARK" -print 2>/dev/null || true)"
+          printf '%s\n' "$C"
+          [ -z "$C" ] || { echo NEW_MUSIC_CRASH_DETECTED; exit 63; }
+          tail -n 100 /var/mobile/Library/Logs/ByeTunes16-daemon.log 2>/dev/null || true
+          echo MUSIC_INJECTION_SMOKE_PASS
+          SH
+          { printf '%s\n' "$PASS"; cat /tmp/music.sh; } | timeout 70s sshpass -e ssh -p "$PORT" -o BatchMode=no -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s' | tee music-smoke.txt
+          grep -q MUSIC_INJECTION_SMOKE_PASS music-smoke.txt
+          echo LIVE_IPHONE15_V2_PASS
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ByeTunes15-live-v2-${{ github.run_id }}
+          path: |
+            artifact-verification.txt
+            tailscale.json
+            device-probes.txt
+            gate.txt
+            db-preflight.txt
+            roundtrip-verification.txt
+            install.txt
+            daemon-probe.txt
+            daemon-library.txt
+            daemon-playlists.txt
+            db-postflight.txt
+            music-smoke.txt
+          if-no-files-found: ignore
+          retention-days: 14
