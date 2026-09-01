@@ -1,0 +1,23 @@
+ByeTunes16 iPhone Deploy Debug
+run_id=33460873696
+build_run_id=33460660067
+target=100.96.37.124:22
+gate=failure
+install=skipped
+ipc=skipped
+music=skipped
+
+--- byetunes16-device-gate.txt ---
+product_version=15.8.8
+build_version=19H422
+machine=iPhone8,1
+kernel=21.6.0
+
+--- byetunes16-install.txt ---
+not produced
+
+--- byetunes16-ipc.txt ---
+not produced
+
+--- byetunes16-music-runtime.txt ---
+not produced
