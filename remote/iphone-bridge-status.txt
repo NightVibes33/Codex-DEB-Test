@@ -1,7 +1,7 @@
 iPhone Tailscale SSH Bridge
-run_id=33433137920
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33433137920
-commit=266614992cd9dac03928adbb35e0a1a3857a7baa
+run_id=33530303561
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33530303561
+commit=36987bc4ab41536fe349b7fa9a1799640781b4e1
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
@@ -10,19 +10,263 @@ install_ssh=success
 ssh=success
 
 --- sanitized SSH output ---
-Waking and checking iPhone SSH port over Tailscale...
-SSH port attempt 1/18
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-iphone_ssh_port_ready=success
-Staging native rfmonctl and running probe as root...
-===LAUNCH_FELIX_AS_MOBILE===
-uiopen_rc=0
-===PROCESS_AFTER_3S===
-===PROCESS_AFTER_15S===
-===RECENT_CRASH_FILES===
-MOBILE_LAUNCH_COMPLETE=1
+--- partial / failed CyPwn index files ---
+
+--- apt/dpkg health ---
+drwxr-xr-x  7 root wheel  224 Jun  2  2024 /var/jb/etc/apt
+drwxr-xr-x  5 root wheel  160 Aug 28 00:05 /var/jb/etc/apt/sources.list.d
+drwxr-xr-x 36 root wheel 1152 Sep  1 00:52 /var/jb/var/lib/apt/lists
+drwxr-xr-x  2 root wheel   64 Aug 28 20:57 /var/jb/var/lib/apt/lists/partial
+dpkg: warning: parsing file '/var/jb/Library/dpkg/status' near line 236 package 'com.ivintagelover.solidglassrl':
+ missing 'Maintainer' field
+The following packages are missing the md5sums control file in the
+database, they need to be reinstalled:
+ cy+cpu.arm64         virtual CPU dependency
+ cy+cpu.arm64v8       virtual CPU dependency
+ cy+kernel.darwin     virtual kernel dependency
+ cy+lib.corefoundation virtual corefoundation dependency
+ cy+model.iphone      virtual model dependency
+ cy+os.iphoneos       virtual operating system dependency
+ firmware             almost impressive Apple frameworks
+ gsc.3-gvenice        virtual GraphicsServices dependency
+ gsc.64-bit           virtual GraphicsServices dependency
+ gsc.720p             virtual GraphicsServices dependency
+ gsc.a-w-d-l-capability virtual GraphicsServices dependency
+ gsc.accelerometer    virtual GraphicsServices dependency
+ gsc.accessibility    virtual GraphicsServices dependency
+ gsc.activation-protocol virtual GraphicsServices dependency
+ gsc.additional-text-tones virtual GraphicsServices dependency
+ gsc.air-drop-capability virtual GraphicsServices dependency
+ gsc.airplay-mirroring virtual GraphicsServices dependency
+ gsc.all-features     virtual GraphicsServices dependency
+ gsc.allow-you-tube   virtual GraphicsServices dependency
+ gsc.allow-you-tube-plugin virtual GraphicsServices dependency
+ gsc.allow32-bit-apps virtual GraphicsServices dependency
+ gsc.ambient-light-sensor virtual GraphicsServices dependency
+ gsc.any-telephony    virtual GraphicsServices dependency
+ gsc.app-capacity-t-v-o-s virtual GraphicsServices dependency
+ gsc.app-store        virtual GraphicsServices dependency
+ gsc.application-installation virtual GraphicsServices dependency
+ gsc.arkit            virtual GraphicsServices dependency
+ gsc.arm64            virtual GraphicsServices dependency
+ gsc.armv6            virtual GraphicsServices dependency
+ gsc.armv7            virtual GraphicsServices dependency
+ gsc.armv7s           virtual GraphicsServices dependency
+ gsc.assistant        virtual GraphicsServices dependency
+ gsc.audio-playback-capability virtual GraphicsServices dependency
+ gsc.auto-focus-camera virtual GraphicsServices dependency
+ gsc.backlight-capability virtual GraphicsServices dependency
+ gsc.baseband-class   virtual GraphicsServices dependency
+ gsc.blue-light-reduction-supported virtual GraphicsServices dependency
+ gsc.bluetooth        virtual GraphicsServices dependency
+ gsc.bluetooth-le     virtual GraphicsServices dependency
+ gsc.board-id         virtual GraphicsServices dependency
+ gsc.c-p-u-sub-type   virtual GraphicsServices dependency
+ gsc.c-p-u-type       virtual GraphicsServices dependency
+ gsc.camera-flash     virtual GraphicsServices dependency
+ gsc.camera-front-flash virtual GraphicsServices dependency
+ gsc.camera-live-effects-capability virtual GraphicsServices dependency
+ gsc.camera-max-burst-length virtual GraphicsServices dependency
+ gsc.cellular-data    virtual GraphicsServices dependency
+ gsc.cellular-telephony-capability virtual GraphicsServices dependency
+ gsc.chip-i-d         virtual GraphicsServices dependency
+ gsc.cloud-photo-library-capability virtual GraphicsServices dependency
+ gsc.coastline-glow-rendering-capability virtual GraphicsServices dependency
+ gsc.compass-type     virtual GraphicsServices dependency
+ gsc.contains-cellular-radio virtual GraphicsServices dependency
+ gsc.continuity-capability virtual GraphicsServices dependency
+ gsc.core-routine-capability virtual GraphicsServices dependency
+ gsc.device-class-number virtual GraphicsServices dependency
+ gsc.device-launch-time-limit-scale virtual GraphicsServices dependency
+ gsc.device-prefers-building-strokes virtual GraphicsServices dependency
+ gsc.device-prefers-procedural-anti-aliasing virtual GraphicsServices dependenc
+ gsc.device-prefers-traffic-alpha virtual GraphicsServices dependency
+ gsc.device-prefers3-d-building-strokes virtual GraphicsServices dependency
+ gsc.device-scene-update-time-limit-scale virtual GraphicsServices dependency
+ gsc.device-supports-a-o-p virtual GraphicsServices dependency
+ gsc.device-supports-a-s-t-c virtual GraphicsServices dependency
+ gsc.device-supports-adaptive-maps-u-i virtual GraphicsServices dependency
+ gsc.device-supports-always-listening virtual GraphicsServices dependency
+ gsc.device-supports-always-on-compass virtual GraphicsServices dependency
+ gsc.device-supports-c-c-k virtual GraphicsServices dependency
+ gsc.device-supports-car-integration virtual GraphicsServices dependency
+ gsc.device-supports-crude-prox virtual GraphicsServices dependency
+ gsc.device-supports-d-clr virtual GraphicsServices dependency
+ gsc.device-supports-do-not-disturb-while-driving virtual GraphicsServices depe
+ gsc.device-supports-enhanced-a-c3 virtual GraphicsServices dependency
+ gsc.device-supports-haptics virtual GraphicsServices dependency
+ gsc.device-supports-heart-rate-variability virtual GraphicsServices dependency
+ gsc.device-supports-hi-res-buildings virtual GraphicsServices dependency
+ gsc.device-supports-liquid-detection_-corrosion-mitigation virtual GraphicsSer
+ gsc.device-supports-maps-blurred-u-i virtual GraphicsServices dependency
+ gsc.device-supports-navigation virtual GraphicsServices dependency
+ gsc.device-supports-periodic-a-l-s-updates virtual GraphicsServices dependency
+ gsc.device-supports-r-g-b10 virtual GraphicsServices dependency
+ gsc.device-supports-simplistic-road-mesh virtual GraphicsServices dependency
+ gsc.device-supports-tethering virtual GraphicsServices dependency
+ gsc.device-supports-webkit virtual GraphicsServices dependency
+ gsc.device-supports-y-cb-cr10 virtual GraphicsServices dependency
+ gsc.device-supports1080p virtual GraphicsServices dependency
+ gsc.device-supports3-d-imagery virtual GraphicsServices dependency
+ gsc.device-supports3-d-maps virtual GraphicsServices dependency
+ gsc.device-supports4k virtual GraphicsServices dependency
+ gsc.device-supports720p virtual GraphicsServices dependency
+ gsc.device-supports9-pin virtual GraphicsServices dependency
+ gsc.dictation        virtual GraphicsServices dependency
+ gsc.display-mirroring virtual GraphicsServices dependency
+ gsc.displayport      virtual GraphicsServices dependency
+ gsc.encode-aac       virtual GraphicsServices dependency
+ gsc.encrypted-data-partition virtual GraphicsServices dependency
+ gsc.external-charge-capability virtual GraphicsServices dependency
+ gsc.f-d-r-sealing-status virtual GraphicsServices dependency
+ gsc.f-m-f-allowed    virtual GraphicsServices dependency
+ gsc.face-time-back-camera-temporal-noise-reduction-mode virtual GraphicsServic
+ gsc.face-time-camera-supports-hardware-face-detection virtual GraphicsServices
+ gsc.face-time-front-camera-temporal-noise-reduction-mode virtual GraphicsServi
+ gsc.fcc-logos-via-software virtual GraphicsServices dependency
+ gsc.first-party-launch-time-limit-scale virtual GraphicsServices dependency
+ gsc.forward-camera-capability virtual GraphicsServices dependency
+ gsc.front-facing-camera virtual GraphicsServices dependency
+ gsc.front-facing-camera-auto-h-d-r-capability virtual GraphicsServices depende
+ gsc.front-facing-camera-burst-capability virtual GraphicsServices dependency
+ gsc.front-facing-camera-h-d-r-capability virtual GraphicsServices dependency
+ gsc.front-facing-camera-max-video-zoom-factor virtual GraphicsServices depende
+ gsc.front-facing-camera-still-duration-for-burst virtual GraphicsServices depe
+ gsc.front-facing-camera-video-capture720p-max-f-p-s virtual GraphicsServices d
+ gsc.full-6           virtual GraphicsServices dependency
+ gsc.gamekit          virtual GraphicsServices dependency
+ gsc.gas-gauge-battery virtual GraphicsServices dependency
+ gsc.gps              virtual GraphicsServices dependency
+ gsc.gyroscope        virtual GraphicsServices dependency
+ gsc.h-e-v-c-decoder8bit-supported virtual GraphicsServices dependency
+ gsc.h264-encoder-capability virtual GraphicsServices dependency
+ gsc.hardware-keyboard virtual GraphicsServices dependency
+ gsc.has-baseband     virtual GraphicsServices dependency
+ gsc.has-battery      virtual GraphicsServices dependency
+ gsc.has-mesa         virtual GraphicsServices dependency
+ gsc.has-p-k-a        virtual GraphicsServices dependency
+ gsc.has-s-e-p        virtual GraphicsServices dependency
+ gsc.has-spring-board virtual GraphicsServices dependency
+ gsc.has-thin-bezel   virtual GraphicsServices dependency
+ gsc.hd-video-capture virtual GraphicsServices dependency
+ gsc.hdr-image-capture virtual GraphicsServices dependency
+ gsc.healthkit        virtual GraphicsServices dependency
+ gsc.hearingaid-audio-equalization virtual GraphicsServices dependency
+ gsc.hearingaid-low-energy-audio virtual GraphicsServices dependency
+ gsc.hidpi            virtual GraphicsServices dependency
+ gsc.highest-supported-video-mode virtual GraphicsServices dependency
+ gsc.homescreen-wallpaper virtual GraphicsServices dependency
+ gsc.hw-encode-snapshots virtual GraphicsServices dependency
+ gsc.i-a-p2-capability virtual GraphicsServices dependency
+ gsc.i-d-a-m-capability virtual GraphicsServices dependency
+ gsc.image4-supported virtual GraphicsServices dependency
+ gsc.international-settings virtual GraphicsServices dependency
+ gsc.io-surface-backed-images virtual GraphicsServices dependency
+ gsc.is-pwr-opposed-vol virtual GraphicsServices dependency
+ gsc.is-u-i-build     virtual GraphicsServices dependency
+ gsc.launch-time-limit-scale-supported virtual GraphicsServices dependency
+ gsc.load-thumbnails-while-scrolling virtual GraphicsServices dependency
+ gsc.location-reminders virtual GraphicsServices dependency
+ gsc.location-services virtual GraphicsServices dependency
+ gsc.magnetometer     virtual GraphicsServices dependency
+ gsc.main-screen-class virtual GraphicsServices dependency
+ gsc.main-screen-height virtual GraphicsServices dependency
+ gsc.main-screen-pitch virtual GraphicsServices dependency
+ gsc.main-screen-scale virtual GraphicsServices dependency
+ gsc.main-screen-width virtual GraphicsServices dependency
+ gsc.max-h264-playback-level virtual GraphicsServices dependency
+ gsc.maximum-screen-scale virtual GraphicsServices dependency
+ gsc.medusa-p-i-p-capability virtual GraphicsServices dependency
+ gsc.metal            virtual GraphicsServices dependency
+ gsc.microphone       virtual GraphicsServices dependency
+ gsc.microphone-count virtual GraphicsServices dependency
+ gsc.mix-and-match-prevention virtual GraphicsServices dependency
+ gsc.mms              virtual GraphicsServices dependency
+ gsc.mobile-device-minimum-version virtual GraphicsServices dependency
+ gsc.multitasking     virtual GraphicsServices dependency
+ gsc.music-store      virtual GraphicsServices dependency
+ gsc.n-f-c-radio-calibration-data-present virtual GraphicsServices dependency
+ gsc.navajo-fusing-state virtual GraphicsServices dependency
+ gsc.not-green-tea    virtual GraphicsServices dependency
+ gsc.offline-dictation-capability virtual GraphicsServices dependency
+ gsc.open-g-l-e-s-version virtual GraphicsServices dependency
+ gsc.opengles-1       virtual GraphicsServices dependency
+ gsc.opengles-2       virtual GraphicsServices dependency
+ gsc.opengles-3       virtual GraphicsServices dependency
+ gsc.ota-activation   virtual GraphicsServices dependency
+ gsc.panorama-camera-capability virtual GraphicsServices dependency
+ gsc.peer-peer        virtual GraphicsServices dependency
+ gsc.personal-hotspot virtual GraphicsServices dependency
+ gsc.phosphorus-capability virtual GraphicsServices dependency
+ gsc.photo-adjustments virtual GraphicsServices dependency
+ gsc.photo-capability virtual GraphicsServices dependency
+ gsc.photo-sharing-capability virtual GraphicsServices dependency
+ gsc.photo-stream     virtual GraphicsServices dependency
+ gsc.photos-post-effects-capability virtual GraphicsServices dependency
+ gsc.pipelined-still-image-processing-capability virtual GraphicsServices depen
+ gsc.proximity-sensor virtual GraphicsServices dependency
+ gsc.ptp-large-files  virtual GraphicsServices dependency
+ gsc.r-f-exposure-separation-distance virtual GraphicsServices dependency
+ gsc.rear-camera-capability virtual GraphicsServices dependency
+ gsc.rear-facing-camera virtual GraphicsServices dependency
+ gsc.rear-facing-camera-auto-h-d-r-capability virtual GraphicsServices dependen
+ gsc.rear-facing-camera-burst-capability virtual GraphicsServices dependency
+ gsc.rear-facing-camera-h-d-r-capability virtual GraphicsServices dependency
+ gsc.rear-facing-camera-h-d-r-on-capability virtual GraphicsServices dependency
+ gsc.rear-facing-camera-h-f-r-capability virtual GraphicsServices dependency
+ gsc.rear-facing-camera-h-f-r-video-capture1080p-max-f-p-s virtual GraphicsServ
+ gsc.rear-facing-camera-h-f-r-video-capture720p-max-f-p-s virtual GraphicsServi
+ gsc.rear-facing-camera-max-video-zoom-factor virtual GraphicsServices dependen
+ gsc.rear-facing-camera-still-duration-for-burst virtual GraphicsServices depen
+ gsc.rear-facing-camera-video-capture-f-p-s virtual GraphicsServices dependency
+ gsc.rear-facing-camera-video-capture1080p-max-f-p-s virtual GraphicsServices d
+ gsc.rear-facing-camera-video-capture4k-max-f-p-s virtual GraphicsServices depe
+ gsc.rear-facing-camera-video-capture720p-max-f-p-s virtual GraphicsServices de
+ gsc.rear-facing-camera60fps-video-capture-capability virtual GraphicsServices 
+ gsc.regional-behavior-n-t-s-c virtual GraphicsServices dependency
+ gsc.regional-behavior-valid virtual GraphicsServices dependency
+ gsc.render-wide-gamut-images-at-display-time virtual GraphicsServices dependen
+ gsc.ringer-switch    virtual GraphicsServices dependency
+ gsc.screen-recorder-capability virtual GraphicsServices dependency
+ gsc.secure-element   virtual GraphicsServices dependency
+ gsc.shoebox          virtual GraphicsServices dependency
+ gsc.signing-fuse     virtual GraphicsServices dependency
+ gsc.siri-gesture     virtual GraphicsServices dependency
+ gsc.siri-offline-capability virtual GraphicsServices dependency
+ gsc.sms              virtual GraphicsServices dependency
+ gsc.stand-alone-contacts virtual GraphicsServices dependency
+ gsc.stark-capability virtual GraphicsServices dependency
+ gsc.still-camera     virtual GraphicsServices dependency
+ gsc.supports-force-touch virtual GraphicsServices dependency
+ gsc.supports-iris-capture virtual GraphicsServices dependency
+ gsc.supports-low-power-mode virtual GraphicsServices dependency
+ gsc.supports-rotate-to-wake virtual GraphicsServices dependency
+ gsc.supports-s-o-s   virtual GraphicsServices dependency
+ gsc.telephony        virtual GraphicsServices dependency
+ gsc.touch-id         virtual GraphicsServices dependency
+ gsc.tv-out-crossfade virtual GraphicsServices dependency
+ gsc.u-i-background-quality virtual GraphicsServices dependency
+ gsc.u-i-parallax-capability virtual GraphicsServices dependency
+ gsc.u-i-procedural-wallpaper-capability virtual GraphicsServices dependency
+ gsc.u-i-reachability virtual GraphicsServices dependency
+ gsc.unified-ipod     virtual GraphicsServices dependency
+ gsc.venice           virtual GraphicsServices dependency
+ gsc.vibrator-capability virtual GraphicsServices dependency
+ gsc.video-camera     virtual GraphicsServices dependency
+ gsc.video-stills     virtual GraphicsServices dependency
+ gsc.voice-control    virtual GraphicsServices dependency
+ gsc.voip             virtual GraphicsServices dependency
+ gsc.volume-buttons   virtual GraphicsServices dependency
+ gsc.w-a-graphic-quality virtual GraphicsServices dependency
+ gsc.w-l-a-n-bkg-scan-cache virtual GraphicsServices dependency
+ gsc.wi-fi            virtual GraphicsServices dependency
+ gsc.wifi             virtual GraphicsServices dependency
+ gsc.wifi-chipset     virtual GraphicsServices dependency
+
+
+--- Sileo process and bundle ---
+ 2317   ??  Ss     0:11.81 /private/preboot/BB665499CD9F3B517B18964BEBF82D51A89F71DF/dopamine-uDNpZx/procursus/Applications/Sileo.app/Sileo
+SILEO_APP=/var/jb/Applications/Sileo.app
+drwxr-xr-x 165 root wheel 5280 Sep  1 00:15 /var/jb/Applications/Sileo.app
+IPHONE_READ_ONLY_DIAGNOSTICS_COMPLETE=1
 ssh_exit_code=0
