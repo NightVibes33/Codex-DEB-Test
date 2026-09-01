@@ -1,6 +1,6 @@
 Package: com.nightvibes.byetunes16
 Name: ByeTunes 15-16 Injection
-Version: 0.2.1
+Version: 0.2.2
 Architecture: iphoneos-arm64
 Description: Full rootless iOS 15-16 ByeTunes-style Apple Music injector for Dopamine/ElleKit with local audio import, metadata search, artwork, playlists, backup, repair and restore without pairing or VPN transport.
 Maintainer: NightVibes33
