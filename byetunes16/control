@@ -1,8 +1,8 @@
 Package: com.nightvibes.byetunes16
 Name: ByeTunes 16 Injection
-Version: 0.1.0
+Version: 0.2.0
 Architecture: iphoneos-arm64
-Description: Rootless iOS 16 Apple Music local-audio injector for Dopamine/ElleKit. Imports user-supplied audio directly into the local media library without pairing or VPN transport.
+Description: Full rootless iOS 16 ByeTunes-style Apple Music injector for Dopamine/ElleKit with local audio import, metadata search, artwork, playlists, backup, repair and restore without pairing or VPN transport.
 Maintainer: NightVibes33
 Author: NightVibes33
 Section: Tweaks
