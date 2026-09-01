@@ -1,0 +1,132 @@
+name: iPhone Zebra Sileo Diagnose
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/iphone-zebra-sileo-diagnose.txt
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: iphone-zebra-sileo-diagnose
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    environment:
+      name: TAILSCALE_AUTHKEY-
+    steps:
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Install SSH client
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends openssh-client sshpass >/dev/null
+
+      - name: Run iPhone-only diagnostics
+        env:
+          IPHONE_HOST: 100.96.37.124
+          IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          ssh-keyscan -T 15 -H "$IPHONE_HOST" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+          {
+            printf '%s\n' "$IPHONE_PASSWORD"
+            cat <<'EOS'
+          set +e
+          export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
+          export HOME=/var/mobile
+          echo '=== IPHONE ONLY ZEBRA/SILEO TRACE ==='
+          printf 'ios='; sw_vers -productVersion 2>/dev/null || true
+          printf 'build='; sw_vers -buildVersion 2>/dev/null || true
+          printf 'model='; sysctl -n hw.model 2>/dev/null || true
+
+          ZAPP=/var/jb/Applications/Zebra.app
+          echo '--- Zebra bundle metadata ---'
+          ls -ld "$ZAPP" "$ZAPP/Zebra" 2>/dev/null || true
+          command -v plutil || true
+          plutil -p "$ZAPP/Info.plist" 2>/dev/null | grep -E 'CFBundleIdentifier|CFBundleVersion|CFBundleShortVersionString|CFBundleURLSchemes' || true
+          echo 'Info.plist strings:'
+          strings -a "$ZAPP/Info.plist" 2>/dev/null | grep -Ei 'zbra|zebra|CFBundleURLSchemes' | head -n 40 || true
+
+          echo '--- Zebra launch trace ---'
+          echo 'before:'
+          ps ax 2>/dev/null | grep -i '[Z]ebra' || true
+          if command -v sudo >/dev/null 2>&1; then
+            sudo -u mobile uiopen 'zbra://' 2>&1 || sudo -u mobile uiopen 'zebra://' 2>&1 || true
+          else
+            su mobile -c "uiopen 'zbra://'" 2>&1 || su mobile -c "uiopen 'zebra://'" 2>&1 || true
+          fi
+          for sec in 1 3 7 12; do
+            sleep "$sec"
+            echo "after_${sec}s:"
+            ps ax 2>/dev/null | grep -i '[Z]ebra' || true
+          done
+
+          echo '--- recent Zebra / jetsam evidence ---'
+          CR=/var/mobile/Library/Logs/CrashReporter
+          if [ -d "$CR" ]; then
+            find "$CR" -maxdepth 2 -type f -mmin -15 -print 2>/dev/null | while IFS= read -r f; do
+              if echo "$f" | grep -Eqi 'zebra|jetsam'; then
+                echo "FILE=$f"
+                grep -a -Ei -m 30 'Zebra|xyz\.willy|exception|termination|reason|jetsam|memory|watchdog|code signature|dyld|abort' "$f" 2>/dev/null || true
+              elif grep -a -Eqi -m 1 'Zebra|xyz\.willy\.Zebra' "$f" 2>/dev/null; then
+                echo "FILE=$f"
+                grep -a -Ei -m 40 'Zebra|xyz\.willy|exception|termination|reason|jetsam|memory|watchdog|code signature|dyld|abort' "$f" 2>/dev/null || true
+              fi
+            done
+          fi
+
+          echo '--- CyPwn index compatibility ---'
+          IDX=/var/jb/var/lib/apt/lists/repo.cypwn.xyz_._Packages
+          if [ -f "$IDX" ]; then
+            printf 'package_records='; grep -c '^Package:' "$IDX" || true
+            echo 'architecture_counts:'
+            awk '/^Architecture:/{c[$2]++} END{for (a in c) print a, c[a]}' "$IDX" | sort
+            echo 'sample_arm64_packages:'
+            awk 'BEGIN{RS="";FS="\n"} /Architecture: iphoneos-arm64/{for(i=1;i<=NF;i++) if($i ~ /^Package:/){print $i; break}}' "$IDX" | head -n 20
+            echo 'sample_rootful_packages:'
+            awk 'BEGIN{RS="";FS="\n"} /Architecture: iphoneos-arm$/{for(i=1;i<=NF;i++) if($i ~ /^Package:/){print $i; break}}' "$IDX" | head -n 20
+          else
+            echo 'cypwn_packages_index_missing=true'
+          fi
+          echo 'apt_architectures:'
+          dpkg --print-architecture 2>/dev/null || true
+          dpkg --print-foreign-architectures 2>/dev/null || true
+          echo 'apt_cache_probe:'
+          apt-cache policy xyz.cypwn.python3.12 2>/dev/null || true
+
+          echo '--- Sileo local data hints ---'
+          find /var/mobile/Library /var/jb/var/mobile/Library -maxdepth 5 \( -iname '*sileo*' -o -path '*Sileo*' \) -print 2>/dev/null | head -n 120 || true
+          echo 'IPHONE_ZEBRA_SILEO_TRACE_COMPLETE=1'
+          EOS
+          } | sshpass -e ssh \
+              -o BatchMode=no \
+              -o ConnectTimeout=20 \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              mobile@"$IPHONE_HOST" \
+              'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
+              2>&1 | tee iphone-zebra-sileo-output.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: iphone-zebra-sileo-${{ github.run_id }}
+          path: iphone-zebra-sileo-output.txt
+          if-no-files-found: warn
+          retention-days: 7
