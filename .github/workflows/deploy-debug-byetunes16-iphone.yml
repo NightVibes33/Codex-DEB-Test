@@ -1,0 +1,352 @@
+name: Deploy Debug ByeTunes16 iPhone
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - temp/byetunes-ios16-rootless
+    paths:
+      - '.github/workflows/deploy-debug-byetunes16-iphone.yml'
+      - 'triggers/deploy-debug-byetunes16-iphone.txt'
+
+permissions:
+  actions: read
+  contents: write
+
+env:
+  BUILD_RUN_ID: '33460660067'
+  BUILD_ARTIFACT: ByeTunes16-iOS16-Dopamine-rootless
+  IPHONE_HOST: 100.96.37.124
+  IPHONE_PORT: '22'
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - name: Resolve secret environment
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: '18728387881'
+        run: |
+          set -euo pipefail
+          curl -fsSL \
+            -H 'Accept: application/vnd.github+json' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" > environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json, sys
+          target = int(sys.argv[1])
+          data = json.load(open('environments.json', encoding='utf-8'))
+          for env in data.get('environments', []):
+              if int(env.get('id', -1)) == target:
+                  print(f"environment_name={env['name']}")
+                  break
+          else:
+              raise SystemExit(f'environment id {target} not found')
+          PY
+
+  deploy-debug:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/byetunes-ios16-rootless
+
+      - name: Download green ByeTunes16 build
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.BUILD_ARTIFACT }}
+          run-id: ${{ env.BUILD_RUN_ID }}
+          github-token: ${{ github.token }}
+          path: /tmp/byetunes16-artifact
+
+      - name: Validate DEB before device access
+        run: |
+          set -euo pipefail
+          DEB="$(find /tmp/byetunes16-artifact -type f -name '*.deb' -print | head -n1)"
+          test -n "$DEB"
+          test "$(dpkg-deb --field "$DEB" Package)" = 'com.nightvibes.byetunes16'
+          test "$(dpkg-deb --field "$DEB" Architecture)" = 'iphoneos-arm64'
+          cp "$DEB" /tmp/ByeTunes16-iOS16-Dopamine-rootless.deb
+          sha256sum /tmp/ByeTunes16-iOS16-Dopamine-rootless.deb | tee byetunes16-deploy-sha256.txt
+
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Install SSH clients
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends openssh-client sshpass
+
+      - name: Resolve iPhone SSH host key
+        env:
+          HOST: ${{ env.IPHONE_HOST }}
+          PORT: ${{ env.IPHONE_PORT }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          : > "$HOME/.ssh/known_hosts"
+          ready=0
+          for attempt in $(seq 1 18); do
+            if ssh-keyscan -T 8 -H -p "$PORT" "$HOST" > "$HOME/.ssh/known_hosts" 2>/dev/null && [ -s "$HOME/.ssh/known_hosts" ]; then
+              ready=1
+              break
+            fi
+            tailscale ping --timeout=5s --c 1 "$HOST" >/dev/null 2>&1 || true
+            sleep 5
+          done
+          test "$ready" = 1
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Gate target as iOS 16 Dopamine rootless
+        id: gate
+        env:
+          HOST: ${{ env.IPHONE_HOST }}
+          PORT: ${{ env.IPHONE_PORT }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          DEVICE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          cat > /tmp/gate.sh <<'SH'
+          set -eu
+          SYSTEM_PLIST=/System/Library/CoreServices/SystemVersion.plist
+          version="$(sed -n '/<key>ProductVersion<\/key>/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' "$SYSTEM_PLIST" | head -n1)"
+          build="$(sed -n '/<key>ProductBuildVersion<\/key>/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' "$SYSTEM_PLIST" | head -n1)"
+          echo "product_version=$version"
+          echo "build_version=$build"
+          echo "machine=$(uname -m)"
+          echo "kernel=$(uname -r)"
+          test "${version%%.*}" = 16
+          test -d /var/jb
+          echo 'rootless=/var/jb present'
+          DPKG=/var/jb/usr/bin/dpkg-query
+          [ -x "$DPKG" ] || DPKG="$(command -v dpkg-query || true)"
+          test -n "$DPKG"
+          "$DPKG" -W -f='ellekit_status=${Status}\nellekit_version=${Version}\n' ellekit
+          test -f /var/jb/usr/lib/libellekit.dylib -o -f /var/jb/usr/lib/ellekit/libinjector.dylib
+          test -e /var/jb/basebin/jbctl -o -e /var/jb/usr/bin/dopamine -o -d /var/jb
+          echo 'device_gate=PASS'
+          SH
+          {
+            printf '%s\n' "$DEVICE_PASSWORD"
+            cat /tmp/gate.sh
+          } | sshpass -e ssh -p "$PORT" \
+              -o BatchMode=no -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              "mobile@$HOST" 'SHELL_PATH="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
+              | tee byetunes16-device-gate.txt
+          grep -q 'device_gate=PASS' byetunes16-device-gate.txt
+
+      - name: Stage DEB on device
+        env:
+          HOST: ${{ env.IPHONE_HOST }}
+          PORT: ${{ env.IPHONE_PORT }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          sshpass -e scp -P "$PORT" \
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            /tmp/ByeTunes16-iOS16-Dopamine-rootless.deb \
+            "mobile@$HOST:/var/mobile/ByeTunes16-iOS16-Dopamine-rootless.deb"
+
+      - name: Install package and verify files
+        id: install
+        env:
+          HOST: ${{ env.IPHONE_HOST }}
+          PORT: ${{ env.IPHONE_PORT }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          DEVICE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          cat > /tmp/install.sh <<'SH'
+          set -eu
+          DPKG=/var/jb/usr/bin/dpkg
+          [ -x "$DPKG" ] || DPKG="$(command -v dpkg)"
+          "$DPKG" -i /var/mobile/ByeTunes16-iOS16-Dopamine-rootless.deb
+          "$DPKG" -s com.nightvibes.byetunes16 | sed -n '1,24p'
+          test -f /var/jb/Library/MobileSubstrate/DynamicLibraries/ByeTunes16.dylib
+          test -f /var/jb/Library/MobileSubstrate/DynamicLibraries/ByeTunes16.plist
+          test -x /var/jb/usr/libexec/byetunes16d
+          test -f /var/jb/Library/LaunchDaemons/com.nightvibes.byetunes16d.plist
+          /bin/launchctl bootout system/com.nightvibes.byetunes16d >/dev/null 2>&1 || true
+          /bin/launchctl bootstrap system /var/jb/Library/LaunchDaemons/com.nightvibes.byetunes16d.plist >/dev/null 2>&1 || true
+          sleep 2
+          pgrep -fl byetunes16d || true
+          if ! pgrep -f '/var/jb/usr/libexec/byetunes16d' >/dev/null 2>&1; then
+            echo 'daemon_running=FAIL'
+            tail -n 80 /var/mobile/Library/Logs/ByeTunes16-daemon.log 2>/dev/null || true
+            exit 1
+          fi
+          echo 'daemon_running=PASS'
+          SH
+          {
+            printf '%s\n' "$DEVICE_PASSWORD"
+            cat /tmp/install.sh
+          } | sshpass -e ssh -p "$PORT" \
+              -o BatchMode=no -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              "mobile@$HOST" 'SHELL_PATH="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
+              | tee byetunes16-install.txt
+          grep -q 'daemon_running=PASS' byetunes16-install.txt
+
+      - name: Exercise helper IPC read-only and backup paths
+        id: ipc
+        env:
+          HOST: ${{ env.IPHONE_HOST }}
+          PORT: ${{ env.IPHONE_PORT }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          DEVICE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          cat > /tmp/ipc.sh <<'SH'
+          set -eu
+          send_json() {
+            payload="$1"
+            if command -v nc >/dev/null 2>&1; then
+              printf '%s\n' "$payload" | nc -w 6 127.0.0.1 45981
+              return
+            fi
+            if [ -x /var/jb/usr/bin/nc ]; then
+              printf '%s\n' "$payload" | /var/jb/usr/bin/nc -w 6 127.0.0.1 45981
+              return
+            fi
+            if command -v curl >/dev/null 2>&1; then
+              printf '%s\n' "$payload" | curl --silent --show-error --max-time 6 --no-buffer telnet://127.0.0.1:45981
+              return
+            fi
+            if [ -x /var/jb/usr/bin/curl ]; then
+              printf '%s\n' "$payload" | /var/jb/usr/bin/curl --silent --show-error --max-time 6 --no-buffer telnet://127.0.0.1:45981
+              return
+            fi
+            echo '{"ok":false,"error":"no nc/curl IPC client available"}'
+            return 127
+          }
+          echo '--- probe ---'
+          probe="$(send_json '{"op":"probe"}')"
+          echo "$probe"
+          echo "$probe" | grep -q '"ok":true'
+          echo "$probe" | grep -q '"schemaOK":true'
+          echo "$probe" | grep -q '"quickCheck":"ok"'
+          echo '--- library sample ---'
+          library="$(send_json '{"op":"library","limit":5}')"
+          echo "$library"
+          echo "$library" | grep -q '"ok":true'
+          echo '--- backup ---'
+          backup="$(send_json '{"op":"backup"}')"
+          echo "$backup"
+          echo "$backup" | grep -q '"ok":true'
+          echo 'ipc_probe=PASS'
+          SH
+          {
+            printf '%s\n' "$DEVICE_PASSWORD"
+            cat /tmp/ipc.sh
+          } | sshpass -e ssh -p "$PORT" \
+              -o BatchMode=no -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              "mobile@$HOST" 'SHELL_PATH="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
+              | tee byetunes16-ipc.txt
+          grep -q 'ipc_probe=PASS' byetunes16-ipc.txt
+
+      - name: Launch Music and collect injection/crash evidence
+        id: music
+        env:
+          HOST: ${{ env.IPHONE_HOST }}
+          PORT: ${{ env.IPHONE_PORT }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          DEVICE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          cat > /tmp/music.sh <<'SH'
+          set -eu
+          before="$(date +%s)"
+          /usr/bin/killall Music >/dev/null 2>&1 || true
+          sleep 1
+          if command -v uiopen >/dev/null 2>&1; then
+            uiopen 'music://' >/dev/null 2>&1 || true
+          elif [ -x /var/jb/usr/bin/uiopen ]; then
+            /var/jb/usr/bin/uiopen 'music://' >/dev/null 2>&1 || true
+          fi
+          sleep 5
+          echo '--- Music processes ---'
+          pgrep -fl '/Music.app/Music' || pgrep -fl Music || true
+          echo '--- daemon ---'
+          pgrep -fl byetunes16d || true
+          tail -n 100 /var/mobile/Library/Logs/ByeTunes16-daemon.log 2>/dev/null || true
+          echo '--- recent Music crash files ---'
+          find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'Music-*.ips' -o -name 'Music-*.crash' \) -mmin -3 -print 2>/dev/null | tail -n 10 || true
+          recent="$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'Music-*.ips' -o -name 'Music-*.crash' \) -mmin -3 -print 2>/dev/null | head -n1 || true)"
+          if [ -n "$recent" ]; then
+            echo "music_recent_crash=$recent"
+            sed -n '1,120p' "$recent" || true
+            exit 2
+          fi
+          echo 'music_crash_check=PASS'
+          SH
+          {
+            printf '%s\n' "$DEVICE_PASSWORD"
+            cat /tmp/music.sh
+          } | sshpass -e ssh -p "$PORT" \
+              -o BatchMode=no -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              "mobile@$HOST" 'SHELL_PATH="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
+              | tee byetunes16-music-runtime.txt
+          grep -q 'music_crash_check=PASS' byetunes16-music-runtime.txt
+
+      - name: Upload deploy diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ByeTunes16-iPhone-deploy-debug-${{ github.run_id }}
+          path: |
+            byetunes16-deploy-sha256.txt
+            byetunes16-device-gate.txt
+            byetunes16-install.txt
+            byetunes16-ipc.txt
+            byetunes16-music-runtime.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Publish branch deploy status
+        if: always()
+        env:
+          GATE: ${{ steps.gate.outcome }}
+          INSTALL: ${{ steps.install.outcome }}
+          IPC: ${{ steps.ipc.outcome }}
+          MUSIC: ${{ steps.music.outcome }}
+          DEVICE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin temp/byetunes-ios16-rootless
+          mkdir -p remote
+          {
+            echo 'ByeTunes16 iPhone Deploy Debug'
+            echo "run_id=${GITHUB_RUN_ID}"
+            echo "build_run_id=${BUILD_RUN_ID}"
+            echo "target=${IPHONE_HOST}:${IPHONE_PORT}"
+            echo "gate=${GATE}"
+            echo "install=${INSTALL}"
+            echo "ipc=${IPC}"
+            echo "music=${MUSIC}"
+            for f in byetunes16-device-gate.txt byetunes16-install.txt byetunes16-ipc.txt byetunes16-music-runtime.txt; do
+              echo
+              echo "--- $f ---"
+              if [ -f "$f" ]; then sed "s/${DEVICE_PASSWORD}/***REDACTED***/g" "$f" | tail -n 180; else echo 'not produced'; fi
+            done
+          } > remote/byetunes16-iphone-deploy-status.txt
+          git add remote/byetunes16-iphone-deploy-status.txt
+          git commit -m 'Record ByeTunes16 iPhone deploy status [skip ci]' || exit 0
+          git push origin HEAD:temp/byetunes-ios16-rootless
