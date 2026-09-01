@@ -1,0 +1,6 @@
+#!/bin/sh
+set -u
+/bin/launchctl bootout system/com.nightvibes.byetunes16d >/dev/null 2>&1 || true
+/usr/bin/killall byetunes16d >/dev/null 2>&1 || true
+/usr/bin/killall Music >/dev/null 2>&1 || true
+exit 0
