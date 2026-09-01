@@ -55,7 +55,7 @@ jobs:
           CRASHDIR='/var/mobile/Library/Logs/CrashReporter'
           TS="$(date +%Y%m%d-%H%M%S)"
 
-          echo '=== ZEBRA SPRINGBOARD LAUNCH VERIFY ==='
+          echo '=== ZEBRA SPRINGBOARD LAUNCH VERIFY V2 ==='
           echo 'DELETE_COMMANDS_USED=0'
           echo 'PACKAGES_REMOVED=0'
           echo 'TWEAKS_REMOVED=0'
@@ -75,23 +75,36 @@ jobs:
           echo "watchdog_before=$BEFORE"
           killall Zebra 2>/dev/null || true
 
-          SBPID="$(pgrep -x SpringBoard 2>/dev/null | head -n1 || true)"
+          echo '--- process lookup diagnostics ---'
+          echo "pgrep_path=$(command -v pgrep 2>/dev/null || true)"
+          echo "ps_path=$(command -v ps 2>/dev/null || true)"
+          ps aux 2>/dev/null | grep -i '[S]pringBoard' | head -n10 || true
+
+          SBPID=''
+          if command -v pgrep >/dev/null 2>&1; then
+            SBPID="$(pgrep -x SpringBoard 2>/dev/null | head -n1 || true)"
+          fi
+          if [ -z "$SBPID" ]; then
+            SBPID="$(ps aux 2>/dev/null | awk '/[S]pringBoard/{print $2; exit}' || true)"
+          fi
+          if [ -z "$SBPID" ]; then
+            SBPID="$(ps -A 2>/dev/null | awk '/[S]pringBoard/{print $1; exit}' || true)"
+          fi
           echo "springboard_pid=$SBPID"
           if [ -z "$SBPID" ]; then
-            echo 'ERROR=SpringBoard PID unavailable'
+            echo 'ERROR=SpringBoard PID unavailable after pgrep and ps fallbacks'
             exit 42
           fi
 
           echo '--- launchctl capability ---'
           launchctl help 2>&1 | grep -E 'bsexec|asuser|bootstrap|kickstart' | head -n40 || true
 
-          # bsexec inherits SpringBoard's bootstrap namespace. This changes no files itself;
-          # it only asks LaunchServices to open Zebra from the same namespace as SpringBoard.
           echo 'launch_method=bsexec-root-uiopen'
           launchctl bsexec "$SBPID" /var/jb/usr/bin/uiopen 'zbra://' >/tmp/zebra-bsexec-1.out 2>&1 || true
           sed -n '1,40p' /tmp/zebra-bsexec-1.out 2>/dev/null || true
           sleep 5
-          P1="$(pgrep -x Zebra 2>/dev/null | head -n1 || true)"
+          P1="$(ps aux 2>/dev/null | awk '/[Z]ebra.app\/Zebra/{print $2; exit}' || true)"
+          [ -z "$P1" ] && P1="$(ps aux 2>/dev/null | awk '$11 ~ /\/Zebra$/ {print $2; exit}' || true)"
           echo "zebra_pid_after_bsexec_root=$P1"
 
           if [ -z "$P1" ]; then
@@ -101,14 +114,16 @@ jobs:
             sleep 5
           fi
 
-          PID10="$(pgrep -x Zebra 2>/dev/null | head -n1 || true)"
+          PID10="$(ps aux 2>/dev/null | awk '/[Z]ebra.app\/Zebra/{print $2; exit}' || true)"
+          [ -z "$PID10" ] && PID10="$(ps aux 2>/dev/null | awk '$11 ~ /\/Zebra$/ {print $2; exit}' || true)"
           echo "zebra_pid_10s=$PID10"
-          [ -n "$PID10" ] && ps -o pid,uid,etime,state,command -p "$PID10" 2>/dev/null || true
+          [ -n "$PID10" ] && ps -p "$PID10" -o pid,uid,etime,state,command 2>/dev/null || true
 
           sleep 22
-          PID32="$(pgrep -x Zebra 2>/dev/null | head -n1 || true)"
+          PID32="$(ps aux 2>/dev/null | awk '/[Z]ebra.app\/Zebra/{print $2; exit}' || true)"
+          [ -z "$PID32" ] && PID32="$(ps aux 2>/dev/null | awk '$11 ~ /\/Zebra$/ {print $2; exit}' || true)"
           echo "zebra_pid_32s=$PID32"
-          [ -n "$PID32" ] && ps -o pid,uid,etime,state,command -p "$PID32" 2>/dev/null || true
+          [ -n "$PID32" ] && ps -p "$PID32" -o pid,uid,etime,state,command 2>/dev/null || true
 
           AFTER="$(ls -1t "$CRASHDIR"/stacks+Zebra*.ips 2>/dev/null | head -n1 || true)"
           echo "watchdog_after=$AFTER"
@@ -139,8 +154,6 @@ jobs:
                 echo "preserved_failed_rebuild=$f.failed-rebuild-$TS"
               fi
             done
-            # Restore only the newest preserved original DB. Its matching WAL/SHM, if any,
-            # remain preserved and are restored only when their same timestamp can be identified.
             if [ ! -e "$ZDB" ] && [ -e "$PRESERVED" ]; then
               mv "$PRESERVED" "$ZDB"
               echo "restored_original=$ZDB"
@@ -153,7 +166,7 @@ jobs:
           if [ -z "$PID10" ] && [ -z "$PID32" ] && [ "$NEW_WATCHDOG" -eq 0 ]; then
             echo 'ZEBRA_REMOTE_LAUNCH_UNAVAILABLE=1'
             echo 'ZEBRA_REPAIR_STAGED=1'
-            echo 'RESULT=SpringBoard bootstrap launch is unavailable remotely; clean DB state remains staged, originals preserved.'
+            echo 'RESULT=Bootstrap launch did not start Zebra; clean DB state remains staged, originals preserved.'
             exit 0
           fi
 
