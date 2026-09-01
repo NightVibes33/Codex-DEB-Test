@@ -1,4 +1,4 @@
-run=2026-09-01T21:00:00-05:00
-purpose=iphone-zebra-clean-db-repair
-mode=preserve-originals-no-delete
-workflow_commit=55fe27e938d5a8655ac474007490e364d74decc3
+run=2026-09-01T21:08:00-05:00
+purpose=iphone-zebra-springboard-launch-verify
+mode=launch-only-no-delete
+workflow_commit=06ecac1f458acb536e4019a07723fc3e9fc35e55
