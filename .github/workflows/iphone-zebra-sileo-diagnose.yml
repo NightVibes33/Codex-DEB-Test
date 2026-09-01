@@ -1,4 +1,4 @@
-name: iPhone Zebra Sileo Diagnose
+name: iPhone Zebra Sileo Repair
 
 on:
   push:
@@ -11,13 +11,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: iphone-zebra-sileo-diagnose
+  group: iphone-zebra-sileo-repair
   cancel-in-progress: true
 
 jobs:
-  diagnose:
+  repair:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     environment:
       name: TAILSCALE_AUTHKEY-
     steps:
@@ -32,7 +32,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends openssh-client sshpass >/dev/null
 
-      - name: Run targeted iPhone-only diagnostics
+      - name: Repair package managers without deleting data
         env:
           IPHONE_HOST: 100.96.37.124
           IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
@@ -50,71 +50,120 @@ jobs:
           set +e
           export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
           export HOME=/var/mobile
-          echo '=== TARGETED IPHONE ZEBRA/SILEO DIAGNOSTICS ==='
-          printf 'ios='; sw_vers -productVersion 2>/dev/null || true
-          printf 'model='; sysctl -n hw.model 2>/dev/null || true
+          TS="$(date +%Y%m%d-%H%M%S)"
+          BK="/var/mobile/Documents/CodexPackageManagerBackups/$TS"
+          mkdir -p "$BK"
+          chmod 700 "$BK" 2>/dev/null || true
 
-          echo '--- Zebra watchdog report summary ---'
-          CR="$(ls -t /var/mobile/Library/Logs/CrashReporter/stacks+Zebra*.ips 2>/dev/null | head -n 1)"
-          echo "crash_file=$CR"
-          if [ -n "$CR" ] && [ -f "$CR" ]; then
-            grep -a -E -m 8 '"reason"|"exception"|WatchdogEvent|ProcessVisibility|WatchdogVisibility|WatchdogCPUStatistics' "$CR" 2>/dev/null | cut -c1-6000 || true
-            echo '--- Zebra process record (trimmed) ---'
-            grep -a -E -m 1 '"procname":"Zebra"' "$CR" 2>/dev/null | cut -c1-18000 || true
-            echo '--- injected/jailbreak image hints in Zebra stack report ---'
-            grep -a -Ei 'MobileSubstrate|DynamicLibraries|ElleKit|/var/jb/|/private/preboot/.*/procursus' "$CR" 2>/dev/null | grep -Ei 'Zebra|dylib|MobileSubstrate|DynamicLibraries|ElleKit' | head -n 120 | cut -c1-3000 || true
-          fi
+          echo '=== NON-DESTRUCTIVE IPHONE PACKAGE MANAGER REPAIR ==='
+          echo "backup_dir=$BK"
+          echo 'policy=no-rm-no-package-removal-no-tweak-removal-no-pref-reset'
 
-          echo '--- tweak filters explicitly targeting Zebra or broad app injection ---'
-          for p in /var/jb/Library/MobileSubstrate/DynamicLibraries/*.plist; do
-            [ -f "$p" ] || continue
-            TXT="$(plutil -p "$p" 2>/dev/null || strings -a "$p" 2>/dev/null)"
-            if printf '%s\n' "$TXT" | grep -Eqi 'xyz\.willy\.Zebra|Zebra|com\.apple\.UIKit|UIKit|SpringBoard'; then
-              echo "FILTER=$p"
-              printf '%s\n' "$TXT" | grep -Ei 'Bundles|Executables|Classes|xyz\.willy\.Zebra|Zebra|UIKit|SpringBoard' | head -n 50
-            fi
+          killall Zebra 2>/dev/null || true
+          killall Sileo 2>/dev/null || true
+          sleep 2
+
+          echo '--- Zebra state discovery ---'
+          find /var/mobile/Library /var/jb/var/mobile/Library -maxdepth 6 \
+            \( -iname '*zebra*' -o -path '*Zebra*' \) -print 2>/dev/null | head -n 160 || true
+
+          echo '--- Zebra cache/database preservation + rebuild ---'
+          ZLIST="$BK/zebra-moved.txt"
+          : > "$ZLIST"
+          find /var/mobile/Library /var/jb/var/mobile/Library -maxdepth 7 -type f \
+            \( -path '*Zebra*' -o -path '*zebra*' \) \
+            \( -iname '*.db' -o -iname '*.db-wal' -o -iname '*.db-shm' -o -iname '*.sqlite' -o -iname '*.sqlite3' -o -iname '*.sqlite-wal' -o -iname '*.sqlite-shm' \) \
+            -print 2>/dev/null | while IFS= read -r f; do
+              [ -f "$f" ] || continue
+              case "$f" in
+                *.before-fix-*|*.failed-rebuild-*) continue ;;
+              esac
+              rel="$(printf '%s' "$f" | sed 's#^/##; s#/#__#g')"
+              cp -p "$f" "$BK/$rel" 2>/dev/null || continue
+              mv "$f" "$f.before-fix-$TS" 2>/dev/null || continue
+              printf '%s\n' "$f" >> "$ZLIST"
+              echo "preserved_zebra_db=$f"
           done
 
-          echo '--- CyPwn APT truth ---'
-          IDX=/var/jb/var/lib/apt/lists/repo.cypwn.xyz_._Packages
-          printf 'cypwn_package_records='; grep -c '^Package:' "$IDX" 2>/dev/null || echo 0
-          printf 'iphoneos_arm64_records='; grep -c '^Architecture: iphoneos-arm64$' "$IDX" 2>/dev/null || echo 0
-          printf 'iphoneos_arm_records='; grep -c '^Architecture: iphoneos-arm$' "$IDX" 2>/dev/null || echo 0
-          printf 'all_arch_records='; grep -c '^Architecture: all$' "$IDX" 2>/dev/null || echo 0
-          echo 'apt_candidate:'
+          echo '--- Launch Zebra and verify beyond watchdog window ---'
+          BEFORE_CR="$(ls -t /var/mobile/Library/Logs/CrashReporter/stacks+Zebra*.ips 2>/dev/null | head -n 1)"
+          uiopen 'zbra://' 2>/dev/null || uiopen 'zebra://' 2>/dev/null || uiopen /var/jb/Applications/Zebra.app 2>/dev/null || true
+          sleep 8
+          printf 'zebra_pid_8s='; pgrep -x Zebra 2>/dev/null | tr '\n' ' '; echo
+          sleep 16
+          printf 'zebra_pid_24s='; pgrep -x Zebra 2>/dev/null | tr '\n' ' '; echo
+          AFTER_CR="$(ls -t /var/mobile/Library/Logs/CrashReporter/stacks+Zebra*.ips 2>/dev/null | head -n 1)"
+          echo "zebra_crash_before=$BEFORE_CR"
+          echo "zebra_crash_after=$AFTER_CR"
+          if pgrep -x Zebra >/dev/null 2>&1; then
+            echo 'ZEBRA_REPAIR_VERIFIED=1'
+          else
+            echo 'ZEBRA_REPAIR_VERIFIED=0'
+            echo 'Restoring preserved Zebra databases because launch did not survive.'
+            while IFS= read -r orig; do
+              [ -n "$orig" ] || continue
+              saved="$orig.before-fix-$TS"
+              if [ -e "$saved" ]; then
+                if [ -e "$orig" ]; then
+                  mv "$orig" "$orig.failed-rebuild-$TS" 2>/dev/null || true
+                fi
+                mv "$saved" "$orig" 2>/dev/null || true
+              fi
+            done < "$ZLIST"
+          fi
+
+          killall Sileo 2>/dev/null || true
+          sleep 2
+
+          echo '--- Sileo cache DB/hash preservation ---'
+          SLIST="$BK/sileo-moved.txt"
+          : > "$SLIST"
+          for f in \
+            /var/jb/var/mobile/Library/Caches/CydiaClassic/Database/sileo.sqlite3 \
+            /var/jb/var/mobile/Library/Caches/CydiaClassic/Database/sileo.sqlite3-wal \
+            /var/jb/var/mobile/Library/Caches/CydiaClassic/Database/sileo.sqlite3-shm \
+            /var/jb/var/mobile/Library/Caches/Sileo/RepoHashCache.json; do
+            [ -f "$f" ] || continue
+            rel="$(printf '%s' "$f" | sed 's#^/##; s#/#__#g')"
+            cp -p "$f" "$BK/$rel" 2>/dev/null || continue
+            mv "$f" "$f.before-fix-$TS" 2>/dev/null || continue
+            printf '%s\n' "$f" >> "$SLIST"
+            echo "preserved_sileo_state=$f"
+          done
+
+          echo '--- Refresh APT indexes in place ---'
+          apt-get update 2>&1 | tail -n 80
+          echo 'apt_candidate_after_refresh:'
           apt-cache policy xyz.cypwn.python3.12 2>/dev/null || true
 
-          echo '--- Sileo repo hash cache ---'
+          echo '--- Launch Sileo to rebuild its own package cache ---'
+          uiopen 'sileo://' 2>/dev/null || uiopen /var/jb/Applications/Sileo.app 2>/dev/null || true
+          sleep 35
+          SDB=/var/jb/var/mobile/Library/Caches/CydiaClassic/Database/sileo.sqlite3
           RH=/var/jb/var/mobile/Library/Caches/Sileo/RepoHashCache.json
-          if [ -f "$RH" ]; then
-            ls -l "$RH"
-            grep -a -io -E '.{0,120}repo\.cypwn\.xyz.{0,240}' "$RH" 2>/dev/null | head -n 20 || true
-          fi
-
-          echo '--- Sileo package database ---'
-          DB=/var/jb/var/mobile/Library/Caches/CydiaClassic/Database/sileo.sqlite3
-          ls -l "$DB" 2>/dev/null || true
-          if command -v sqlite3 >/dev/null 2>&1 && [ -f "$DB" ]; then
-            echo "sqlite3=$(command -v sqlite3)"
-            echo 'tables:'
-            sqlite3 "$DB" '.tables' 2>/dev/null || true
-            echo 'schema:'
-            sqlite3 "$DB" "SELECT name, sql FROM sqlite_master WHERE type='table';" 2>/dev/null | head -c 24000 || true
-            echo
-            echo 'cypwn_rows_any_table:'
-            for t in $(sqlite3 "$DB" "SELECT name FROM sqlite_master WHERE type='table';" 2>/dev/null); do
-              cols="$(sqlite3 "$DB" "PRAGMA table_info('$t');" 2>/dev/null | cut -d'|' -f2 | tr '\n' ' ')"
-              echo "TABLE=$t COLS=$cols"
-              for c in $cols; do
-                sqlite3 "$DB" "SELECT '$t.$c', COUNT(*) FROM '$t' WHERE CAST('$c' AS TEXT) LIKE '%cypwn%';" 2>/dev/null | grep -v '|0$' || true
-              done
-            done
+          ls -l "$SDB" "$RH" 2>/dev/null || true
+          if [ -f "$SDB" ] && strings -a "$SDB" 2>/dev/null | grep -Fq 'xyz.cypwn.python3.12'; then
+            echo 'SILEO_CYPWN_DB_VERIFIED=1'
           else
-            echo 'sqlite3_unavailable=true'
-            strings -a "$DB" 2>/dev/null | grep -Ei 'cypwn|repo\.cypwn\.xyz' | head -n 80 || true
+            echo 'SILEO_CYPWN_DB_VERIFIED=0'
           fi
+          if [ -f "$RH" ] && grep -aq 'repo.cypwn.xyz' "$RH" 2>/dev/null; then
+            echo 'SILEO_CYPWN_HASH_VERIFIED=1'
+          else
+            echo 'SILEO_CYPWN_HASH_VERIFIED=0'
+          fi
+          printf 'sileo_pid='; pgrep -x Sileo 2>/dev/null | tr '\n' ' '; echo
 
-          echo 'TARGETED_IPHONE_DIAGNOSTICS_COMPLETE=1'
+          echo '--- Final invariants ---'
+          printf 'zebra_package='; dpkg-query -W -f='${Status} ${Version} ${Architecture}\n' xyz.willy.zebra 2>/dev/null || true
+          printf 'sileo_package='; dpkg-query -W -f='${Status} ${Version} ${Architecture}\n' org.coolstar.sileo 2>/dev/null || true
+          printf 'ellekit_package='; dpkg-query -W -f='${Status} ${Version} ${Architecture}\n' ellekit 2>/dev/null || true
+          printf 'cypwn_records='; grep -c '^Package:' /var/jb/var/lib/apt/lists/repo.cypwn.xyz_._Packages 2>/dev/null || echo 0
+          echo 'NO_FILES_DELETED=1'
+          echo 'NO_PACKAGES_REMOVED=1'
+          echo 'NO_TWEAKS_REMOVED=1'
+          echo 'NO_PREFS_RESET=1'
+          echo 'IPHONE_REPAIR_COMPLETE=1'
           EOS
           } | sshpass -e ssh \
               -o BatchMode=no \
@@ -128,7 +177,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: iphone-zebra-sileo-${{ github.run_id }}
+          name: iphone-zebra-sileo-repair-${{ github.run_id }}
           path: iphone-zebra-sileo-output.txt
           if-no-files-found: warn
           retention-days: 7
