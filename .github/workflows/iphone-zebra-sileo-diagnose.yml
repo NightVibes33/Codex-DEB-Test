@@ -1,4 +1,4 @@
-name: iPhone Zebra Exact Watchdog
+name: iPhone Zebra Symbol Match
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: iphone-zebra-exact-watchdog
+  group: iphone-zebra-symbol-match
   cancel-in-progress: true
 
 jobs:
@@ -32,7 +32,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends openssh-client sshpass >/dev/null
 
-      - name: Capture latest Zebra watchdog and state
+      - name: Fetch installed Zebra executable and inspect symbols
         env:
           IPHONE_HOST: 100.96.37.124
           IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
@@ -44,7 +44,6 @@ jobs:
           chmod 700 "$HOME/.ssh"
           ssh-keyscan -T 15 -H "$IPHONE_HOST" > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/known_hosts"
-
           SSH_OPTS=(-o BatchMode=no -o ConnectTimeout=20 -o ServerAliveInterval=10 -o ServerAliveCountMax=3 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts")
 
           {
@@ -52,123 +51,69 @@ jobs:
             cat <<'EOS'
           set +e
           export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
-          ZDIR='/var/mobile/Library/Application Support/xyz.willy.Zebra'
-          CRASHDIR='/var/mobile/Library/Logs/CrashReporter'
-          echo '=== ZEBRA POST-FAILURE STATE ==='
-          echo 'READ_ONLY=YES'
-          date
+          echo '=== ZEBRA EXECUTABLE LOCATE ==='
           dpkg-query -W -f='zebra_version=${Version}\n' xyz.willy.zebra 2>/dev/null || true
-          echo '--- Zebra support dir ---'
-          ls -la "$ZDIR" 2>/dev/null | sed -n '1,120p'
-          echo '--- newest Zebra watchdogs ---'
-          ls -lT "$CRASHDIR"/stacks+Zebra*.ips 2>/dev/null | tail -n 8 || true
-          latest="$(ls -1t "$CRASHDIR"/stacks+Zebra*.ips 2>/dev/null | head -n1)"
-          echo "LATEST_REPORT=$latest"
-          [ -n "$latest" ] && wc -c "$latest" || true
-          echo '--- termination summary ---'
-          [ -n "$latest" ] && grep -Eo '0x8badf00d|process-launch|WatchdogEvent|watchdog[^,}\"]*|elapsed[^,}\"]*|CPU[^,}\"]*' "$latest" 2>/dev/null | head -n 50 || true
-          echo '--- current Zebra process ---'
-          ps aux 2>/dev/null | grep -E '[Z]ebra.app/Zebra|/Zebra$' || true
+          dpkg -L xyz.willy.zebra 2>/dev/null | grep -E '/Zebra\.app/Zebra$' | head -n 5
           EOS
-          } | timeout 90s sshpass -e ssh "${SSH_OPTS[@]}" mobile@"$IPHONE_HOST" \
+          } | timeout 60s sshpass -e ssh "${SSH_OPTS[@]}" mobile@"$IPHONE_HOST" \
               'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
-              2>&1 | tee zebra-state.txt
+              2>&1 | tee zebra-locate.txt
 
-          LATEST=$(grep '^LATEST_REPORT=' zebra-state.txt | tail -n1 | cut -d= -f2-)
-          if [ -z "$LATEST" ]; then
-            echo 'ERROR=no Zebra watchdog report found'
+          ZEBRA_PATH=$(grep -E '^/.*Zebra\.app/Zebra$' zebra-locate.txt | head -n1)
+          if [ -z "$ZEBRA_PATH" ]; then
+            echo 'ERROR=no Zebra executable path found'
             exit 20
           fi
+          echo "zebra_executable=$ZEBRA_PATH"
 
-          echo "Fetching raw watchdog: $LATEST"
           {
             printf '%s\n' "$IPHONE_PASSWORD"
-            printf 'cat %q\n' "$LATEST"
+            printf 'cat %q\n' "$ZEBRA_PATH"
           } | timeout 90s sshpass -e ssh "${SSH_OPTS[@]}" mobile@"$IPHONE_HOST" \
               'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
-              > zebra-latest.ips
+              > Zebra.bin
 
-          python3 - <<'PY' | tee zebra-analysis.txt
-          import json, pathlib, re
-          p = pathlib.Path('zebra-latest.ips')
-          raw = p.read_text(errors='replace')
-          print('=== ZEBRA WATCHDOG STRUCTURE ===')
-          print('bytes=', len(raw))
-          lines = raw.splitlines()
-          objs = []
-          for i, line in enumerate(lines):
-              s=line.strip().lstrip('\ufeff')
-              if not s: continue
-              try:
-                  o=json.loads(s)
-                  objs.append((i,o))
-              except Exception:
-                  pass
-          if not objs:
-              # Some reports are one JSON document after a small textual prefix.
-              first = raw.find('{')
-              if first >= 0:
-                  try: objs=[(-1,json.loads(raw[first:]))]
-                  except Exception as e: print('json_parse_error=',repr(e))
-          print('json_objects=', len(objs))
+          chmod +x Zebra.bin
+          echo '=== FILE ===' | tee zebra-symbols.txt
+          file Zebra.bin | tee -a zebra-symbols.txt
+          sha256sum Zebra.bin | tee -a zebra-symbols.txt
 
-          def short(v, n=240):
-              s=str(v).replace('\n',' ')
-              return s[:n]
+          echo '=== MACH-O LOAD COMMANDS / UUID ===' | tee -a zebra-symbols.txt
+          llvm-objdump --macho --private-headers Zebra.bin 2>&1 | grep -A4 -B2 -E 'LC_UUID|uuid' | tee -a zebra-symbols.txt || true
 
-          interesting_keys = {
-              'termination','terminationReason','exception','exceptionType','reason','bug_type',
-              'procName','processName','pid','path','name','symbol','imageIndex','offsetIntoBinaryTextSegment',
-              'userFrames','kernelFrames','threads','threadById','processByPid','usedImages','binaryImages',
-              'duration','cpuTime','cpuTimeSec','elapsed','watchdogEvent'
-          }
-
-          def walk(o, path='root', depth=0):
-              if depth > 12: return
-              if isinstance(o, dict):
-                  for k,v in o.items():
-                      lk=str(k)
-                      np=f'{path}.{lk}'
-                      if lk in interesting_keys or 'watchdog' in lk.lower() or 'termination' in lk.lower():
-                          if isinstance(v,(str,int,float,bool,type(None))):
-                              print(f'{np} = {short(v)}')
-                          elif lk in ('userFrames','kernelFrames') and isinstance(v,list):
-                              print(f'{np} count={len(v)}')
-                              for j,fr in enumerate(v[:40]): print(f'  frame[{j}] {short(fr,500)}')
-                          elif lk in ('usedImages','binaryImages') and isinstance(v,list):
-                              print(f'{np} count={len(v)}')
-                              for j,img in enumerate(v):
-                                  txt=short(img,600)
-                                  if re.search(r'Zebra|ElleKit|Substrate|apt|sqlite|\.dylib|/var/jb|preboot', txt, re.I):
-                                      print(f'  image[{j}] {txt}')
-                          elif lk in ('threads','threadById','processByPid'):
-                              print(f'{np} type={type(v).__name__} size={len(v) if hasattr(v,"__len__") else "?"}')
-                      walk(v,np,depth+1)
-              elif isinstance(o,list):
-                  for i,v in enumerate(o[:500]): walk(v,f'{path}[{i}]',depth+1)
-
-          for idx,o in objs:
-              print(f'--- JSON object from line {idx} ---')
-              if isinstance(o,dict): print('top_keys=', sorted(o.keys()))
-              walk(o)
-
-          print('=== TEXT HITS ===')
-          for pat in ['0x8badf00d','process-launch','Zebra','ElleKit','sqlite','libapt','sources.list']:
-              hits=[m.start() for m in re.finditer(re.escape(pat), raw, re.I)]
-              print(pat, 'hits=',len(hits))
-              for pos in hits[:8]:
-                  print(' ', raw[max(0,pos-180):pos+360].replace('\n',' ')[:540])
+          echo '=== HOT FRAME NEAREST SYMBOLS ===' | tee -a zebra-symbols.txt
+          python3 - <<'PY' | tee -a zebra-symbols.txt
+          import subprocess,re
+          targets=[1910732,1573740]
+          try:
+              out=subprocess.check_output(['llvm-nm','-n','Zebra.bin'],stderr=subprocess.STDOUT,text=True,errors='replace')
+          except Exception as e:
+              print('llvm_nm_error=',e); raise SystemExit
+          syms=[]
+          for line in out.splitlines():
+              m=re.match(r'^([0-9a-fA-F]+)\s+\S\s+(.*)$',line)
+              if m:
+                  syms.append((int(m.group(1),16),m.group(2)))
+          print('symbol_count=',len(syms))
+          for target in targets:
+              prior=[s for s in syms if s[0] <= target]
+              nxt=[s for s in syms if s[0] > target]
+              print('target_offset=',target,hex(target))
+              for a,n in prior[-8:]: print('  prior',hex(a),target-a,n[:300])
+              for a,n in nxt[:4]: print('  next ',hex(a),a-target,n[:300])
           PY
 
-          echo 'WATCHDOG_CAPTURE_COMPLETE=1'
+          echo '=== RELEVANT STRINGS AROUND STARTUP ===' | tee -a zebra-symbols.txt
+          strings -a Zebra.bin | grep -Ei 'database|migration|refresh|source|featured|package|tabbar|scene|launch' | head -n 180 | tee -a zebra-symbols.txt || true
+          echo 'SYMBOL_MATCH_COMPLETE=1' | tee -a zebra-symbols.txt
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: iphone-zebra-exact-watchdog-${{ github.run_id }}
+          name: iphone-zebra-symbol-match-${{ github.run_id }}
           path: |
-            zebra-state.txt
-            zebra-latest.ips
-            zebra-analysis.txt
+            zebra-locate.txt
+            zebra-symbols.txt
+            Zebra.bin
           if-no-files-found: warn
           retention-days: 7
