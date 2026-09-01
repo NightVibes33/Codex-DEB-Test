@@ -1,0 +1,221 @@
+name: ByeTunes15 Recover Pre-Write Snapshot
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - temp/byetunes-ios16-rootless
+    paths:
+      - 'triggers/byetunes15-emergency-recover-prewrite.txt'
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  env:
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.e.outputs.name }}
+    steps:
+      - id: e
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fsSL -H 'Accept: application/vnd.github+json' -H "Authorization: Bearer $GH_TOKEN" -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" >/tmp/e.json
+          python3 - <<'PY' >>"$GITHUB_OUTPUT"
+          import json
+          for e in json.load(open('/tmp/e.json')).get('environments', []):
+              if int(e.get('id', -1)) == 18728387881:
+                  print('name=' + e['name'])
+                  break
+          else:
+              raise SystemExit('environment not found')
+          PY
+
+  recover:
+    needs: env
+    environment:
+      name: ${{ needs.env.outputs.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      HOST: '100.96.37.124'
+      PORT: '22'
+      SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+      PASS: ${{ secrets.IPAD_PASSWORD }}
+    steps:
+      - name: Download off-device safety snapshot
+        uses: actions/download-artifact@v4
+        with:
+          name: ByeTunes15-reversible-write-33469197344
+          run-id: 33469197344
+          github-token: ${{ github.token }}
+          path: /tmp/recovery
+
+      - name: Consolidate snapshot into clean SQLite DB
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq openssh-client sshpass sqlite3 netcat-openbsd
+          DB="$(find /tmp/recovery -type f -path '*/prewrite-db/MediaLibrary.sqlitedb' -print | head -n1)"
+          test -n "$DB"
+          test "$(sqlite3 "$DB" 'PRAGMA quick_check;')" = ok
+          rm -f /tmp/MediaLibrary-prewrite-clean.sqlitedb
+          sqlite3 "$DB" ".backup '/tmp/MediaLibrary-prewrite-clean.sqlitedb'"
+          test -s /tmp/MediaLibrary-prewrite-clean.sqlitedb
+          QC="$(sqlite3 /tmp/MediaLibrary-prewrite-clean.sqlitedb 'PRAGMA quick_check;')"
+          UV="$(sqlite3 /tmp/MediaLibrary-prewrite-clean.sqlitedb 'PRAGMA user_version;')"
+          TEST_TRACK="$(sqlite3 /tmp/MediaLibrary-prewrite-clean.sqlitedb "SELECT count(*) FROM item_extra WHERE title='ByeTunes15 Synthetic Smoke';")"
+          TEST_PLAYLIST="$(sqlite3 /tmp/MediaLibrary-prewrite-clean.sqlitedb "SELECT count(*) FROM container WHERE name='ByeTunes15 Synthetic Playlist';")"
+          printf 'quick_check=%s\nuser_version=%s\ntest_track=%s\ntest_playlist=%s\n' "$QC" "$UV" "$TEST_TRACK" "$TEST_PLAYLIST" | tee recovery-source.txt
+          test "$QC" = ok
+          test "$TEST_TRACK" = 0
+          test "$TEST_PLAYLIST" = 0
+
+      - name: Join Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: Gate exact iPhone and installed package
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"; chmod 700 "$HOME/.ssh"
+          tailscale ping --timeout=5s --c 1 "$HOST" | tee device.txt || true
+          timeout 8s ssh-keyscan -T 5 -H -p "$PORT" "$HOST" > "$HOME/.ssh/known_hosts" 2>>device.txt
+          test -s "$HOME/.ssh/known_hosts"; chmod 600 "$HOME/.ssh/known_hosts"
+          cat >/tmp/gate.sh <<'SH'
+          set -eu
+          P=/System/Library/CoreServices/SystemVersion.plist
+          V="$(sed -n '/<key>ProductVersion<\/key>/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' "$P" | head -n1)"
+          M="$(sysctl -n hw.machine 2>/dev/null || /usr/sbin/sysctl -n hw.machine 2>/dev/null || uname -m)"
+          echo "machine=$M version=$V"
+          [ "$M" = iPhone8,1 ] || exit 20
+          [ "$V" = 15.8.8 ] || exit 21
+          Q=/var/jb/usr/bin/dpkg-query; [ -x "$Q" ] || Q="$(command -v dpkg-query || true)"
+          [ "$($Q -W -f='${Version}' com.nightvibes.byetunes16 2>/dev/null)" = 0.2.2 ] || exit 22
+          echo RECOVERY_GATE_PASS
+          SH
+          { printf '%s\n' "$PASS"; cat /tmp/gate.sh; } | timeout 35s sshpass -e ssh -p "$PORT" -o BatchMode=no -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s' | tee gate.txt
+          grep -q RECOVERY_GATE_PASS gate.txt
+
+      - name: Upload clean pre-write DB to staging
+        run: |
+          set -euo pipefail
+          sshpass -e scp -P "$PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" /tmp/MediaLibrary-prewrite-clean.sqlitedb "mobile@$HOST:/var/mobile/MediaLibrary-prewrite-clean.sqlitedb"
+
+      - name: Atomically restore pre-write DB and clean synthetic files
+        run: |
+          set -euo pipefail
+          cat >/tmp/recover.sh <<'SH'
+          set -eu
+          DB=/var/mobile/Media/iTunes_Control/iTunes/MediaLibrary.sqlitedb
+          STAGE=/var/mobile/MediaLibrary-prewrite-clean.sqlitedb
+          RDIR=/var/mobile/Library/ByeTunes16/EmergencyRecovery
+          test -f "$STAGE"
+          killall Music >/dev/null 2>&1 || true
+          sleep 1
+          mkdir -p "$RDIR"
+          cp "$DB" "$RDIR/MediaLibrary-mutated.sqlitedb"
+          [ ! -f "$DB-wal" ] || cp "$DB-wal" "$RDIR/MediaLibrary-mutated.sqlitedb-wal"
+          [ ! -f "$DB-shm" ] || cp "$DB-shm" "$RDIR/MediaLibrary-mutated.sqlitedb-shm"
+          chown -R mobile:mobile "$RDIR" 2>/dev/null || true
+          chmod 700 "$RDIR"; chmod 600 "$RDIR"/* 2>/dev/null || true
+
+          chown mobile:mobile "$STAGE" 2>/dev/null || true
+          chmod 0644 "$STAGE"
+          rm -f "$DB-wal" "$DB-shm"
+          OLD="$DB.before-byetunes-recovery"
+          rm -f "$OLD"
+          mv "$DB" "$OLD"
+          if mv "$STAGE" "$DB"; then
+            chown mobile:mobile "$DB" 2>/dev/null || true
+            chmod 0644 "$DB"
+            rm -f "$OLD"
+          else
+            mv "$OLD" "$DB"
+            exit 30
+          fi
+
+          rm -f /var/mobile/ByeTunes15Synthetic.wav
+          rm -f /var/mobile/Media/iTunes_Control/Music/F00/ARTNA3NB3A66.wav
+          rmdir /var/mobile/Media/iTunes_Control/Music/F00 2>/dev/null || true
+          rmdir /var/mobile/Media/iTunes_Control/Music 2>/dev/null || true
+          rm -rf /var/mobile/ByeTunes15WriteSafety /var/mobile/ByeTunes15FinalSnapshot
+
+          LABEL=com.nightvibes.byetunes16d
+          PLIST=/var/jb/Library/LaunchDaemons/com.nightvibes.byetunes16d.plist
+          launchctl bootout "system/$LABEL" >/dev/null 2>&1 || true
+          launchctl bootstrap system "$PLIST" >/dev/null 2>&1 || launchctl load "$PLIST" >/dev/null 2>&1 || true
+          launchctl kickstart -k "system/$LABEL" >/dev/null 2>&1 || true
+          sleep 3
+          echo PREWRITE_DB_RESTORED
+          SH
+          { printf '%s\n' "$PASS"; cat /tmp/recover.sh; } | timeout 60s sshpass -e ssh -p "$PORT" -o BatchMode=no -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s' | tee recovery.txt
+          grep -q PREWRITE_DB_RESTORED recovery.txt
+
+      - name: Verify recovered daemon and library state
+        run: |
+          set -euo pipefail
+          sshpass -e ssh -f -N -L 45981:127.0.0.1:45981 -p "$PORT" -o ExitOnForwardFailure=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST"
+          sleep 2
+          printf '%s\n' '{"op":"probe"}' | nc -w 10 127.0.0.1 45981 | tee probe.json
+          grep -q '"ok":true' probe.json
+          grep -q '"quickCheck":"ok"' probe.json
+          printf '%s\n' '{"op":"library","limit":1000}' | nc -w 15 127.0.0.1 45981 > library.json
+          printf '%s\n' '{"op":"playlists"}' | nc -w 15 127.0.0.1 45981 > playlists.json
+          python3 - <<'PY'
+          import json
+          lib=json.load(open('library.json')); pls=json.load(open('playlists.json'))
+          assert lib.get('ok') is True, lib
+          assert pls.get('ok') is True, pls
+          assert not any(x.get('title')=='ByeTunes15 Synthetic Smoke' for x in lib.get('songs',[])), 'synthetic track remains'
+          assert not any(x.get('name')=='ByeTunes15 Synthetic Playlist' for x in pls.get('playlists',[])), 'synthetic playlist remains'
+          print('RECOVERED_API_CLEAN')
+          PY
+
+      - name: Verify recovered DB off-device
+        run: |
+          set -euo pipefail
+          cat >/tmp/snapshot.sh <<'SH'
+          set -eu
+          DB=/var/mobile/Media/iTunes_Control/iTunes/MediaLibrary.sqlitedb
+          TMP=/var/mobile/ByeTunes15RecoveredCheck
+          rm -rf "$TMP"; mkdir -p "$TMP"
+          cp "$DB" "$TMP/MediaLibrary.sqlitedb"
+          [ ! -f "$DB-wal" ] || cp "$DB-wal" "$TMP/MediaLibrary.sqlitedb-wal"
+          [ ! -f "$DB-shm" ] || cp "$DB-shm" "$TMP/MediaLibrary.sqlitedb-shm"
+          chown -R mobile:mobile "$TMP" 2>/dev/null || true
+          chmod 700 "$TMP"; chmod 600 "$TMP"/*
+          SH
+          { printf '%s\n' "$PASS"; cat /tmp/snapshot.sh; } | sshpass -e ssh -p "$PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s'
+          mkdir -p recovered-db
+          sshpass -e scp -P "$PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST:/var/mobile/ByeTunes15RecoveredCheck/MediaLibrary.sqlitedb*" recovered-db/
+          QC="$(sqlite3 recovered-db/MediaLibrary.sqlitedb 'PRAGMA quick_check;')"
+          T="$(sqlite3 recovered-db/MediaLibrary.sqlitedb "SELECT count(*) FROM item_extra WHERE title='ByeTunes15 Synthetic Smoke';")"
+          P="$(sqlite3 recovered-db/MediaLibrary.sqlitedb "SELECT count(*) FROM container WHERE name='ByeTunes15 Synthetic Playlist';")"
+          printf 'quick_check=%s\ntest_track=%s\ntest_playlist=%s\n' "$QC" "$T" "$P" | tee recovered-integrity.txt
+          test "$QC" = ok
+          test "$T" = 0
+          test "$P" = 0
+          { printf '%s\n' "$PASS"; echo 'rm -rf /var/mobile/ByeTunes15RecoveredCheck'; } | sshpass -e ssh -p "$PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s'
+          echo EMERGENCY_RECOVERY_PASS
+
+      - name: Upload recovery diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ByeTunes15-recovery-${{ github.run_id }}
+          path: |
+            recovery-source.txt
+            device.txt
+            gate.txt
+            recovery.txt
+            probe.json
+            library.json
+            playlists.json
+            recovered-integrity.txt
+          if-no-files-found: ignore
+          retention-days: 14
