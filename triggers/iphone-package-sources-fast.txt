@@ -1,4 +1,4 @@
-run=2026-09-01T15:41:00-05:00
-purpose=repair-empty-sileo-zebra-source-views
-mode=preserve-cache-reset-filter-fix-no-delete
-workflow_commit=f0d2dbd84ce19219545ee268a9465adef84dc7cc
+run=2026-09-01T15:49:00-05:00
+purpose=probe-a9-cpu-gpu-dvfs
+mode=read-only-no-hardware-writes
+workflow_commit=97eab6a585d758d7886d06db4f5c132d0e4a7133
