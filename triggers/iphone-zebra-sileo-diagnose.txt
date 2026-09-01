@@ -1,3 +1,3 @@
-run=2026-09-01T13:30:00-05:00
-purpose=iphone-zebra-sileo-reversible-repair
-mode=no-rm-no-package-removal-no-tweak-removal-no-pref-reset
+run=2026-09-01T13:38:00-05:00
+purpose=iphone-zebra-gui-launch-probe
+mode=read-only-no-data-changes
