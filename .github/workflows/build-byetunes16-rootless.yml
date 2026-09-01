@@ -1,4 +1,4 @@
-name: Build ByeTunes16 Rootless
+name: Build ByeTunes15-16 Rootless
 
 on:
   workflow_dispatch:
@@ -69,6 +69,10 @@ jobs:
           dpkg-deb --contents "$DEB" | tee byetunes16-package-contents.txt
           test "$(dpkg-deb --field "$DEB" Package)" = "com.nightvibes.byetunes16"
           test "$(dpkg-deb --field "$DEB" Architecture)" = "iphoneos-arm64"
+          test "$(dpkg-deb --field "$DEB" Version)" = "0.2.1"
+          dpkg-deb --field "$DEB" Depends | tee byetunes16-depends.txt
+          dpkg-deb --field "$DEB" Depends | grep -Fq 'firmware (>= 15.0)'
+          dpkg-deb --field "$DEB" Depends | grep -Fq 'firmware (<< 17.0)'
           rm -rf byetunes16-package-root byetunes16-package-control
           dpkg-deb -x "$DEB" byetunes16-package-root
           dpkg-deb -e "$DEB" byetunes16-package-control
@@ -80,20 +84,24 @@ jobs:
           test -x byetunes16-package-control/prerm
           file byetunes16-package-root/var/jb/Library/MobileSubstrate/DynamicLibraries/ByeTunes16.dylib | tee byetunes16-binary-info.txt | grep -q arm64
           file byetunes16-package-root/var/jb/usr/libexec/byetunes16d | tee -a byetunes16-binary-info.txt | grep -q arm64
+          otool -l byetunes16-package-root/var/jb/Library/MobileSubstrate/DynamicLibraries/ByeTunes16.dylib | awk '/LC_BUILD_VERSION/{f=1} f&&/minos/{print; exit}' | tee byetunes16-minos.txt
+          otool -l byetunes16-package-root/var/jb/usr/libexec/byetunes16d | awk '/LC_BUILD_VERSION/{f=1} f&&/minos/{print; exit}' | tee -a byetunes16-minos.txt
+          grep -Eq 'minos[[:space:]]+15\.0' byetunes16-minos.txt
           shasum -a 256 "$DEB" | tee byetunes16-sha256.txt
-          cp "$DEB" ByeTunes16-iOS16-Dopamine-rootless.deb
+          cp "$DEB" ByeTunes15-16-Dopamine-rootless.deb
           {
             echo 'validation=success'
             echo "version=$(dpkg-deb --field "$DEB" Version)"
             echo "package=$(dpkg-deb --field "$DEB" Package)"
             echo "architecture=$(dpkg-deb --field "$DEB" Architecture)"
+            echo "depends=$(dpkg-deb --field "$DEB" Depends)"
           } | tee byetunes16-validation.txt
 
-      - name: Upload ByeTunes16 DEB
+      - name: Upload ByeTunes15-16 DEB
         uses: actions/upload-artifact@v4
         with:
-          name: ByeTunes16-iOS16-Dopamine-rootless
-          path: ByeTunes16-iOS16-Dopamine-rootless.deb
+          name: ByeTunes15-16-Dopamine-rootless
+          path: ByeTunes15-16-Dopamine-rootless.deb
           if-no-files-found: error
           retention-days: 14
 
@@ -101,12 +109,14 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ByeTunes16-build-diagnostics-${{ github.run_id }}
+          name: ByeTunes15-16-build-diagnostics-${{ github.run_id }}
           path: |
             byetunes16-build.log
             byetunes16-package-info.txt
             byetunes16-package-contents.txt
             byetunes16-binary-info.txt
+            byetunes16-minos.txt
+            byetunes16-depends.txt
             byetunes16-sha256.txt
             byetunes16-validation.txt
           if-no-files-found: ignore
@@ -124,18 +134,19 @@ jobs:
           git pull --rebase origin temp/byetunes-ios16-rootless
           mkdir -p remote
           {
-            echo 'ByeTunes16 iOS 16 Rootless Build'
+            echo 'ByeTunes iOS 15-16 Rootless Build'
             echo "run_id=${GITHUB_RUN_ID}"
             echo "commit=${GITHUB_SHA}"
             echo "compile=${COMPILE_OUTCOME}"
             echo "validate=${VALIDATE_OUTCOME}"
             echo
             if [ -f byetunes16-validation.txt ]; then cat byetunes16-validation.txt; fi
+            if [ -f byetunes16-minos.txt ]; then cat byetunes16-minos.txt; fi
             if [ -f byetunes16-sha256.txt ]; then cat byetunes16-sha256.txt; fi
             echo
             echo '--- build tail ---'
             if [ -f byetunes16-build.log ]; then tail -n 260 byetunes16-build.log; else echo 'No build log.'; fi
           } > remote/byetunes16-build-status.txt
           git add remote/byetunes16-build-status.txt
-          git commit -m 'Record ByeTunes16 build status [skip ci]' || exit 0
+          git commit -m 'Record ByeTunes15-16 build status [skip ci]' || exit 0
           git push origin HEAD:temp/byetunes-ios16-rootless
