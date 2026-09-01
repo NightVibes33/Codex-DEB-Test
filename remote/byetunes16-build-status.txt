@@ -1,17 +1,17 @@
 ByeTunes iOS 15-16 Rootless Build
-run_id=33463286656
-commit=e3bc281af73f2f1dff227bc762d5d07a9418e534
+run_id=33463885528
+commit=79c411497d1da834b3ab58c152160bd1f46d307b
 compile=success
 validate=success
 
 validation=success
-version=0.2.1
+version=0.2.2
 package=com.nightvibes.byetunes16
 architecture=iphoneos-arm64
 depends=firmware (>= 15.0), firmware (<< 17.0), ellekit
     minos 15.0
     minos 15.0
-aba22fcd8f326e9480fa89da534fb5e242b813824330eccc01a7d17637acf714  byetunes16/packages/com.nightvibes.byetunes16_0.2.1_iphoneos-arm64.deb
+7dc0f3d27763b9564b8606915f23b6319d87db9b53a05afea4d4ebcc4e585033  byetunes16/packages/com.nightvibes.byetunes16_0.2.2_iphoneos-arm64.deb
 
 --- build tail ---
 [0;36m==> [1;39mCleaning…[m
@@ -38,4 +38,4 @@ ld: warning: -multiply_defined is obsolete
 [0;34m==> [1;39mSigning byetunes16d…[m
 [1;31m> [1;3;39mMaking stage for tweak ByeTunes16…[m
 [1;31m> [1;3;39mMaking stage for tool byetunes16d…[m
-dm.pl: building package `com.nightvibes.byetunes16:iphoneos-arm64' in `./packages/com.nightvibes.byetunes16_0.2.1_iphoneos-arm64.deb'
+dm.pl: building package `com.nightvibes.byetunes16:iphoneos-arm64' in `./packages/com.nightvibes.byetunes16_0.2.2_iphoneos-arm64.deb'
