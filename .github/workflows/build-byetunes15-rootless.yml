@@ -1,0 +1,270 @@
+name: Build ByeTunes15 Rootless
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [temp/byetunes-ios15-iphone]
+    paths:
+      - '.github/workflows/build-byetunes15-rootless.yml'
+      - 'triggers/byetunes15-build.txt'
+
+permissions:
+  contents: read
+
+env:
+  THEOS: ${{ github.workspace }}/theos
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/byetunes-ios15-iphone
+
+      - name: Select Xcode 15
+        run: |
+          set -euo pipefail
+          candidate=''
+          for path in /Applications/Xcode_15.4.app /Applications/Xcode_15.3.app /Applications/Xcode_15.2.app /Applications/Xcode_15.1.app /Applications/Xcode.app; do
+            if [ -d "$path" ]; then candidate="$path"; break; fi
+          done
+          test -n "$candidate"
+          sudo xcode-select --switch "$candidate"
+          xcodebuild -version
+
+      - name: Install packaging tools
+        uses: dhinakg/procursus-action@main
+        with:
+          packages: ldid dpkg findutils sed coreutils
+          cache: true
+          cache-path: ~/__cache
+
+      - name: Install Theos and SDK
+        run: |
+          set -euo pipefail
+          rm -rf "$THEOS" /tmp/theos-sdks
+          git clone --recursive --depth=1 https://github.com/theos/theos.git "$THEOS"
+          git clone --depth=1 https://github.com/theos/sdks.git /tmp/theos-sdks
+          cp -a /tmp/theos-sdks/iPhoneOS16.5.sdk "$THEOS/sdks/"
+          test -f "$THEOS/makefiles/common.mk"
+
+      - name: Apply iOS 15 compatibility patch
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path('byetunes16')
+
+          makefile = root / 'Makefile'
+          s = makefile.read_text()
+          s = s.replace('TARGET = iphone:clang:16.5:16.0', 'TARGET = iphone:clang:16.5:15.0')
+          s = s.replace('ByeTunes16_CFLAGS = -fobjc-arc -Wall -Wextra -Wno-deprecated-declarations',
+                        'ByeTunes16_CFLAGS = -fobjc-arc -Wall -Wextra -Wno-deprecated-declarations -Werror=unguarded-availability-new')
+          s = s.replace('byetunes16d_CFLAGS = -fobjc-arc -Wall -Wextra -Wno-deprecated-declarations',
+                        'byetunes16d_CFLAGS = -fobjc-arc -Wall -Wextra -Wno-deprecated-declarations -Werror=unguarded-availability-new')
+          makefile.write_text(s)
+
+          control = root / 'control'
+          s = control.read_text()
+          s = s.replace('Name: ByeTunes 16 Injection', 'Name: ByeTunes 15 Injection')
+          s = s.replace('Version: 0.2.0', 'Version: 0.2.0-ios15.1')
+          s = s.replace('Full rootless iOS 16 ByeTunes-style Apple Music injector for Dopamine/ElleKit',
+                        'Rootless iOS 15 ByeTunes-style Apple Music injector for Dopamine/ElleKit')
+          s = s.replace('Depends: firmware (>= 16.0), firmware (<< 17.0), ellekit',
+                        'Depends: firmware (>= 15.0), firmware (<< 16.0), ellekit')
+          control.write_text(s)
+
+          importer = root / 'daemon' / 'BTImporter.m'
+          s = importer.read_text()
+          artwork = r'''static BOOL BTWriteArtwork(sqlite3 *db, NSData *data, int64_t itemPID, int64_t albumPID, NSString **errorOut) {
+              if (!data.length || !BTTable(db, @"artwork") || !BTTable(db, @"artwork_token") || !BTTable(db, @"best_artwork_token")) return YES;
+              NSString *token = [NSString stringWithFormat:@"%lld", itemPID];
+              NSString *rel = BTRelativeArtworkPath(token);
+              NSString *path = [BTArtworkDir stringByAppendingPathComponent:rel];
+              [[NSFileManager defaultManager] createDirectoryAtPath:path.stringByDeletingLastPathComponent withIntermediateDirectories:YES attributes:@{NSFilePosixPermissions:@0755} error:nil];
+              NSError *writeError = nil;
+              if (![data writeToFile:path options:NSDataWritingAtomic error:&writeError]) { if (errorOut) *errorOut = writeError.localizedDescription; return NO; }
+              chown(path.fileSystemRepresentation, 501, 501); chmod(path.fileSystemRepresentation, 0644);
+
+              BOOL artworkVariant = BTColumn(db, @"artwork", @"artwork_variant_type");
+              BOOL tokenVariant = BTColumn(db, @"artwork_token", @"artwork_variant_type");
+              BOOL bestVariant = BTColumn(db, @"best_artwork_token", @"artwork_variant_type");
+              sqlite3_stmt *stmt = NULL;
+
+              NSString *artworkSQL = artworkVariant
+                  ? @"INSERT OR REPLACE INTO artwork(artwork_token,artwork_source_type,relative_path,artwork_type,interest_data,artwork_variant_type) VALUES(?,1,?,1,'',0)"
+                  : @"INSERT OR REPLACE INTO artwork(artwork_token,artwork_source_type,relative_path,artwork_type,interest_data) VALUES(?,1,?,1,'')";
+              if (sqlite3_prepare_v2(db, artworkSQL.UTF8String, -1, &stmt, NULL) != SQLITE_OK) goto fail;
+              sqlite3_bind_text(stmt, 1, token.UTF8String, -1, SQLITE_TRANSIENT);
+              sqlite3_bind_text(stmt, 2, rel.UTF8String, -1, SQLITE_TRANSIENT);
+              if (sqlite3_step(stmt) != SQLITE_DONE) goto fail;
+              sqlite3_finalize(stmt); stmt = NULL;
+
+              int64_t entities[2] = { itemPID, albumPID };
+              int types[2] = { 0, 1 };
+              for (int i = 0; i < 2; i++) {
+                  NSString *tokenSQL = tokenVariant
+                      ? @"INSERT OR REPLACE INTO artwork_token(artwork_token,artwork_source_type,artwork_type,entity_pid,entity_type,artwork_variant_type) VALUES(?,1,1,?,?,0)"
+                      : @"INSERT OR REPLACE INTO artwork_token(artwork_token,artwork_source_type,artwork_type,entity_pid,entity_type) VALUES(?,1,1,?,?)";
+                  if (sqlite3_prepare_v2(db, tokenSQL.UTF8String, -1, &stmt, NULL) != SQLITE_OK) goto fail;
+                  sqlite3_bind_text(stmt, 1, token.UTF8String, -1, SQLITE_TRANSIENT);
+                  sqlite3_bind_int64(stmt, 2, entities[i]);
+                  sqlite3_bind_int(stmt, 3, types[i]);
+                  if (sqlite3_step(stmt) != SQLITE_DONE) goto fail;
+                  sqlite3_finalize(stmt); stmt = NULL;
+
+                  NSString *bestSQL = bestVariant
+                      ? @"INSERT OR REPLACE INTO best_artwork_token(entity_pid,entity_type,artwork_type,available_artwork_token,fetchable_artwork_token,fetchable_artwork_source_type,artwork_variant_type) VALUES(?,?,1,?,'',0,0)"
+                      : @"INSERT OR REPLACE INTO best_artwork_token(entity_pid,entity_type,artwork_type,available_artwork_token,fetchable_artwork_token,fetchable_artwork_source_type) VALUES(?,?,1,?,'',0)";
+                  if (sqlite3_prepare_v2(db, bestSQL.UTF8String, -1, &stmt, NULL) != SQLITE_OK) goto fail;
+                  sqlite3_bind_int64(stmt, 1, entities[i]);
+                  sqlite3_bind_int(stmt, 2, types[i]);
+                  sqlite3_bind_text(stmt, 3, token.UTF8String, -1, SQLITE_TRANSIENT);
+                  if (sqlite3_step(stmt) != SQLITE_DONE) goto fail;
+                  sqlite3_finalize(stmt); stmt = NULL;
+              }
+              return YES;
+          fail:
+              if (errorOut) *errorOut = [NSString stringWithUTF8String:sqlite3_errmsg(db)];
+              sqlite3_finalize(stmt);
+              return NO;
+          }
+
+          static NSString *BTBackup'''
+          s, n = re.subn(r'static BOOL BTWriteArtwork\(.*?\n\}\n\nstatic NSString \*BTBackup', artwork, s, count=1, flags=re.S)
+          if n != 1: raise SystemExit('failed to patch BTWriteArtwork')
+
+          playlist = r'''static BOOL BTCreatePlaylistInternal(sqlite3 *db, NSString *name, NSArray<NSNumber *> *pids, int64_t *pidOut, NSString **errorOut) {
+              if (!name.length) { if (errorOut) *errorOut = @"Playlist name is empty"; return NO; }
+              int64_t order = 0; NSInteger section = 0;
+              if (!BTSort(db, name, &order, &section, errorOut)) return NO;
+              int64_t pid = BTPID(), now = (int64_t)NSDate.date.timeIntervalSince1970;
+              sqlite3_stmt *stmt = NULL;
+              if (sqlite3_prepare_v2(db, "INSERT INTO container(container_pid,name,name_order,date_created,date_modified,contained_media_type,is_owner,is_editable,distinguished_kind) VALUES(?,?,?,?,?,8,1,1,0)", -1, &stmt, NULL) != SQLITE_OK) goto fail;
+              sqlite3_bind_int64(stmt,1,pid); sqlite3_bind_text(stmt,2,name.UTF8String,-1,SQLITE_TRANSIENT); sqlite3_bind_int64(stmt,3,order); sqlite3_bind_int64(stmt,4,now); sqlite3_bind_int64(stmt,5,now);
+              if (sqlite3_step(stmt) != SQLITE_DONE) goto fail;
+              sqlite3_finalize(stmt); stmt = NULL;
+
+              BOOL hasUUID = BTColumn(db, @"container_item", @"uuid");
+              NSInteger pos = 0;
+              for (NSNumber *number in pids) {
+                  NSString *sql = hasUUID
+                      ? @"INSERT INTO container_item(container_item_pid,container_pid,item_pid,position,uuid) VALUES(?,?,?,?,?)"
+                      : @"INSERT INTO container_item(container_item_pid,container_pid,item_pid,position) VALUES(?,?,?,?)";
+                  if (sqlite3_prepare_v2(db, sql.UTF8String, -1, &stmt, NULL) != SQLITE_OK) goto fail;
+                  sqlite3_bind_int64(stmt,1,BTPID()); sqlite3_bind_int64(stmt,2,pid); sqlite3_bind_int64(stmt,3,number.longLongValue); sqlite3_bind_int64(stmt,4,pos++);
+                  if (hasUUID) { NSString *uuid = NSUUID.UUID.UUIDString; sqlite3_bind_text(stmt,5,uuid.UTF8String,-1,SQLITE_TRANSIENT); }
+                  if (sqlite3_step(stmt) != SQLITE_DONE) goto fail;
+                  sqlite3_finalize(stmt); stmt = NULL;
+              }
+              if (pidOut) *pidOut = pid;
+              return YES;
+          fail:
+              if (errorOut) *errorOut = [NSString stringWithUTF8String:sqlite3_errmsg(db)];
+              sqlite3_finalize(stmt);
+              return NO;
+          }
+
+          @implementation BTImporter'''
+          s, n = re.subn(r'static BOOL BTCreatePlaylistInternal\(.*?\n\n@implementation BTImporter', playlist, s, count=1, flags=re.S)
+          if n != 1: raise SystemExit('failed to patch BTCreatePlaylistInternal')
+          importer.write_text(s)
+
+          full = root / 'daemon' / 'BTImporter+Full.m'
+          s = full.read_text()
+          old = '''        if (sqlite3_prepare_v2(db, "INSERT INTO container_item(container_item_pid,container_pid,item_pid,position,uuid) VALUES(?,?,?,?,?)", -1, &stmt, NULL) != SQLITE_OK) {
+            ok = NO;
+            error = [NSString stringWithUTF8String:sqlite3_errmsg(db)];
+            break;
+        }
+        NSString *uuid = NSUUID.UUID.UUIDString;
+        sqlite3_bind_int64(stmt, 1, BTFullPID());
+        sqlite3_bind_int64(stmt, 2, playlistPID);
+        sqlite3_bind_int64(stmt, 3, itemPID);
+        sqlite3_bind_int64(stmt, 4, position++);
+        sqlite3_bind_text(stmt, 5, uuid.UTF8String, -1, SQLITE_TRANSIENT);'''
+          new = '''        BOOL hasUUID = BTFullColumn(db, @"container_item", @"uuid");
+        NSString *insertSQL = hasUUID
+            ? @"INSERT INTO container_item(container_item_pid,container_pid,item_pid,position,uuid) VALUES(?,?,?,?,?)"
+            : @"INSERT INTO container_item(container_item_pid,container_pid,item_pid,position) VALUES(?,?,?,?)";
+        if (sqlite3_prepare_v2(db, insertSQL.UTF8String, -1, &stmt, NULL) != SQLITE_OK) {
+            ok = NO;
+            error = [NSString stringWithUTF8String:sqlite3_errmsg(db)];
+            break;
+        }
+        sqlite3_bind_int64(stmt, 1, BTFullPID());
+        sqlite3_bind_int64(stmt, 2, playlistPID);
+        sqlite3_bind_int64(stmt, 3, itemPID);
+        sqlite3_bind_int64(stmt, 4, position++);
+        if (hasUUID) { NSString *uuid = NSUUID.UUID.UUIDString; sqlite3_bind_text(stmt, 5, uuid.UTF8String, -1, SQLITE_TRANSIENT); }'''
+          if old not in s: raise SystemExit('failed to locate full playlist insert')
+          s = s.replace(old, new, 1)
+          full.write_text(s)
+
+          print('=== patched Makefile ===')
+          print(makefile.read_text())
+          print('=== patched control ===')
+          print(control.read_text())
+          PY
+
+      - name: Build rootless iOS 15 DEB
+        id: compile
+        run: |
+          set -o pipefail
+          : > byetunes15-build.log
+          make -C byetunes16 clean package FINALPACKAGE=1 2>&1 | tee byetunes15-build.log
+
+      - name: Validate iOS 15 package
+        id: validate
+        run: |
+          set -euo pipefail
+          DEB="$(find byetunes16/packages -maxdepth 1 -type f -name '*.deb' -print | head -n1)"
+          test -n "$DEB"
+          dpkg-deb --info "$DEB" | tee byetunes15-package-info.txt
+          dpkg-deb --contents "$DEB" | tee byetunes15-package-contents.txt
+          test "$(dpkg-deb --field "$DEB" Package)" = com.nightvibes.byetunes16
+          test "$(dpkg-deb --field "$DEB" Architecture)" = iphoneos-arm64
+          DEPENDS="$(dpkg-deb --field "$DEB" Depends)"
+          echo "$DEPENDS" | grep -F 'firmware (>= 15.0)'
+          echo "$DEPENDS" | grep -F 'firmware (<< 16.0)'
+          rm -rf /tmp/pkg
+          dpkg-deb -x "$DEB" /tmp/pkg
+          test -f /tmp/pkg/var/jb/Library/MobileSubstrate/DynamicLibraries/ByeTunes16.dylib
+          test -x /tmp/pkg/var/jb/usr/libexec/byetunes16d
+          otool -l /tmp/pkg/var/jb/Library/MobileSubstrate/DynamicLibraries/ByeTunes16.dylib | tee byetunes15-otool.txt
+          otool -l /tmp/pkg/var/jb/usr/libexec/byetunes16d | tee -a byetunes15-otool.txt
+          grep -Eq 'minos 15\.|version 15\.' byetunes15-otool.txt
+          shasum -a 256 "$DEB" | tee byetunes15-sha256.txt
+          cp "$DEB" ByeTunes15-iOS15-Dopamine-rootless.deb
+          {
+            echo validation=success
+            echo "version=$(dpkg-deb --field "$DEB" Version)"
+            echo "depends=$DEPENDS"
+          } | tee byetunes15-validation.txt
+
+      - name: Upload iOS 15 DEB
+        uses: actions/upload-artifact@v4
+        with:
+          name: ByeTunes15-iOS15-Dopamine-rootless
+          path: ByeTunes15-iOS15-Dopamine-rootless.deb
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ByeTunes15-build-diagnostics-${{ github.run_id }}
+          path: |
+            byetunes15-build.log
+            byetunes15-package-info.txt
+            byetunes15-package-contents.txt
+            byetunes15-otool.txt
+            byetunes15-sha256.txt
+            byetunes15-validation.txt
+          if-no-files-found: ignore
+          retention-days: 14
