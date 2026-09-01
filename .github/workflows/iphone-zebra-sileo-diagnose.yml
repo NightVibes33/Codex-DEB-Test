@@ -1,4 +1,4 @@
-name: iPhone Zebra Patch Dry Run
+name: iPhone Zebra removeMalware Patch
 
 on:
   push:
@@ -11,13 +11,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: iphone-zebra-patch-dry-run
+  group: iphone-zebra-removeMalware-patch
   cancel-in-progress: true
 
 jobs:
-  inspect:
+  repair:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 6
     environment:
       name: TAILSCALE_AUTHKEY-
     steps:
@@ -32,7 +32,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends openssh-client sshpass >/dev/null
 
-      - name: Verify exact patch and signing on a copy only
+      - name: Patch only Zebra removeMalware call and preserve original
         env:
           IPHONE_HOST: 100.96.37.124
           IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
@@ -48,90 +48,143 @@ jobs:
           {
             printf '%s\n' "$IPHONE_PASSWORD"
             cat <<'EOS'
-          set -u
+          set -eu
           export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
+
           ZEBRA='/var/jb/Applications/Zebra.app/Zebra'
           TS="$(date +%Y%m%d-%H%M%S)"
-          WORK="/var/mobile/Documents/CodexPackageManagerBackups/$TS/ZebraPatchDryRun"
-          CAND="$WORK/Zebra.patched-candidate"
-          ENT="$WORK/Zebra.entitlements.plist"
+          BACKUP="/var/mobile/Documents/CodexPackageManagerBackups/$TS/ZebraRemoveMalwarePatch"
+          CAND="$BACKUP/Zebra"
+          ENT="$BACKUP/Zebra.entitlements.plist"
+          INPLACE_ORIG="$ZEBRA.before-removeMalware-patch-$TS"
+          FAILED="$ZEBRA.failed-removeMalware-patch-$TS"
+          OFF=$((0x180368))
 
-          echo '=== ZEBRA PATCH DRY RUN ==='
-          echo 'INSTALLED_BINARY_CHANGED=0'
+          echo '=== ZEBRA removeMalware STARTUP PATCH ==='
           echo 'DELETE_COMMANDS_USED=0'
-          echo "ldid_path=$(command -v ldid 2>/dev/null || true)"
-          echo "jbctl_path=$(command -v jbctl 2>/dev/null || true)"
-          command -v ldid >/dev/null 2>&1 || { echo 'ERROR=ldid unavailable'; exit 21; }
-          command -v jbctl >/dev/null 2>&1 || { echo 'ERROR=jbctl unavailable'; exit 22; }
+          echo 'PACKAGES_REMOVED=0'
+          echo 'TWEAKS_REMOVED=0'
+          echo 'PREFERENCES_RESET=0'
+          echo 'DATABASE_CHANGED=0'
+          echo 'PATCH_SCOPE=one ARM64 instruction in Zebra main()'
 
-          echo '--- ldid help/header ---'
-          ldid -h "$ZEBRA" 2>&1 | sed -n '1,80p' || true
-          echo '--- jbctl trustcache usage ---'
-          jbctl 2>&1 | sed -n '1,40p' || true
-          echo '--- original hash ---'
+          for cmd in ldid jbctl sha256sum dd od cmp cp mv chmod chown; do
+            command -v "$cmd" >/dev/null 2>&1 || { echo "ERROR=required tool missing: $cmd"; exit 20; }
+          done
+
           ORIG_SHA="$(sha256sum "$ZEBRA" | awk '{print $1}')"
-          echo "original_sha256=$ORIG_SHA"
-          [ "$ORIG_SHA" = '17d470bdfaf19f1b92bdb8fded2aba666060681530f78ac0df6c49e1a6463b04' ] || { echo 'ERROR=installed Zebra hash changed since symbol match'; exit 23; }
+          echo "installed_original_sha256=$ORIG_SHA"
+          if [ "$ORIG_SHA" != '17d470bdfaf19f1b92bdb8fded2aba666060681530f78ac0df6c49e1a6463b04' ]; then
+            echo 'ERROR=installed Zebra differs from exact binary that was symbol-matched; refusing patch'
+            exit 21
+          fi
 
-          mkdir -p "$WORK"
-          chown mobile:mobile "$WORK" 2>/dev/null || true
-          chmod 700 "$WORK" 2>/dev/null || true
-          cp -p "$ZEBRA" "$CAND"
+          readhex() {
+            dd if="$1" bs=1 skip="$2" count="$3" 2>/dev/null | od -An -tx1 | tr -d ' \n'
+          }
 
-          echo '--- original entitlements ---'
+          BEFORE4="$(readhex "$ZEBRA" "$OFF" 4)"
+          PRE8="$(readhex "$ZEBRA" $((OFF-8)) 8)"
+          POST8="$(readhex "$ZEBRA" $((OFF+4)) 8)"
+          echo "installed_patch_bytes_before=$BEFORE4"
+          echo "installed_pre8=$PRE8"
+          echo "installed_post8=$POST8"
+          [ "$BEFORE4" = '16ea0194' ] || { echo 'ERROR=removeMalware call bytes mismatch'; exit 22; }
+          [ "$PRE8" = '280e00d0003d44f9' ] || { echo 'ERROR=pre-instruction context mismatch'; exit 23; }
+          [ "$POST8" = '280e00d0006144f9' ] || { echo 'ERROR=post-instruction context mismatch'; exit 24; }
+          echo 'EXACT_PATCH_SITE_VERIFIED=1'
+
+          mkdir -p "$BACKUP"
+          chmod 700 "$BACKUP"
+
+          # Preserve exact original bytes outside the app directory first.
+          cp -p "$ZEBRA" "$BACKUP/Zebra.original"
+          BACKUP_SHA="$(sha256sum "$BACKUP/Zebra.original" | awk '{print $1}')"
+          echo "external_backup_sha256=$BACKUP_SHA"
+          [ "$BACKUP_SHA" = "$ORIG_SHA" ] || { echo 'ERROR=external original backup hash mismatch'; exit 25; }
+
           ldid -e "$ZEBRA" > "$ENT"
-          wc -c "$ENT"
-          sed -n '1,100p' "$ENT"
+          [ -s "$ENT" ] || { echo 'ERROR=failed to preserve Zebra entitlements'; exit 26; }
+          echo "entitlements_bytes=$(wc -c < "$ENT" | tr -d ' ')"
 
-          echo '--- exact instruction check ---'
-          python3 - "$CAND" <<'PY'
-          import sys, pathlib
-          p=pathlib.Path(sys.argv[1])
-          b=bytearray(p.read_bytes())
-          off=0x180368
-          expected=bytes.fromhex('16ea0194')
-          replacement=bytes.fromhex('1f2003d5')
-          got=bytes(b[off:off+4])
-          print('patch_file_offset=0x180368')
-          print('patch_original_bytes='+got.hex())
-          print('patch_expected_bytes='+expected.hex())
-          if got != expected:
-              raise SystemExit('ERROR=exact branch bytes do not match expected removeMalware call')
-          # Verify surrounding main() bytes too, making accidental-offset patch impossible.
-          pre=bytes.fromhex('280e00d0003d44f9')
-          post=bytes.fromhex('280e00d0006144f9')
-          if bytes(b[off-8:off]) != pre or bytes(b[off+4:off+12]) != post:
-              raise SystemExit('ERROR=main surrounding bytes mismatch')
-          b[off:off+4]=replacement
-          p.write_bytes(b)
-          print('patch_new_bytes='+bytes(b[off:off+4]).hex())
-          print('PATCH_BYTES_VERIFIED=1')
-          PY
+          # Candidate basename is deliberately Zebra so ldid retains Identifier=Zebra.
+          cp -p "$ZEBRA" "$CAND"
+          printf '\037\040\003\325' | dd of="$CAND" bs=1 seek="$OFF" conv=notrunc 2>/dev/null
+          CAND_PATCH="$(readhex "$CAND" "$OFF" 4)"
+          echo "candidate_patch_bytes_pre_sign=$CAND_PATCH"
+          [ "$CAND_PATCH" = '1f2003d5' ] || { echo 'ERROR=NOP write verification failed'; exit 27; }
 
-          echo '--- candidate pre-sign hash ---'
-          sha256sum "$CAND"
-          echo '--- sign candidate with original entitlements ---'
+          # Preserve all original entitlements while generating a valid new CodeDirectory.
           ldid -S"$ENT" "$CAND"
-          echo '--- candidate post-sign metadata ---'
-          ldid -h "$CAND" 2>&1 | sed -n '1,120p' || true
-          echo '--- candidate entitlements after sign ---'
-          ldid -e "$CAND" 2>&1 | sed -n '1,120p' || true
-          echo '--- exact patch persisted after signing ---'
-          python3 - "$CAND" <<'PY'
-          import sys,pathlib
-          b=pathlib.Path(sys.argv[1]).read_bytes()
-          off=0x180368
-          print('signed_patch_bytes='+b[off:off+4].hex())
-          if b[off:off+4] != bytes.fromhex('1f2003d5'):
-              raise SystemExit('ERROR=patch did not persist through ldid')
-          print('SIGNED_PATCH_VERIFIED=1')
-          PY
-          echo "candidate_sha256=$(sha256sum "$CAND" | awk '{print $1}')"
-          echo "dry_run_dir=$WORK"
-          echo 'PATCH_DRY_RUN_COMPLETE=1'
-          echo 'INSTALLED_BINARY_CHANGED=0'
+          CAND_PATCH_SIGNED="$(readhex "$CAND" "$OFF" 4)"
+          echo "candidate_patch_bytes_post_sign=$CAND_PATCH_SIGNED"
+          [ "$CAND_PATCH_SIGNED" = '1f2003d5' ] || { echo 'ERROR=patch changed during signing'; exit 28; }
+
+          ldid -e "$CAND" > "$BACKUP/Zebra.candidate.entitlements.plist"
+          cmp -s "$ENT" "$BACKUP/Zebra.candidate.entitlements.plist" || { echo 'ERROR=candidate entitlements differ from original'; exit 29; }
+          echo 'ENTITLEMENTS_PRESERVED=1'
+
+          HDR="$(ldid -h "$CAND" 2>&1)"
+          printf '%s\n' "$HDR" | sed -n '1,30p'
+          IDENT="$(printf '%s\n' "$HDR" | sed -n 's/^Identifier=//p' | head -n1)"
+          CDHASH="$(printf '%s\n' "$HDR" | sed -n 's/^CDHash=//p' | head -n1)"
+          echo "candidate_identifier=$IDENT"
+          echo "candidate_cdhash=$CDHASH"
+          [ "$IDENT" = 'Zebra' ] || { echo 'ERROR=candidate code-sign identifier is not Zebra'; exit 30; }
+          case "$CDHASH" in
+            [0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]) ;;
+            *) echo 'ERROR=invalid candidate CDHash'; exit 31 ;;
+          esac
+
+          # Dopamine 3.x jbctl officially supports adding an arbitrary CDHash.
+          jbctl trustcache add "$CDHASH"
+          if ! jbctl trustcache info 2>/dev/null | grep -qi "$CDHASH"; then
+            echo 'ERROR=new Zebra CDHash was not found in jailbreak trustcache; installed file remains untouched'
+            exit 32
+          fi
+          echo 'CANDIDATE_TRUSTCACHE_VERIFIED=1'
+
+          # Stop Zebra only, then atomically preserve the original in place and install candidate.
+          killall Zebra 2>/dev/null || true
+          mv "$ZEBRA" "$INPLACE_ORIG"
+          mv "$CAND" "$ZEBRA"
+
+          # Match original executable ownership/mode explicitly.
+          chown root:wheel "$ZEBRA" 2>/dev/null || true
+          chmod 755 "$ZEBRA"
+
+          INST_PATCH="$(readhex "$ZEBRA" "$OFF" 4)"
+          INST_HDR="$(ldid -h "$ZEBRA" 2>&1)"
+          INST_IDENT="$(printf '%s\n' "$INST_HDR" | sed -n 's/^Identifier=//p' | head -n1)"
+          INST_CDHASH="$(printf '%s\n' "$INST_HDR" | sed -n 's/^CDHash=//p' | head -n1)"
+          echo "installed_patch_bytes_after=$INST_PATCH"
+          echo "installed_identifier_after=$INST_IDENT"
+          echo "installed_cdhash_after=$INST_CDHASH"
+
+          INSTALL_OK=1
+          [ "$INST_PATCH" = '1f2003d5' ] || INSTALL_OK=0
+          [ "$INST_IDENT" = 'Zebra' ] || INSTALL_OK=0
+          [ "$INST_CDHASH" = "$CDHASH" ] || INSTALL_OK=0
+          ldid -e "$ZEBRA" > "$BACKUP/Zebra.installed.entitlements.plist" || INSTALL_OK=0
+          cmp -s "$ENT" "$BACKUP/Zebra.installed.entitlements.plist" || INSTALL_OK=0
+
+          if [ "$INSTALL_OK" -ne 1 ]; then
+            echo 'ERROR=post-install verification failed; restoring exact original immediately'
+            mv "$ZEBRA" "$FAILED"
+            mv "$INPLACE_ORIG" "$ZEBRA"
+            echo "failed_candidate_preserved=$FAILED"
+            echo 'ROLLBACK_COMPLETED=1'
+            exit 33
+          fi
+
+          echo "original_preserved_in_place=$INPLACE_ORIG"
+          echo "external_backup=$BACKUP/Zebra.original"
+          echo "backup_dir=$BACKUP"
+          echo 'ORIGINAL_BYTES_PRESERVED=1'
+          echo 'ZEBRA_REMOVE_MALWARE_CALL_PATCH_INSTALLED=1'
+          echo 'RESULT=Patched Zebra is signed, trusted, entitlement-matched, and installed. Manual SpringBoard launch is required for watchdog verification.'
           EOS
-          } | timeout 180s sshpass -e ssh \
+          } | timeout 240s sshpass -e ssh \
               -o BatchMode=no \
               -o ConnectTimeout=20 \
               -o ServerAliveInterval=10 \
@@ -140,12 +193,12 @@ jobs:
               -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
               mobile@"$IPHONE_HOST" \
               'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
-              2>&1 | tee iphone-zebra-patch-dry-run.txt
+              2>&1 | tee iphone-zebra-removeMalware-patch.txt
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: iphone-zebra-patch-dry-run-${{ github.run_id }}
-          path: iphone-zebra-patch-dry-run.txt
+          name: iphone-zebra-removeMalware-patch-${{ github.run_id }}
+          path: iphone-zebra-removeMalware-patch.txt
           if-no-files-found: warn
           retention-days: 7
