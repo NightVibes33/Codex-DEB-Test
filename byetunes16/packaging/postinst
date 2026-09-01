@@ -1,0 +1,7 @@
+#!/bin/sh
+set -u
+PLIST="/var/jb/Library/LaunchDaemons/com.nightvibes.byetunes16d.plist"
+/bin/launchctl bootout system/com.nightvibes.byetunes16d >/dev/null 2>&1 || true
+/bin/launchctl bootstrap system "$PLIST" >/dev/null 2>&1 || /bin/launchctl load "$PLIST" >/dev/null 2>&1 || true
+/usr/bin/killall Music >/dev/null 2>&1 || true
+exit 0
