@@ -1,0 +1,141 @@
+name: Build ByeTunes16 Rootless
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - temp/byetunes-ios16-rootless
+    paths:
+      - 'byetunes16/**'
+
+permissions:
+  contents: write
+
+env:
+  THEOS: ${{ github.workspace }}/theos
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/byetunes-ios16-rootless
+
+      - name: Select Xcode 15
+        run: |
+          set -euo pipefail
+          candidate=''
+          for path in /Applications/Xcode_15.4.app /Applications/Xcode_15.3.app /Applications/Xcode_15.2.app /Applications/Xcode_15.1.app /Applications/Xcode.app; do
+            if [ -d "$path" ]; then candidate="$path"; break; fi
+          done
+          test -n "$candidate"
+          sudo xcode-select --switch "$candidate"
+          xcodebuild -version
+
+      - name: Install packaging tools
+        uses: dhinakg/procursus-action@main
+        with:
+          packages: ldid dpkg findutils sed coreutils
+          cache: true
+          cache-path: ~/__cache
+
+      - name: Install Theos and iOS 16.5 SDK
+        run: |
+          set -euo pipefail
+          rm -rf "$THEOS" /tmp/theos-sdks
+          git clone --recursive --depth=1 https://github.com/theos/theos.git "$THEOS"
+          git clone --depth=1 https://github.com/theos/sdks.git /tmp/theos-sdks
+          cp -a /tmp/theos-sdks/iPhoneOS16.5.sdk "$THEOS/sdks/"
+          test -f "$THEOS/makefiles/common.mk"
+          test -f "$THEOS/sdks/iPhoneOS16.5.sdk/SDKSettings.plist"
+
+      - name: Build rootless DEB
+        id: compile
+        run: |
+          set -o pipefail
+          : > byetunes16-build.log
+          make -C byetunes16 clean package FINALPACKAGE=1 2>&1 | tee byetunes16-build.log
+
+      - name: Validate package
+        id: validate
+        run: |
+          set -euo pipefail
+          DEB="$(find byetunes16/packages -maxdepth 1 -type f -name '*.deb' -print | head -n1)"
+          test -n "$DEB"
+          echo "$DEB" > byetunes16-deb-path.txt
+          dpkg-deb --info "$DEB" | tee byetunes16-package-info.txt
+          dpkg-deb --contents "$DEB" | tee byetunes16-package-contents.txt
+          test "$(dpkg-deb --field "$DEB" Package)" = "com.nightvibes.byetunes16"
+          test "$(dpkg-deb --field "$DEB" Architecture)" = "iphoneos-arm64"
+          rm -rf byetunes16-package-root byetunes16-package-control
+          dpkg-deb -x "$DEB" byetunes16-package-root
+          dpkg-deb -e "$DEB" byetunes16-package-control
+          test -f byetunes16-package-root/var/jb/Library/MobileSubstrate/DynamicLibraries/ByeTunes16.dylib
+          test -f byetunes16-package-root/var/jb/Library/MobileSubstrate/DynamicLibraries/ByeTunes16.plist
+          test -x byetunes16-package-root/var/jb/usr/libexec/byetunes16d
+          test -f byetunes16-package-root/var/jb/Library/LaunchDaemons/com.nightvibes.byetunes16d.plist
+          test -x byetunes16-package-control/postinst
+          test -x byetunes16-package-control/prerm
+          file byetunes16-package-root/var/jb/Library/MobileSubstrate/DynamicLibraries/ByeTunes16.dylib | tee byetunes16-binary-info.txt | grep -q arm64
+          file byetunes16-package-root/var/jb/usr/libexec/byetunes16d | tee -a byetunes16-binary-info.txt | grep -q arm64
+          shasum -a 256 "$DEB" | tee byetunes16-sha256.txt
+          cp "$DEB" ByeTunes16-iOS16-Dopamine-rootless.deb
+          {
+            echo 'validation=success'
+            echo "version=$(dpkg-deb --field "$DEB" Version)"
+            echo "package=$(dpkg-deb --field "$DEB" Package)"
+            echo "architecture=$(dpkg-deb --field "$DEB" Architecture)"
+          } | tee byetunes16-validation.txt
+
+      - name: Upload ByeTunes16 DEB
+        uses: actions/upload-artifact@v4
+        with:
+          name: ByeTunes16-iOS16-Dopamine-rootless
+          path: ByeTunes16-iOS16-Dopamine-rootless.deb
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ByeTunes16-build-diagnostics-${{ github.run_id }}
+          path: |
+            byetunes16-build.log
+            byetunes16-package-info.txt
+            byetunes16-package-contents.txt
+            byetunes16-binary-info.txt
+            byetunes16-sha256.txt
+            byetunes16-validation.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Publish branch build status
+        if: always()
+        env:
+          COMPILE_OUTCOME: ${{ steps.compile.outcome }}
+          VALIDATE_OUTCOME: ${{ steps.validate.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin temp/byetunes-ios16-rootless
+          mkdir -p remote
+          {
+            echo 'ByeTunes16 iOS 16 Rootless Build'
+            echo "run_id=${GITHUB_RUN_ID}"
+            echo "commit=${GITHUB_SHA}"
+            echo "compile=${COMPILE_OUTCOME}"
+            echo "validate=${VALIDATE_OUTCOME}"
+            echo
+            if [ -f byetunes16-validation.txt ]; then cat byetunes16-validation.txt; fi
+            if [ -f byetunes16-sha256.txt ]; then cat byetunes16-sha256.txt; fi
+            echo
+            echo '--- build tail ---'
+            if [ -f byetunes16-build.log ]; then tail -n 260 byetunes16-build.log; else echo 'No build log.'; fi
+          } > remote/byetunes16-build-status.txt
+          git add remote/byetunes16-build-status.txt
+          git commit -m 'Record ByeTunes16 build status [skip ci]' || exit 0
+          git push origin HEAD:temp/byetunes-ios16-rootless
