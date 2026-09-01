@@ -1,4 +1,4 @@
-run=2026-09-01T15:37:00-05:00
-purpose=inspect-sileo-zebra-ui-filter-state
-mode=read-only-targeted
-workflow_commit=ad5cf4e772396934f847019660173fa22b271be7
+run=2026-09-01T15:41:00-05:00
+purpose=repair-empty-sileo-zebra-source-views
+mode=preserve-cache-reset-filter-fix-no-delete
+workflow_commit=f0d2dbd84ce19219545ee268a9465adef84dc7cc
