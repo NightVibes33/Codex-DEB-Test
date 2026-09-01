@@ -13,11 +13,14 @@
     self.title = @"ByeTunes16 Library";
     self.songs = @[];
     self.tableView.rowHeight = 62;
+    self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(bt_close)];
     self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemRefresh target:self action:@selector(reloadLibrary)];
     self.spinner = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
     self.tableView.backgroundView = self.spinner;
     [self reloadLibrary];
 }
+
+- (void)bt_close { [self dismissViewControllerAnimated:YES completion:nil]; }
 
 - (void)showError:(NSString *)message {
     UIAlertController *a = [UIAlertController alertControllerWithTitle:@"ByeTunes16" message:message preferredStyle:UIAlertControllerStyleAlert];
