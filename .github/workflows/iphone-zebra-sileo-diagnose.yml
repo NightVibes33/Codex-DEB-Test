@@ -1,4 +1,4 @@
-name: iPhone Zebra Launch Probe
+name: iPhone Zebra Watchdog Inspect
 
 on:
   push:
@@ -11,11 +11,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: iphone-zebra-launch-probe
+  group: iphone-zebra-watchdog-inspect
   cancel-in-progress: true
 
 jobs:
-  probe:
+  inspect:
     runs-on: ubuntu-latest
     timeout-minutes: 4
     environment:
@@ -25,14 +25,12 @@ jobs:
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
           version: latest
-
       - name: Install SSH client
         run: |
           set -euo pipefail
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends openssh-client sshpass >/dev/null
-
-      - name: Read-only Zebra launch probe
+      - name: Read-only Zebra watchdog inspection
         env:
           IPHONE_HOST: 100.96.37.124
           IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
@@ -49,66 +47,28 @@ jobs:
             cat <<'EOS'
           set +e
           export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
-          echo '=== ZEBRA READ-ONLY GUI LAUNCH PROBE ==='
+          CRASHDIR=/var/mobile/Library/Logs/CrashReporter
+          ZDIR='/var/mobile/Library/Application Support/xyz.willy.Zebra'
+          latest="$(ls -1t "$CRASHDIR"/stacks+Zebra*.ips 2>/dev/null | head -n1)"
+          echo '=== ZEBRA WATCHDOG READ-ONLY INSPECTION ==='
           echo 'NO_DATABASE_CHANGES=YES'
           echo 'NO_FILES_DELETED=YES'
-          id
-          echo '--- executable/registration ---'
-          command -v uiopen || true
-          ls -l "$(command -v uiopen 2>/dev/null)" 2>/dev/null || true
-          uicache -l 2>/dev/null | grep -i -A2 -B2 zebra || true
-          ZAPP="$(uicache -l 2>/dev/null | sed -n 's/.*xyz\.willy\.Zebra.*path: \([^}] *\).*/\1/p' | head -n1)"
-          [ -n "$ZAPP" ] || ZAPP=/var/jb/Applications/Zebra.app
-          echo "zebra_app_guess=$ZAPP"
-          if [ -f "$ZAPP/Info.plist" ]; then
-            plutil -p "$ZAPP/Info.plist" 2>/dev/null | grep -A8 -B3 -i 'CFBundleURL' || true
+          echo "latest=$latest"
+          if [ -n "$latest" ]; then
+            echo '--- report metadata / termination ---'
+            grep -n -E 'procName|bundleInfo|exception|termination|Watchdog|watchdog|0x8badf00d|process-launch|CPU|elapsed|triggered|faulting' "$latest" 2>/dev/null | head -n 120 || true
+            echo '--- Zebra / jailbreak / injected image references ---'
+            grep -n -E 'Zebra|MobileSubstrate|DynamicLibraries|ElleKit|ellekit|Substrate|Tweak|\.dylib|procursus|dopamine' "$latest" 2>/dev/null | head -n 260 || true
+            echo '--- first 220 lines of report ---'
+            sed -n '1,220p' "$latest" 2>/dev/null || true
           fi
-          echo '--- previous uiopen output ---'
-          cat /tmp/zebra-uiopen-repair.log 2>/dev/null || true
-          echo
-          echo '--- launchctl capabilities ---'
-          launchctl help asuser 2>&1 | head -n 20 || true
-          launchctl print gui/501 2>&1 | head -n 25 || true
-          echo '--- method 1: mobile uiopen zbra:// ---'
-          pkill -f '/Zebra.app/Zebra' 2>/dev/null || true
-          sleep 1
-          sudo -u mobile env HOME=/var/mobile PATH="$PATH" uiopen 'zbra://' >/tmp/zebra-probe-m1.log 2>&1
-          echo "m1_rc=$?"
-          cat /tmp/zebra-probe-m1.log 2>/dev/null || true
-          sleep 4
-          ps -axo pid,user,command 2>/dev/null | grep -i '[Z]ebra' || true
-          if ps -axo command 2>/dev/null | grep -q '[Z]ebra.app/Zebra'; then
-            echo 'm1_started=YES'
-          else
-            echo 'm1_started=NO'
-          fi
-          echo '--- method 2: launchctl asuser 501 uiopen zbra:// ---'
-          if ! ps -axo command 2>/dev/null | grep -q '[Z]ebra.app/Zebra'; then
-            launchctl asuser 501 /var/jb/usr/bin/uiopen 'zbra://' >/tmp/zebra-probe-m2.log 2>&1
-            echo "m2_rc=$?"
-            cat /tmp/zebra-probe-m2.log 2>/dev/null || true
-            sleep 4
-          fi
-          ps -axo pid,user,command 2>/dev/null | grep -i '[Z]ebra' || true
-          if ps -axo command 2>/dev/null | grep -q '[Z]ebra.app/Zebra'; then
-            echo 'm2_started=YES'
-          else
-            echo 'm2_started=NO'
-          fi
-          echo '--- method 3: mobile + launchctl asuser 501 ---'
-          if ! ps -axo command 2>/dev/null | grep -q '[Z]ebra.app/Zebra'; then
-            sudo -u mobile launchctl asuser 501 /var/jb/usr/bin/uiopen 'zbra://' >/tmp/zebra-probe-m3.log 2>&1
-            echo "m3_rc=$?"
-            cat /tmp/zebra-probe-m3.log 2>/dev/null || true
-            sleep 4
-          fi
-          ps -axo pid,user,command 2>/dev/null | grep -i '[Z]ebra' || true
-          if ps -axo command 2>/dev/null | grep -q '[Z]ebra.app/Zebra'; then
-            echo 'm3_started=YES'
-          else
-            echo 'm3_started=NO'
-          fi
-          echo 'PROBE_COMPLETE=1'
+          echo '--- Zebra application support files ---'
+          find "$ZDIR" -maxdepth 2 -type f -exec ls -l {} \; 2>/dev/null | head -n 160 || true
+          echo '--- Zebra package info ---'
+          dpkg -s xyz.willy.zebra 2>/dev/null | sed -n '1,100p' || true
+          echo '--- Zebra binary deps ---'
+          command -v otool >/dev/null 2>&1 && otool -L /var/jb/Applications/Zebra.app/Zebra 2>/dev/null | head -n 120 || true
+          echo 'INSPECTION_COMPLETE=1'
           EOS
           } | timeout 120s sshpass -e ssh \
               -o BatchMode=no \
@@ -119,12 +79,11 @@ jobs:
               -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
               mobile@"$IPHONE_HOST" \
               'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
-              2>&1 | tee iphone-zebra-launch-probe.txt
-
+              2>&1 | tee iphone-zebra-watchdog-inspect.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: iphone-zebra-launch-probe-${{ github.run_id }}
-          path: iphone-zebra-launch-probe.txt
+          name: iphone-zebra-watchdog-inspect-${{ github.run_id }}
+          path: iphone-zebra-watchdog-inspect.txt
           if-no-files-found: warn
           retention-days: 7
