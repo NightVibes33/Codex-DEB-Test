@@ -22,6 +22,11 @@ static NSDictionary *BTHandle(NSDictionary *request) {
     }
     if ([op isEqualToString:@"playlists"]) return [BTImporter playlists];
 
+    if ([op isEqualToString:@"searchMetadata"]) {
+        NSString *query = [request[@"query"] isKindOfClass:NSString.class] ? request[@"query"] : @"";
+        return [BTImporter searchMetadataForQuery:query];
+    }
+
     if ([op isEqualToString:@"import"]) {
         NSString *path = [request[@"path"] isKindOfClass:NSString.class] ? request[@"path"] : nil;
         NSString *sourceName = [request[@"sourceName"] isKindOfClass:NSString.class] ? request[@"sourceName"] : nil;
@@ -35,6 +40,19 @@ static NSDictionary *BTHandle(NSDictionary *request) {
         NSString *name = [request[@"name"] isKindOfClass:NSString.class] ? request[@"name"] : @"";
         NSArray *pids = [request[@"itemPIDs"] isKindOfClass:NSArray.class] ? request[@"itemPIDs"] : @[];
         return [BTImporter createPlaylistNamed:name itemPIDs:pids];
+    }
+
+    if ([op isEqualToString:@"addToPlaylist"]) {
+        int64_t playlistPID = [request[@"playlistPID"] longLongValue];
+        NSArray *pids = [request[@"itemPIDs"] isKindOfClass:NSArray.class] ? request[@"itemPIDs"] : @[];
+        return [BTImporter addItemPIDs:pids toPlaylistPID:playlistPID];
+    }
+
+    if ([op isEqualToString:@"applyMetadataCandidate"]) {
+        int64_t pid = [request[@"itemPID"] longLongValue];
+        NSDictionary *candidate = [request[@"candidate"] isKindOfClass:NSDictionary.class] ? request[@"candidate"] : @{};
+        if (pid <= 0) return @{ @"ok": @NO, @"error": @"Missing item PID" };
+        return [BTImporter applyMetadataCandidate:candidate toItemPID:pid];
     }
 
     if ([op isEqualToString:@"updateMetadata"]) {
