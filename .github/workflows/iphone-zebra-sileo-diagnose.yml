@@ -17,7 +17,7 @@ concurrency:
 jobs:
   diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 10
     environment:
       name: TAILSCALE_AUTHKEY-
     steps:
@@ -32,7 +32,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends openssh-client sshpass >/dev/null
 
-      - name: Run iPhone-only diagnostics
+      - name: Run targeted iPhone-only diagnostics
         env:
           IPHONE_HOST: 100.96.37.124
           IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
@@ -50,69 +50,71 @@ jobs:
           set +e
           export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
           export HOME=/var/mobile
-          echo '=== IPHONE ONLY ZEBRA/SILEO TRACE ==='
+          echo '=== TARGETED IPHONE ZEBRA/SILEO DIAGNOSTICS ==='
           printf 'ios='; sw_vers -productVersion 2>/dev/null || true
-          printf 'build='; sw_vers -buildVersion 2>/dev/null || true
           printf 'model='; sysctl -n hw.model 2>/dev/null || true
 
-          ZAPP=/var/jb/Applications/Zebra.app
-          echo '--- Zebra bundle metadata ---'
-          ls -ld "$ZAPP" "$ZAPP/Zebra" 2>/dev/null || true
-          command -v plutil || true
-          plutil -p "$ZAPP/Info.plist" 2>/dev/null | grep -E 'CFBundleIdentifier|CFBundleVersion|CFBundleShortVersionString|CFBundleURLSchemes' || true
-          echo 'Info.plist strings:'
-          strings -a "$ZAPP/Info.plist" 2>/dev/null | grep -Ei 'zbra|zebra|CFBundleURLSchemes' | head -n 40 || true
-
-          echo '--- Zebra launch trace ---'
-          echo 'before:'
-          ps ax 2>/dev/null | grep -i '[Z]ebra' || true
-          if command -v sudo >/dev/null 2>&1; then
-            sudo -u mobile uiopen 'zbra://' 2>&1 || sudo -u mobile uiopen 'zebra://' 2>&1 || true
-          else
-            su mobile -c "uiopen 'zbra://'" 2>&1 || su mobile -c "uiopen 'zebra://'" 2>&1 || true
+          echo '--- Zebra watchdog report summary ---'
+          CR="$(ls -t /var/mobile/Library/Logs/CrashReporter/stacks+Zebra*.ips 2>/dev/null | head -n 1)"
+          echo "crash_file=$CR"
+          if [ -n "$CR" ] && [ -f "$CR" ]; then
+            grep -a -E -m 8 '"reason"|"exception"|WatchdogEvent|ProcessVisibility|WatchdogVisibility|WatchdogCPUStatistics' "$CR" 2>/dev/null | cut -c1-6000 || true
+            echo '--- Zebra process record (trimmed) ---'
+            grep -a -E -m 1 '"procname":"Zebra"' "$CR" 2>/dev/null | cut -c1-18000 || true
+            echo '--- injected/jailbreak image hints in Zebra stack report ---'
+            grep -a -Ei 'MobileSubstrate|DynamicLibraries|ElleKit|/var/jb/|/private/preboot/.*/procursus' "$CR" 2>/dev/null | grep -Ei 'Zebra|dylib|MobileSubstrate|DynamicLibraries|ElleKit' | head -n 120 | cut -c1-3000 || true
           fi
-          for sec in 1 3 7 12; do
-            sleep "$sec"
-            echo "after_${sec}s:"
-            ps ax 2>/dev/null | grep -i '[Z]ebra' || true
+
+          echo '--- tweak filters explicitly targeting Zebra or broad app injection ---'
+          for p in /var/jb/Library/MobileSubstrate/DynamicLibraries/*.plist; do
+            [ -f "$p" ] || continue
+            TXT="$(plutil -p "$p" 2>/dev/null || strings -a "$p" 2>/dev/null)"
+            if printf '%s\n' "$TXT" | grep -Eqi 'xyz\.willy\.Zebra|Zebra|com\.apple\.UIKit|UIKit|SpringBoard'; then
+              echo "FILTER=$p"
+              printf '%s\n' "$TXT" | grep -Ei 'Bundles|Executables|Classes|xyz\.willy\.Zebra|Zebra|UIKit|SpringBoard' | head -n 50
+            fi
           done
 
-          echo '--- recent Zebra / jetsam evidence ---'
-          CR=/var/mobile/Library/Logs/CrashReporter
-          if [ -d "$CR" ]; then
-            find "$CR" -maxdepth 2 -type f -mmin -15 -print 2>/dev/null | while IFS= read -r f; do
-              if echo "$f" | grep -Eqi 'zebra|jetsam'; then
-                echo "FILE=$f"
-                grep -a -Ei -m 30 'Zebra|xyz\.willy|exception|termination|reason|jetsam|memory|watchdog|code signature|dyld|abort' "$f" 2>/dev/null || true
-              elif grep -a -Eqi -m 1 'Zebra|xyz\.willy\.Zebra' "$f" 2>/dev/null; then
-                echo "FILE=$f"
-                grep -a -Ei -m 40 'Zebra|xyz\.willy|exception|termination|reason|jetsam|memory|watchdog|code signature|dyld|abort' "$f" 2>/dev/null || true
-              fi
-            done
-          fi
-
-          echo '--- CyPwn index compatibility ---'
+          echo '--- CyPwn APT truth ---'
           IDX=/var/jb/var/lib/apt/lists/repo.cypwn.xyz_._Packages
-          if [ -f "$IDX" ]; then
-            printf 'package_records='; grep -c '^Package:' "$IDX" || true
-            echo 'architecture_counts:'
-            awk '/^Architecture:/{c[$2]++} END{for (a in c) print a, c[a]}' "$IDX" | sort
-            echo 'sample_arm64_packages:'
-            awk 'BEGIN{RS="";FS="\n"} /Architecture: iphoneos-arm64/{for(i=1;i<=NF;i++) if($i ~ /^Package:/){print $i; break}}' "$IDX" | head -n 20
-            echo 'sample_rootful_packages:'
-            awk 'BEGIN{RS="";FS="\n"} /Architecture: iphoneos-arm$/{for(i=1;i<=NF;i++) if($i ~ /^Package:/){print $i; break}}' "$IDX" | head -n 20
-          else
-            echo 'cypwn_packages_index_missing=true'
-          fi
-          echo 'apt_architectures:'
-          dpkg --print-architecture 2>/dev/null || true
-          dpkg --print-foreign-architectures 2>/dev/null || true
-          echo 'apt_cache_probe:'
+          printf 'cypwn_package_records='; grep -c '^Package:' "$IDX" 2>/dev/null || echo 0
+          printf 'iphoneos_arm64_records='; grep -c '^Architecture: iphoneos-arm64$' "$IDX" 2>/dev/null || echo 0
+          printf 'iphoneos_arm_records='; grep -c '^Architecture: iphoneos-arm$' "$IDX" 2>/dev/null || echo 0
+          printf 'all_arch_records='; grep -c '^Architecture: all$' "$IDX" 2>/dev/null || echo 0
+          echo 'apt_candidate:'
           apt-cache policy xyz.cypwn.python3.12 2>/dev/null || true
 
-          echo '--- Sileo local data hints ---'
-          find /var/mobile/Library /var/jb/var/mobile/Library -maxdepth 5 \( -iname '*sileo*' -o -path '*Sileo*' \) -print 2>/dev/null | head -n 120 || true
-          echo 'IPHONE_ZEBRA_SILEO_TRACE_COMPLETE=1'
+          echo '--- Sileo repo hash cache ---'
+          RH=/var/jb/var/mobile/Library/Caches/Sileo/RepoHashCache.json
+          if [ -f "$RH" ]; then
+            ls -l "$RH"
+            grep -a -io -E '.{0,120}repo\.cypwn\.xyz.{0,240}' "$RH" 2>/dev/null | head -n 20 || true
+          fi
+
+          echo '--- Sileo package database ---'
+          DB=/var/jb/var/mobile/Library/Caches/CydiaClassic/Database/sileo.sqlite3
+          ls -l "$DB" 2>/dev/null || true
+          if command -v sqlite3 >/dev/null 2>&1 && [ -f "$DB" ]; then
+            echo "sqlite3=$(command -v sqlite3)"
+            echo 'tables:'
+            sqlite3 "$DB" '.tables' 2>/dev/null || true
+            echo 'schema:'
+            sqlite3 "$DB" "SELECT name, sql FROM sqlite_master WHERE type='table';" 2>/dev/null | head -c 24000 || true
+            echo
+            echo 'cypwn_rows_any_table:'
+            for t in $(sqlite3 "$DB" "SELECT name FROM sqlite_master WHERE type='table';" 2>/dev/null); do
+              cols="$(sqlite3 "$DB" "PRAGMA table_info('$t');" 2>/dev/null | cut -d'|' -f2 | tr '\n' ' ')"
+              echo "TABLE=$t COLS=$cols"
+              for c in $cols; do
+                sqlite3 "$DB" "SELECT '$t.$c', COUNT(*) FROM '$t' WHERE CAST('$c' AS TEXT) LIKE '%cypwn%';" 2>/dev/null | grep -v '|0$' || true
+              done
+            done
+          else
+            echo 'sqlite3_unavailable=true'
+            strings -a "$DB" 2>/dev/null | grep -Ei 'cypwn|repo\.cypwn\.xyz' | head -n 80 || true
+          fi
+
+          echo 'TARGETED_IPHONE_DIAGNOSTICS_COMPLETE=1'
           EOS
           } | sshpass -e ssh \
               -o BatchMode=no \
