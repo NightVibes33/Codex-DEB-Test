@@ -1,4 +1,4 @@
-run=2026-09-01T15:23:00-05:00
-purpose=diagnose-empty-sileo-zebra-sources
-mode=bounded-no-delete
-workflow_commit=1c738f6a606ac8f79d42b230024662ac3f220716
+run=2026-09-01T15:27:00-05:00
+purpose=snapshot-empty-sileo-zebra-sources
+mode=read-only-fast
+workflow_commit=6a7ec352bcb72a51d779edb9e65968a61209a7a6
