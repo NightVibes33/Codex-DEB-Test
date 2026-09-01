@@ -17,7 +17,7 @@ concurrency:
 jobs:
   inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 3
     environment:
       name: TAILSCALE_AUTHKEY-
     steps:
@@ -28,7 +28,7 @@ jobs:
       - run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends openssh-client sshpass >/dev/null
-      - name: Inspect sources and bounded refresh
+      - name: Snapshot package manager state
         env:
           IPHONE_HOST: 100.96.37.124
           IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
@@ -45,48 +45,33 @@ jobs:
           set -u
           export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
           ZDIR='/var/mobile/Library/Application Support/xyz.willy.Zebra'
-          echo '=== FAST SOURCE DIAGNOSE ==='
-          echo '--- apt source files ---'
-          find /var/jb/etc/apt -maxdepth 2 -type f \( -name '*.list' -o -name '*.sources' \) -print 2>/dev/null | while IFS= read -r f; do
-            echo "FILE=$f"; ls -l "$f"; sed -n '1,120p' "$f"; done
-          echo '--- apt indexes before ---'
+          echo '=== SOURCE SNAPSHOT ==='
+          dpkg-query -W -f='SILEO_VERSION=${Version}\n' org.coolstar.sileo 2>/dev/null || true
+          dpkg-query -W -f='ZEBRA_VERSION=${Version}\n' xyz.willy.zebra 2>/dev/null || true
+          echo '--- APT SOURCES ---'
+          find /var/jb/etc/apt -maxdepth 2 -type f \( -name '*.list' -o -name '*.sources' \) -print 2>/dev/null | while IFS= read -r f; do echo "SOURCE_FILE=$f"; ls -l "$f"; sed -n '1,100p' "$f"; done
+          echo '--- APT INDEX COUNTS ---'
           TOTAL=0; FILES=0
-          for f in /var/jb/var/lib/apt/lists/*Packages*; do
-            [ -f "$f" ] || continue; FILES=$((FILES+1)); c=$(grep -a '^Package:' "$f" 2>/dev/null | wc -l | tr -d ' '); TOTAL=$((TOTAL+c)); echo "APT_INDEX=$f PKGS=$c BYTES=$(wc -c < "$f" | tr -d ' ')"; done
+          for f in /var/jb/var/lib/apt/lists/*Packages*; do [ -f "$f" ] || continue; FILES=$((FILES+1)); c=$(grep -a '^Package:' "$f" 2>/dev/null | wc -l | tr -d ' '); TOTAL=$((TOTAL+c)); echo "APT_INDEX=$f PKGS=$c BYTES=$(wc -c < "$f" | tr -d ' ') MODE=$(stat -f %Sp "$f" 2>/dev/null || true)"; done
           echo "APT_INDEX_FILES=$FILES"
           echo "APT_PACKAGE_RECORDS=$TOTAL"
           echo "MOBILE_APT_RECORDS=$(sudo -u mobile sh -c 'grep -ah "^Package:" /var/jb/var/lib/apt/lists/*Packages* 2>/dev/null | wc -l | tr -d " "' 2>/dev/null || echo 0)"
-          echo '--- Zebra ---'
+          echo '--- SILEO FILES ---'
+          find /var/mobile/Library -maxdepth 5 \( -iname '*sileo*' -o -iname '*coolstar*' \) -print 2>/dev/null | head -n 160 || true
+          echo '--- ZEBRA STATE ---'
           ls -la "$ZDIR" 2>/dev/null || true
           echo 'ZEBRA_SOURCES_BEGIN'; sed -n '1,220p' "$ZDIR/sources.list" 2>/dev/null || true; echo 'ZEBRA_SOURCES_END'
           echo "ZEBRA_SOURCE_LINES=$(grep -Ec '^[[:space:]]*deb[[:space:]]+' "$ZDIR/sources.list" 2>/dev/null || true)"
+          echo "ZEBRA_SOURCES_BYTES=$(wc -c < "$ZDIR/sources.list" 2>/dev/null | tr -d ' ')"
           echo "ZEBRA_LIST_FILES=$(find "$ZDIR/lists" -maxdepth 1 -type f 2>/dev/null | wc -l | tr -d ' ')"
           ZTOTAL=0
           for f in "$ZDIR"/lists/*; do [ -f "$f" ] || continue; c=$(grep -a '^Package:' "$f" 2>/dev/null | wc -l | tr -d ' '); ZTOTAL=$((ZTOTAL+c)); echo "ZEBRA_INDEX=$(basename "$f") PKGS=$c BYTES=$(wc -c < "$f" | tr -d ' ')"; done
           echo "ZEBRA_PACKAGE_RECORDS=$ZTOTAL"
           [ -f "$ZDIR/zebra.db" ] && echo "ZEBRA_DB_BYTES=$(wc -c < "$ZDIR/zebra.db" | tr -d ' ')" || echo 'ZEBRA_DB=ABSENT'
-          echo '--- source host reachability ---'
-          grep -RhoE 'https?://[^[:space:]]+' /var/jb/etc/apt/sources.list /var/jb/etc/apt/sources.list.d "$ZDIR/sources.list" 2>/dev/null | sed 's/[)>].*$//' | sort -u | head -n 80 | while IFS= read -r u; do
-            echo "URL=$u"
-            if command -v curl >/dev/null 2>&1; then curl -LIsS --connect-timeout 4 --max-time 8 "$u" 2>&1 | sed -n '1,8p' || echo 'CURL_FAILED'; fi
-          done
-          echo '--- bounded apt update ---'
-          set +e
-          timeout 75 apt-get -o Acquire::http::Timeout=8 -o Acquire::https::Timeout=8 -o Acquire::Retries=0 update > /tmp/codex-apt-update.log 2>&1
-          rc=$?
-          set -e
-          cat /tmp/codex-apt-update.log
-          echo "APT_UPDATE_RC=$rc"
-          echo '--- errors ---'
-          grep -Ei '(^E:|^W:|failed|error|404|403|certificate|signature|NO_PUBKEY|Release file|timed out|Could not)' /tmp/codex-apt-update.log | tail -n 160 || true
-          echo '--- apt indexes after ---'
-          TOTAL=0; FILES=0
-          for f in /var/jb/var/lib/apt/lists/*Packages*; do [ -f "$f" ] || continue; FILES=$((FILES+1)); c=$(grep -a '^Package:' "$f" 2>/dev/null | wc -l | tr -d ' '); TOTAL=$((TOTAL+c)); echo "APT_INDEX_AFTER=$f PKGS=$c BYTES=$(wc -c < "$f" | tr -d ' ')"; done
-          echo "APT_INDEX_FILES_AFTER=$FILES"
-          echo "APT_PACKAGE_RECORDS_AFTER=$TOTAL"
-          echo "MOBILE_APT_RECORDS_AFTER=$(sudo -u mobile sh -c 'grep -ah "^Package:" /var/jb/var/lib/apt/lists/*Packages* 2>/dev/null | wc -l | tr -d " "' 2>/dev/null || echo 0)"
+          echo '--- RECENT PACKAGE MANAGER LOGS/CRASHES ---'
+          ls -1t /var/mobile/Library/Logs/CrashReporter/*Zebra* /var/mobile/Library/Logs/CrashReporter/*Sileo* 2>/dev/null | head -n 20 || true
           EOS
-          } | timeout 180 sshpass -e ssh -o BatchMode=no -o ConnectTimeout=20 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" mobile@"$IPHONE_HOST" 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' 2>&1 | tee iphone-sources-fast.txt
+          } | timeout 100 sshpass -e ssh -o BatchMode=no -o ConnectTimeout=20 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" mobile@"$IPHONE_HOST" 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' 2>&1 | tee iphone-sources-fast.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
