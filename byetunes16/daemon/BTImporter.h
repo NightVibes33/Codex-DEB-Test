@@ -11,14 +11,17 @@ NS_ASSUME_NONNULL_BEGIN
 + (NSDictionary *)libraryWithLimit:(NSUInteger)limit;
 + (NSDictionary *)playlists;
 + (NSDictionary *)createPlaylistNamed:(NSString *)name itemPIDs:(NSArray<NSNumber *> *)itemPIDs;
-+ (NSDictionary *)addItemPIDs:(NSArray<NSNumber *> *)itemPIDs toPlaylistPID:(int64_t)playlistPID;
-+ (NSDictionary *)searchMetadataForQuery:(NSString *)query;
-+ (NSDictionary *)applyMetadataCandidate:(NSDictionary *)candidate toItemPID:(int64_t)itemPID;
 + (NSDictionary *)updateMetadataForItemPID:(int64_t)itemPID metadata:(NSDictionary *)metadata;
 + (NSDictionary *)deleteItemPID:(int64_t)itemPID;
 + (NSDictionary *)createBackup;
 + (NSDictionary *)restoreLatestBackup;
 + (NSDictionary *)repairLibrary;
+@end
+
+@interface BTImporter (Full)
++ (NSDictionary *)addItemPIDs:(NSArray<NSNumber *> *)itemPIDs toPlaylistPID:(int64_t)playlistPID;
++ (NSDictionary *)searchMetadataForQuery:(NSString *)query;
++ (NSDictionary *)applyMetadataCandidate:(NSDictionary *)candidate toItemPID:(int64_t)itemPID;
 @end
 
 NS_ASSUME_NONNULL_END
