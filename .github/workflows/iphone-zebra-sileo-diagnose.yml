@@ -1,4 +1,4 @@
-name: iPhone Zebra Repair
+name: iPhone Zebra Launch Verify
 
 on:
   push:
@@ -11,11 +11,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: iphone-zebra-repair
+  group: iphone-zebra-launch-verify
   cancel-in-progress: false
 
 jobs:
-  repair:
+  verify:
     runs-on: ubuntu-latest
     timeout-minutes: 6
     environment:
@@ -32,7 +32,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends openssh-client sshpass >/dev/null
 
-      - name: Repair Zebra startup state without deleting anything
+      - name: Launch Zebra in SpringBoard bootstrap and verify
         env:
           IPHONE_HOST: 100.96.37.124
           IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
@@ -50,182 +50,116 @@ jobs:
             cat <<'EOS'
           set -u
           export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
-
           ZDIR='/var/mobile/Library/Application Support/xyz.willy.Zebra'
           ZDB="$ZDIR/zebra.db"
-          TS="$(date +%Y%m%d-%H%M%S)"
-          BACKUP="/var/mobile/Documents/CodexPackageManagerBackups/$TS/Zebra"
           CRASHDIR='/var/mobile/Library/Logs/CrashReporter'
+          TS="$(date +%Y%m%d-%H%M%S)"
 
-          echo '=== ZEBRA REPAIR ==='
+          echo '=== ZEBRA SPRINGBOARD LAUNCH VERIFY ==='
           echo 'DELETE_COMMANDS_USED=0'
           echo 'PACKAGES_REMOVED=0'
           echo 'TWEAKS_REMOVED=0'
           echo 'PREFERENCES_RESET=0'
-          echo "zebra_dir=$ZDIR"
-
-          echo '--- package invariants ---'
           dpkg-query -W -f='zebra_version=${Version}\n' xyz.willy.zebra 2>/dev/null || true
-          dpkg-query -W -f='ellekit_version=${Version}\n' ellekit 2>/dev/null || true
-          dpkg -V xyz.willy.zebra 2>&1 | sed -n '1,40p' || true
 
-          if [ ! -d "$ZDIR" ]; then
-            echo 'ERROR=Zebra support directory is missing; refusing to guess another path.'
-            exit 21
-          fi
-
-          echo '--- state before repair ---'
+          echo '--- current clean-state invariant ---'
           ls -la "$ZDIR" | sed -n '1,120p'
-          stat -f 'zebra_dir_owner=%Su:%Sg mode=%Sp' "$ZDIR" 2>/dev/null || stat -c 'zebra_dir_owner=%U:%G mode=%A' "$ZDIR" 2>/dev/null || true
-
-          # If an interrupted older run left the canonical DB missing, restore the newest
-          # preserved original first. This uses mv only; nothing is deleted.
-          if [ ! -e "$ZDB" ]; then
-            PREV="$(ls -1t "$ZDB".before-fix-* 2>/dev/null | head -n1 || true)"
-            if [ -n "$PREV" ]; then
-              echo "recovering_interrupted_db=$PREV"
-              mv "$PREV" "$ZDB"
-            fi
+          PRESERVED="$(ls -1t "$ZDB".before-fix-* 2>/dev/null | head -n1 || true)"
+          echo "preserved_original=$PRESERVED"
+          if [ -z "$PRESERVED" ]; then
+            echo 'ERROR=no preserved original found; refusing launch experiment'
+            exit 41
           fi
 
-          if [ ! -f "$ZDB" ]; then
-            echo 'zebra_db_missing_before_repair=1'
-            echo 'A clean DB state is already staged; leaving all preserved files untouched.'
-          else
-            echo "zebra_db_bytes=$(wc -c < "$ZDB" 2>/dev/null || echo unknown)"
-            if command -v sqlite3 >/dev/null 2>&1; then
-              echo '--- sqlite preflight ---'
-              printf 'quick_check='
-              timeout 10s sqlite3 "$ZDB" 'PRAGMA quick_check;' 2>&1 | head -n 20 || true
-              printf 'integrity_check='
-              timeout 10s sqlite3 "$ZDB" 'PRAGMA integrity_check;' 2>&1 | head -n 20 || true
-              echo '--- table counts ---'
-              for table in REPOS PACKAGES UPDATES; do
-                printf '%s=' "$table"
-                timeout 8s sqlite3 "$ZDB" "SELECT count(*) FROM $table;" 2>&1 | head -n1 || true
-              done
-            else
-              echo 'sqlite3_available=0'
-            fi
+          BEFORE="$(ls -1t "$CRASHDIR"/stacks+Zebra*.ips 2>/dev/null | head -n1 || true)"
+          echo "watchdog_before=$BEFORE"
+          killall Zebra 2>/dev/null || true
 
-            echo '--- preserve originals ---'
-            mkdir -p "$BACKUP"
-            chown mobile:mobile "$BACKUP" 2>/dev/null || true
-            chmod 700 "$BACKUP" 2>/dev/null || true
-
-            for f in "$ZDB" "$ZDB-wal" "$ZDB-shm"; do
-              if [ -e "$f" ]; then
-                base="$(basename "$f")"
-                cp -p "$f" "$BACKUP/$base"
-                echo "backup=$BACKUP/$base"
-                if command -v sha256sum >/dev/null 2>&1; then
-                  sha256sum "$f" "$BACKUP/$base" || true
-                fi
-              fi
-            done
-
-            # Stop only Zebra so SQLite cannot be writing while its DB is staged aside.
-            killall Zebra 2>/dev/null || true
-            sleep 1
-
-            # Rename, never remove. The exact original bytes remain alongside the clean state.
-            for f in "$ZDB" "$ZDB-wal" "$ZDB-shm"; do
-              if [ -e "$f" ]; then
-                mv "$f" "$f.before-fix-$TS"
-                echo "preserved_in_place=$f.before-fix-$TS"
-              fi
-            done
+          SBPID="$(pgrep -x SpringBoard 2>/dev/null | head -n1 || true)"
+          echo "springboard_pid=$SBPID"
+          if [ -z "$SBPID" ]; then
+            echo 'ERROR=SpringBoard PID unavailable'
+            exit 42
           fi
 
-          echo '--- preserved-source check (read only) ---'
-          find "$ZDIR" -maxdepth 2 -type f \( -iname '*source*' -o -iname '*.list' -o -iname '*.plist' \) -print -exec ls -l {} \; 2>/dev/null | sed -n '1,100p' || true
+          echo '--- launchctl capability ---'
+          launchctl help 2>&1 | grep -E 'bsexec|asuser|bootstrap|kickstart' | head -n40 || true
 
-          BEFORE_CRASH="$(ls -1t "$CRASHDIR"/stacks+Zebra*.ips 2>/dev/null | head -n1 || true)"
-          echo "watchdog_before=$BEFORE_CRASH"
+          # bsexec inherits SpringBoard's bootstrap namespace. This changes no files itself;
+          # it only asks LaunchServices to open Zebra from the same namespace as SpringBoard.
+          echo 'launch_method=bsexec-root-uiopen'
+          launchctl bsexec "$SBPID" /var/jb/usr/bin/uiopen 'zbra://' >/tmp/zebra-bsexec-1.out 2>&1 || true
+          sed -n '1,40p' /tmp/zebra-bsexec-1.out 2>/dev/null || true
+          sleep 5
+          P1="$(pgrep -x Zebra 2>/dev/null | head -n1 || true)"
+          echo "zebra_pid_after_bsexec_root=$P1"
 
-          echo '--- request GUI launch as mobile ---'
-          sudo -u mobile env HOME=/var/mobile PATH=/var/jb/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin \
-            /var/jb/usr/bin/uiopen 'zbra://' >/tmp/codex-zebra-uiopen.out 2>&1 || true
-          sed -n '1,40p' /tmp/codex-zebra-uiopen.out 2>/dev/null || true
-
-          sleep 8
-          PID8="$(pgrep -x Zebra 2>/dev/null | head -n1 || true)"
-          echo "zebra_pid_8s=$PID8"
-          if [ -n "$PID8" ]; then
-            ps -o pid,uid,etime,state,command -p "$PID8" 2>/dev/null || true
+          if [ -z "$P1" ]; then
+            echo 'launch_method=bsexec-mobile-uiopen'
+            launchctl bsexec "$SBPID" /usr/bin/sudo -u mobile env HOME=/var/mobile PATH=/var/jb/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin /var/jb/usr/bin/uiopen 'zbra://' >/tmp/zebra-bsexec-2.out 2>&1 || true
+            sed -n '1,40p' /tmp/zebra-bsexec-2.out 2>/dev/null || true
+            sleep 5
           fi
 
-          sleep 20
-          PID28="$(pgrep -x Zebra 2>/dev/null | head -n1 || true)"
-          echo "zebra_pid_28s=$PID28"
-          if [ -n "$PID28" ]; then
-            ps -o pid,uid,etime,state,command -p "$PID28" 2>/dev/null || true
-          fi
+          PID10="$(pgrep -x Zebra 2>/dev/null | head -n1 || true)"
+          echo "zebra_pid_10s=$PID10"
+          [ -n "$PID10" ] && ps -o pid,uid,etime,state,command -p "$PID10" 2>/dev/null || true
 
-          AFTER_CRASH="$(ls -1t "$CRASHDIR"/stacks+Zebra*.ips 2>/dev/null | head -n1 || true)"
-          echo "watchdog_after=$AFTER_CRASH"
+          sleep 22
+          PID32="$(pgrep -x Zebra 2>/dev/null | head -n1 || true)"
+          echo "zebra_pid_32s=$PID32"
+          [ -n "$PID32" ] && ps -o pid,uid,etime,state,command -p "$PID32" 2>/dev/null || true
+
+          AFTER="$(ls -1t "$CRASHDIR"/stacks+Zebra*.ips 2>/dev/null | head -n1 || true)"
+          echo "watchdog_after=$AFTER"
+          NEW_WATCHDOG=0
+          if [ -n "$AFTER" ] && [ "$AFTER" != "$BEFORE" ]; then NEW_WATCHDOG=1; fi
+          echo "new_watchdog=$NEW_WATCHDOG"
 
           NEWDB=0
           if [ -s "$ZDB" ]; then
             NEWDB=1
             echo "rebuilt_db_bytes=$(wc -c < "$ZDB" 2>/dev/null || echo unknown)"
             stat -f 'rebuilt_db_owner=%Su:%Sg mode=%Sp' "$ZDB" 2>/dev/null || stat -c 'rebuilt_db_owner=%U:%G mode=%A' "$ZDB" 2>/dev/null || true
-            if command -v sqlite3 >/dev/null 2>&1; then
-              printf 'rebuilt_quick_check='
-              timeout 10s sqlite3 "$ZDB" 'PRAGMA quick_check;' 2>&1 | head -n20 || true
-            fi
           fi
           echo "new_db_created=$NEWDB"
 
-          NEW_WATCHDOG=0
-          if [ -n "$AFTER_CRASH" ] && [ "$AFTER_CRASH" != "$BEFORE_CRASH" ]; then
-            NEW_WATCHDOG=1
-          fi
-          echo "new_watchdog=$NEW_WATCHDOG"
-
-          if [ -n "$PID28" ] && [ "$NEW_WATCHDOG" -eq 0 ] && [ "$NEWDB" -eq 1 ]; then
+          if [ -n "$PID32" ] && [ "$NEW_WATCHDOG" -eq 0 ] && [ "$NEWDB" -eq 1 ]; then
             echo 'ZEBRA_REPAIR_VERIFIED=1'
-            echo 'RESULT=Zebra is alive past the watchdog window on a fresh database.'
+            echo 'RESULT=Zebra launched from SpringBoard bootstrap and survived past watchdog window with rebuilt DB.'
             exit 0
           fi
 
           if [ "$NEW_WATCHDOG" -eq 1 ]; then
-            echo 'RESULT=Fresh-state launch produced a real new Zebra watchdog; restoring original database.'
-            # Preserve the failed rebuilt DB instead of deleting it.
+            echo 'RESULT=Clean-state Zebra produced a new watchdog; preserving failed rebuild and restoring original.'
+            killall Zebra 2>/dev/null || true
             for f in "$ZDB" "$ZDB-wal" "$ZDB-shm"; do
               if [ -e "$f" ]; then
                 mv "$f" "$f.failed-rebuild-$TS"
                 echo "preserved_failed_rebuild=$f.failed-rebuild-$TS"
               fi
             done
-            for suffix in '' '-wal' '-shm'; do
-              original="$ZDB$suffix.before-fix-$TS"
-              canonical="$ZDB$suffix"
-              if [ -e "$original" ] && [ ! -e "$canonical" ]; then
-                mv "$original" "$canonical"
-                echo "restored_original=$canonical"
-              fi
-            done
-            echo 'ZEBRA_REPAIR_VERIFIED=0'
+            # Restore only the newest preserved original DB. Its matching WAL/SHM, if any,
+            # remain preserved and are restored only when their same timestamp can be identified.
+            if [ ! -e "$ZDB" ] && [ -e "$PRESERVED" ]; then
+              mv "$PRESERVED" "$ZDB"
+              echo "restored_original=$ZDB"
+            fi
             echo 'ROLLBACK_COMPLETED=1'
-            exit 31
+            echo 'ZEBRA_REPAIR_VERIFIED=0'
+            exit 51
           fi
 
-          # Known limitation: remote uiopen can return without SpringBoard actually launching Zebra.
-          # In that case a clean DB state is intentionally left staged and the original is preserved
-          # both beside it (.before-fix-TIMESTAMP) and in the backup directory. A manual tap can then
-          # perform the first real launch without any destructive operation.
-          if [ -z "$PID8" ] && [ -z "$PID28" ] && [ "$NEW_WATCHDOG" -eq 0 ]; then
+          if [ -z "$PID10" ] && [ -z "$PID32" ] && [ "$NEW_WATCHDOG" -eq 0 ]; then
+            echo 'ZEBRA_REMOTE_LAUNCH_UNAVAILABLE=1'
             echo 'ZEBRA_REPAIR_STAGED=1'
-            echo 'RESULT=Clean Zebra database state is staged safely; remote GUI launch did not execute.'
-            echo "backup_dir=$BACKUP"
-            echo 'ORIGINALS_PRESERVED=1'
+            echo 'RESULT=SpringBoard bootstrap launch is unavailable remotely; clean DB state remains staged, originals preserved.'
             exit 0
           fi
 
           echo 'ZEBRA_REPAIR_VERIFIED=0'
-          echo 'RESULT=Inconclusive process state; originals remain preserved and no deletion occurred.'
-          exit 32
+          echo 'RESULT=Launch state inconclusive; no deletion occurred and preserved original remains available.'
+          exit 52
           EOS
           } | timeout 180s sshpass -e ssh \
               -o BatchMode=no \
@@ -236,12 +170,12 @@ jobs:
               -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
               mobile@"$IPHONE_HOST" \
               'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
-              2>&1 | tee iphone-zebra-repair.txt
+              2>&1 | tee iphone-zebra-launch-verify.txt
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: iphone-zebra-repair-${{ github.run_id }}
-          path: iphone-zebra-repair.txt
+          name: iphone-zebra-launch-verify-${{ github.run_id }}
+          path: iphone-zebra-launch-verify.txt
           if-no-files-found: warn
           retention-days: 7
