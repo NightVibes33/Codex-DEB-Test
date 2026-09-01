@@ -4,12 +4,13 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - temp/byetunes-ios16-rootless
+      - temp/byetunes-ios15-iphone
     paths:
-      - 'byetunes16/**'
+      - '.github/workflows/build-byetunes16-rootless.yml'
+      - 'triggers/byetunes15-known-workflow.txt'
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   THEOS: ${{ github.workspace }}/theos
@@ -21,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: temp/byetunes-ios16-rootless
+          ref: temp/byetunes-ios15-iphone
 
       - name: Select Xcode 15
         run: |
@@ -51,12 +52,80 @@ jobs:
           test -f "$THEOS/makefiles/common.mk"
           test -f "$THEOS/sdks/iPhoneOS16.5.sdk/SDKSettings.plist"
 
-      - name: Build rootless DEB
+      - name: Apply iOS 15 iPhone compatibility patch
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path('byetunes16')
+
+          p = root / 'Makefile'
+          s = p.read_text()
+          old = 'TARGET = iphone:clang:16.5:16.0'
+          assert old in s, 'deployment target marker missing'
+          s = s.replace(old, 'TARGET = iphone:clang:16.5:15.0', 1)
+          p.write_text(s)
+
+          p = root / 'control'
+          s = p.read_text()
+          old = 'Depends: firmware (>= 16.0), firmware (<< 17.0), ellekit'
+          assert old in s, 'firmware dependency marker missing'
+          s = s.replace(old, 'Depends: firmware (>= 15.0), firmware (<< 16.0), ellekit', 1)
+          s = s.replace('Version: 0.2.0', 'Version: 0.2.0-ios15.1', 1)
+          s = s.replace('Name: ByeTunes 16 Injection', 'Name: ByeTunes 15 Injection', 1)
+          p.write_text(s)
+
+          # iOS 15.8.8 MediaLibrary schema was probed live before this build.
+          # It has no artwork_variant_type columns and no container_item.uuid.
+          p = root / 'daemon' / 'BTImporter.m'
+          s = p.read_text()
+          replacements = [
+              (
+                  'INSERT OR REPLACE INTO artwork(artwork_token,artwork_source_type,relative_path,artwork_type,artwork_variant_type) VALUES(?,1,?,1,0)',
+                  'INSERT OR REPLACE INTO artwork(artwork_token,artwork_source_type,relative_path,artwork_type) VALUES(?,1,?,1)'
+              ),
+              (
+                  'INSERT OR REPLACE INTO artwork_token(artwork_token,artwork_source_type,artwork_type,entity_pid,entity_type,artwork_variant_type) VALUES(?,1,1,?,?,0)',
+                  'INSERT OR REPLACE INTO artwork_token(artwork_token,artwork_source_type,artwork_type,entity_pid,entity_type) VALUES(?,1,1,?,?)'
+              ),
+              (
+                  "INSERT OR REPLACE INTO best_artwork_token(entity_pid,entity_type,artwork_type,available_artwork_token,fetchable_artwork_token,fetchable_artwork_source_type,artwork_variant_type) VALUES(?,?,1,?,'',0,0)",
+                  "INSERT OR REPLACE INTO best_artwork_token(entity_pid,entity_type,artwork_type,available_artwork_token,fetchable_artwork_token,fetchable_artwork_source_type) VALUES(?,?,1,?,'',0)"
+              ),
+              (
+                  'INSERT INTO container_item(container_item_pid,container_pid,item_pid,position,uuid) VALUES(?,?,?,?,?)',
+                  'INSERT INTO container_item(container_item_pid,container_pid,item_pid,position) VALUES(?,?,?,?)'
+              ),
+              ('NSString*u=NSUUID.UUID.UUIDString;', ''),
+              ('sqlite3_bind_text(s,5,u.UTF8String,-1,SQLITE_TRANSIENT);', '')
+          ]
+          for old, new in replacements:
+              assert old in s, f'BTImporter patch marker missing: {old[:70]}'
+              s = s.replace(old, new)
+          p.write_text(s)
+
+          p = root / 'daemon' / 'BTImporter+Full.m'
+          s = p.read_text()
+          old_sql = 'INSERT INTO container_item(container_item_pid,container_pid,item_pid,position,uuid) VALUES(?,?,?,?,?)'
+          assert old_sql in s, 'BTImporter+Full playlist SQL marker missing'
+          s = s.replace(old_sql, 'INSERT INTO container_item(container_item_pid,container_pid,item_pid,position) VALUES(?,?,?,?)')
+          assert 'NSString *uuid = NSUUID.UUID.UUIDString;' in s
+          s = s.replace('NSString *uuid = NSUUID.UUID.UUIDString;', '')
+          assert 'sqlite3_bind_text(stmt, 5, uuid.UTF8String, -1, SQLITE_TRANSIENT);' in s
+          s = s.replace('sqlite3_bind_text(stmt, 5, uuid.UTF8String, -1, SQLITE_TRANSIENT);', '')
+          p.write_text(s)
+
+          print((root / 'Makefile').read_text())
+          print((root / 'control').read_text())
+          PY
+
+      - name: Build rootless iOS 15 DEB
         id: compile
         run: |
           set -o pipefail
-          : > byetunes16-build.log
-          make -C byetunes16 clean package FINALPACKAGE=1 2>&1 | tee byetunes16-build.log
+          : > byetunes15-build.log
+          make -C byetunes16 clean package FINALPACKAGE=1 2>&1 | tee byetunes15-build.log
 
       - name: Validate package
         id: validate
@@ -64,36 +133,37 @@ jobs:
           set -euo pipefail
           DEB="$(find byetunes16/packages -maxdepth 1 -type f -name '*.deb' -print | head -n1)"
           test -n "$DEB"
-          echo "$DEB" > byetunes16-deb-path.txt
-          dpkg-deb --info "$DEB" | tee byetunes16-package-info.txt
-          dpkg-deb --contents "$DEB" | tee byetunes16-package-contents.txt
-          test "$(dpkg-deb --field "$DEB" Package)" = "com.nightvibes.byetunes16"
-          test "$(dpkg-deb --field "$DEB" Architecture)" = "iphoneos-arm64"
-          rm -rf byetunes16-package-root byetunes16-package-control
-          dpkg-deb -x "$DEB" byetunes16-package-root
-          dpkg-deb -e "$DEB" byetunes16-package-control
-          test -f byetunes16-package-root/var/jb/Library/MobileSubstrate/DynamicLibraries/ByeTunes16.dylib
-          test -f byetunes16-package-root/var/jb/Library/MobileSubstrate/DynamicLibraries/ByeTunes16.plist
-          test -x byetunes16-package-root/var/jb/usr/libexec/byetunes16d
-          test -f byetunes16-package-root/var/jb/Library/LaunchDaemons/com.nightvibes.byetunes16d.plist
-          test -x byetunes16-package-control/postinst
-          test -x byetunes16-package-control/prerm
-          file byetunes16-package-root/var/jb/Library/MobileSubstrate/DynamicLibraries/ByeTunes16.dylib | tee byetunes16-binary-info.txt | grep -q arm64
-          file byetunes16-package-root/var/jb/usr/libexec/byetunes16d | tee -a byetunes16-binary-info.txt | grep -q arm64
-          shasum -a 256 "$DEB" | tee byetunes16-sha256.txt
-          cp "$DEB" ByeTunes16-iOS16-Dopamine-rootless.deb
+          dpkg-deb --info "$DEB" | tee byetunes15-package-info.txt
+          dpkg-deb --contents "$DEB" | tee byetunes15-package-contents.txt
+          test "$(dpkg-deb --field "$DEB" Package)" = 'com.nightvibes.byetunes16'
+          test "$(dpkg-deb --field "$DEB" Architecture)" = 'iphoneos-arm64'
+          DEPENDS="$(dpkg-deb --field "$DEB" Depends)"
+          echo "$DEPENDS" | grep -F 'firmware (>= 15.0)'
+          echo "$DEPENDS" | grep -F 'firmware (<< 16.0)'
+          rm -rf byetunes15-package-root
+          dpkg-deb -x "$DEB" byetunes15-package-root
+          DYLIB=byetunes15-package-root/var/jb/Library/MobileSubstrate/DynamicLibraries/ByeTunes16.dylib
+          DAEMON=byetunes15-package-root/var/jb/usr/libexec/byetunes16d
+          test -f "$DYLIB"
+          test -x "$DAEMON"
+          file "$DYLIB" | tee byetunes15-binary-info.txt | grep -q arm64
+          file "$DAEMON" | tee -a byetunes15-binary-info.txt | grep -q arm64
+          otool -l "$DYLIB" | tee byetunes15-otool.txt
+          otool -l "$DAEMON" | tee -a byetunes15-otool.txt
+          grep -Eq 'minos 15\.|version 15\.' byetunes15-otool.txt
+          shasum -a 256 "$DEB" | tee byetunes15-sha256.txt
+          cp "$DEB" ByeTunes15-iOS15-Dopamine-rootless.deb
           {
-            echo 'validation=success'
+            echo validation=success
             echo "version=$(dpkg-deb --field "$DEB" Version)"
-            echo "package=$(dpkg-deb --field "$DEB" Package)"
-            echo "architecture=$(dpkg-deb --field "$DEB" Architecture)"
-          } | tee byetunes16-validation.txt
+            echo "depends=$DEPENDS"
+          } | tee byetunes15-validation.txt
 
-      - name: Upload ByeTunes16 DEB
+      - name: Upload ByeTunes15 DEB
         uses: actions/upload-artifact@v4
         with:
-          name: ByeTunes16-iOS16-Dopamine-rootless
-          path: ByeTunes16-iOS16-Dopamine-rootless.deb
+          name: ByeTunes15-iOS15-Dopamine-rootless
+          path: ByeTunes15-iOS15-Dopamine-rootless.deb
           if-no-files-found: error
           retention-days: 14
 
@@ -101,41 +171,14 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ByeTunes16-build-diagnostics-${{ github.run_id }}
+          name: ByeTunes15-build-diagnostics-${{ github.run_id }}
           path: |
-            byetunes16-build.log
-            byetunes16-package-info.txt
-            byetunes16-package-contents.txt
-            byetunes16-binary-info.txt
-            byetunes16-sha256.txt
-            byetunes16-validation.txt
+            byetunes15-build.log
+            byetunes15-package-info.txt
+            byetunes15-package-contents.txt
+            byetunes15-binary-info.txt
+            byetunes15-otool.txt
+            byetunes15-sha256.txt
+            byetunes15-validation.txt
           if-no-files-found: ignore
           retention-days: 14
-
-      - name: Publish branch build status
-        if: always()
-        env:
-          COMPILE_OUTCOME: ${{ steps.compile.outcome }}
-          VALIDATE_OUTCOME: ${{ steps.validate.outcome }}
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git pull --rebase origin temp/byetunes-ios16-rootless
-          mkdir -p remote
-          {
-            echo 'ByeTunes16 iOS 16 Rootless Build'
-            echo "run_id=${GITHUB_RUN_ID}"
-            echo "commit=${GITHUB_SHA}"
-            echo "compile=${COMPILE_OUTCOME}"
-            echo "validate=${VALIDATE_OUTCOME}"
-            echo
-            if [ -f byetunes16-validation.txt ]; then cat byetunes16-validation.txt; fi
-            if [ -f byetunes16-sha256.txt ]; then cat byetunes16-sha256.txt; fi
-            echo
-            echo '--- build tail ---'
-            if [ -f byetunes16-build.log ]; then tail -n 260 byetunes16-build.log; else echo 'No build log.'; fi
-          } > remote/byetunes16-build-status.txt
-          git add remote/byetunes16-build-status.txt
-          git commit -m 'Record ByeTunes16 build status [skip ci]' || exit 0
-          git push origin HEAD:temp/byetunes-ios16-rootless
