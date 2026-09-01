@@ -1,4 +1,4 @@
-name: iPhone Zebra LicGenerator Repair
+name: iPhone Zebra Patch Dry Run
 
 on:
   push:
@@ -11,11 +11,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: iphone-zebra-licgenerator-repair
+  group: iphone-zebra-patch-dry-run
   cancel-in-progress: true
 
 jobs:
-  repair:
+  inspect:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     environment:
@@ -32,7 +32,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends openssh-client sshpass >/dev/null
 
-      - name: Quarantine only LicGenerator without deleting anything
+      - name: Verify exact patch and signing on a copy only
         env:
           IPHONE_HOST: 100.96.37.124
           IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
@@ -50,129 +50,86 @@ jobs:
             cat <<'EOS'
           set -u
           export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
+          ZEBRA='/var/jb/Applications/Zebra.app/Zebra'
           TS="$(date +%Y%m%d-%H%M%S)"
-          BACKUP="/var/mobile/Documents/CodexPackageManagerBackups/$TS/LicGenerator"
-          ZDIR='/var/mobile/Library/Application Support/xyz.willy.Zebra'
-          CRASHDIR='/var/mobile/Library/Logs/CrashReporter'
+          WORK="/var/mobile/Documents/CodexPackageManagerBackups/$TS/ZebraPatchDryRun"
+          CAND="$WORK/Zebra.patched-candidate"
+          ENT="$WORK/Zebra.entitlements.plist"
 
-          echo '=== ZEBRA LICGENERATOR TARGETED REPAIR ==='
+          echo '=== ZEBRA PATCH DRY RUN ==='
+          echo 'INSTALLED_BINARY_CHANGED=0'
           echo 'DELETE_COMMANDS_USED=0'
-          echo 'PACKAGES_REMOVED=0'
-          echo 'TWEAKS_REMOVED=0'
-          echo 'PREFERENCES_RESET=0'
-          echo 'TARGET=LicGenerator only'
-          dpkg-query -W -f='zebra_version=${Version}\n' xyz.willy.zebra 2>/dev/null || true
-          dpkg-query -W -f='ellekit_version=${Version}\n' ellekit 2>/dev/null || true
+          echo "ldid_path=$(command -v ldid 2>/dev/null || true)"
+          echo "jbctl_path=$(command -v jbctl 2>/dev/null || true)"
+          command -v ldid >/dev/null 2>&1 || { echo 'ERROR=ldid unavailable'; exit 21; }
+          command -v jbctl >/dev/null 2>&1 || { echo 'ERROR=jbctl unavailable'; exit 22; }
 
-          echo '--- exact LicGenerator discovery ---'
-          CANDIDATES=''
-          for d in \
-            /var/jb/Library/MobileSubstrate/DynamicLibraries \
-            /var/jb/usr/lib/TweakInject \
-            /Library/MobileSubstrate/DynamicLibraries \
-            /usr/lib/TweakInject; do
-            if [ -d "$d" ]; then
-              find "$d" -maxdepth 1 -type f \( -iname 'LicGenerator.dylib' -o -iname 'LicGenerator.plist' \) -print 2>/dev/null || true
-            fi
-          done | awk '!seen[$0]++' > /tmp/codex-licgenerator-paths.txt
+          echo '--- ldid help/header ---'
+          ldid -h "$ZEBRA" 2>&1 | sed -n '1,80p' || true
+          echo '--- jbctl trustcache usage ---'
+          jbctl 2>&1 | sed -n '1,40p' || true
+          echo '--- original hash ---'
+          ORIG_SHA="$(sha256sum "$ZEBRA" | awk '{print $1}')"
+          echo "original_sha256=$ORIG_SHA"
+          [ "$ORIG_SHA" = '17d470bdfaf19f1b92bdb8fded2aba666060681530f78ac0df6c49e1a6463b04' ] || { echo 'ERROR=installed Zebra hash changed since symbol match'; exit 23; }
 
-          # Also inspect the rootless tree in case the injector uses a nonstandard directory.
-          if [ -d /var/jb ]; then
-            find /var/jb -type f \( -iname 'LicGenerator.dylib' -o -iname 'LicGenerator.plist' \) -print 2>/dev/null | awk '!seen[$0]++' >> /tmp/codex-licgenerator-paths.txt || true
-          fi
-          awk 'NF && !seen[$0]++' /tmp/codex-licgenerator-paths.txt > /tmp/codex-licgenerator-unique.txt
-          cat /tmp/codex-licgenerator-unique.txt
+          mkdir -p "$WORK"
+          chown mobile:mobile "$WORK" 2>/dev/null || true
+          chmod 700 "$WORK" 2>/dev/null || true
+          cp -p "$ZEBRA" "$CAND"
 
-          FOUND="$(wc -l < /tmp/codex-licgenerator-unique.txt | tr -d ' ')"
-          echo "exact_files_found=$FOUND"
+          echo '--- original entitlements ---'
+          ldid -e "$ZEBRA" > "$ENT"
+          wc -c "$ENT"
+          sed -n '1,100p' "$ENT"
 
-          echo '--- package ownership / metadata ---'
-          while IFS= read -r f; do
-            [ -f "$f" ] || continue
-            echo "file=$f"
-            ls -l "$f" || true
-            command -v file >/dev/null 2>&1 && file "$f" || true
-            command -v sha256sum >/dev/null 2>&1 && sha256sum "$f" || true
-            echo -n 'dpkg_owner='
-            dpkg -S "$f" 2>/dev/null || echo 'unowned_or_path_not_registered'
-          done < /tmp/codex-licgenerator-unique.txt
+          echo '--- exact instruction check ---'
+          python3 - "$CAND" <<'PY'
+          import sys, pathlib
+          p=pathlib.Path(sys.argv[1])
+          b=bytearray(p.read_bytes())
+          off=0x180368
+          expected=bytes.fromhex('16ea0194')
+          replacement=bytes.fromhex('1f2003d5')
+          got=bytes(b[off:off+4])
+          print('patch_file_offset=0x180368')
+          print('patch_original_bytes='+got.hex())
+          print('patch_expected_bytes='+expected.hex())
+          if got != expected:
+              raise SystemExit('ERROR=exact branch bytes do not match expected removeMalware call')
+          # Verify surrounding main() bytes too, making accidental-offset patch impossible.
+          pre=bytes.fromhex('280e00d0003d44f9')
+          post=bytes.fromhex('280e00d0006144f9')
+          if bytes(b[off-8:off]) != pre or bytes(b[off+4:off+12]) != post:
+              raise SystemExit('ERROR=main surrounding bytes mismatch')
+          b[off:off+4]=replacement
+          p.write_bytes(b)
+          print('patch_new_bytes='+bytes(b[off:off+4]).hex())
+          print('PATCH_BYTES_VERIFIED=1')
+          PY
 
-          # If exact files are absent, collect only evidence and stop. Never guess another target.
-          if [ "$FOUND" -eq 0 ]; then
-            echo '--- references in injection metadata ---'
-            for d in /var/jb/Library/MobileSubstrate/DynamicLibraries /var/jb/usr/lib/TweakInject; do
-              [ -d "$d" ] || continue
-              grep -Ril --include='*.plist' --include='*.json' --include='*.conf' 'LicGenerator' "$d" 2>/dev/null | head -n 50 || true
-            done
-            echo 'LICGENERATOR_QUARANTINED=0'
-            echo 'RESULT=No exact LicGenerator file found; no changes made.'
-            exit 30
-          fi
-
-          echo '--- preserve exact bytes before quarantine ---'
-          mkdir -p "$BACKUP"
-          chown mobile:mobile "$BACKUP" 2>/dev/null || true
-          chmod 700 "$BACKUP" 2>/dev/null || true
-
-          # Deduplicate by canonical path so /var/jb and preboot aliases cannot be renamed twice.
-          : > /tmp/codex-licgenerator-realpaths.txt
-          while IFS= read -r f; do
-            [ -f "$f" ] || continue
-            rp="$(readlink -f "$f" 2>/dev/null || echo "$f")"
-            grep -Fxq "$rp" /tmp/codex-licgenerator-realpaths.txt 2>/dev/null && continue
-            echo "$rp" >> /tmp/codex-licgenerator-realpaths.txt
-
-            base="$(basename "$f")"
-            safe="$(printf '%s' "$rp" | tr '/' '_')"
-            cp -p "$f" "$BACKUP/$safe"
-            echo "backup=$BACKUP/$safe"
-
-            if command -v sha256sum >/dev/null 2>&1; then
-              orig_hash="$(sha256sum "$f" | awk '{print $1}')"
-              backup_hash="$(sha256sum "$BACKUP/$safe" | awk '{print $1}')"
-              echo "original_sha256=$orig_hash"
-              echo "backup_sha256=$backup_hash"
-              if [ "$orig_hash" != "$backup_hash" ]; then
-                echo "ERROR=backup hash mismatch for $f; refusing rename"
-                exit 31
-              fi
-            fi
-
-            disabled="$f.codex-disabled-$TS"
-            mv "$f" "$disabled"
-            echo "quarantined=$f"
-            echo "preserved_as=$disabled"
-          done < /tmp/codex-licgenerator-unique.txt
-
-          echo '--- verification ---'
-          ACTIVE=0
-          for d in /var/jb/Library/MobileSubstrate/DynamicLibraries /var/jb/usr/lib/TweakInject /Library/MobileSubstrate/DynamicLibraries /usr/lib/TweakInject; do
-            [ -d "$d" ] || continue
-            if find "$d" -maxdepth 1 -type f \( -iname 'LicGenerator.dylib' -o -iname 'LicGenerator.plist' \) -print 2>/dev/null | grep -q .; then
-              ACTIVE=1
-            fi
-          done
-          echo "active_exact_licgenerator_after=$ACTIVE"
-          echo "backup_dir=$BACKUP"
-          echo '--- preserved disabled files ---'
-          find /var/jb /Library -type f -name 'LicGenerator.*.codex-disabled-*' -print 2>/dev/null | head -n 30 || true
-
-          # Stop only Zebra if a stale failed-launch process somehow remains. No respring/reboot.
-          killall Zebra 2>/dev/null || true
-
-          BEFORE="$(ls -1t "$CRASHDIR"/stacks+Zebra*.ips 2>/dev/null | head -n1 || true)"
-          echo "watchdog_before_manual_test=$BEFORE"
-          echo "zebra_db_active=$([ -f "$ZDIR/zebra.db" ] && echo YES || echo NO)"
-
-          if [ "$ACTIVE" -ne 0 ]; then
-            echo 'LICGENERATOR_QUARANTINED=0'
-            echo 'RESULT=An exact active LicGenerator file remains; refusing to claim repair complete.'
-            exit 32
-          fi
-
-          echo 'LICGENERATOR_QUARANTINED=1'
-          echo 'ORIGINAL_BYTES_PRESERVED=1'
-          echo 'RESULT=LicGenerator exact injection files quarantined non-destructively. Zebra is ready for a real SpringBoard launch.'
+          echo '--- candidate pre-sign hash ---'
+          sha256sum "$CAND"
+          echo '--- sign candidate with original entitlements ---'
+          ldid -S"$ENT" "$CAND"
+          echo '--- candidate post-sign metadata ---'
+          ldid -h "$CAND" 2>&1 | sed -n '1,120p' || true
+          echo '--- candidate entitlements after sign ---'
+          ldid -e "$CAND" 2>&1 | sed -n '1,120p' || true
+          echo '--- exact patch persisted after signing ---'
+          python3 - "$CAND" <<'PY'
+          import sys,pathlib
+          b=pathlib.Path(sys.argv[1]).read_bytes()
+          off=0x180368
+          print('signed_patch_bytes='+b[off:off+4].hex())
+          if b[off:off+4] != bytes.fromhex('1f2003d5'):
+              raise SystemExit('ERROR=patch did not persist through ldid')
+          print('SIGNED_PATCH_VERIFIED=1')
+          PY
+          echo "candidate_sha256=$(sha256sum "$CAND" | awk '{print $1}')"
+          echo "dry_run_dir=$WORK"
+          echo 'PATCH_DRY_RUN_COMPLETE=1'
+          echo 'INSTALLED_BINARY_CHANGED=0'
           EOS
           } | timeout 180s sshpass -e ssh \
               -o BatchMode=no \
@@ -183,12 +140,12 @@ jobs:
               -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
               mobile@"$IPHONE_HOST" \
               'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
-              2>&1 | tee iphone-zebra-licgenerator-repair.txt
+              2>&1 | tee iphone-zebra-patch-dry-run.txt
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: iphone-zebra-licgenerator-repair-${{ github.run_id }}
-          path: iphone-zebra-licgenerator-repair.txt
+          name: iphone-zebra-patch-dry-run-${{ github.run_id }}
+          path: iphone-zebra-patch-dry-run.txt
           if-no-files-found: warn
           retention-days: 7
