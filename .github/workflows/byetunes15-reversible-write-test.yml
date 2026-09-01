@@ -1,0 +1,260 @@
+name: ByeTunes15 Reversible Write Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - temp/byetunes-ios16-rootless
+    paths:
+      - 'triggers/byetunes15-reversible-write-test.txt'
+
+permissions:
+  contents: read
+
+jobs:
+  env:
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.e.outputs.name }}
+    steps:
+      - id: e
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fsSL -H 'Accept: application/vnd.github+json' -H "Authorization: Bearer $GH_TOKEN" -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" >/tmp/e.json
+          python3 - <<'PY' >>"$GITHUB_OUTPUT"
+          import json
+          for e in json.load(open('/tmp/e.json')).get('environments', []):
+              if int(e.get('id', -1)) == 18728387881:
+                  print('name=' + e['name'])
+                  break
+          else:
+              raise SystemExit('environment not found')
+          PY
+
+  test:
+    needs: env
+    environment:
+      name: ${{ needs.env.outputs.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      HOST: '100.96.37.124'
+      PORT: '22'
+      SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+      PASS: ${{ secrets.IPAD_PASSWORD }}
+      TITLE: 'ByeTunes15 Synthetic Smoke'
+      PLAYLIST: 'ByeTunes15 Synthetic Playlist'
+    steps:
+      - name: Prepare runner and synthetic WAV
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq openssh-client sshpass sqlite3 netcat-openbsd
+          python3 - <<'PY'
+          import wave, struct
+          p='/tmp/ByeTunes15Synthetic.wav'
+          with wave.open(p,'wb') as w:
+              w.setnchannels(1)
+              w.setsampwidth(2)
+              w.setframerate(8000)
+              w.writeframes(b''.join(struct.pack('<h',0) for _ in range(8000)))
+          print(p)
+          PY
+          test -s /tmp/ByeTunes15Synthetic.wav
+
+      - name: Join Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: Gate exact installed target
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          tailscale ping --timeout=5s --c 1 "$HOST" | tee device.txt || true
+          timeout 8s ssh-keyscan -T 5 -H -p "$PORT" "$HOST" > "$HOME/.ssh/known_hosts" 2>>device.txt
+          test -s "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+          cat >/tmp/gate.sh <<'SH'
+          set -eu
+          P=/System/Library/CoreServices/SystemVersion.plist
+          V="$(sed -n '/<key>ProductVersion<\/key>/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' "$P" | head -n1)"
+          M="$(sysctl -n hw.machine 2>/dev/null || /usr/sbin/sysctl -n hw.machine 2>/dev/null || uname -m)"
+          echo "machine=$M version=$V"
+          [ "$M" = iPhone8,1 ] || exit 20
+          [ "$V" = 15.8.8 ] || exit 21
+          Q=/var/jb/usr/bin/dpkg-query
+          [ -x "$Q" ] || Q="$(command -v dpkg-query || true)"
+          [ "$($Q -W -f='${Version}' com.nightvibes.byetunes16 2>/dev/null)" = 0.2.2 ] || exit 22
+          echo WRITE_TEST_GATE_PASS
+          SH
+          { printf '%s\n' "$PASS"; cat /tmp/gate.sh; } | timeout 35s sshpass -e ssh -p "$PORT" -o BatchMode=no -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s' | tee gate.txt
+          grep -q WRITE_TEST_GATE_PASS gate.txt
+
+      - name: Preserve off-device pre-write DB snapshot
+        run: |
+          set -euo pipefail
+          cat >/tmp/snapshot.sh <<'SH'
+          set -eu
+          DB=/var/mobile/Media/iTunes_Control/iTunes/MediaLibrary.sqlitedb
+          TMP=/var/mobile/ByeTunes15WriteSafety
+          killall Music >/dev/null 2>&1 || true
+          sleep 1
+          rm -rf "$TMP"; mkdir -p "$TMP"
+          cp "$DB" "$TMP/MediaLibrary.sqlitedb"
+          [ ! -f "$DB-wal" ] || cp "$DB-wal" "$TMP/MediaLibrary.sqlitedb-wal"
+          [ ! -f "$DB-shm" ] || cp "$DB-shm" "$TMP/MediaLibrary.sqlitedb-shm"
+          chown -R mobile:mobile "$TMP" 2>/dev/null || true
+          chmod 700 "$TMP"; chmod 600 "$TMP"/*
+          echo SAFETY_SNAPSHOT_READY
+          SH
+          { printf '%s\n' "$PASS"; cat /tmp/snapshot.sh; } | timeout 35s sshpass -e ssh -p "$PORT" -o BatchMode=no -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s'
+          mkdir -p prewrite-db
+          sshpass -e scp -P "$PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST:/var/mobile/ByeTunes15WriteSafety/MediaLibrary.sqlitedb*" prewrite-db/
+          QC="$(sqlite3 prewrite-db/MediaLibrary.sqlitedb 'PRAGMA quick_check;')"
+          printf 'prewrite_quick_check=%s\n' "$QC" | tee prewrite.txt
+          test "$QC" = ok
+
+      - name: Upload synthetic WAV and open daemon tunnel
+        run: |
+          set -euo pipefail
+          sshpass -e scp -P "$PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" /tmp/ByeTunes15Synthetic.wav "mobile@$HOST:/var/mobile/ByeTunes15Synthetic.wav"
+          { printf '%s\n' "$PASS"; echo 'chown mobile:mobile /var/mobile/ByeTunes15Synthetic.wav 2>/dev/null || true; chmod 0644 /var/mobile/ByeTunes15Synthetic.wav'; } | sshpass -e ssh -p "$PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s'
+          sshpass -e ssh -f -N -L 45981:127.0.0.1:45981 -p "$PORT" -o ExitOnForwardFailure=yes -o ConnectTimeout=8 -o ServerAliveInterval=10 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST"
+          sleep 2
+          printf '%s\n' '{"op":"probe"}' | nc -w 8 127.0.0.1 45981 | tee prewrite-probe.txt
+          grep -q '"ok":true' prewrite-probe.txt
+
+      - name: Import synthetic track with playlist
+        run: |
+          set -euo pipefail
+          REQ='{"op":"import","path":"/var/mobile/ByeTunes15Synthetic.wav","sourceName":"ByeTunes15Synthetic.wav","metadata":{"title":"ByeTunes15 Synthetic Smoke","artist":"NightVibes Validation","album":"ByeTunes Validation","genre":"Test","year":2026,"track":1,"disc":1},"playlistName":"ByeTunes15 Synthetic Playlist"}'
+          printf '%s\n' "$REQ" | nc -w 30 127.0.0.1 45981 | tee import-response.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('import-response.json'))
+          if not d.get('ok'):
+              raise SystemExit(d)
+          loc=d.get('location','')
+          pid=d.get('itemPID')
+          if not loc or not pid:
+              raise SystemExit('import response missing location/itemPID')
+          print('IMPORT_OK', pid, loc)
+          open('/tmp/import-location','w').write(loc)
+          open('/tmp/import-pid','w').write(str(pid))
+          PY
+
+      - name: Verify imported track and iOS 15 playlist write
+        run: |
+          set -euo pipefail
+          printf '%s\n' '{"op":"library","limit":1000}' | nc -w 15 127.0.0.1 45981 > library-after-import.json
+          printf '%s\n' '{"op":"playlists"}' | nc -w 15 127.0.0.1 45981 > playlists-after-import.json
+          python3 - <<'PY'
+          import json
+          lib=json.load(open('library-after-import.json'))
+          pls=json.load(open('playlists-after-import.json'))
+          assert lib.get('ok') is True, lib
+          assert pls.get('ok') is True, pls
+          songs=lib.get('songs',[])
+          matches=[x for x in songs if x.get('title')=='ByeTunes15 Synthetic Smoke']
+          if not matches: raise SystemExit('synthetic track not returned by library API')
+          playlists=pls.get('playlists',[])
+          pm=[x for x in playlists if x.get('name')=='ByeTunes15 Synthetic Playlist']
+          if not pm: raise SystemExit('synthetic playlist not returned by playlists API')
+          print('TRACK_VISIBLE', matches[0])
+          print('PLAYLIST_VISIBLE', pm[0])
+          PY
+          echo WRITE_PATH_PASS | tee write-path.txt
+
+      - name: Restore pre-import helper backup and remove synthetic audio
+        if: always()
+        run: |
+          set -euo pipefail
+          { printf '%s\n' "$PASS"; echo 'killall Music >/dev/null 2>&1 || true'; } | sshpass -e ssh -p "$PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s'
+          printf '%s\n' '{"op":"restore"}' | nc -w 30 127.0.0.1 45981 | tee restore-response.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('restore-response.json'))
+          if not d.get('ok'): raise SystemExit(d)
+          print('RESTORE_OK', d)
+          PY
+          LOC="$(cat /tmp/import-location 2>/dev/null || true)"
+          cat >/tmp/cleanup.sh <<SH
+          set -eu
+          rm -f /var/mobile/ByeTunes15Synthetic.wav
+          if [ -n "$LOC" ]; then rm -f "/var/mobile/Media/iTunes_Control/Music/F00/$LOC"; fi
+          rmdir /var/mobile/Media/iTunes_Control/Music/F00 2>/dev/null || true
+          rmdir /var/mobile/Media/iTunes_Control/Music 2>/dev/null || true
+          rm -rf /var/mobile/ByeTunes15WriteSafety
+          echo CLEANUP_DONE
+          SH
+          { printf '%s\n' "$PASS"; cat /tmp/cleanup.sh; } | sshpass -e ssh -p "$PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s' | tee cleanup.txt
+
+      - name: Verify rollback and final DB integrity
+        if: always()
+        run: |
+          set -euo pipefail
+          printf '%s\n' '{"op":"probe"}' | nc -w 15 127.0.0.1 45981 | tee final-probe.json
+          grep -q '"ok":true' final-probe.json
+          grep -q '"quickCheck":"ok"' final-probe.json
+          printf '%s\n' '{"op":"library","limit":1000}' | nc -w 15 127.0.0.1 45981 > final-library.json
+          printf '%s\n' '{"op":"playlists"}' | nc -w 15 127.0.0.1 45981 > final-playlists.json
+          python3 - <<'PY'
+          import json
+          lib=json.load(open('final-library.json'))
+          pls=json.load(open('final-playlists.json'))
+          assert lib.get('ok') is True, lib
+          assert pls.get('ok') is True, pls
+          if any(x.get('title')=='ByeTunes15 Synthetic Smoke' for x in lib.get('songs',[])):
+              raise SystemExit('synthetic track still present after restore')
+          if any(x.get('name')=='ByeTunes15 Synthetic Playlist' for x in pls.get('playlists',[])):
+              raise SystemExit('synthetic playlist still present after restore')
+          print('ROLLBACK_API_CLEAN')
+          PY
+
+          cat >/tmp/final-snapshot.sh <<'SH'
+          set -eu
+          DB=/var/mobile/Media/iTunes_Control/iTunes/MediaLibrary.sqlitedb
+          TMP=/var/mobile/ByeTunes15FinalSnapshot
+          rm -rf "$TMP"; mkdir -p "$TMP"
+          cp "$DB" "$TMP/MediaLibrary.sqlitedb"
+          [ ! -f "$DB-wal" ] || cp "$DB-wal" "$TMP/MediaLibrary.sqlitedb-wal"
+          [ ! -f "$DB-shm" ] || cp "$DB-shm" "$TMP/MediaLibrary.sqlitedb-shm"
+          chown -R mobile:mobile "$TMP" 2>/dev/null || true
+          chmod 700 "$TMP"; chmod 600 "$TMP"/*
+          SH
+          { printf '%s\n' "$PASS"; cat /tmp/final-snapshot.sh; } | sshpass -e ssh -p "$PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s'
+          mkdir -p final-db
+          sshpass -e scp -P "$PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST:/var/mobile/ByeTunes15FinalSnapshot/MediaLibrary.sqlitedb*" final-db/
+          QC="$(sqlite3 final-db/MediaLibrary.sqlitedb 'PRAGMA quick_check;')"
+          printf 'final_quick_check=%s\n' "$QC" | tee final-integrity.txt
+          test "$QC" = ok
+          { printf '%s\n' "$PASS"; echo 'rm -rf /var/mobile/ByeTunes15FinalSnapshot'; } | sshpass -e ssh -p "$PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s'
+          echo REVERSIBLE_WRITE_TEST_PASS
+
+      - name: Upload diagnostics and safety snapshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ByeTunes15-reversible-write-${{ github.run_id }}
+          path: |
+            device.txt
+            gate.txt
+            prewrite.txt
+            prewrite-db/
+            prewrite-probe.txt
+            import-response.json
+            library-after-import.json
+            playlists-after-import.json
+            write-path.txt
+            restore-response.json
+            cleanup.txt
+            final-probe.json
+            final-library.json
+            final-playlists.json
+            final-integrity.txt
+          if-no-files-found: ignore
+          retention-days: 14
