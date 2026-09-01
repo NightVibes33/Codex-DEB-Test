@@ -17,7 +17,7 @@ concurrency:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 4
     environment:
       name: TAILSCALE_AUTHKEY-
     steps:
@@ -32,7 +32,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends openssh-client sshpass >/dev/null
 
-      - name: Read-only iPhone container and launch-context probe
+      - name: Bounded read-only iPhone probe
         env:
           IPHONE_HOST: 100.96.37.124
           IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
@@ -49,39 +49,40 @@ jobs:
             cat <<'EOS'
           set +e
           export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
-          echo '=== READ-ONLY IPHONE ZEBRA/SILEO PROBE ==='
-          echo 'policy=no-file-moves-no-file-writes-no-rm-no-package-actions-no-pref-changes'
+          echo '=== BOUNDED READ-ONLY IPHONE PROBE ==='
+          echo 'policy=no-device-writes-no-file-moves-no-rm-no-package-actions-no-pref-changes'
           echo "root_id=$(id 2>/dev/null)"
-          echo "root_home=$HOME"
-          echo
 
-          echo '--- Installed app registration ---'
+          echo '--- App registration ---'
           uicache -l 2>/dev/null | grep -Ei 'xyz\.willy\.Zebra|org\.coolstar\.Sileo|Zebra\.app|Sileo\.app' || true
-          echo
 
-          echo '--- App data containers by metadata ---'
+          echo '--- App data containers ---'
           for meta in /var/mobile/Containers/Data/Application/*/.com.apple.mobile_container_manager.metadata.plist; do
             [ -f "$meta" ] || continue
-            txt="$(plutil -p "$meta" 2>/dev/null || strings -a "$meta" 2>/dev/null)"
-            case "$txt" in
-              *xyz.willy.Zebra*|*org.coolstar.SileoStore*|*org.coolstar.sileo*)
-                dir="${meta%/.com.apple.mobile_container_manager.metadata.plist}"
-                echo "CONTAINER=$dir"
-                printf '%s\n' "$txt" | head -n 30
-                echo '-- matching state files --'
-                find "$dir" -maxdepth 6 -type f \
-                  \( -iname '*zebra*' -o -iname '*sileo*' -o -iname '*.db' -o -iname '*.sqlite' -o -iname '*.sqlite3' -o -iname '*RepoHashCache*' -o -iname '*repocache*' \) \
-                  -print 2>/dev/null | head -n 120
-                echo '-- cache/support directories --'
-                find "$dir/Library" -maxdepth 4 -type d \
-                  \( -iname '*zebra*' -o -iname '*sileo*' -o -iname 'Caches' -o -iname 'Application Support' \) \
-                  -print 2>/dev/null | head -n 80
-                echo
-                ;;
-            esac
+            ids="$(strings -a "$meta" 2>/dev/null | grep -E 'xyz\.willy\.Zebra|org\.coolstar\.SileoStore|org\.coolstar\.sileo' | head -n 3)"
+            [ -n "$ids" ] || continue
+            dir="${meta%/.com.apple.mobile_container_manager.metadata.plist}"
+            echo "CONTAINER=$dir"
+            printf 'IDENTIFIERS=%s\n' "$ids"
+            echo '-- Library top level --'
+            ls -la "$dir/Library" 2>/dev/null | head -n 60 || true
+            echo '-- exact likely state paths --'
+            for f in \
+              "$dir/Library/Caches/xyz.willy.Zebra/Zebra.db" \
+              "$dir/Library/Caches/Zebra/Zebra.db" \
+              "$dir/Library/Zebra/zebra.db" \
+              "$dir/Library/Caches/org.coolstar.SileoStore/Cache.db" \
+              "$dir/Library/Caches/CydiaClassic/Database/sileo.sqlite3" \
+              "$dir/Library/Caches/Sileo/RepoHashCache.json"; do
+              [ -e "$f" ] && ls -ld "$f"
+            done
+            echo '-- matching files, max depth 5 --'
+            find "$dir/Library" -maxdepth 5 -type f \
+              \( -iname '*zebra*' -o -iname '*sileo*' -o -iname '*.db' -o -iname '*.sqlite' -o -iname '*.sqlite3' -o -iname '*RepoHashCache*' -o -iname '*repocache*' \) \
+              -print 2>/dev/null | head -n 120 || true
           done
 
-          echo '--- Known rootless Sileo state ---'
+          echo '--- Rootless shared Sileo files ---'
           for f in \
             /var/jb/var/mobile/Library/Caches/CydiaClassic/Database/sileo.sqlite3 \
             /var/jb/var/mobile/Library/Caches/Sileo/RepoHashCache.json \
@@ -90,27 +91,18 @@ jobs:
             /var/mobile/Library/Caches/org.coolstar.SileoStore/Cache.db; do
             [ -e "$f" ] && ls -ld "$f"
           done
-          echo
 
-          echo '--- Launch tooling and GUI domains ---'
+          echo '--- Launch context ---'
           for c in uiopen uicache launchctl lsappinfo open sudo; do
             printf '%s=' "$c"; command -v "$c" 2>/dev/null || echo unavailable
           done
-          echo '-- launchctl user/gui domain --'
-          launchctl print user/501 2>&1 | head -n 35 || true
-          launchctl print gui/501 2>&1 | head -n 35 || true
-          echo '-- SpringBoard process --'
           ps -axo user,pid,ppid,command 2>/dev/null | grep -E '[S]pringBoard|[f]rontboard|[b]ackboardd' | head -n 30 || true
-          echo '-- uiopen help --'
-          uiopen --help 2>&1 | head -n 30 || true
-          echo
+          echo '--- mobile context ---'
+          sudo -u mobile env HOME=/var/mobile PATH="$PATH" sh -c 'id; printf "HOME=%s\n" "$HOME"; printf "uiopen="; command -v uiopen || true; printf "launchctl="; command -v launchctl || true' 2>&1 || true
 
-          echo '--- Mobile-user execution context only; no launch yet ---'
-          sudo -u mobile env HOME=/var/mobile PATH="$PATH" sh -c 'echo "mobile_id=$(id)"; echo "mobile_home=$HOME"; printf "mobile_uiopen="; command -v uiopen || true; printf "mobile_launchctl="; command -v launchctl || true' 2>&1 || true
-          echo
           echo 'READ_ONLY_PROBE_COMPLETE=1'
           EOS
-          } | sshpass -e ssh \
+          } | timeout 90s sshpass -e ssh \
               -o BatchMode=no \
               -o ConnectTimeout=20 \
               -o ServerAliveInterval=10 \
