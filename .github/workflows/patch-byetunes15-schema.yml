@@ -84,4 +84,4 @@ fail:if(errorOut)*errorOut=[NSString stringWithUTF8String:sqlite3_errmsg(db)];sq
           git commit -m 'Fix iOS 15 playlist schema compatibility'
           git push origin HEAD:temp/byetunes-ios16-rootless
 
-# retrigger: 2026-08-31 iOS15 schema patch
+# retrigger: 2026-08-31 iOS15 schema patch attempt 2
