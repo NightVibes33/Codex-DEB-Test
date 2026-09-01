@@ -262,17 +262,23 @@ fail:
         sqlite3_finalize(stmt);
         if (alreadyThere) continue;
 
-        if (sqlite3_prepare_v2(db, "INSERT INTO container_item(container_item_pid,container_pid,item_pid,position,uuid) VALUES(?,?,?,?,?)", -1, &stmt, NULL) != SQLITE_OK) {
+        BOOL hasUUID = BTFullColumn(db, @"container_item", @"uuid");
+        const char *insertSQL = hasUUID
+            ? "INSERT INTO container_item(container_item_pid,container_pid,item_pid,position,uuid) VALUES(?,?,?,?,?)"
+            : "INSERT INTO container_item(container_item_pid,container_pid,item_pid,position) VALUES(?,?,?,?)";
+        if (sqlite3_prepare_v2(db, insertSQL, -1, &stmt, NULL) != SQLITE_OK) {
             ok = NO;
             error = [NSString stringWithUTF8String:sqlite3_errmsg(db)];
             break;
         }
-        NSString *uuid = NSUUID.UUID.UUIDString;
         sqlite3_bind_int64(stmt, 1, BTFullPID());
         sqlite3_bind_int64(stmt, 2, playlistPID);
         sqlite3_bind_int64(stmt, 3, itemPID);
         sqlite3_bind_int64(stmt, 4, position++);
-        sqlite3_bind_text(stmt, 5, uuid.UTF8String, -1, SQLITE_TRANSIENT);
+        if (hasUUID) {
+            NSString *uuid = NSUUID.UUID.UUIDString;
+            sqlite3_bind_text(stmt, 5, uuid.UTF8String, -1, SQLITE_TRANSIENT);
+        }
         if (sqlite3_step(stmt) != SQLITE_DONE) {
             ok = NO;
             error = [NSString stringWithUTF8String:sqlite3_errmsg(db)];
