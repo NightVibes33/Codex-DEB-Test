@@ -17,7 +17,7 @@ concurrency:
 jobs:
   inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 3
     environment:
       name: TAILSCALE_AUTHKEY-
     steps:
@@ -28,7 +28,7 @@ jobs:
       - run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends openssh-client sshpass >/dev/null
-      - name: Copy live databases non-destructively
+      - name: Copy exact live databases non-destructively
         env:
           IPHONE_HOST: 100.96.37.124
           IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
@@ -46,15 +46,34 @@ jobs:
           export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
           OUT=/var/mobile/Documents/CodexPackageManagerDBInspect
           ZDB='/var/mobile/Library/Application Support/xyz.willy.Zebra/zebra.db'
-          mkdir -p "$OUT"
-          chown mobile:mobile "$OUT" 2>/dev/null || true
-          echo '=== ACTIVE SILEO CACHE DISCOVERY ==='
-          find /var/jb/var/mobile/Library /var/mobile/Library -maxdepth 8 \( -iname '*sileo*' -o -iname '*coolstar*' \) -print 2>/dev/null | head -n 200 || true
-          echo '=== SILEO SQLITE DISCOVERY ==='
-          SDB="$(find /var/jb/var/mobile/Library /var/mobile/Library -maxdepth 10 -type f -name 'sileo.sqlite3' -print 2>/dev/null | head -n1 || true)"
+          mkdir -p "$OUT"; chown mobile:mobile "$OUT" 2>/dev/null || true
+
+          echo '=== EXACT SILEO PATHS ==='
+          SDB=''
+          for p in \
+            '/var/jb/var/mobile/Library/Caches/org.coolstar.SileoStore/Database/sileo.sqlite3' \
+            '/var/mobile/Library/Caches/org.coolstar.SileoStore/Database/sileo.sqlite3' \
+            '/var/jb/var/mobile/Library/org.coolstar.SileoStore/Database/sileo.sqlite3' \
+            '/var/mobile/Library/org.coolstar.SileoStore/Database/sileo.sqlite3'; do
+            if [ -e "$p" ]; then
+              echo "SILEO_DB_CANDIDATE=$p"; ls -l "$p" || true
+              [ -n "$SDB" ] || SDB="$p"
+            else
+              echo "SILEO_DB_ABSENT=$p"
+            fi
+          done
+          for d in \
+            '/var/jb/var/mobile/Library/Caches/org.coolstar.SileoStore' \
+            '/var/mobile/Library/Caches/org.coolstar.SileoStore'; do
+            if [ -d "$d" ]; then
+              echo "SILEO_CACHE_DIR=$d"; ls -la "$d" 2>/dev/null || true
+              [ -d "$d/Database" ] && { echo "SILEO_DATABASE_DIR=$d/Database"; ls -la "$d/Database" || true; }
+              [ -f "$d/RepoHashCache.json" ] && { echo "SILEO_REPO_HASH_CACHE=$d/RepoHashCache.json"; ls -l "$d/RepoHashCache.json"; wc -c "$d/RepoHashCache.json"; }
+            fi
+          done
+
           echo "SILEO_DB_PATH=$SDB"
           if [ -n "$SDB" ] && [ -f "$SDB" ]; then
-            ls -l "$SDB" || true
             cp -p "$SDB" "$OUT/sileo.sqlite3"
             chown mobile:mobile "$OUT/sileo.sqlite3" 2>/dev/null || true
             chmod 600 "$OUT/sileo.sqlite3" 2>/dev/null || true
@@ -62,21 +81,19 @@ jobs:
           else
             echo 'SILEO_DB_NOT_FOUND=1'
           fi
-          echo '=== ZEBRA DB COPY ==='
+
+          echo '=== ZEBRA DB ==='
           if [ -f "$ZDB" ]; then
+            ls -l "$ZDB"
             cp -p "$ZDB" "$OUT/zebra.db"
             chown mobile:mobile "$OUT/zebra.db" 2>/dev/null || true
             chmod 600 "$OUT/zebra.db" 2>/dev/null || true
             echo "ZEBRA_DB_COPY_BYTES=$(wc -c < "$OUT/zebra.db" | tr -d ' ')"
+          else
+            echo 'ZEBRA_DB_NOT_FOUND=1'
           fi
-          echo '=== SILEO CACHE TOP LEVEL ==='
-          for d in /var/jb/var/mobile/Library/Caches/org.coolstar.SileoStore /var/mobile/Library/Caches/org.coolstar.SileoStore; do
-            [ -d "$d" ] || continue
-            echo "CACHE_DIR=$d"
-            find "$d" -maxdepth 3 -type f -print 2>/dev/null | head -n 160 | while IFS= read -r f; do ls -l "$f"; done
-          done
           EOS
-          } | timeout 90 sshpass -e ssh -o BatchMode=no -o ConnectTimeout=20 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" mobile@"$IPHONE_HOST" 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' 2>&1 | tee db-inspect-remote.txt
+          } | timeout 60 sshpass -e ssh -o BatchMode=no -o ConnectTimeout=20 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" mobile@"$IPHONE_HOST" 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' 2>&1 | tee db-inspect-remote.txt
 
           sshpass -e scp -q -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" mobile@"$IPHONE_HOST":/var/mobile/Documents/CodexPackageManagerDBInspect/zebra.db ./zebra.db || true
           sshpass -e scp -q -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" mobile@"$IPHONE_HOST":/var/mobile/Documents/CodexPackageManagerDBInspect/sileo.sqlite3 ./sileo.sqlite3 || true
@@ -88,29 +105,26 @@ jobs:
           for path in ('zebra.db','sileo.sqlite3'):
               print(f'=== {path} ===')
               if not os.path.exists(path):
-                  print('MISSING')
-                  continue
+                  print('MISSING'); continue
               print('bytes=', os.path.getsize(path))
               try:
                   con=sqlite3.connect(f'file:{path}?mode=ro', uri=True)
                   cur=con.cursor()
                   print('quick_check=', cur.execute('PRAGMA quick_check').fetchone()[0])
+                  print('user_version=', cur.execute('PRAGMA user_version').fetchone()[0])
                   tables=[r[0] for r in cur.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")]
                   print('tables=', tables)
                   for t in tables:
                       try:
                           n=cur.execute(f'SELECT COUNT(*) FROM "{t}"').fetchone()[0]
-                          print(f'COUNT {t}={n}')
                           cols=[r[1] for r in cur.execute(f'PRAGMA table_info("{t}")')]
+                          print(f'COUNT {t}={n}')
                           print(f'COLS {t}={cols}')
-                          if any(x in t.lower() for x in ('source','repo')):
-                              rows=cur.execute(f'SELECT * FROM "{t}" LIMIT 12').fetchall()
-                              for row in rows: print(f'ROW {t}={row}')
-                      except Exception as e:
-                          print(f'ERR {t}={e}')
+                          if any(x in t.lower() for x in ('source','repo','package')):
+                              for row in cur.execute(f'SELECT * FROM "{t}" LIMIT 8').fetchall(): print(f'ROW {t}={row}')
+                      except Exception as e: print(f'ERR {t}={e}')
                   con.close()
-              except Exception as e:
-                  print('SQLITE_OPEN_ERROR=',repr(e))
+              except Exception as e: print('SQLITE_OPEN_ERROR=',repr(e))
           PY
       - uses: actions/upload-artifact@v4
         if: always()
