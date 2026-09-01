@@ -1,30 +1,34 @@
 # ByeTunes16 — Dopamine Rootless Port
 
-A jailbreak-native iOS 16 port of ByeTunes for Dopamine + ElleKit devices (including users who also use TrollStore).
+A jailbreak-native iOS 16 ByeTunes port for Dopamine + ElleKit devices, including setups that also use TrollStore.
 
-## Differences from stock-device ByeTunes
+## Architecture
 
 - No pairing file.
 - No LocalDevVPN.
 - No AFC/idevice transport.
 - No computer sync after installation.
-- A root helper on `127.0.0.1:45981` performs guarded direct media-library operations.
-- The tweak injects a **BT** control into `com.apple.Music`.
+- Root helper on `127.0.0.1:45981` performs guarded media-library operations.
+- ElleKit injects the **BT** control directly into `com.apple.Music`.
 
-## Features
+## 0.2.0 feature set
 
-- MP3, M4A, AAC, ALAC, FLAC, WAV and Opus import.
-- Embedded metadata extraction.
-- Embedded artwork import into the iTunes artwork store and media DB.
-- Music-library browser inside Music.app.
-- Title / artist / album / genre / year editing.
-- Editable playlist creation.
-- Automatic database backup before every mutation.
+- MP3, M4A, AAC, ALAC, FLAC, WAV and Opus injection into the native Music library.
+- Embedded metadata extraction on import.
+- Embedded cover-art import into `iTunes_Control/iTunes/Artwork/Originals` plus media-library artwork bindings.
+- Apple/iTunes metadata search from inside Music.app.
+- Deezer metadata search/fallback from inside Music.app.
+- Selected search results can update title, artist, album, genre and year and can replace artwork from the provider result.
+- Full local library browser inside Music.app.
+- Manual title / artist / album / genre / year editing.
+- Create editable Music playlists.
+- Add existing songs to existing editable playlists.
+- Remove injected/local library records while preserving the underlying audio file for recovery.
+- Automatic database backup before every mutating operation.
 - Manual backup and latest-backup restore.
-- SQLite `quick_check` before import and after repair.
-- Repair of missing sync IDs and orphan playlist rows.
-- Safe removal of library records while preserving the underlying audio file for recovery.
-- Rootless paths and ElleKit filter for `com.apple.Music`.
+- SQLite `quick_check` protection before imports and after repair.
+- Repair missing sync IDs and orphaned playlist rows.
+- Rootless Dopamine paths and ElleKit filter for `com.apple.Music`.
 
 ## Target
 
@@ -33,8 +37,12 @@ A jailbreak-native iOS 16 port of ByeTunes for Dopamine + ElleKit devices (inclu
 - ElleKit
 - arm64
 
-TrollStore can coexist with this setup, but tweak injection itself is supplied by Dopamine/ElleKit; TrollStore alone does not load jailbreak tweaks.
+TrollStore can coexist with this setup, but tweak injection is supplied by Dopamine/ElleKit. TrollStore alone does not load jailbreak tweaks.
 
 ## Safety model
 
-All writes are transactional. A database snapshot is created under `/var/mobile/Library/ByeTunes16/Backups` before import, metadata edits, playlist creation, repair or delete operations. The helper refuses to mutate a database that fails `PRAGMA quick_check`.
+Media-library writes use SQLite transactions. A snapshot is created under `/var/mobile/Library/ByeTunes16/Backups` before import, metadata edits, playlist mutations, repair or deletion. The helper refuses import when the current database fails `PRAGMA quick_check`.
+
+## Upstream
+
+Behavior and iOS media-library schema work are based on the MIT-licensed ByeTunes project by Edualexxis. See `THIRD_PARTY_Byetunes_LICENSE.txt`.
