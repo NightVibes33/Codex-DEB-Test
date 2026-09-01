@@ -17,7 +17,7 @@ concurrency:
 jobs:
   repair:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 7
     environment:
       name: TAILSCALE_AUTHKEY-
     steps:
@@ -32,7 +32,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends openssh-client sshpass >/dev/null
 
-      - name: Repair package managers without deleting data
+      - name: Targeted non-destructive iPhone repair
         env:
           IPHONE_HOST: 100.96.37.124
           IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
@@ -55,110 +55,130 @@ jobs:
           mkdir -p "$BK"
           chmod 700 "$BK" 2>/dev/null || true
 
-          echo '=== NON-DESTRUCTIVE IPHONE PACKAGE MANAGER REPAIR ==='
+          echo '=== TARGETED NON-DESTRUCTIVE IPHONE REPAIR ==='
           echo "backup_dir=$BK"
           echo 'policy=no-rm-no-package-removal-no-tweak-removal-no-pref-reset'
+
+          # If the prior interrupted repair had already renamed one of these exact
+          # state files, put the newest preserved original back before proceeding.
+          restore_interrupted() {
+            orig="$1"
+            [ -e "$orig" ] && return 0
+            newest="$(ls -1t "$orig".before-fix-* 2>/dev/null | head -n 1)"
+            if [ -n "$newest" ] && [ -e "$newest" ]; then
+              mv "$newest" "$orig" 2>/dev/null && echo "recovered_interrupted=$orig"
+            fi
+          }
+
+          preserve_for_rebuild() {
+            orig="$1"
+            list="$2"
+            [ -f "$orig" ] || return 0
+            flat="$(printf '%s' "$orig" | sed 's#^/##; s#/#__#g')"
+            cp -p "$orig" "$BK/$flat" 2>/dev/null || return 1
+            mv "$orig" "$orig.before-fix-$TS" 2>/dev/null || return 1
+            printf '%s\n' "$orig" >> "$list"
+            echo "preserved=$orig"
+          }
+
+          restore_list() {
+            list="$1"
+            tag="$2"
+            [ -f "$list" ] || return 0
+            while IFS= read -r orig; do
+              [ -n "$orig" ] || continue
+              saved="$orig.before-fix-$TS"
+              [ -e "$saved" ] || continue
+              if [ -e "$orig" ]; then
+                mv "$orig" "$orig.failed-rebuild-$TS" 2>/dev/null || true
+                echo "preserved_failed_rebuild=$orig.failed-rebuild-$TS"
+              fi
+              mv "$saved" "$orig" 2>/dev/null || true
+              echo "restored_${tag}=$orig"
+            done < "$list"
+          }
+
+          ZDB=/var/mobile/Library/Caches/xyz.willy.Zebra/Zebra.db
+          ZOLD=/var/mobile/Library/Zebra/zebra.db
+          SDB=/var/jb/var/mobile/Library/Caches/CydiaClassic/Database/sileo.sqlite3
+          RH=/var/jb/var/mobile/Library/Caches/Sileo/RepoHashCache.json
+
+          for f in "$ZDB" "$ZDB-wal" "$ZDB-shm" "$ZOLD" "$ZOLD-wal" "$ZOLD-shm" \
+                   "$SDB" "$SDB-wal" "$SDB-shm" "$RH"; do
+            restore_interrupted "$f"
+          done
 
           killall Zebra 2>/dev/null || true
           killall Sileo 2>/dev/null || true
           sleep 2
 
-          echo '--- Zebra state discovery ---'
-          find /var/mobile/Library /var/jb/var/mobile/Library -maxdepth 6 \
-            \( -iname '*zebra*' -o -path '*Zebra*' \) -print 2>/dev/null | head -n 160 || true
+          echo '--- Pre-repair invariants ---'
+          dpkg-query -W -f='zebra=${Status} ${Version} ${Architecture}\n' xyz.willy.zebra 2>/dev/null || true
+          dpkg-query -W -f='sileo=${Status} ${Version} ${Architecture}\n' org.coolstar.sileo 2>/dev/null || true
+          dpkg-query -W -f='ellekit=${Status} ${Version} ${Architecture}\n' ellekit 2>/dev/null || true
+          printf 'cypwn_records='; grep -c '^Package:' /var/jb/var/lib/apt/lists/repo.cypwn.xyz_._Packages 2>/dev/null || echo 0
+          apt-cache policy xyz.cypwn.python3.12 2>/dev/null | head -n 8 || true
 
-          echo '--- Zebra cache/database preservation + rebuild ---'
+          echo '--- Zebra targeted DB rebuild ---'
           ZLIST="$BK/zebra-moved.txt"
           : > "$ZLIST"
-          find /var/mobile/Library /var/jb/var/mobile/Library -maxdepth 7 -type f \
-            \( -path '*Zebra*' -o -path '*zebra*' \) \
-            \( -iname '*.db' -o -iname '*.db-wal' -o -iname '*.db-shm' -o -iname '*.sqlite' -o -iname '*.sqlite3' -o -iname '*.sqlite-wal' -o -iname '*.sqlite-shm' \) \
-            -print 2>/dev/null | while IFS= read -r f; do
-              [ -f "$f" ] || continue
-              case "$f" in
-                *.before-fix-*|*.failed-rebuild-*) continue ;;
-              esac
-              rel="$(printf '%s' "$f" | sed 's#^/##; s#/#__#g')"
-              cp -p "$f" "$BK/$rel" 2>/dev/null || continue
-              mv "$f" "$f.before-fix-$TS" 2>/dev/null || continue
-              printf '%s\n' "$f" >> "$ZLIST"
-              echo "preserved_zebra_db=$f"
+          for f in "$ZDB" "$ZDB-wal" "$ZDB-shm" "$ZOLD" "$ZOLD-wal" "$ZOLD-shm"; do
+            preserve_for_rebuild "$f" "$ZLIST" || true
           done
-
-          echo '--- Launch Zebra and verify beyond watchdog window ---'
-          BEFORE_CR="$(ls -t /var/mobile/Library/Logs/CrashReporter/stacks+Zebra*.ips 2>/dev/null | head -n 1)"
-          uiopen 'zbra://' 2>/dev/null || uiopen 'zebra://' 2>/dev/null || uiopen /var/jb/Applications/Zebra.app 2>/dev/null || true
+          ZCR_BEFORE="$(ls -1t /var/mobile/Library/Logs/CrashReporter/stacks+Zebra*.ips 2>/dev/null | head -n 1)"
+          (uiopen 'zbra://' >/dev/null 2>&1 || uiopen 'zebra://' >/dev/null 2>&1 || uiopen /var/jb/Applications/Zebra.app >/dev/null 2>&1 || true) &
           sleep 8
-          printf 'zebra_pid_8s='; pgrep -x Zebra 2>/dev/null | tr '\n' ' '; echo
-          sleep 16
-          printf 'zebra_pid_24s='; pgrep -x Zebra 2>/dev/null | tr '\n' ' '; echo
-          AFTER_CR="$(ls -t /var/mobile/Library/Logs/CrashReporter/stacks+Zebra*.ips 2>/dev/null | head -n 1)"
-          echo "zebra_crash_before=$BEFORE_CR"
-          echo "zebra_crash_after=$AFTER_CR"
-          if pgrep -x Zebra >/dev/null 2>&1; then
+          ZPID8="$(pgrep -x Zebra 2>/dev/null | tr '\n' ' ')"
+          echo "zebra_pid_8s=$ZPID8"
+          sleep 17
+          ZPID25="$(pgrep -x Zebra 2>/dev/null | tr '\n' ' ')"
+          echo "zebra_pid_25s=$ZPID25"
+          ZCR_AFTER="$(ls -1t /var/mobile/Library/Logs/CrashReporter/stacks+Zebra*.ips 2>/dev/null | head -n 1)"
+          echo "zebra_crash_before=$ZCR_BEFORE"
+          echo "zebra_crash_after=$ZCR_AFTER"
+          if [ -n "$ZPID25" ] && [ "$ZCR_AFTER" = "$ZCR_BEFORE" ]; then
             echo 'ZEBRA_REPAIR_VERIFIED=1'
           else
             echo 'ZEBRA_REPAIR_VERIFIED=0'
-            echo 'Restoring preserved Zebra databases because launch did not survive.'
-            while IFS= read -r orig; do
-              [ -n "$orig" ] || continue
-              saved="$orig.before-fix-$TS"
-              if [ -e "$saved" ]; then
-                if [ -e "$orig" ]; then
-                  mv "$orig" "$orig.failed-rebuild-$TS" 2>/dev/null || true
-                fi
-                mv "$saved" "$orig" 2>/dev/null || true
-              fi
-            done < "$ZLIST"
+            restore_list "$ZLIST" zebra
           fi
 
           killall Sileo 2>/dev/null || true
           sleep 2
 
-          echo '--- Sileo cache DB/hash preservation ---'
+          echo '--- Sileo targeted cache DB rebuild ---'
           SLIST="$BK/sileo-moved.txt"
           : > "$SLIST"
-          for f in \
-            /var/jb/var/mobile/Library/Caches/CydiaClassic/Database/sileo.sqlite3 \
-            /var/jb/var/mobile/Library/Caches/CydiaClassic/Database/sileo.sqlite3-wal \
-            /var/jb/var/mobile/Library/Caches/CydiaClassic/Database/sileo.sqlite3-shm \
-            /var/jb/var/mobile/Library/Caches/Sileo/RepoHashCache.json; do
-            [ -f "$f" ] || continue
-            rel="$(printf '%s' "$f" | sed 's#^/##; s#/#__#g')"
-            cp -p "$f" "$BK/$rel" 2>/dev/null || continue
-            mv "$f" "$f.before-fix-$TS" 2>/dev/null || continue
-            printf '%s\n' "$f" >> "$SLIST"
-            echo "preserved_sileo_state=$f"
+          for f in "$SDB" "$SDB-wal" "$SDB-shm" "$RH"; do
+            preserve_for_rebuild "$f" "$SLIST" || true
           done
 
-          echo '--- Refresh APT indexes in place ---'
-          apt-get update 2>&1 | tail -n 80
-          echo 'apt_candidate_after_refresh:'
-          apt-cache policy xyz.cypwn.python3.12 2>/dev/null || true
+          # The APT CyPwn index is already valid and populated; do not alter it.
+          printf 'cypwn_records_before_sileo_launch='; grep -c '^Package:' /var/jb/var/lib/apt/lists/repo.cypwn.xyz_._Packages 2>/dev/null || echo 0
+          (uiopen 'sileo://' >/dev/null 2>&1 || uiopen /var/jb/Applications/Sileo.app >/dev/null 2>&1 || true) &
+          sleep 28
 
-          echo '--- Launch Sileo to rebuild its own package cache ---'
-          uiopen 'sileo://' 2>/dev/null || uiopen /var/jb/Applications/Sileo.app 2>/dev/null || true
-          sleep 35
-          SDB=/var/jb/var/mobile/Library/Caches/CydiaClassic/Database/sileo.sqlite3
-          RH=/var/jb/var/mobile/Library/Caches/Sileo/RepoHashCache.json
-          ls -l "$SDB" "$RH" 2>/dev/null || true
-          if [ -f "$SDB" ] && strings -a "$SDB" 2>/dev/null | grep -Fq 'xyz.cypwn.python3.12'; then
-            echo 'SILEO_CYPWN_DB_VERIFIED=1'
-          else
-            echo 'SILEO_CYPWN_DB_VERIFIED=0'
-          fi
-          if [ -f "$RH" ] && grep -aq 'repo.cypwn.xyz' "$RH" 2>/dev/null; then
-            echo 'SILEO_CYPWN_HASH_VERIFIED=1'
-          else
-            echo 'SILEO_CYPWN_HASH_VERIFIED=0'
-          fi
+          SDB_OK=0
+          RH_OK=0
+          [ -f "$SDB" ] && strings -a "$SDB" 2>/dev/null | grep -Fq 'xyz.cypwn.python3.12' && SDB_OK=1
+          [ -f "$RH" ] && grep -aq 'repo.cypwn.xyz' "$RH" 2>/dev/null && RH_OK=1
+          echo "sileo_db_exists=$([ -f "$SDB" ] && echo 1 || echo 0)"
+          echo "sileo_cypwn_db_verified=$SDB_OK"
+          echo "sileo_cypwn_hash_verified=$RH_OK"
           printf 'sileo_pid='; pgrep -x Sileo 2>/dev/null | tr '\n' ' '; echo
 
+          if [ "$SDB_OK" -eq 1 ]; then
+            echo 'SILEO_CYPWN_REPAIR_VERIFIED=1'
+          else
+            echo 'SILEO_CYPWN_REPAIR_VERIFIED=0'
+            restore_list "$SLIST" sileo
+          fi
+
           echo '--- Final invariants ---'
-          printf 'zebra_package='; dpkg-query -W -f='${Status} ${Version} ${Architecture}\n' xyz.willy.zebra 2>/dev/null || true
-          printf 'sileo_package='; dpkg-query -W -f='${Status} ${Version} ${Architecture}\n' org.coolstar.sileo 2>/dev/null || true
-          printf 'ellekit_package='; dpkg-query -W -f='${Status} ${Version} ${Architecture}\n' ellekit 2>/dev/null || true
-          printf 'cypwn_records='; grep -c '^Package:' /var/jb/var/lib/apt/lists/repo.cypwn.xyz_._Packages 2>/dev/null || echo 0
+          dpkg-query -W -f='zebra=${Status} ${Version} ${Architecture}\n' xyz.willy.zebra 2>/dev/null || true
+          dpkg-query -W -f='sileo=${Status} ${Version} ${Architecture}\n' org.coolstar.sileo 2>/dev/null || true
+          dpkg-query -W -f='ellekit=${Status} ${Version} ${Architecture}\n' ellekit 2>/dev/null || true
+          printf 'cypwn_records_final='; grep -c '^Package:' /var/jb/var/lib/apt/lists/repo.cypwn.xyz_._Packages 2>/dev/null || echo 0
           echo 'NO_FILES_DELETED=1'
           echo 'NO_PACKAGES_REMOVED=1'
           echo 'NO_TWEAKS_REMOVED=1'
@@ -168,6 +188,8 @@ jobs:
           } | sshpass -e ssh \
               -o BatchMode=no \
               -o ConnectTimeout=20 \
+              -o ServerAliveInterval=10 \
+              -o ServerAliveCountMax=3 \
               -o StrictHostKeyChecking=yes \
               -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
               mobile@"$IPHONE_HOST" \
