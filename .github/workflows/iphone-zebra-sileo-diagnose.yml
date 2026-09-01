@@ -1,4 +1,4 @@
-name: iPhone Zebra Sileo Probe
+name: iPhone Zebra Sileo Repair
 
 on:
   push:
@@ -11,13 +11,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: iphone-zebra-sileo-probe
+  group: iphone-zebra-sileo-repair
   cancel-in-progress: true
 
 jobs:
-  probe:
+  repair:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 6
     environment:
       name: TAILSCALE_AUTHKEY-
     steps:
@@ -32,7 +32,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends openssh-client sshpass >/dev/null
 
-      - name: Bounded read-only iPhone probe
+      - name: Reversible iPhone package-manager repair
         env:
           IPHONE_HOST: 100.96.37.124
           IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
@@ -49,60 +49,151 @@ jobs:
             cat <<'EOS'
           set +e
           export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
-          echo '=== BOUNDED READ-ONLY IPHONE PROBE ==='
-          echo 'policy=no-device-writes-no-file-moves-no-rm-no-package-actions-no-pref-changes'
-          echo "root_id=$(id 2>/dev/null)"
+          STAMP="$(date +%Y%m%d-%H%M%S)"
+          ZDIR="/var/mobile/Library/Application Support/xyz.willy.Zebra"
+          ZDB="$ZDIR/zebra.db"
+          CY="/var/jb/var/lib/apt/lists/repo.cypwn.xyz_._Packages"
+          CRASHDIR="/var/mobile/Library/Logs/CrashReporter"
 
-          echo '--- App registration ---'
-          uicache -l 2>/dev/null | grep -Ei 'xyz\.willy\.Zebra|org\.coolstar\.Sileo|Zebra\.app|Sileo\.app' || true
+          echo '=== IPHONE ZEBRA + SILEO REVERSIBLE REPAIR ==='
+          echo 'policy=no-rm-no-package-removal-no-tweak-removal-no-pref-reset'
+          echo "stamp=$STAMP"
+          id
 
-          echo '--- App data containers ---'
-          for meta in /var/mobile/Containers/Data/Application/*/.com.apple.mobile_container_manager.metadata.plist; do
-            [ -f "$meta" ] || continue
-            ids="$(strings -a "$meta" 2>/dev/null | grep -E 'xyz\.willy\.Zebra|org\.coolstar\.SileoStore|org\.coolstar\.sileo' | head -n 3)"
-            [ -n "$ids" ] || continue
-            dir="${meta%/.com.apple.mobile_container_manager.metadata.plist}"
-            echo "CONTAINER=$dir"
-            printf 'IDENTIFIERS=%s\n' "$ids"
-            echo '-- Library top level --'
-            ls -la "$dir/Library" 2>/dev/null | head -n 60 || true
-            echo '-- exact likely state paths --'
-            for f in \
-              "$dir/Library/Caches/xyz.willy.Zebra/Zebra.db" \
-              "$dir/Library/Caches/Zebra/Zebra.db" \
-              "$dir/Library/Zebra/zebra.db" \
-              "$dir/Library/Caches/org.coolstar.SileoStore/Cache.db" \
-              "$dir/Library/Caches/CydiaClassic/Database/sileo.sqlite3" \
-              "$dir/Library/Caches/Sileo/RepoHashCache.json"; do
-              [ -e "$f" ] && ls -ld "$f"
+          echo '--- Preflight ---'
+          ls -ld "$ZDIR" 2>/dev/null || true
+          for f in "$ZDB" "$ZDB-wal" "$ZDB-shm" "$CY"; do
+            [ -e "$f" ] && ls -l "$f"
+          done
+          if command -v sqlite3 >/dev/null 2>&1 && [ -f "$ZDB" ]; then
+            echo -n 'zebra_db_quick_check='
+            timeout 8s sqlite3 "$ZDB" 'PRAGMA quick_check;' 2>&1 | head -n 8 || true
+            echo -n 'zebra_db_tables='
+            timeout 8s sqlite3 "$ZDB" '.tables' 2>&1 | head -c 800 || true
+            echo
+          fi
+          if [ -f "$CY" ]; then
+            echo "cypwn_package_records=$(grep -c '^Package:' "$CY" 2>/dev/null || echo 0)"
+            echo "cypwn_arm64_records=$(grep -c '^Architecture: iphoneos-arm64$' "$CY" 2>/dev/null || echo 0)"
+            if sudo -u mobile test -r "$CY"; then
+              echo 'cypwn_mobile_readable_before=YES'
+            else
+              echo 'cypwn_mobile_readable_before=NO'
+            fi
+          else
+            echo 'cypwn_index_missing=YES'
+          fi
+
+          echo '--- Sileo repair: make existing APT index readable and force clean in-memory reload ---'
+          if [ -f "$CY" ] && ! sudo -u mobile test -r "$CY"; then
+            echo 'repairing_cypwn_index_mode=0644'
+            chmod 0644 "$CY"
+          fi
+          if [ -f "$CY" ]; then
+            if sudo -u mobile sh -c 'head -n 12 "$1" >/dev/null 2>&1' sh "$CY"; then
+              echo 'cypwn_mobile_readable_after=YES'
+            else
+              echo 'cypwn_mobile_readable_after=NO'
+            fi
+          fi
+          pkill -f '/Sileo.app/Sileo' 2>/dev/null || true
+          sleep 2
+          sudo -u mobile env HOME=/var/mobile PATH="$PATH" uiopen 'sileo://' >/tmp/sileo-uiopen-repair.log 2>&1 || true
+          sleep 8
+          if ps -axo pid,command 2>/dev/null | grep -q '[S]ileo.app/Sileo'; then
+            echo 'sileo_alive_8s=YES'
+          else
+            echo 'sileo_alive_8s=NO'
+          fi
+          sleep 18
+          if ps -axo pid,command 2>/dev/null | grep -q '[S]ileo.app/Sileo'; then
+            echo 'sileo_alive_26s=YES'
+          else
+            echo 'sileo_alive_26s=NO'
+          fi
+          apt-cache policy xyz.cypwn.python3.12 2>/dev/null | head -n 12 || true
+
+          echo '--- Zebra repair: preserve database, regenerate clean DB, verify beyond watchdog ---'
+          mkdir -p "$ZDIR"
+          chown mobile:mobile "$ZDIR" 2>/dev/null || true
+          before_watch="$(ls -1t "$CRASHDIR"/stacks+Zebra*.ips 2>/dev/null | head -n 1)"
+          echo "zebra_watchdog_before=${before_watch:-none}"
+
+          pkill -f '/Zebra.app/Zebra' 2>/dev/null || true
+          sleep 2
+
+          zhad_old=0
+          for suffix in '' '-wal' '-shm'; do
+            src="$ZDB$suffix"
+            backup="$src.repair-backup-$STAMP"
+            if [ -e "$src" ]; then
+              mv "$src" "$backup"
+              echo "preserved=$src -> $backup"
+              zhad_old=1
+            fi
+          done
+
+          sudo -u mobile env HOME=/var/mobile PATH="$PATH" uiopen 'zbra://home' >/tmp/zebra-uiopen-repair.log 2>&1 || true
+          sleep 8
+          if ps -axo pid,command 2>/dev/null | grep -q '[Z]ebra.app/Zebra'; then
+            echo 'zebra_alive_8s=YES'
+          else
+            echo 'zebra_alive_8s=NO'
+          fi
+          sleep 20
+          zebra_alive=0
+          if ps -axo pid,command 2>/dev/null | grep -q '[Z]ebra.app/Zebra'; then
+            zebra_alive=1
+            echo 'zebra_alive_28s=YES'
+          else
+            echo 'zebra_alive_28s=NO'
+          fi
+          after_watch="$(ls -1t "$CRASHDIR"/stacks+Zebra*.ips 2>/dev/null | head -n 1)"
+          echo "zebra_watchdog_after=${after_watch:-none}"
+          new_watch=0
+          if [ -n "$after_watch" ] && [ "$after_watch" != "$before_watch" ]; then
+            new_watch=1
+            echo 'zebra_new_watchdog=YES'
+            grep -E 'WatchdogEvent|0x8badf00d|process-launch|termination' "$after_watch" 2>/dev/null | head -n 20 || true
+          else
+            echo 'zebra_new_watchdog=NO'
+          fi
+
+          if [ "$zebra_alive" -eq 1 ] && [ "$new_watch" -eq 0 ]; then
+            echo 'ZEBRA_REPAIR_VERIFIED=YES'
+            [ -e "$ZDB" ] && ls -l "$ZDB"
+          else
+            echo 'ZEBRA_REPAIR_VERIFIED=NO'
+            echo 'rolling_back_zebra_database=YES'
+            pkill -f '/Zebra.app/Zebra' 2>/dev/null || true
+            sleep 1
+            for suffix in '' '-wal' '-shm'; do
+              current="$ZDB$suffix"
+              backup="$current.repair-backup-$STAMP"
+              if [ -e "$current" ]; then
+                mv "$current" "$current.repair-failed-$STAMP"
+                echo "preserved_failed_attempt=$current.repair-failed-$STAMP"
+              fi
+              if [ -e "$backup" ]; then
+                cp -p "$backup" "$current"
+                echo "restored=$current"
+              fi
             done
-            echo '-- matching files, max depth 5 --'
-            find "$dir/Library" -maxdepth 5 -type f \
-              \( -iname '*zebra*' -o -iname '*sileo*' -o -iname '*.db' -o -iname '*.sqlite' -o -iname '*.sqlite3' -o -iname '*RepoHashCache*' -o -iname '*repocache*' \) \
-              -print 2>/dev/null | head -n 120 || true
-          done
+          fi
 
-          echo '--- Rootless shared Sileo files ---'
-          for f in \
-            /var/jb/var/mobile/Library/Caches/CydiaClassic/Database/sileo.sqlite3 \
-            /var/jb/var/mobile/Library/Caches/Sileo/RepoHashCache.json \
-            /var/jb/var/mobile/Library/Caches/sileo-repocache.json \
-            /var/jb/var/mobile/Library/Caches/Sileo/sileo-repocache.json \
-            /var/mobile/Library/Caches/org.coolstar.SileoStore/Cache.db; do
-            [ -e "$f" ] && ls -ld "$f"
-          done
-
-          echo '--- Launch context ---'
-          for c in uiopen uicache launchctl lsappinfo open sudo; do
-            printf '%s=' "$c"; command -v "$c" 2>/dev/null || echo unavailable
-          done
-          ps -axo user,pid,ppid,command 2>/dev/null | grep -E '[S]pringBoard|[f]rontboard|[b]ackboardd' | head -n 30 || true
-          echo '--- mobile context ---'
-          sudo -u mobile env HOME=/var/mobile PATH="$PATH" sh -c 'id; printf "HOME=%s\n" "$HOME"; printf "uiopen="; command -v uiopen || true; printf "launchctl="; command -v launchctl || true' 2>&1 || true
-
-          echo 'READ_ONLY_PROBE_COMPLETE=1'
+          echo '--- Final state ---'
+          if [ -f "$CY" ] && sudo -u mobile test -r "$CY"; then
+            echo 'SILEO_CYPWN_FILE_ACCESS=PASS'
+          else
+            echo 'SILEO_CYPWN_FILE_ACCESS=FAIL'
+          fi
+          echo "cypwn_records_final=$(grep -c '^Package:' "$CY" 2>/dev/null || echo 0)"
+          echo 'NO_FILES_DELETED=YES'
+          echo 'NO_PACKAGES_REMOVED=YES'
+          echo 'NO_TWEAKS_REMOVED=YES'
+          echo 'REPAIR_COMPLETE=1'
           EOS
-          } | timeout 90s sshpass -e ssh \
+          } | timeout 180s sshpass -e ssh \
               -o BatchMode=no \
               -o ConnectTimeout=20 \
               -o ServerAliveInterval=10 \
@@ -111,12 +202,12 @@ jobs:
               -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
               mobile@"$IPHONE_HOST" \
               'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
-              2>&1 | tee iphone-zebra-sileo-probe.txt
+              2>&1 | tee iphone-zebra-sileo-repair.txt
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: iphone-zebra-sileo-probe-${{ github.run_id }}
-          path: iphone-zebra-sileo-probe.txt
+          name: iphone-zebra-sileo-repair-${{ github.run_id }}
+          path: iphone-zebra-sileo-repair.txt
           if-no-files-found: warn
           retention-days: 7
