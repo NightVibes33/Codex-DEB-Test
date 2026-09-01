@@ -1,0 +1,36 @@
+ByeTunes16 iOS 16 Rootless Build
+run_id=33460660067
+commit=d6c010cea3f8a7059c9dbd4c4c8fa957a8c1dad0
+compile=success
+validate=success
+
+validation=success
+version=0.1.0
+package=com.nightvibes.byetunes16
+architecture=iphoneos-arm64
+bb801eddd8923268ce7d45185fdf7a0972bad35e67a9c2916a279e98e6b407be  byetunes16/packages/com.nightvibes.byetunes16_0.1.0_iphoneos-arm64.deb
+
+--- build tail ---
+[0;36m==> [1;39mCleaning…[m
+[0;36m==> [1;36mNotice:[m Build may be slow as Theos isn’t using all available CPU cores on this computer. Consider upgrading GNU Make: https://theos.dev/docs/parallel-building
+[1;31m> [1;3;39mMaking all for tweak ByeTunes16…[m
+[0;31m==> [1;39mPreprocessing Tweak.xm…[m
+[0;32m==> [1;39mCompiling Tweak.xm (arm64)…[m
+[0;32m==> [1;39mCompiling BTClient.m (arm64)…[m
+[0;32m==> [1;39mCompiling BTManager.m (arm64)…[m
+[0;33m==> [1;39mLinking tweak ByeTunes16 (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for ByeTunes16…[m
+[0;34m==> [1;39mStripping ByeTunes16 (arm64)…[m
+[0;34m==> [1;39mSigning ByeTunes16…[m
+[1;31m> [1;3;39mMaking all for tool byetunes16d…[m
+[0;32m==> [1;39mCompiling daemon/main.m (arm64)…[m
+[0;32m==> [1;39mCompiling daemon/BTImporter.m (arm64)…[m
+[0;33m==> [1;39mLinking tool byetunes16d (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for byetunes16d…[m
+[0;34m==> [1;39mStripping byetunes16d (arm64)…[m
+[0;34m==> [1;39mSigning byetunes16d…[m
+[1;31m> [1;3;39mMaking stage for tweak ByeTunes16…[m
+[1;31m> [1;3;39mMaking stage for tool byetunes16d…[m
+dm.pl: building package `com.nightvibes.byetunes16:iphoneos-arm64' in `./packages/com.nightvibes.byetunes16_0.1.0_iphoneos-arm64.deb'
