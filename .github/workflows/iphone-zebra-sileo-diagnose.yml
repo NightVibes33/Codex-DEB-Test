@@ -60,7 +60,7 @@ jobs:
           FAILED="$ZEBRA.failed-removeMalware-patch-$TS"
           OFF=$((0x180368))
 
-          echo '=== ZEBRA removeMalware STARTUP PATCH ==='
+          echo '=== ZEBRA removeMalware STARTUP PATCH V2 ==='
           echo 'DELETE_COMMANDS_USED=0'
           echo 'PACKAGES_REMOVED=0'
           echo 'TWEAKS_REMOVED=0'
@@ -96,8 +96,6 @@ jobs:
 
           mkdir -p "$BACKUP"
           chmod 700 "$BACKUP"
-
-          # Preserve exact original bytes outside the app directory first.
           cp -p "$ZEBRA" "$BACKUP/Zebra.original"
           BACKUP_SHA="$(sha256sum "$BACKUP/Zebra.original" | awk '{print $1}')"
           echo "external_backup_sha256=$BACKUP_SHA"
@@ -107,14 +105,12 @@ jobs:
           [ -s "$ENT" ] || { echo 'ERROR=failed to preserve Zebra entitlements'; exit 26; }
           echo "entitlements_bytes=$(wc -c < "$ENT" | tr -d ' ')"
 
-          # Candidate basename is deliberately Zebra so ldid retains Identifier=Zebra.
           cp -p "$ZEBRA" "$CAND"
           printf '\037\040\003\325' | dd of="$CAND" bs=1 seek="$OFF" conv=notrunc 2>/dev/null
           CAND_PATCH="$(readhex "$CAND" "$OFF" 4)"
           echo "candidate_patch_bytes_pre_sign=$CAND_PATCH"
           [ "$CAND_PATCH" = '1f2003d5' ] || { echo 'ERROR=NOP write verification failed'; exit 27; }
 
-          # Preserve all original entitlements while generating a valid new CodeDirectory.
           ldid -S"$ENT" "$CAND"
           CAND_PATCH_SIGNED="$(readhex "$CAND" "$OFF" 4)"
           echo "candidate_patch_bytes_post_sign=$CAND_PATCH_SIGNED"
@@ -131,12 +127,12 @@ jobs:
           echo "candidate_identifier=$IDENT"
           echo "candidate_cdhash=$CDHASH"
           [ "$IDENT" = 'Zebra' ] || { echo 'ERROR=candidate code-sign identifier is not Zebra'; exit 30; }
+          [ "${#CDHASH}" -eq 40 ] || { echo "ERROR=CDHash length is ${#CDHASH}, expected 40"; exit 31; }
           case "$CDHASH" in
-            [0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]) ;;
-            *) echo 'ERROR=invalid candidate CDHash'; exit 31 ;;
+            *[!0-9a-fA-F]*) echo 'ERROR=CDHash contains non-hex characters'; exit 31 ;;
           esac
+          echo 'CDHASH_FORMAT_VERIFIED=1'
 
-          # Dopamine 3.x jbctl officially supports adding an arbitrary CDHash.
           jbctl trustcache add "$CDHASH"
           if ! jbctl trustcache info 2>/dev/null | grep -qi "$CDHASH"; then
             echo 'ERROR=new Zebra CDHash was not found in jailbreak trustcache; installed file remains untouched'
@@ -144,12 +140,15 @@ jobs:
           fi
           echo 'CANDIDATE_TRUSTCACHE_VERIFIED=1'
 
-          # Stop Zebra only, then atomically preserve the original in place and install candidate.
           killall Zebra 2>/dev/null || true
           mv "$ZEBRA" "$INPLACE_ORIG"
-          mv "$CAND" "$ZEBRA"
+          if ! cp -p "$CAND" "$ZEBRA"; then
+            echo 'ERROR=copying patched candidate into canonical path failed; restoring original'
+            mv "$INPLACE_ORIG" "$ZEBRA"
+            echo 'ROLLBACK_COMPLETED=1'
+            exit 33
+          fi
 
-          # Match original executable ownership/mode explicitly.
           chown root:wheel "$ZEBRA" 2>/dev/null || true
           chmod 755 "$ZEBRA"
 
@@ -167,6 +166,7 @@ jobs:
           [ "$INST_CDHASH" = "$CDHASH" ] || INSTALL_OK=0
           ldid -e "$ZEBRA" > "$BACKUP/Zebra.installed.entitlements.plist" || INSTALL_OK=0
           cmp -s "$ENT" "$BACKUP/Zebra.installed.entitlements.plist" || INSTALL_OK=0
+          if ! jbctl trustcache info 2>/dev/null | grep -qi "$INST_CDHASH"; then INSTALL_OK=0; fi
 
           if [ "$INSTALL_OK" -ne 1 ]; then
             echo 'ERROR=post-install verification failed; restoring exact original immediately'
@@ -174,11 +174,12 @@ jobs:
             mv "$INPLACE_ORIG" "$ZEBRA"
             echo "failed_candidate_preserved=$FAILED"
             echo 'ROLLBACK_COMPLETED=1'
-            exit 33
+            exit 34
           fi
 
           echo "original_preserved_in_place=$INPLACE_ORIG"
           echo "external_backup=$BACKUP/Zebra.original"
+          echo "signed_candidate_preserved=$CAND"
           echo "backup_dir=$BACKUP"
           echo 'ORIGINAL_BYTES_PRESERVED=1'
           echo 'ZEBRA_REMOVE_MALWARE_CALL_PATCH_INSTALLED=1'
