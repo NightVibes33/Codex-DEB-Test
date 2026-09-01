@@ -1,0 +1,2 @@
+trigger=ios15-iphone-build
+source_branch=temp/byetunes-ios16-rootless
