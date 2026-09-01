@@ -1,4 +1,4 @@
-name: iPhone Zebra Launch Verify
+name: iPhone Zebra Exact Watchdog
 
 on:
   push:
@@ -11,13 +11,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: iphone-zebra-launch-verify
-  cancel-in-progress: false
+  group: iphone-zebra-exact-watchdog
+  cancel-in-progress: true
 
 jobs:
-  verify:
+  inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 5
     environment:
       name: TAILSCALE_AUTHKEY-
     steps:
@@ -32,7 +32,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends openssh-client sshpass >/dev/null
 
-      - name: Launch Zebra in SpringBoard bootstrap and verify
+      - name: Capture latest Zebra watchdog and state
         env:
           IPHONE_HOST: 100.96.37.124
           IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
@@ -45,150 +45,130 @@ jobs:
           ssh-keyscan -T 15 -H "$IPHONE_HOST" > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/known_hosts"
 
+          SSH_OPTS=(-o BatchMode=no -o ConnectTimeout=20 -o ServerAliveInterval=10 -o ServerAliveCountMax=3 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts")
+
           {
             printf '%s\n' "$IPHONE_PASSWORD"
             cat <<'EOS'
-          set -u
+          set +e
           export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
           ZDIR='/var/mobile/Library/Application Support/xyz.willy.Zebra'
-          ZDB="$ZDIR/zebra.db"
           CRASHDIR='/var/mobile/Library/Logs/CrashReporter'
-          TS="$(date +%Y%m%d-%H%M%S)"
-
-          echo '=== ZEBRA SPRINGBOARD LAUNCH VERIFY V2 ==='
-          echo 'DELETE_COMMANDS_USED=0'
-          echo 'PACKAGES_REMOVED=0'
-          echo 'TWEAKS_REMOVED=0'
-          echo 'PREFERENCES_RESET=0'
+          echo '=== ZEBRA POST-FAILURE STATE ==='
+          echo 'READ_ONLY=YES'
+          date
           dpkg-query -W -f='zebra_version=${Version}\n' xyz.willy.zebra 2>/dev/null || true
-
-          echo '--- current clean-state invariant ---'
-          ls -la "$ZDIR" | sed -n '1,120p'
-          PRESERVED="$(ls -1t "$ZDB".before-fix-* 2>/dev/null | head -n1 || true)"
-          echo "preserved_original=$PRESERVED"
-          if [ -z "$PRESERVED" ]; then
-            echo 'ERROR=no preserved original found; refusing launch experiment'
-            exit 41
-          fi
-
-          BEFORE="$(ls -1t "$CRASHDIR"/stacks+Zebra*.ips 2>/dev/null | head -n1 || true)"
-          echo "watchdog_before=$BEFORE"
-          killall Zebra 2>/dev/null || true
-
-          echo '--- process lookup diagnostics ---'
-          echo "pgrep_path=$(command -v pgrep 2>/dev/null || true)"
-          echo "ps_path=$(command -v ps 2>/dev/null || true)"
-          ps aux 2>/dev/null | grep -i '[S]pringBoard' | head -n10 || true
-
-          SBPID=''
-          if command -v pgrep >/dev/null 2>&1; then
-            SBPID="$(pgrep -x SpringBoard 2>/dev/null | head -n1 || true)"
-          fi
-          if [ -z "$SBPID" ]; then
-            SBPID="$(ps aux 2>/dev/null | awk '/[S]pringBoard/{print $2; exit}' || true)"
-          fi
-          if [ -z "$SBPID" ]; then
-            SBPID="$(ps -A 2>/dev/null | awk '/[S]pringBoard/{print $1; exit}' || true)"
-          fi
-          echo "springboard_pid=$SBPID"
-          if [ -z "$SBPID" ]; then
-            echo 'ERROR=SpringBoard PID unavailable after pgrep and ps fallbacks'
-            exit 42
-          fi
-
-          echo '--- launchctl capability ---'
-          launchctl help 2>&1 | grep -E 'bsexec|asuser|bootstrap|kickstart' | head -n40 || true
-
-          echo 'launch_method=bsexec-root-uiopen'
-          launchctl bsexec "$SBPID" /var/jb/usr/bin/uiopen 'zbra://' >/tmp/zebra-bsexec-1.out 2>&1 || true
-          sed -n '1,40p' /tmp/zebra-bsexec-1.out 2>/dev/null || true
-          sleep 5
-          P1="$(ps aux 2>/dev/null | awk '/[Z]ebra.app\/Zebra/{print $2; exit}' || true)"
-          [ -z "$P1" ] && P1="$(ps aux 2>/dev/null | awk '$11 ~ /\/Zebra$/ {print $2; exit}' || true)"
-          echo "zebra_pid_after_bsexec_root=$P1"
-
-          if [ -z "$P1" ]; then
-            echo 'launch_method=bsexec-mobile-uiopen'
-            launchctl bsexec "$SBPID" /usr/bin/sudo -u mobile env HOME=/var/mobile PATH=/var/jb/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin /var/jb/usr/bin/uiopen 'zbra://' >/tmp/zebra-bsexec-2.out 2>&1 || true
-            sed -n '1,40p' /tmp/zebra-bsexec-2.out 2>/dev/null || true
-            sleep 5
-          fi
-
-          PID10="$(ps aux 2>/dev/null | awk '/[Z]ebra.app\/Zebra/{print $2; exit}' || true)"
-          [ -z "$PID10" ] && PID10="$(ps aux 2>/dev/null | awk '$11 ~ /\/Zebra$/ {print $2; exit}' || true)"
-          echo "zebra_pid_10s=$PID10"
-          [ -n "$PID10" ] && ps -p "$PID10" -o pid,uid,etime,state,command 2>/dev/null || true
-
-          sleep 22
-          PID32="$(ps aux 2>/dev/null | awk '/[Z]ebra.app\/Zebra/{print $2; exit}' || true)"
-          [ -z "$PID32" ] && PID32="$(ps aux 2>/dev/null | awk '$11 ~ /\/Zebra$/ {print $2; exit}' || true)"
-          echo "zebra_pid_32s=$PID32"
-          [ -n "$PID32" ] && ps -p "$PID32" -o pid,uid,etime,state,command 2>/dev/null || true
-
-          AFTER="$(ls -1t "$CRASHDIR"/stacks+Zebra*.ips 2>/dev/null | head -n1 || true)"
-          echo "watchdog_after=$AFTER"
-          NEW_WATCHDOG=0
-          if [ -n "$AFTER" ] && [ "$AFTER" != "$BEFORE" ]; then NEW_WATCHDOG=1; fi
-          echo "new_watchdog=$NEW_WATCHDOG"
-
-          NEWDB=0
-          if [ -s "$ZDB" ]; then
-            NEWDB=1
-            echo "rebuilt_db_bytes=$(wc -c < "$ZDB" 2>/dev/null || echo unknown)"
-            stat -f 'rebuilt_db_owner=%Su:%Sg mode=%Sp' "$ZDB" 2>/dev/null || stat -c 'rebuilt_db_owner=%U:%G mode=%A' "$ZDB" 2>/dev/null || true
-          fi
-          echo "new_db_created=$NEWDB"
-
-          if [ -n "$PID32" ] && [ "$NEW_WATCHDOG" -eq 0 ] && [ "$NEWDB" -eq 1 ]; then
-            echo 'ZEBRA_REPAIR_VERIFIED=1'
-            echo 'RESULT=Zebra launched from SpringBoard bootstrap and survived past watchdog window with rebuilt DB.'
-            exit 0
-          fi
-
-          if [ "$NEW_WATCHDOG" -eq 1 ]; then
-            echo 'RESULT=Clean-state Zebra produced a new watchdog; preserving failed rebuild and restoring original.'
-            killall Zebra 2>/dev/null || true
-            for f in "$ZDB" "$ZDB-wal" "$ZDB-shm"; do
-              if [ -e "$f" ]; then
-                mv "$f" "$f.failed-rebuild-$TS"
-                echo "preserved_failed_rebuild=$f.failed-rebuild-$TS"
-              fi
-            done
-            if [ ! -e "$ZDB" ] && [ -e "$PRESERVED" ]; then
-              mv "$PRESERVED" "$ZDB"
-              echo "restored_original=$ZDB"
-            fi
-            echo 'ROLLBACK_COMPLETED=1'
-            echo 'ZEBRA_REPAIR_VERIFIED=0'
-            exit 51
-          fi
-
-          if [ -z "$PID10" ] && [ -z "$PID32" ] && [ "$NEW_WATCHDOG" -eq 0 ]; then
-            echo 'ZEBRA_REMOTE_LAUNCH_UNAVAILABLE=1'
-            echo 'ZEBRA_REPAIR_STAGED=1'
-            echo 'RESULT=Bootstrap launch did not start Zebra; clean DB state remains staged, originals preserved.'
-            exit 0
-          fi
-
-          echo 'ZEBRA_REPAIR_VERIFIED=0'
-          echo 'RESULT=Launch state inconclusive; no deletion occurred and preserved original remains available.'
-          exit 52
+          echo '--- Zebra support dir ---'
+          ls -la "$ZDIR" 2>/dev/null | sed -n '1,120p'
+          echo '--- newest Zebra watchdogs ---'
+          ls -lT "$CRASHDIR"/stacks+Zebra*.ips 2>/dev/null | tail -n 8 || true
+          latest="$(ls -1t "$CRASHDIR"/stacks+Zebra*.ips 2>/dev/null | head -n1)"
+          echo "LATEST_REPORT=$latest"
+          [ -n "$latest" ] && wc -c "$latest" || true
+          echo '--- termination summary ---'
+          [ -n "$latest" ] && grep -Eo '0x8badf00d|process-launch|WatchdogEvent|watchdog[^,}\"]*|elapsed[^,}\"]*|CPU[^,}\"]*' "$latest" 2>/dev/null | head -n 50 || true
+          echo '--- current Zebra process ---'
+          ps aux 2>/dev/null | grep -E '[Z]ebra.app/Zebra|/Zebra$' || true
           EOS
-          } | timeout 180s sshpass -e ssh \
-              -o BatchMode=no \
-              -o ConnectTimeout=20 \
-              -o ServerAliveInterval=10 \
-              -o ServerAliveCountMax=3 \
-              -o StrictHostKeyChecking=yes \
-              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-              mobile@"$IPHONE_HOST" \
+          } | timeout 90s sshpass -e ssh "${SSH_OPTS[@]}" mobile@"$IPHONE_HOST" \
               'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
-              2>&1 | tee iphone-zebra-launch-verify.txt
+              2>&1 | tee zebra-state.txt
+
+          LATEST=$(grep '^LATEST_REPORT=' zebra-state.txt | tail -n1 | cut -d= -f2-)
+          if [ -z "$LATEST" ]; then
+            echo 'ERROR=no Zebra watchdog report found'
+            exit 20
+          fi
+
+          echo "Fetching raw watchdog: $LATEST"
+          {
+            printf '%s\n' "$IPHONE_PASSWORD"
+            printf 'cat %q\n' "$LATEST"
+          } | timeout 90s sshpass -e ssh "${SSH_OPTS[@]}" mobile@"$IPHONE_HOST" \
+              'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
+              > zebra-latest.ips
+
+          python3 - <<'PY' | tee zebra-analysis.txt
+          import json, pathlib, re
+          p = pathlib.Path('zebra-latest.ips')
+          raw = p.read_text(errors='replace')
+          print('=== ZEBRA WATCHDOG STRUCTURE ===')
+          print('bytes=', len(raw))
+          lines = raw.splitlines()
+          objs = []
+          for i, line in enumerate(lines):
+              s=line.strip().lstrip('\ufeff')
+              if not s: continue
+              try:
+                  o=json.loads(s)
+                  objs.append((i,o))
+              except Exception:
+                  pass
+          if not objs:
+              # Some reports are one JSON document after a small textual prefix.
+              first = raw.find('{')
+              if first >= 0:
+                  try: objs=[(-1,json.loads(raw[first:]))]
+                  except Exception as e: print('json_parse_error=',repr(e))
+          print('json_objects=', len(objs))
+
+          def short(v, n=240):
+              s=str(v).replace('\n',' ')
+              return s[:n]
+
+          interesting_keys = {
+              'termination','terminationReason','exception','exceptionType','reason','bug_type',
+              'procName','processName','pid','path','name','symbol','imageIndex','offsetIntoBinaryTextSegment',
+              'userFrames','kernelFrames','threads','threadById','processByPid','usedImages','binaryImages',
+              'duration','cpuTime','cpuTimeSec','elapsed','watchdogEvent'
+          }
+
+          def walk(o, path='root', depth=0):
+              if depth > 12: return
+              if isinstance(o, dict):
+                  for k,v in o.items():
+                      lk=str(k)
+                      np=f'{path}.{lk}'
+                      if lk in interesting_keys or 'watchdog' in lk.lower() or 'termination' in lk.lower():
+                          if isinstance(v,(str,int,float,bool,type(None))):
+                              print(f'{np} = {short(v)}')
+                          elif lk in ('userFrames','kernelFrames') and isinstance(v,list):
+                              print(f'{np} count={len(v)}')
+                              for j,fr in enumerate(v[:40]): print(f'  frame[{j}] {short(fr,500)}')
+                          elif lk in ('usedImages','binaryImages') and isinstance(v,list):
+                              print(f'{np} count={len(v)}')
+                              for j,img in enumerate(v):
+                                  txt=short(img,600)
+                                  if re.search(r'Zebra|ElleKit|Substrate|apt|sqlite|\.dylib|/var/jb|preboot', txt, re.I):
+                                      print(f'  image[{j}] {txt}')
+                          elif lk in ('threads','threadById','processByPid'):
+                              print(f'{np} type={type(v).__name__} size={len(v) if hasattr(v,"__len__") else "?"}')
+                      walk(v,np,depth+1)
+              elif isinstance(o,list):
+                  for i,v in enumerate(o[:500]): walk(v,f'{path}[{i}]',depth+1)
+
+          for idx,o in objs:
+              print(f'--- JSON object from line {idx} ---')
+              if isinstance(o,dict): print('top_keys=', sorted(o.keys()))
+              walk(o)
+
+          print('=== TEXT HITS ===')
+          for pat in ['0x8badf00d','process-launch','Zebra','ElleKit','sqlite','libapt','sources.list']:
+              hits=[m.start() for m in re.finditer(re.escape(pat), raw, re.I)]
+              print(pat, 'hits=',len(hits))
+              for pos in hits[:8]:
+                  print(' ', raw[max(0,pos-180):pos+360].replace('\n',' ')[:540])
+          PY
+
+          echo 'WATCHDOG_CAPTURE_COMPLETE=1'
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: iphone-zebra-launch-verify-${{ github.run_id }}
-          path: iphone-zebra-launch-verify.txt
+          name: iphone-zebra-exact-watchdog-${{ github.run_id }}
+          path: |
+            zebra-state.txt
+            zebra-latest.ips
+            zebra-analysis.txt
           if-no-files-found: warn
           retention-days: 7
