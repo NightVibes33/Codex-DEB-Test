@@ -32,7 +32,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
-      HOST: 100.116.117.65
       PORT: '22'
       SSHPASS: ${{ secrets.IPAD_PASSWORD }}
       PASS: ${{ secrets.IPAD_PASSWORD }}
@@ -46,6 +45,34 @@ jobs:
       - uses: tailscale/github-action@v4
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+      - name: Resolve current iOS 16 iPad peer
+        run: |
+          set -euo pipefail
+          tailscale status --json >/tmp/ts.json
+          python3 - <<'PY' | tee tailscale-peers.txt
+          import json
+          d=json.load(open('/tmp/ts.json'))
+          for p in d.get('Peer',{}).values():
+              print(f"host={p.get('HostName','')} dns={p.get('DNSName','')} online={p.get('Online')} os={p.get('OS','')} ips={','.join(p.get('TailscaleIPs') or [])}")
+          PY
+          HOST="$(python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/ts.json'))
+          c=[]
+          for p in d.get('Peer',{}).values():
+              name=((p.get('HostName') or '')+' '+(p.get('DNSName') or '')).lower()
+              ips=p.get('TailscaleIPs') or []
+              if p.get('Online') and 'ipad' in name and ips:
+                  c.append((0 if 'bobby' in name else 1, ips[0], name))
+          if not c:
+              raise SystemExit('No online iPad peer found in Tailscale status')
+          c.sort()
+          print(c[0][1])
+          PY
+          )"
+          echo "HOST=$HOST" >> "$GITHUB_ENV"
+          echo "resolved_host=$HOST"
+          tailscale ping --timeout=8s --c 1 "$HOST"
       - name: Connect and gate
         run: |
           set -euo pipefail
@@ -53,7 +80,7 @@ jobs:
           DEB="$(find /tmp/a -name '*.deb' -type f | head -n1)"; test -n "$DEB"; cp "$DEB" /tmp/ByeTunes16.deb
           test "$(dpkg-deb --field /tmp/ByeTunes16.deb Package)" = com.nightvibes.byetunes16
           mkdir -p ~/.ssh; chmod 700 ~/.ssh
-          ok=0; for n in $(seq 1 18); do ssh-keyscan -T 8 -H -p "$PORT" "$HOST" >~/.ssh/known_hosts 2>/dev/null && [ -s ~/.ssh/known_hosts ] && { ok=1; break; }; tailscale ping --timeout=4s --c 1 "$HOST" >/dev/null 2>&1 || true; sleep 5; done; test "$ok" = 1; chmod 600 ~/.ssh/known_hosts
+          ok=0; for n in $(seq 1 8); do ssh-keyscan -T 8 -H -p "$PORT" "$HOST" >~/.ssh/known_hosts 2>/dev/null && [ -s ~/.ssh/known_hosts ] && { ok=1; break; }; tailscale ping --timeout=4s --c 1 "$HOST" >/dev/null 2>&1 || true; sleep 4; done; test "$ok" = 1; chmod 600 ~/.ssh/known_hosts
           cat >/tmp/gate <<'SH'
           set -eu
           P=/System/Library/CoreServices/SystemVersion.plist
@@ -101,6 +128,7 @@ jobs:
         with:
           name: ByeTunes16-live-test-${{ github.run_id }}
           path: |
+            tailscale-peers.txt
             gate.txt
             live-test.txt
           if-no-files-found: ignore
