@@ -1,4 +1,4 @@
-name: ByeTunes16 Live iOS16 iPhone Test
+name: ByeTunes15 Live iPhone 15.8.8 Test
 
 on:
   workflow_dispatch:
@@ -49,11 +49,11 @@ jobs:
       SSHPASS: ${{ secrets.IPAD_PASSWORD }}
       PASS: ${{ secrets.IPAD_PASSWORD }}
     steps:
-      - name: Download green ByeTunes16 DEB
+      - name: Download green ByeTunes15-16 DEB
         uses: actions/download-artifact@v4
         with:
-          name: ByeTunes16-iOS16-Dopamine-rootless
-          run-id: 33460660067
+          name: ByeTunes15-16-Dopamine-rootless
+          run-id: 33463990612
           github-token: ${{ github.token }}
           path: /tmp/a
 
@@ -62,7 +62,7 @@ jobs:
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
 
-      - name: Find eligible iOS 16 iPhone
+      - name: Find exact iPhone8,1 on iOS 15.8.8
         run: |
           set -euo pipefail
           sudo apt-get update -qq
@@ -70,9 +70,11 @@ jobs:
 
           DEB="$(find /tmp/a -name '*.deb' -type f | head -n1)"
           test -n "$DEB"
-          cp "$DEB" /tmp/ByeTunes16.deb
-          test "$(dpkg-deb --field /tmp/ByeTunes16.deb Package)" = com.nightvibes.byetunes16
-          test "$(dpkg-deb --field /tmp/ByeTunes16.deb Architecture)" = iphoneos-arm64
+          cp "$DEB" /tmp/ByeTunes15.deb
+          test "$(dpkg-deb --field /tmp/ByeTunes15.deb Package)" = com.nightvibes.byetunes16
+          test "$(dpkg-deb --field /tmp/ByeTunes15.deb Architecture)" = iphoneos-arm64
+          test "$(dpkg-deb --field /tmp/ByeTunes15.deb Version)" = 0.2.2
+          dpkg-deb --field /tmp/ByeTunes15.deb Depends | grep -Fq 'firmware (>= 15.0)'
 
           mkdir -p "$HOME/.ssh"
           chmod 700 "$HOME/.ssh"
@@ -81,31 +83,25 @@ jobs:
           tailscale status --json >/tmp/ts.json
           python3 - <<'PY' | tee tailscale-peers.txt
           import json
-          d = json.load(open('/tmp/ts.json'))
+          d=json.load(open('/tmp/ts.json'))
           for p in d.get('Peer', {}).values():
-              print(
-                  f"host={p.get('HostName','')} dns={p.get('DNSName','')} "
-                  f"online={p.get('Online')} os={p.get('OS','')} "
-                  f"ips={','.join(p.get('TailscaleIPs') or [])}"
-              )
+              print(f"host={p.get('HostName','')} dns={p.get('DNSName','')} online={p.get('Online')} os={p.get('OS','')} ips={','.join(p.get('TailscaleIPs') or [])}")
           PY
 
+          # Do not trust the cached Tailscale Online bit. Probe every IPv4 peer,
+          # prioritizing peers whose name looks like an iPhone.
           python3 - <<'PY' >/tmp/candidates.txt
           import json, ipaddress
-          d = json.load(open('/tmp/ts.json'))
-          rows = []
+          d=json.load(open('/tmp/ts.json'))
+          rows=[]
           for p in d.get('Peer', {}).values():
-              if not p.get('Online'):
-                  continue
-              name = (p.get('HostName') or '') + ' ' + (p.get('DNSName') or '')
+              name=((p.get('HostName') or '')+' '+(p.get('DNSName') or '')).strip()
               for ip in p.get('TailscaleIPs') or []:
-                  try:
-                      addr = ipaddress.ip_address(ip)
-                  except ValueError:
-                      continue
+                  try: addr=ipaddress.ip_address(ip)
+                  except ValueError: continue
                   if addr.version == 4:
-                      rows.append((0 if 'iphone' in name.lower() else 1, ip, name.strip()))
-          for _, ip, name in sorted(rows):
+                      rows.append((0 if 'iphone' in name.lower() else 1, ip, name))
+          for _,ip,name in sorted(rows):
               print(f"{ip}|{name}")
           PY
 
@@ -114,14 +110,10 @@ jobs:
           P=/System/Library/CoreServices/SystemVersion.plist
           V="$(sed -n '/<key>ProductVersion<\/key>/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' "$P" | head -n1)"
           B="$(sed -n '/<key>ProductBuildVersion<\/key>/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' "$P" | head -n1)"
-          M="$(sysctl -n hw.machine 2>/dev/null || /usr/sbin/sysctl -n hw.machine 2>/dev/null || true)"
-          [ -n "$M" ] || M="$(uname -m)"
+          M="$(sysctl -n hw.machine 2>/dev/null || /usr/sbin/sysctl -n hw.machine 2>/dev/null || uname -m)"
           echo "machine=$M version=$V build=$B"
-          case "$M" in
-            iPhone*) ;;
-            *) echo 'reject=not_iphone'; exit 20 ;;
-          esac
-          [ "${V%%.*}" = 16 ] || { echo 'reject=not_ios16'; exit 21; }
+          [ "$M" = iPhone8,1 ] || { echo 'reject=not_target_iphone'; exit 20; }
+          [ "$V" = 15.8.8 ] || { echo 'reject=not_ios_15_8_8'; exit 21; }
           [ -d /var/jb ] || { echo 'reject=no_rootless_jailbreak'; exit 22; }
           Q=/var/jb/usr/bin/dpkg-query
           [ -x "$Q" ] || Q="$(command -v dpkg-query || true)"
@@ -129,8 +121,9 @@ jobs:
           E="$($Q -W -f='${Status}' ellekit 2>/dev/null || true)"
           echo "ellekit=$E"
           echo "$E" | grep -q 'install ok installed' || { echo 'reject=no_ellekit'; exit 24; }
-          [ -f /var/mobile/Media/iTunes_Control/iTunes/MediaLibrary.sqlitedb ] || { echo 'reject=no_music_database'; exit 25; }
-          echo IPHONE16_GATE_PASS
+          DB=/var/mobile/Media/iTunes_Control/iTunes/MediaLibrary.sqlitedb
+          [ -f "$DB" ] || { echo 'reject=no_music_database'; exit 25; }
+          echo IPHONE15_GATE_PASS
           SH
 
           HOST=''
@@ -143,22 +136,16 @@ jobs:
                   continue
               fi
               [ -s /tmp/candidate_known_hosts ] || { echo 'reject=no_host_key' | tee -a device-probes.txt; continue; }
-
               set +e
               OUT="$({ printf '%s\n' "$PASS"; cat /tmp/iphone_gate.sh; } | sshpass -e ssh \
-                  -p "$PORT" \
-                  -o BatchMode=no \
-                  -o ConnectTimeout=10 \
-                  -o StrictHostKeyChecking=yes \
-                  -o UserKnownHostsFile=/tmp/candidate_known_hosts \
-                  "mobile@$ip" \
-                  'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s' 2>&1)"
+                  -p "$PORT" -o BatchMode=no -o ConnectTimeout=10 \
+                  -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/tmp/candidate_known_hosts \
+                  "mobile@$ip" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s' 2>&1)"
               rc=$?
               set -e
               printf '%s\n' "$OUT" | tee -a device-probes.txt
               echo "probe_exit=$rc" | tee -a device-probes.txt
-
-              if [ "$rc" -eq 0 ] && printf '%s\n' "$OUT" | grep -q IPHONE16_GATE_PASS; then
+              if [ "$rc" -eq 0 ] && printf '%s\n' "$OUT" | grep -q IPHONE15_GATE_PASS; then
                   HOST="$ip"
                   cp /tmp/candidate_known_hosts "$HOME/.ssh/known_hosts"
                   chmod 600 "$HOME/.ssh/known_hosts"
@@ -168,36 +155,33 @@ jobs:
               fi
           done </tmp/candidates.txt
 
-          if [ -z "$HOST" ]; then
-              echo 'NO_ELIGIBLE_IOS16_IPHONE' | tee -a device-probes.txt
-              exit 1
-          fi
-
+          [ -n "$HOST" ] || { echo NO_ELIGIBLE_IPHONE8_1_IOS15_8_8 | tee -a device-probes.txt; exit 1; }
           echo "HOST=$HOST" >> "$GITHUB_ENV"
           echo "resolved_iphone=$HOST"
 
-      - name: Install and fully smoke-test on iPhone
+      - name: Install and conservative smoke-test on iPhone
         run: |
           set -euo pipefail
           sshpass -e scp -P "$PORT" \
             -o StrictHostKeyChecking=yes \
             -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-            /tmp/ByeTunes16.deb "mobile@$HOST:/var/mobile/ByeTunes16.deb"
+            /tmp/ByeTunes15.deb "mobile@$HOST:/var/mobile/ByeTunes15.deb"
 
           cat >/tmp/test.sh <<'SH'
           set -eu
           M="$(sysctl -n hw.machine 2>/dev/null || /usr/sbin/sysctl -n hw.machine 2>/dev/null || uname -m)"
-          case "$M" in iPhone*) ;; *) echo 'ABORT_NOT_IPHONE'; exit 30;; esac
+          [ "$M" = iPhone8,1 ] || { echo ABORT_NOT_TARGET_IPHONE; exit 30; }
           P=/System/Library/CoreServices/SystemVersion.plist
           V="$(sed -n '/<key>ProductVersion<\/key>/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' "$P" | head -n1)"
-          [ "${V%%.*}" = 16 ] || { echo 'ABORT_NOT_IOS16'; exit 31; }
-          [ -d /var/jb ] || { echo 'ABORT_NOT_ROOTLESS'; exit 32; }
+          [ "$V" = 15.8.8 ] || { echo ABORT_NOT_IOS_15_8_8; exit 31; }
+          [ -d /var/jb ] || { echo ABORT_NOT_ROOTLESS; exit 32; }
 
           D=/var/jb/usr/bin/dpkg
           [ -x "$D" ] || D="$(command -v dpkg)"
           echo '=== INSTALL ==='
-          "$D" -i /var/mobile/ByeTunes16.deb
-          "$D" -s com.nightvibes.byetunes16 | sed -n '1,24p'
+          "$D" -i /var/mobile/ByeTunes15.deb
+          "$D" -s com.nightvibes.byetunes16 | sed -n '1,28p'
+          "$D" -s com.nightvibes.byetunes16 | grep -q '^Version: 0.2.2$'
           test -f /var/jb/Library/MobileSubstrate/DynamicLibraries/ByeTunes16.dylib
           test -f /var/jb/Library/MobileSubstrate/DynamicLibraries/ByeTunes16.plist
           test -x /var/jb/usr/libexec/byetunes16d
@@ -227,16 +211,16 @@ jobs:
           echo "$R" | grep -q '"schemaOK":true'
           echo "$R" | grep -q '"quickCheck":"ok"'
 
-          echo '=== LIBRARY ==='
+          echo '=== BACKUP BEFORE OTHER REQUESTS ==='
+          R="$(call '{"op":"backup"}')"; echo "$R"
+          echo "$R" | grep -q '"ok":true'
+
+          echo '=== LIBRARY READ ==='
           R="$(call '{"op":"library","limit":5}')"; echo "$R"
           echo "$R" | grep -q '"ok":true'
 
-          echo '=== PLAYLISTS ==='
+          echo '=== PLAYLISTS READ ==='
           R="$(call '{"op":"playlists"}')"; echo "$R"
-          echo "$R" | grep -q '"ok":true'
-
-          echo '=== BACKUP ==='
-          R="$(call '{"op":"backup"}')"; echo "$R"
           echo "$R" | grep -q '"ok":true'
 
           echo '=== MUSIC RUNTIME ==='
@@ -250,29 +234,25 @@ jobs:
           sleep 6
           pgrep -fl Music || true
           pgrep -fl byetunes16d || true
-          tail -n 80 /var/mobile/Library/Logs/ByeTunes16-daemon.log 2>/dev/null || true
+          tail -n 100 /var/mobile/Library/Logs/ByeTunes16-daemon.log 2>/dev/null || true
           C="$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'Music-*.ips' -o -name 'Music-*.crash' \) -mmin -3 -print 2>/dev/null || true)"
           echo "$C"
           test -z "$C"
-          echo LIVE_IPHONE_TEST_PASS
+          echo LIVE_IPHONE15_TEST_PASS
           SH
 
           { printf '%s\n' "$PASS"; cat /tmp/test.sh; } | sshpass -e ssh \
-            -p "$PORT" \
-            -o BatchMode=no \
-            -o ConnectTimeout=15 \
-            -o StrictHostKeyChecking=yes \
-            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-            "mobile@$HOST" \
-            'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s' \
+            -p "$PORT" -o BatchMode=no -o ConnectTimeout=15 \
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s' \
             | tee live-test.txt
-          grep -q LIVE_IPHONE_TEST_PASS live-test.txt
+          grep -q LIVE_IPHONE15_TEST_PASS live-test.txt
 
       - name: Upload iPhone diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ByeTunes16-iPhone-live-test-${{ github.run_id }}
+          name: ByeTunes15-iPhone-live-test-${{ github.run_id }}
           path: |
             tailscale-peers.txt
             device-probes.txt
