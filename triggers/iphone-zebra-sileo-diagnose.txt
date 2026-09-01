@@ -1,3 +1,3 @@
-run=2026-09-01T21:34:00-05:00
-purpose=iphone-zebra-sileo-nondestructive-repair
-mode=backup-preserve-rebuild-cache-only-no-rm-no-package-removal-no-tweak-removal-no-pref-reset
+run=2026-09-01T21:48:00-05:00
+purpose=iphone-zebra-sileo-targeted-nondestructive-repair-v2
+mode=exact-known-db-files-only-backup-preserve-no-rm-no-package-removal-no-tweak-removal-no-pref-reset
