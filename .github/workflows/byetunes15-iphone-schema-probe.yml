@@ -1,0 +1,229 @@
+name: ByeTunes15 iPhone Schema Probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [temp/byetunes-ios16-rootless]
+    paths:
+      - '.github/workflows/byetunes15-iphone-schema-probe.yml'
+      - 'triggers/byetunes15-iphone-schema-probe.txt'
+
+permissions:
+  contents: read
+
+jobs:
+  env:
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.e.outputs.name }}
+    steps:
+      - id: e
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fsSL \
+            -H 'Accept: application/vnd.github+json' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" >/tmp/e.json
+          python3 - <<'PY' >>"$GITHUB_OUTPUT"
+          import json
+          for e in json.load(open('/tmp/e.json')).get('environments', []):
+              if int(e.get('id', -1)) == 18728387881:
+                  print('name=' + e['name'])
+                  break
+          else:
+              raise SystemExit('environment not found')
+          PY
+
+  probe:
+    needs: env
+    environment:
+      name: ${{ needs.env.outputs.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PORT: '22'
+      SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+      PASS: ${{ secrets.IPAD_PASSWORD }}
+    steps:
+      - name: Join Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: Resolve jailbroken iOS 15 iPhone
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq openssh-client sshpass sqlite3
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          : > device-probes.txt
+
+          tailscale status --json >/tmp/ts.json
+          python3 - <<'PY' | tee tailscale-peers.txt
+          import json
+          d=json.load(open('/tmp/ts.json'))
+          for p in d.get('Peer', {}).values():
+              print(f"host={p.get('HostName','')} dns={p.get('DNSName','')} online={p.get('Online')} os={p.get('OS','')} ips={','.join(p.get('TailscaleIPs') or [])}")
+          PY
+
+          # Deliberately do not trust Tailscale's cached Online bit. Probe every IPv4 peer.
+          python3 - <<'PY' >/tmp/candidates.txt
+          import json, ipaddress
+          d=json.load(open('/tmp/ts.json'))
+          rows=[]
+          for p in d.get('Peer', {}).values():
+              name=((p.get('HostName') or '')+' '+(p.get('DNSName') or '')).strip()
+              for ip in p.get('TailscaleIPs') or []:
+                  try: addr=ipaddress.ip_address(ip)
+                  except ValueError: continue
+                  if addr.version == 4:
+                      rows.append((0 if 'iphone' in name.lower() else 1, ip, name))
+          for _,ip,name in sorted(rows): print(f"{ip}|{name}")
+          PY
+
+          cat >/tmp/gate.sh <<'SH'
+          set -eu
+          P=/System/Library/CoreServices/SystemVersion.plist
+          V="$(sed -n '/<key>ProductVersion<\/key>/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' "$P" | head -n1)"
+          B="$(sed -n '/<key>ProductBuildVersion<\/key>/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' "$P" | head -n1)"
+          M="$(sysctl -n hw.machine 2>/dev/null || /usr/sbin/sysctl -n hw.machine 2>/dev/null || uname -m)"
+          echo "machine=$M version=$V build=$B"
+          case "$M" in iPhone*) ;; *) echo reject=not_iphone; exit 20;; esac
+          [ "$V" = 15.8.8 ] || { echo reject=not_ios_15_8_8; exit 21; }
+          [ -d /var/jb ] || { echo reject=no_rootless_jailbreak; exit 22; }
+          Q=/var/jb/usr/bin/dpkg-query
+          [ -x "$Q" ] || Q="$(command -v dpkg-query || true)"
+          [ -n "$Q" ] || { echo reject=no_dpkg_query; exit 23; }
+          E="$($Q -W -f='${Status}' ellekit 2>/dev/null || true)"
+          echo "ellekit=$E"
+          echo "$E" | grep -q 'install ok installed' || { echo reject=no_ellekit; exit 24; }
+          DB=/var/mobile/Media/iTunes_Control/iTunes/MediaLibrary.sqlitedb
+          [ -f "$DB" ] || { echo reject=no_music_database; exit 25; }
+          echo IPHONE15_GATE_PASS
+          SH
+
+          HOST=''
+          while IFS='|' read -r ip peer_name; do
+            [ -n "$ip" ] || continue
+            echo "=== candidate $ip $peer_name ===" | tee -a device-probes.txt
+            tailscale ping --timeout=4s --c 1 "$ip" >>device-probes.txt 2>&1 || true
+            if ! ssh-keyscan -T 5 -H -p "$PORT" "$ip" >/tmp/candidate_known_hosts 2>>device-probes.txt; then
+              echo reject=ssh_port_unreachable | tee -a device-probes.txt
+              continue
+            fi
+            set +e
+            OUT="$({ printf '%s\n' "$PASS"; cat /tmp/gate.sh; } | sshpass -e ssh \
+              -p "$PORT" -o BatchMode=no -o ConnectTimeout=8 \
+              -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/tmp/candidate_known_hosts \
+              "mobile@$ip" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s' 2>&1)"
+            rc=$?
+            set -e
+            printf '%s\n' "$OUT" | tee -a device-probes.txt
+            echo "probe_exit=$rc" | tee -a device-probes.txt
+            if [ "$rc" -eq 0 ] && printf '%s\n' "$OUT" | grep -q IPHONE15_GATE_PASS; then
+              HOST="$ip"
+              cp /tmp/candidate_known_hosts "$HOME/.ssh/known_hosts"
+              chmod 600 "$HOME/.ssh/known_hosts"
+              printf '%s\n' "$OUT" > gate.txt
+              echo "selected_host=$HOST" | tee -a device-probes.txt
+              break
+            fi
+          done </tmp/candidates.txt
+
+          [ -n "$HOST" ] || { echo NO_ELIGIBLE_IOS15_IPHONE | tee -a device-probes.txt; exit 1; }
+          echo "HOST=$HOST" >> "$GITHUB_ENV"
+
+      - name: Snapshot database read-only and inspect schema
+        run: |
+          set -euo pipefail
+          cat >/tmp/snapshot.sh <<'SH'
+          set -eu
+          DB=/var/mobile/Media/iTunes_Control/iTunes/MediaLibrary.sqlitedb
+          TMP=/var/mobile/ByeTunes15SchemaProbe
+          rm -rf "$TMP"
+          mkdir -p "$TMP"
+          cp "$DB" "$TMP/MediaLibrary.sqlitedb"
+          [ ! -f "$DB-wal" ] || cp "$DB-wal" "$TMP/MediaLibrary.sqlitedb-wal"
+          [ ! -f "$DB-shm" ] || cp "$DB-shm" "$TMP/MediaLibrary.sqlitedb-shm"
+          chown -R mobile:mobile "$TMP" 2>/dev/null || true
+          chmod 700 "$TMP"
+          chmod 600 "$TMP"/*
+          echo SNAPSHOT_READY
+          SH
+          { printf '%s\n' "$PASS"; cat /tmp/snapshot.sh; } | sshpass -e ssh \
+            -p "$PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s'
+
+          mkdir -p /tmp/ml
+          sshpass -e scp -P "$PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            "mobile@$HOST:/var/mobile/ByeTunes15SchemaProbe/MediaLibrary.sqlitedb*" /tmp/ml/
+
+          DB=/tmp/ml/MediaLibrary.sqlitedb
+          {
+            echo '=== DEVICE ==='
+            cat gate.txt
+            echo
+            echo '=== QUICK CHECK ==='
+            sqlite3 "$DB" 'PRAGMA quick_check;'
+            echo
+            echo '=== USER VERSION ==='
+            sqlite3 "$DB" 'PRAGMA user_version;'
+            echo
+            echo '=== TABLES ==='
+            sqlite3 "$DB" "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;"
+            echo
+            for t in item item_extra item_playback item_artist album album_artist genre sort_map base_location container container_item artwork artwork_token best_artwork_token; do
+              echo "=== COLUMNS $t ==="
+              sqlite3 -header -column "$DB" "PRAGMA table_info($t);" || true
+            done
+          } | tee ios15-media-schema.txt
+
+          # Compatibility check for the current helper's minimum required schema.
+          python3 - "$DB" <<'PY' | tee ios15-schema-compat.txt
+          import sqlite3, sys
+          db=sqlite3.connect(f'file:{sys.argv[1]}?mode=ro', uri=True)
+          required={
+            'item': {'item_pid','media_type','base_location_id'},
+            'item_extra': {'item_pid','title','location'},
+            'item_playback': set(),
+            'item_artist': set(),
+            'album': set(),
+            'album_artist': set(),
+            'genre': set(),
+            'sort_map': {'name','name_order','name_section','sort_key'},
+            'base_location': set(),
+            'container': set(),
+            'container_item': set(),
+          }
+          tables={r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+          ok=True
+          for table, cols in required.items():
+            if table not in tables:
+              print(f'MISSING_TABLE {table}'); ok=False; continue
+            have={r[1] for r in db.execute(f'PRAGMA table_info({table})')}
+            for col in sorted(cols-have): print(f'MISSING_COLUMN {table}.{col}'); ok=False
+          print('CURRENT_CORE_SCHEMA_COMPAT=' + ('YES' if ok else 'NO'))
+          PY
+
+          # Delete the temporary copy from the phone; original library is untouched.
+          { printf '%s\n' "$PASS"; printf '%s\n' 'rm -rf /var/mobile/ByeTunes15SchemaProbe'; } | sshpass -e ssh \
+            -p "$PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s'
+
+      - name: Upload schema diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ByeTunes15-iPhone-schema-${{ github.run_id }}
+          path: |
+            tailscale-peers.txt
+            device-probes.txt
+            gate.txt
+            ios15-media-schema.txt
+            ios15-schema-compat.txt
+          if-no-files-found: ignore
+          retention-days: 14
