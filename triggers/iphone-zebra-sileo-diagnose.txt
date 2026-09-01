@@ -1,4 +1,4 @@
-run=2026-09-01T21:14:00-05:00
-purpose=iphone-zebra-springboard-launch-verify-v2
-mode=launch-only-no-delete
-workflow_commit=d351cc0008ab374699ca2a35397728cb1491a336
+run=2026-09-01T14:42:00-05:00
+purpose=iphone-zebra-exact-post-failure-watchdog
+mode=read-only-forensics
+workflow_commit=0c234d2d1c143be5ee5c137f317451dd19dae90b
