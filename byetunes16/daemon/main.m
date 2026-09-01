@@ -1,7 +1,9 @@
 #import <Foundation/Foundation.h>
 #import "BTImporter.h"
 #import <arpa/inet.h>
+#import <errno.h>
 #import <signal.h>
+#import <string.h>
 #import <sys/socket.h>
 #import <unistd.h>
 
@@ -14,7 +16,10 @@ static NSDictionary *BTHandle(NSDictionary *request) {
     if ([op isEqualToString:@"backup"]) return [BTImporter createBackup];
     if ([op isEqualToString:@"restore"]) return [BTImporter restoreLatestBackup];
     if ([op isEqualToString:@"repair"]) return [BTImporter repairLibrary];
-    if ([op isEqualToString:@"library"]) return [BTImporter libraryWithLimit:MAX(1, [request[@"limit"] unsignedIntegerValue] ?: 250)];
+    if ([op isEqualToString:@"library"]) {
+        NSUInteger limit = [request[@"limit"] unsignedIntegerValue];
+        return [BTImporter libraryWithLimit:limit ?: 250];
+    }
     if ([op isEqualToString:@"playlists"]) return [BTImporter playlists];
 
     if ([op isEqualToString:@"import"]) {
@@ -58,7 +63,7 @@ static void BTSend(int fd, NSDictionary *response) {
     const uint8_t *bytes = wire.bytes;
     size_t left = wire.length;
     while (left) {
-        ssize_t n = send(fd, bytes, left, MSG_NOSIGNAL);
+        ssize_t n = send(fd, bytes, left, 0);
         if (n <= 0) break;
         bytes += n;
         left -= (size_t)n;
@@ -101,8 +106,7 @@ static void BTServeClient(int fd) {
             return;
         }
 
-        NSDictionary *response = BTHandle((NSDictionary *)obj);
-        BTSend(fd, response);
+        BTSend(fd, BTHandle((NSDictionary *)obj));
         close(fd);
     }
 }
