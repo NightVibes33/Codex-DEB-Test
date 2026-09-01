@@ -146,6 +146,32 @@ static uint64_t vp_shift_register(uint64_t value, uint32_t type, uint32_t amount
            (is64 ? UINT64_MAX : UINT64_C(0xFFFFFFFF));
 }
 
+static int vp_decode_logical_immediate(
+    uint32_t n, uint32_t immr, uint32_t imms, uint32_t width, uint64_t *mask_out
+) {
+    if (!mask_out || (width != 32u && width != 64u) || (width == 32u && n != 0u)) return 0;
+    const uint32_t selector = (n << 6) | ((~imms) & 63u);
+    int length = -1;
+    for (int bit = 6; bit >= 1; bit--) {
+        if (selector & (1u << bit)) { length = bit; break; }
+    }
+    if (length < 1) return 0;
+    const uint32_t levels = (1u << (uint32_t)length) - 1u;
+    const uint32_t s = imms & levels;
+    const uint32_t r = immr & levels;
+    if (s == levels) return 0;
+    const uint32_t element_width = 1u << (uint32_t)length;
+    if (element_width > width) return 0;
+    const uint64_t element_mask = element_width == 64u
+        ? UINT64_MAX : ((UINT64_C(1) << element_width) - 1u);
+    uint64_t element = (UINT64_C(1) << (s + 1u)) - 1u;
+    if (r != 0u) element = ((element >> r) | (element << (element_width - r))) & element_mask;
+    uint64_t result = 0;
+    for (uint32_t offset = 0; offset < width; offset += element_width) result |= element << offset;
+    *mask_out = width == 32u ? (uint32_t)result : result;
+    return 1;
+}
+
 static uint64_t vp_extend_register(uint64_t value, uint32_t option) {
     switch (option & 7u) {
         case 0: return (uint8_t)value;
@@ -522,6 +548,28 @@ VPCPUStepResult vp_aarch64_step(VPRuntime *runtime, VPAArch64CPU *cpu, uint32_t 
         const uint64_t result = subtract ? lhs - rhs : lhs + rhs;
         if (set_flags) vp_set_nzcv_addsub(cpu, lhs, rhs, result, is64, subtract);
         vp_reg_write(cpu, insn & 31u, result, is64, !set_flags);
+        return vp_retire(cpu, next_pc);
+    }
+
+    /* AND/ORR/EOR/ANDS logical immediate with ARM replicated-bitmask decoding. */
+    const uint32_t logical_immediate_class = insn & UINT32_C(0x7F800000);
+    if (logical_immediate_class == UINT32_C(0x12000000) ||
+        logical_immediate_class == UINT32_C(0x32000000) ||
+        logical_immediate_class == UINT32_C(0x52000000) ||
+        logical_immediate_class == UINT32_C(0x72000000)) {
+        const int is64 = (int)((insn >> 31) & 1u);
+        uint64_t immediate = 0;
+        if (!vp_decode_logical_immediate(
+                (insn >> 22) & 1u, (insn >> 16) & 63u, (insn >> 10) & 63u,
+                is64 ? 64u : 32u, &immediate
+            )) return VP_CPU_STEP_UNIMPLEMENTED;
+        const uint64_t lhs = vp_reg_read(cpu, (insn >> 5) & 31u, 0);
+        const uint32_t operation = (insn >> 29) & 3u;
+        uint64_t result = operation == 0u || operation == 3u ? lhs & immediate
+                          : operation == 1u ? lhs | immediate : lhs ^ immediate;
+        if (!is64) result = (uint32_t)result;
+        if (operation == 3u) vp_set_nzcv_logical(cpu, result, is64);
+        vp_reg_write(cpu, insn & 31u, result, is64, 0);
         return vp_retire(cpu, next_pc);
     }
 
