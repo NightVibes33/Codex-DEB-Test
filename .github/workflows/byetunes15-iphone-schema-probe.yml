@@ -9,221 +9,153 @@ on:
       - 'triggers/byetunes15-iphone-schema-probe.txt'
 
 permissions:
-  contents: read
+  contents: write
+
+env:
+  THEOS: ${{ github.workspace }}/theos
 
 jobs:
-  env:
-    runs-on: ubuntu-latest
-    outputs:
-      name: ${{ steps.e.outputs.name }}
+  build:
+    runs-on: macos-14
+    timeout-minutes: 40
     steps:
-      - id: e
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          curl -fsSL \
-            -H 'Accept: application/vnd.github+json' \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H 'X-GitHub-Api-Version: 2022-11-28' \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" >/tmp/e.json
-          python3 - <<'PY' >>"$GITHUB_OUTPUT"
-          import json
-          for e in json.load(open('/tmp/e.json')).get('environments', []):
-              if int(e.get('id', -1)) == 18728387881:
-                  print('name=' + e['name'])
-                  break
-          else:
-              raise SystemExit('environment not found')
-          PY
-
-  probe:
-    needs: env
-    environment:
-      name: ${{ needs.env.outputs.name }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      PORT: '22'
-      SSHPASS: ${{ secrets.IPAD_PASSWORD }}
-      PASS: ${{ secrets.IPAD_PASSWORD }}
-    steps:
-      - name: Join Tailscale
-        uses: tailscale/github-action@v4
+      - uses: actions/checkout@v4
         with:
-          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          ref: temp/byetunes-ios16-rootless
 
-      - name: Resolve jailbroken iOS 15 iPhone
+      - name: Select Xcode 15
         run: |
           set -euo pipefail
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq openssh-client sshpass sqlite3
-          mkdir -p "$HOME/.ssh"
-          chmod 700 "$HOME/.ssh"
-          : > device-probes.txt
+          candidate=''
+          for path in /Applications/Xcode_15.4.app /Applications/Xcode_15.3.app /Applications/Xcode_15.2.app /Applications/Xcode_15.1.app /Applications/Xcode.app; do
+            if [ -d "$path" ]; then candidate="$path"; break; fi
+          done
+          test -n "$candidate"
+          sudo xcode-select --switch "$candidate"
+          xcodebuild -version
 
-          tailscale status --json >/tmp/ts.json
-          python3 - <<'PY' | tee tailscale-peers.txt
-          import json
-          d=json.load(open('/tmp/ts.json'))
-          for p in d.get('Peer', {}).values():
-              print(f"host={p.get('HostName','')} dns={p.get('DNSName','')} online={p.get('Online')} os={p.get('OS','')} ips={','.join(p.get('TailscaleIPs') or [])}")
-          PY
+      - name: Install packaging tools
+        uses: dhinakg/procursus-action@main
+        with:
+          packages: ldid dpkg findutils sed coreutils
+          cache: true
+          cache-path: ~/__cache
 
-          # Deliberately do not trust Tailscale's cached Online bit. Probe every IPv4 peer.
-          python3 - <<'PY' >/tmp/candidates.txt
-          import json, ipaddress
-          d=json.load(open('/tmp/ts.json'))
-          rows=[]
-          for p in d.get('Peer', {}).values():
-              name=((p.get('HostName') or '')+' '+(p.get('DNSName') or '')).strip()
-              for ip in p.get('TailscaleIPs') or []:
-                  try: addr=ipaddress.ip_address(ip)
-                  except ValueError: continue
-                  if addr.version == 4:
-                      rows.append((0 if 'iphone' in name.lower() else 1, ip, name))
-          for _,ip,name in sorted(rows): print(f"{ip}|{name}")
-          PY
-
-          cat >/tmp/gate.sh <<'SH'
-          set -eu
-          P=/System/Library/CoreServices/SystemVersion.plist
-          V="$(sed -n '/<key>ProductVersion<\/key>/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' "$P" | head -n1)"
-          B="$(sed -n '/<key>ProductBuildVersion<\/key>/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' "$P" | head -n1)"
-          M="$(sysctl -n hw.machine 2>/dev/null || /usr/sbin/sysctl -n hw.machine 2>/dev/null || uname -m)"
-          echo "machine=$M version=$V build=$B"
-          case "$M" in iPhone*) ;; *) echo reject=not_iphone; exit 20;; esac
-          [ "$V" = 15.8.8 ] || { echo reject=not_ios_15_8_8; exit 21; }
-          [ -d /var/jb ] || { echo reject=no_rootless_jailbreak; exit 22; }
-          Q=/var/jb/usr/bin/dpkg-query
-          [ -x "$Q" ] || Q="$(command -v dpkg-query || true)"
-          [ -n "$Q" ] || { echo reject=no_dpkg_query; exit 23; }
-          E="$($Q -W -f='${Status}' ellekit 2>/dev/null || true)"
-          echo "ellekit=$E"
-          echo "$E" | grep -q 'install ok installed' || { echo reject=no_ellekit; exit 24; }
-          DB=/var/mobile/Media/iTunes_Control/iTunes/MediaLibrary.sqlitedb
-          [ -f "$DB" ] || { echo reject=no_music_database; exit 25; }
-          echo IPHONE15_GATE_PASS
-          SH
-
-          HOST=''
-          while IFS='|' read -r ip peer_name; do
-            [ -n "$ip" ] || continue
-            echo "=== candidate $ip $peer_name ===" | tee -a device-probes.txt
-            tailscale ping --timeout=4s --c 1 "$ip" >>device-probes.txt 2>&1 || true
-            if ! ssh-keyscan -T 5 -H -p "$PORT" "$ip" >/tmp/candidate_known_hosts 2>>device-probes.txt; then
-              echo reject=ssh_port_unreachable | tee -a device-probes.txt
-              continue
-            fi
-            set +e
-            OUT="$({ printf '%s\n' "$PASS"; cat /tmp/gate.sh; } | sshpass -e ssh \
-              -p "$PORT" -o BatchMode=no -o ConnectTimeout=8 \
-              -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/tmp/candidate_known_hosts \
-              "mobile@$ip" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s' 2>&1)"
-            rc=$?
-            set -e
-            printf '%s\n' "$OUT" | tee -a device-probes.txt
-            echo "probe_exit=$rc" | tee -a device-probes.txt
-            if [ "$rc" -eq 0 ] && printf '%s\n' "$OUT" | grep -q IPHONE15_GATE_PASS; then
-              HOST="$ip"
-              cp /tmp/candidate_known_hosts "$HOME/.ssh/known_hosts"
-              chmod 600 "$HOME/.ssh/known_hosts"
-              printf '%s\n' "$OUT" > gate.txt
-              echo "selected_host=$HOST" | tee -a device-probes.txt
-              break
-            fi
-          done </tmp/candidates.txt
-
-          [ -n "$HOST" ] || { echo NO_ELIGIBLE_IOS15_IPHONE | tee -a device-probes.txt; exit 1; }
-          echo "HOST=$HOST" >> "$GITHUB_ENV"
-
-      - name: Snapshot database read-only and inspect schema
+      - name: Install Theos and SDK
         run: |
           set -euo pipefail
-          cat >/tmp/snapshot.sh <<'SH'
-          set -eu
-          DB=/var/mobile/Media/iTunes_Control/iTunes/MediaLibrary.sqlitedb
-          TMP=/var/mobile/ByeTunes15SchemaProbe
-          rm -rf "$TMP"
-          mkdir -p "$TMP"
-          cp "$DB" "$TMP/MediaLibrary.sqlitedb"
-          [ ! -f "$DB-wal" ] || cp "$DB-wal" "$TMP/MediaLibrary.sqlitedb-wal"
-          [ ! -f "$DB-shm" ] || cp "$DB-shm" "$TMP/MediaLibrary.sqlitedb-shm"
-          chown -R mobile:mobile "$TMP" 2>/dev/null || true
-          chmod 700 "$TMP"
-          chmod 600 "$TMP"/*
-          echo SNAPSHOT_READY
-          SH
-          { printf '%s\n' "$PASS"; cat /tmp/snapshot.sh; } | sshpass -e ssh \
-            -p "$PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-            "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s'
+          rm -rf "$THEOS" /tmp/theos-sdks
+          git clone --recursive --depth=1 https://github.com/theos/theos.git "$THEOS"
+          git clone --depth=1 https://github.com/theos/sdks.git /tmp/theos-sdks
+          cp -a /tmp/theos-sdks/iPhoneOS16.5.sdk "$THEOS/sdks/"
+          test -f "$THEOS/sdks/iPhoneOS16.5.sdk/SDKSettings.plist"
 
-          mkdir -p /tmp/ml
-          sshpass -e scp -P "$PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-            "mobile@$HOST:/var/mobile/ByeTunes15SchemaProbe/MediaLibrary.sqlitedb*" /tmp/ml/
-
-          DB=/tmp/ml/MediaLibrary.sqlitedb
-          {
-            echo '=== DEVICE ==='
-            cat gate.txt
-            echo
-            echo '=== QUICK CHECK ==='
-            sqlite3 "$DB" 'PRAGMA quick_check;'
-            echo
-            echo '=== USER VERSION ==='
-            sqlite3 "$DB" 'PRAGMA user_version;'
-            echo
-            echo '=== TABLES ==='
-            sqlite3 "$DB" "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;"
-            echo
-            for t in item item_extra item_playback item_artist album album_artist genre sort_map base_location container container_item artwork artwork_token best_artwork_token; do
-              echo "=== COLUMNS $t ==="
-              sqlite3 -header -column "$DB" "PRAGMA table_info($t);" || true
-            done
-          } | tee ios15-media-schema.txt
-
-          # Compatibility check for the current helper's minimum required schema.
-          python3 - "$DB" <<'PY' | tee ios15-schema-compat.txt
-          import sqlite3, sys
-          db=sqlite3.connect(f'file:{sys.argv[1]}?mode=ro', uri=True)
-          required={
-            'item': {'item_pid','media_type','base_location_id'},
-            'item_extra': {'item_pid','title','location'},
-            'item_playback': set(),
-            'item_artist': set(),
-            'album': set(),
-            'album_artist': set(),
-            'genre': set(),
-            'sort_map': {'name','name_order','name_section','sort_key'},
-            'base_location': set(),
-            'container': set(),
-            'container_item': set(),
-          }
-          tables={r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-          ok=True
-          for table, cols in required.items():
-            if table not in tables:
-              print(f'MISSING_TABLE {table}'); ok=False; continue
-            have={r[1] for r in db.execute(f'PRAGMA table_info({table})')}
-            for col in sorted(cols-have): print(f'MISSING_COLUMN {table}.{col}'); ok=False
-          print('CURRENT_CORE_SCHEMA_COMPAT=' + ('YES' if ok else 'NO'))
+      - name: Apply iOS 15 compatibility patch
+        id: patch
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('byetunes16')
+          p=root/'Makefile'; s=p.read_text(); old='TARGET = iphone:clang:16.5:16.0'; assert old in s; p.write_text(s.replace(old,'TARGET = iphone:clang:16.5:15.0',1))
+          p=root/'control'; s=p.read_text(); old='Depends: firmware (>= 16.0), firmware (<< 17.0), ellekit'; assert old in s
+          s=s.replace(old,'Depends: firmware (>= 15.0), firmware (<< 16.0), ellekit',1).replace('Version: 0.2.0','Version: 0.2.0-ios15.1',1).replace('Name: ByeTunes 16 Injection','Name: ByeTunes 15 Injection',1); p.write_text(s)
+          p=root/'daemon'/'BTImporter.m'; s=p.read_text()
+          pairs=[
+            ('INSERT OR REPLACE INTO artwork(artwork_token,artwork_source_type,relative_path,artwork_type,artwork_variant_type) VALUES(?,1,?,1,0)','INSERT OR REPLACE INTO artwork(artwork_token,artwork_source_type,relative_path,artwork_type) VALUES(?,1,?,1)'),
+            ('INSERT OR REPLACE INTO artwork_token(artwork_token,artwork_source_type,artwork_type,entity_pid,entity_type,artwork_variant_type) VALUES(?,1,1,?,?,0)','INSERT OR REPLACE INTO artwork_token(artwork_token,artwork_source_type,artwork_type,entity_pid,entity_type) VALUES(?,1,1,?,?)'),
+            ("INSERT OR REPLACE INTO best_artwork_token(entity_pid,entity_type,artwork_type,available_artwork_token,fetchable_artwork_token,fetchable_artwork_source_type,artwork_variant_type) VALUES(?,?,1,?,'',0,0)","INSERT OR REPLACE INTO best_artwork_token(entity_pid,entity_type,artwork_type,available_artwork_token,fetchable_artwork_token,fetchable_artwork_source_type) VALUES(?,?,1,?,'',0)"),
+            ('INSERT INTO container_item(container_item_pid,container_pid,item_pid,position,uuid) VALUES(?,?,?,?,?)','INSERT INTO container_item(container_item_pid,container_pid,item_pid,position) VALUES(?,?,?,?)'),
+            ('NSString*u=NSUUID.UUID.UUIDString;',''),
+            ('sqlite3_bind_text(s,5,u.UTF8String,-1,SQLITE_TRANSIENT);','')]
+          for old,new in pairs: assert old in s, old; s=s.replace(old,new)
+          p.write_text(s)
+          p=root/'daemon'/'BTImporter+Full.m'; s=p.read_text(); old='INSERT INTO container_item(container_item_pid,container_pid,item_pid,position,uuid) VALUES(?,?,?,?,?)'; assert old in s
+          s=s.replace(old,'INSERT INTO container_item(container_item_pid,container_pid,item_pid,position) VALUES(?,?,?,?)').replace('NSString *uuid = NSUUID.UUID.UUIDString;','').replace('sqlite3_bind_text(stmt, 5, uuid.UTF8String, -1, SQLITE_TRANSIENT);',''); p.write_text(s)
           PY
 
-          # Delete the temporary copy from the phone; original library is untouched.
-          { printf '%s\n' "$PASS"; printf '%s\n' 'rm -rf /var/mobile/ByeTunes15SchemaProbe'; } | sshpass -e ssh \
-            -p "$PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-            "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s'
+      - name: Build rootless iOS 15 DEB
+        id: compile
+        run: |
+          set -o pipefail
+          : > byetunes15-build.log
+          make -C byetunes16 clean package FINALPACKAGE=1 2>&1 | tee byetunes15-build.log
 
-      - name: Upload schema diagnostics
+      - name: Validate iOS 15 package
+        id: validate
+        run: |
+          set -euo pipefail
+          DEB="$(find byetunes16/packages -maxdepth 1 -type f -name '*.deb' -print | head -n1)"
+          test -n "$DEB"
+          dpkg-deb --info "$DEB" | tee byetunes15-package-info.txt
+          dpkg-deb --contents "$DEB" | tee byetunes15-package-contents.txt
+          test "$(dpkg-deb --field "$DEB" Package)" = 'com.nightvibes.byetunes16'
+          test "$(dpkg-deb --field "$DEB" Architecture)" = 'iphoneos-arm64'
+          DEPENDS="$(dpkg-deb --field "$DEB" Depends)"
+          echo "$DEPENDS" | grep -F 'firmware (>= 15.0)'
+          echo "$DEPENDS" | grep -F 'firmware (<< 16.0)'
+          rm -rf byetunes15-package-root
+          dpkg-deb -x "$DEB" byetunes15-package-root
+          DYLIB=byetunes15-package-root/var/jb/Library/MobileSubstrate/DynamicLibraries/ByeTunes16.dylib
+          DAEMON=byetunes15-package-root/var/jb/usr/libexec/byetunes16d
+          test -f "$DYLIB" && test -x "$DAEMON"
+          file "$DYLIB" | tee byetunes15-binary-info.txt | grep -q arm64
+          file "$DAEMON" | tee -a byetunes15-binary-info.txt | grep -q arm64
+          otool -l "$DYLIB" | tee byetunes15-otool.txt
+          otool -l "$DAEMON" | tee -a byetunes15-otool.txt
+          grep -Eq 'minos 15\.|version 15\.' byetunes15-otool.txt
+          shasum -a 256 "$DEB" | tee byetunes15-sha256.txt
+          cp "$DEB" ByeTunes15-iOS15-Dopamine-rootless.deb
+          { echo validation=success; echo "version=$(dpkg-deb --field "$DEB" Version)"; echo "depends=$DEPENDS"; } | tee byetunes15-validation.txt
+
+      - name: Upload iOS 15 DEB
+        if: steps.validate.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ByeTunes15-iOS15-Dopamine-rootless
+          path: ByeTunes15-iOS15-Dopamine-rootless.deb
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ByeTunes15-iPhone-schema-${{ github.run_id }}
+          name: ByeTunes15-build-diagnostics-${{ github.run_id }}
           path: |
-            tailscale-peers.txt
-            device-probes.txt
-            gate.txt
-            ios15-media-schema.txt
-            ios15-schema-compat.txt
+            byetunes15-build.log
+            byetunes15-package-info.txt
+            byetunes15-package-contents.txt
+            byetunes15-binary-info.txt
+            byetunes15-otool.txt
+            byetunes15-sha256.txt
+            byetunes15-validation.txt
           if-no-files-found: ignore
           retention-days: 14
+
+      - name: Publish build result
+        if: always()
+        env:
+          PATCH_OUTCOME: ${{ steps.patch.outcome }}
+          COMPILE_OUTCOME: ${{ steps.compile.outcome }}
+          VALIDATE_OUTCOME: ${{ steps.validate.outcome }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin temp/byetunes-ios16-rootless
+          mkdir -p remote
+          {
+            echo 'ByeTunes iOS15 iPhone Build'
+            echo "run_id=${GITHUB_RUN_ID}"
+            echo "commit=${GITHUB_SHA}"
+            echo "patch=${PATCH_OUTCOME}"
+            echo "compile=${COMPILE_OUTCOME}"
+            echo "validate=${VALIDATE_OUTCOME}"
+            [ ! -f byetunes15-validation.txt ] || cat byetunes15-validation.txt
+            echo '--- build tail ---'
+            [ ! -f byetunes15-build.log ] || tail -n 220 byetunes15-build.log
+          } > remote/byetunes15-build-status.txt
+          git add remote/byetunes15-build-status.txt
+          git commit -m 'Record ByeTunes iOS15 build status [skip ci]' || exit 0
+          git push origin HEAD:temp/byetunes-ios16-rootless
