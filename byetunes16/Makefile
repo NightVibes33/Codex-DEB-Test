@@ -1,5 +1,5 @@
 ARCHS = arm64
-TARGET = iphone:clang:16.5:16.0
+TARGET = iphone:clang:16.5:15.0
 THEOS_PACKAGE_SCHEME = rootless
 FINALPACKAGE = 1
 
@@ -8,14 +8,14 @@ include $(THEOS)/makefiles/common.mk
 TWEAK_NAME = ByeTunes16
 ByeTunes16_FILES = Tweak.xm BTClient.m BTManager.m
 ByeTunes16_FRAMEWORKS = UIKit UniformTypeIdentifiers
-ByeTunes16_CFLAGS = -fobjc-arc -Wall -Wextra -Wno-deprecated-declarations
+ByeTunes16_CFLAGS = -fobjc-arc -Wall -Wextra -Wno-deprecated-declarations -Werror=unguarded-availability
 ByeTunes16_INSTALL_TARGET_PROCESSES = Music
 
 TOOL_NAME = byetunes16d
 byetunes16d_FILES = daemon/main.m daemon/BTImporter.m daemon/BTImporter+Full.m daemon/BTMetadataService.m
 byetunes16d_FRAMEWORKS = Foundation AVFoundation CoreMedia
 byetunes16d_LIBRARIES = sqlite3
-byetunes16d_CFLAGS = -fobjc-arc -Wall -Wextra -Wno-deprecated-declarations
+byetunes16d_CFLAGS = -fobjc-arc -Wall -Wextra -Wno-deprecated-declarations -Werror=unguarded-availability
 byetunes16d_INSTALL_PATH = /usr/libexec
 
 include $(THEOS_MAKE_PATH)/tweak.mk
