@@ -1,4 +1,4 @@
-name: iPhone Sileo Zebra Source Repair
+name: iPhone A9 CPU GPU DVFS Probe
 
 on:
   push:
@@ -11,11 +11,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: iphone-package-sources-fast
+  group: iphone-a9-dvfs-probe
   cancel-in-progress: true
 
 jobs:
-  repair:
+  probe:
     runs-on: ubuntu-latest
     timeout-minutes: 4
     environment:
@@ -28,7 +28,7 @@ jobs:
       - run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends openssh-client sshpass >/dev/null
-      - name: Repair Sileo cache and Zebra filters without deleting sources
+      - name: Read A9 CPU GPU power-management state
         env:
           IPHONE_HOST: 100.96.37.124
           IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
@@ -42,122 +42,55 @@ jobs:
           {
             printf '%s\n' "$IPHONE_PASSWORD"
             cat <<'EOS'
-          set -eu
+          set +e
           export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
-          TS="$(date +%Y%m%d-%H%M%S)"
-          BACKUP="/var/mobile/Documents/CodexPackageManagerBackups/$TS/EmptySourceRepair"
-          SILEO_CACHE='/var/jb/var/mobile/Library/Caches/Sileo'
-          SILEO_HTTP='/var/mobile/Library/Caches/org.coolstar.SileoStore'
-          ZPREF='/var/jb/var/mobile/Library/Preferences/xyz.willy.Zebra.plist'
-          SPREF='/var/jb/var/mobile/Library/Preferences/org.coolstar.SileoStore.plist'
-          ZDIR='/var/mobile/Library/Application Support/xyz.willy.Zebra'
-          ZDB="$ZDIR/zebra.db"
-          ZSRC="$ZDIR/sources.list"
+          echo '=== READ-ONLY A9 CPU/GPU DVFS PROBE ==='
+          echo 'DEVICE_WRITES=0'
+          echo 'KERNEL_WRITES=0'
+          echo 'PMGR_WRITES=0'
+          echo 'THERMAL_CHANGES=0'
 
-          echo '=== SILEO + ZEBRA EMPTY SOURCE REPAIR ==='
-          echo 'DELETE_COMMANDS_USED=0'
-          echo 'PACKAGES_REMOVED=0'
-          echo 'TWEAKS_REMOVED=0'
-          echo 'SOURCE_ENTRIES_REMOVED=0'
-          echo 'APT_PACKAGE_INDEXES_REMOVED=0'
-          echo "backup_dir=$BACKUP"
-          mkdir -p "$BACKUP"
-          chmod 700 "$BACKUP" 2>/dev/null || true
-          chown mobile:mobile "$BACKUP" 2>/dev/null || true
+          echo '=== BASIC HARDWARE ==='
+          uname -a 2>&1 || true
+          for k in hw.machine hw.model hw.ncpu hw.physicalcpu hw.logicalcpu hw.cpufrequency hw.cpufrequency_max hw.cpufrequency_min hw.busfrequency hw.memsize kern.osversion; do
+            printf '%s=' "$k"; sysctl -n "$k" 2>/dev/null || echo '<unavailable>'
+          done
 
-          echo '--- immutable-data fingerprints before ---'
-          APT_SRC_HASH_BEFORE="$(find /var/jb/etc/apt -maxdepth 2 -type f \( -name '*.list' -o -name '*.sources' \) -print 2>/dev/null | sort | while IFS= read -r f; do sha256sum "$f"; done | sha256sum | awk '{print $1}')"
-          ZSRC_HASH_BEFORE="$(sha256sum "$ZSRC" | awk '{print $1}')"
-          ZDB_HASH_BEFORE="$(sha256sum "$ZDB" | awk '{print $1}')"
-          APT_RECORDS_BEFORE="$(grep -ah '^Package:' /var/jb/var/lib/apt/lists/*Packages* 2>/dev/null | wc -l | tr -d ' ')"
-          echo "apt_source_set_sha256_before=$APT_SRC_HASH_BEFORE"
-          echo "zebra_sources_sha256_before=$ZSRC_HASH_BEFORE"
-          echo "zebra_db_sha256_before=$ZDB_HASH_BEFORE"
-          echo "apt_package_records_before=$APT_RECORDS_BEFORE"
-
-          echo '--- preserve exactly what will be changed ---'
-          [ -f "$ZPREF" ] && { cp -p "$ZPREF" "$BACKUP/xyz.willy.Zebra.plist"; echo "zebra_prefs_backup=$BACKUP/xyz.willy.Zebra.plist"; }
-          [ -f "$SPREF" ] && { cp -p "$SPREF" "$BACKUP/org.coolstar.SileoStore.plist"; echo "sileo_prefs_backup=$BACKUP/org.coolstar.SileoStore.plist"; }
-
-          # Stop only the two package managers before moving their derived cache / changing defaults.
-          killall Sileo 2>/dev/null || true
-          killall Zebra 2>/dev/null || true
-
-          echo '--- Sileo: preserve stale derived cache, create clean cache root ---'
-          if [ -d "$SILEO_CACHE" ]; then
-            SILEO_CACHE_OLD="$SILEO_CACHE.before-source-fix-$TS"
-            mv "$SILEO_CACHE" "$SILEO_CACHE_OLD"
-            echo "sileo_cache_preserved=$SILEO_CACHE_OLD"
-          fi
-          mkdir -p "$SILEO_CACHE"
-          chown mobile:mobile "$SILEO_CACHE" 2>/dev/null || true
-          chmod 755 "$SILEO_CACHE" 2>/dev/null || true
-
-          if [ -d "$SILEO_HTTP" ]; then
-            SILEO_HTTP_OLD="$SILEO_HTTP.before-source-fix-$TS"
-            mv "$SILEO_HTTP" "$SILEO_HTTP_OLD"
-            echo "sileo_http_cache_preserved=$SILEO_HTTP_OLD"
-          fi
-          mkdir -p "$SILEO_HTTP"
-          chown mobile:mobile "$SILEO_HTTP" 2>/dev/null || true
-          chmod 755 "$SILEO_HTTP" 2>/dev/null || true
-
-          # Explicitly keep automatic source refresh enabled. No source definition is modified.
-          if command -v defaults >/dev/null 2>&1; then
-            sudo -u mobile defaults write org.coolstar.SileoStore AutoRefreshSources -bool true
-          fi
-
-          echo '--- Zebra: clear only package-hiding filters and restore sane refresh timeout ---'
-          if command -v defaults >/dev/null 2>&1; then
-            for key in FilteredSources FilteredSections BlockedAuthors FeaturedSourceBlacklist; do
-              sudo -u mobile defaults delete xyz.willy.Zebra "$key" 2>/dev/null || true
-            done
-            sudo -u mobile defaults write xyz.willy.Zebra FilterIncompatibleArchitectures -bool false
-            sudo -u mobile defaults write xyz.willy.Zebra Role -int 3
-            sudo -u mobile defaults write xyz.willy.Zebra SourceTimeout -int 60
-            sudo -u mobile defaults write xyz.willy.Zebra AutoRefresh -bool true
+          echo '=== SOC VARIANT / DEVICE TREE ID ==='
+          if command -v ioreg >/dev/null 2>&1; then
+            ioreg -p IODeviceTree -l -w0 2>/dev/null | grep -Eai 's8000|s8003|APL0898|APL1022|chip-id|board-id|product-name|compatible' | head -n 120 || true
           else
-            echo 'ERROR=defaults tool missing; refusing partial Zebra preference repair'
-            exit 31
+            echo 'ioreg_unavailable=1'
           fi
 
-          echo '--- repaired preference verification ---'
-          echo -n 'zebra_FilteredSources='; sudo -u mobile defaults read xyz.willy.Zebra FilteredSources 2>&1 || echo '<absent>'
-          echo -n 'zebra_FilteredSections='; sudo -u mobile defaults read xyz.willy.Zebra FilteredSections 2>&1 || echo '<absent>'
-          echo -n 'zebra_BlockedAuthors='; sudo -u mobile defaults read xyz.willy.Zebra BlockedAuthors 2>&1 || echo '<absent>'
-          echo -n 'zebra_FilterIncompatibleArchitectures='; sudo -u mobile defaults read xyz.willy.Zebra FilterIncompatibleArchitectures 2>&1 || true
-          echo -n 'zebra_Role='; sudo -u mobile defaults read xyz.willy.Zebra Role 2>&1 || true
-          echo -n 'zebra_SourceTimeout='; sudo -u mobile defaults read xyz.willy.Zebra SourceTimeout 2>&1 || true
-          echo -n 'zebra_AutoRefresh='; sudo -u mobile defaults read xyz.willy.Zebra AutoRefresh 2>&1 || true
-          echo -n 'sileo_AutoRefreshSources='; sudo -u mobile defaults read org.coolstar.SileoStore AutoRefreshSources 2>&1 || true
+          echo '=== CPU / PMGR / CLPC MATCHES ==='
+          if command -v ioreg >/dev/null 2>&1; then
+            ioreg -p IODeviceTree -l -w0 2>/dev/null | grep -Eai 'cpu[0-9]|pmgr|clpc|dvfs|voltage-state|perf-state|frequency|pll|clock' | head -n 260 || true
+            echo '--- service classes ---'
+            ioreg -l -w0 2>/dev/null | grep -Eai 'ApplePMGR|AppleCLPC|Apple.*CPU|cpufreq|DVFS' | head -n 180 || true
+          fi
 
-          echo '--- immutable-data fingerprints after ---'
-          APT_SRC_HASH_AFTER="$(find /var/jb/etc/apt -maxdepth 2 -type f \( -name '*.list' -o -name '*.sources' \) -print 2>/dev/null | sort | while IFS= read -r f; do sha256sum "$f"; done | sha256sum | awk '{print $1}')"
-          ZSRC_HASH_AFTER="$(sha256sum "$ZSRC" | awk '{print $1}')"
-          ZDB_HASH_AFTER="$(sha256sum "$ZDB" | awk '{print $1}')"
-          APT_RECORDS_AFTER="$(grep -ah '^Package:' /var/jb/var/lib/apt/lists/*Packages* 2>/dev/null | wc -l | tr -d ' ')"
-          echo "apt_source_set_sha256_after=$APT_SRC_HASH_AFTER"
-          echo "zebra_sources_sha256_after=$ZSRC_HASH_AFTER"
-          echo "zebra_db_sha256_after=$ZDB_HASH_AFTER"
-          echo "apt_package_records_after=$APT_RECORDS_AFTER"
+          echo '=== GPU / POWERVR MATCHES ==='
+          if command -v ioreg >/dev/null 2>&1; then
+            ioreg -p IODeviceTree -l -w0 2>/dev/null | grep -Eai 'gpu|sgx|powervr|pvr|gfx|graphics|voltage-state|perf-state|frequency|clock' | head -n 300 || true
+            echo '--- GPU service classes ---'
+            ioreg -l -w0 2>/dev/null | grep -Eai 'gpu|sgx|powervr|pvr|gfx|graphics' | head -n 220 || true
+          fi
 
-          [ "$APT_SRC_HASH_BEFORE" = "$APT_SRC_HASH_AFTER" ] || { echo 'ERROR=APT source definitions changed unexpectedly'; exit 41; }
-          [ "$ZSRC_HASH_BEFORE" = "$ZSRC_HASH_AFTER" ] || { echo 'ERROR=Zebra sources.list changed unexpectedly'; exit 42; }
-          [ "$ZDB_HASH_BEFORE" = "$ZDB_HASH_AFTER" ] || { echo 'ERROR=Zebra DB changed unexpectedly'; exit 43; }
-          [ "$APT_RECORDS_AFTER" -gt 1000 ] || { echo 'ERROR=APT package indexes are unexpectedly empty'; exit 44; }
+          echo '=== SYSCTL CPU/GPU/THERMAL MATCHES ==='
+          sysctl -a 2>/dev/null | grep -Eai 'cpu.*freq|freq.*cpu|gpu|thermal|thrott|perflevel|power' | head -n 220 || true
 
-          echo 'APT_SOURCES_UNCHANGED=1'
-          echo 'ZEBRA_SOURCES_UNCHANGED=1'
-          echo 'ZEBRA_DATABASE_UNCHANGED=1'
-          echo 'SILEO_DERIVED_CACHE_RESET=1'
-          echo 'ZEBRA_FILTER_STATE_REPAIRED=1'
-          echo 'ORIGINAL_CHANGED_FILES_PRESERVED=1'
-          echo 'RESULT=Both package managers are staged to reload healthy source/package data on next real GUI launch.'
+          echo '=== AVAILABLE LOW-LEVEL TOOLS ==='
+          for x in ioreg sysctl nvram kmem kread kwrite memtool devmem jbctl; do
+            printf '%s=' "$x"; command -v "$x" 2>/dev/null || echo '<missing>'
+          done
+
+          echo 'RESULT=read-only probe complete'
           EOS
-          } | timeout 120 sshpass -e ssh -o BatchMode=no -o ConnectTimeout=20 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" mobile@"$IPHONE_HOST" 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' 2>&1 | tee source-repair.txt
+          } | timeout 100 sshpass -e ssh -o BatchMode=no -o ConnectTimeout=20 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" mobile@"$IPHONE_HOST" 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' 2>&1 | tee a9-dvfs-probe.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: iphone-source-repair-${{ github.run_id }}
-          path: source-repair.txt
+          name: iphone-a9-dvfs-probe-${{ github.run_id }}
+          path: a9-dvfs-probe.txt
           retention-days: 7
