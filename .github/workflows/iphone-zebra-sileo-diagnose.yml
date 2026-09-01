@@ -1,4 +1,4 @@
-name: iPhone Zebra Hot Stack
+name: iPhone Zebra Repair
 
 on:
   push:
@@ -11,13 +11,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: iphone-zebra-hot-stack
-  cancel-in-progress: true
+  group: iphone-zebra-repair
+  cancel-in-progress: false
 
 jobs:
-  inspect:
+  repair:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 6
     environment:
       name: TAILSCALE_AUTHKEY-
     steps:
@@ -25,12 +25,14 @@ jobs:
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
           version: latest
+
       - name: Install SSH client
         run: |
           set -euo pipefail
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends openssh-client sshpass >/dev/null
-      - name: Extract concise Zebra watchdog stack
+
+      - name: Repair Zebra startup state without deleting anything
         env:
           IPHONE_HOST: 100.96.37.124
           IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
@@ -42,51 +44,190 @@ jobs:
           chmod 700 "$HOME/.ssh"
           ssh-keyscan -T 15 -H "$IPHONE_HOST" > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/known_hosts"
+
           {
             printf '%s\n' "$IPHONE_PASSWORD"
             cat <<'EOS'
-          set +e
+          set -u
           export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
-          latest="$(ls -1t /var/mobile/Library/Logs/CrashReporter/stacks+Zebra*.ips 2>/dev/null | head -n1)"
-          echo '=== ZEBRA HOT STACK ==='
-          echo 'READ_ONLY=YES'
-          echo "report=$latest"
-          [ -n "$latest" ] || { echo 'NO_REPORT=1'; exit 0; }
 
-          echo '--- termination ---'
-          grep -E '0x8badf00d|WatchdogEvent|process-launch|termination|exception|elapsed|CPU' "$latest" 2>/dev/null | head -n 35 || true
+          ZDIR='/var/mobile/Library/Application Support/xyz.willy.Zebra'
+          ZDB="$ZDIR/zebra.db"
+          TS="$(date +%Y%m%d-%H%M%S)"
+          BACKUP="/var/mobile/Documents/CodexPackageManagerBackups/$TS/Zebra"
+          CRASHDIR='/var/mobile/Library/Logs/CrashReporter'
 
-          echo '--- relevant images/modules ---'
-          grep -Eo '"name":"[^"]+"|"path":"[^"]+"' "$latest" 2>/dev/null | \
-            grep -Ei 'Zebra|ElleKit|Substrate|libapt|apt|sqlite|\.dylib|/var/jb|/private/preboot' | \
-            head -n 100 || true
+          echo '=== ZEBRA REPAIR ==='
+          echo 'DELETE_COMMANDS_USED=0'
+          echo 'PACKAGES_REMOVED=0'
+          echo 'TWEAKS_REMOVED=0'
+          echo 'PREFERENCES_RESET=0'
+          echo "zebra_dir=$ZDIR"
 
-          echo '--- hot/thread/frame context ---'
-          grep -n -E 'userFrames|kernelFrames|threadById|imageIndex|symbol|offsetIntoBinaryTextSegment|Zebra|ElleKit|libapt|sqlite|0x8badf00d' "$latest" 2>/dev/null | head -n 160 || true
+          echo '--- package invariants ---'
+          dpkg-query -W -f='zebra_version=${Version}\n' xyz.willy.zebra 2>/dev/null || true
+          dpkg-query -W -f='ellekit_version=${Version}\n' ellekit 2>/dev/null || true
+          dpkg -V xyz.willy.zebra 2>&1 | sed -n '1,40p' || true
 
-          echo '--- Zebra sources.list ---'
-          zsrc='/var/mobile/Library/Application Support/xyz.willy.Zebra/sources.list'
-          if [ -f "$zsrc" ]; then
-            ls -l "$zsrc"
-            sed -n '1,80p' "$zsrc"
-          else
-            echo 'zebra_sources_missing=YES'
+          if [ ! -d "$ZDIR" ]; then
+            echo 'ERROR=Zebra support directory is missing; refusing to guess another path.'
+            exit 21
           fi
 
-          echo '--- Zebra DB integrity ---'
-          zdb='/var/mobile/Library/Application Support/xyz.willy.Zebra/zebra.db'
-          ls -l "$zdb" 2>/dev/null || true
-          if command -v sqlite3 >/dev/null 2>&1 && [ -f "$zdb" ]; then
-            echo -n 'quick_check='
-            timeout 8s sqlite3 "$zdb" 'PRAGMA quick_check;' 2>&1 | head -n 10 || true
-            echo -n 'tables='
-            timeout 8s sqlite3 "$zdb" '.tables' 2>&1 | head -n 8 || true
-          else
-            echo 'sqlite3_unavailable_or_db_missing=YES'
+          echo '--- state before repair ---'
+          ls -la "$ZDIR" | sed -n '1,120p'
+          stat -f 'zebra_dir_owner=%Su:%Sg mode=%Sp' "$ZDIR" 2>/dev/null || stat -c 'zebra_dir_owner=%U:%G mode=%A' "$ZDIR" 2>/dev/null || true
+
+          # If an interrupted older run left the canonical DB missing, restore the newest
+          # preserved original first. This uses mv only; nothing is deleted.
+          if [ ! -e "$ZDB" ]; then
+            PREV="$(ls -1t "$ZDB".before-fix-* 2>/dev/null | head -n1 || true)"
+            if [ -n "$PREV" ]; then
+              echo "recovering_interrupted_db=$PREV"
+              mv "$PREV" "$ZDB"
+            fi
           fi
-          echo 'HOT_STACK_COMPLETE=1'
+
+          if [ ! -f "$ZDB" ]; then
+            echo 'zebra_db_missing_before_repair=1'
+            echo 'A clean DB state is already staged; leaving all preserved files untouched.'
+          else
+            echo "zebra_db_bytes=$(wc -c < "$ZDB" 2>/dev/null || echo unknown)"
+            if command -v sqlite3 >/dev/null 2>&1; then
+              echo '--- sqlite preflight ---'
+              printf 'quick_check='
+              timeout 10s sqlite3 "$ZDB" 'PRAGMA quick_check;' 2>&1 | head -n 20 || true
+              printf 'integrity_check='
+              timeout 10s sqlite3 "$ZDB" 'PRAGMA integrity_check;' 2>&1 | head -n 20 || true
+              echo '--- table counts ---'
+              for table in REPOS PACKAGES UPDATES; do
+                printf '%s=' "$table"
+                timeout 8s sqlite3 "$ZDB" "SELECT count(*) FROM $table;" 2>&1 | head -n1 || true
+              done
+            else
+              echo 'sqlite3_available=0'
+            fi
+
+            echo '--- preserve originals ---'
+            mkdir -p "$BACKUP"
+            chown mobile:mobile "$BACKUP" 2>/dev/null || true
+            chmod 700 "$BACKUP" 2>/dev/null || true
+
+            for f in "$ZDB" "$ZDB-wal" "$ZDB-shm"; do
+              if [ -e "$f" ]; then
+                base="$(basename "$f")"
+                cp -p "$f" "$BACKUP/$base"
+                echo "backup=$BACKUP/$base"
+                if command -v sha256sum >/dev/null 2>&1; then
+                  sha256sum "$f" "$BACKUP/$base" || true
+                fi
+              fi
+            done
+
+            # Stop only Zebra so SQLite cannot be writing while its DB is staged aside.
+            killall Zebra 2>/dev/null || true
+            sleep 1
+
+            # Rename, never remove. The exact original bytes remain alongside the clean state.
+            for f in "$ZDB" "$ZDB-wal" "$ZDB-shm"; do
+              if [ -e "$f" ]; then
+                mv "$f" "$f.before-fix-$TS"
+                echo "preserved_in_place=$f.before-fix-$TS"
+              fi
+            done
+          fi
+
+          echo '--- preserved-source check (read only) ---'
+          find "$ZDIR" -maxdepth 2 -type f \( -iname '*source*' -o -iname '*.list' -o -iname '*.plist' \) -print -exec ls -l {} \; 2>/dev/null | sed -n '1,100p' || true
+
+          BEFORE_CRASH="$(ls -1t "$CRASHDIR"/stacks+Zebra*.ips 2>/dev/null | head -n1 || true)"
+          echo "watchdog_before=$BEFORE_CRASH"
+
+          echo '--- request GUI launch as mobile ---'
+          sudo -u mobile env HOME=/var/mobile PATH=/var/jb/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin \
+            /var/jb/usr/bin/uiopen 'zbra://' >/tmp/codex-zebra-uiopen.out 2>&1 || true
+          sed -n '1,40p' /tmp/codex-zebra-uiopen.out 2>/dev/null || true
+
+          sleep 8
+          PID8="$(pgrep -x Zebra 2>/dev/null | head -n1 || true)"
+          echo "zebra_pid_8s=$PID8"
+          if [ -n "$PID8" ]; then
+            ps -o pid,uid,etime,state,command -p "$PID8" 2>/dev/null || true
+          fi
+
+          sleep 20
+          PID28="$(pgrep -x Zebra 2>/dev/null | head -n1 || true)"
+          echo "zebra_pid_28s=$PID28"
+          if [ -n "$PID28" ]; then
+            ps -o pid,uid,etime,state,command -p "$PID28" 2>/dev/null || true
+          fi
+
+          AFTER_CRASH="$(ls -1t "$CRASHDIR"/stacks+Zebra*.ips 2>/dev/null | head -n1 || true)"
+          echo "watchdog_after=$AFTER_CRASH"
+
+          NEWDB=0
+          if [ -s "$ZDB" ]; then
+            NEWDB=1
+            echo "rebuilt_db_bytes=$(wc -c < "$ZDB" 2>/dev/null || echo unknown)"
+            stat -f 'rebuilt_db_owner=%Su:%Sg mode=%Sp' "$ZDB" 2>/dev/null || stat -c 'rebuilt_db_owner=%U:%G mode=%A' "$ZDB" 2>/dev/null || true
+            if command -v sqlite3 >/dev/null 2>&1; then
+              printf 'rebuilt_quick_check='
+              timeout 10s sqlite3 "$ZDB" 'PRAGMA quick_check;' 2>&1 | head -n20 || true
+            fi
+          fi
+          echo "new_db_created=$NEWDB"
+
+          NEW_WATCHDOG=0
+          if [ -n "$AFTER_CRASH" ] && [ "$AFTER_CRASH" != "$BEFORE_CRASH" ]; then
+            NEW_WATCHDOG=1
+          fi
+          echo "new_watchdog=$NEW_WATCHDOG"
+
+          if [ -n "$PID28" ] && [ "$NEW_WATCHDOG" -eq 0 ] && [ "$NEWDB" -eq 1 ]; then
+            echo 'ZEBRA_REPAIR_VERIFIED=1'
+            echo 'RESULT=Zebra is alive past the watchdog window on a fresh database.'
+            exit 0
+          fi
+
+          if [ "$NEW_WATCHDOG" -eq 1 ]; then
+            echo 'RESULT=Fresh-state launch produced a real new Zebra watchdog; restoring original database.'
+            # Preserve the failed rebuilt DB instead of deleting it.
+            for f in "$ZDB" "$ZDB-wal" "$ZDB-shm"; do
+              if [ -e "$f" ]; then
+                mv "$f" "$f.failed-rebuild-$TS"
+                echo "preserved_failed_rebuild=$f.failed-rebuild-$TS"
+              fi
+            done
+            for suffix in '' '-wal' '-shm'; do
+              original="$ZDB$suffix.before-fix-$TS"
+              canonical="$ZDB$suffix"
+              if [ -e "$original" ] && [ ! -e "$canonical" ]; then
+                mv "$original" "$canonical"
+                echo "restored_original=$canonical"
+              fi
+            done
+            echo 'ZEBRA_REPAIR_VERIFIED=0'
+            echo 'ROLLBACK_COMPLETED=1'
+            exit 31
+          fi
+
+          # Known limitation: remote uiopen can return without SpringBoard actually launching Zebra.
+          # In that case a clean DB state is intentionally left staged and the original is preserved
+          # both beside it (.before-fix-TIMESTAMP) and in the backup directory. A manual tap can then
+          # perform the first real launch without any destructive operation.
+          if [ -z "$PID8" ] && [ -z "$PID28" ] && [ "$NEW_WATCHDOG" -eq 0 ]; then
+            echo 'ZEBRA_REPAIR_STAGED=1'
+            echo 'RESULT=Clean Zebra database state is staged safely; remote GUI launch did not execute.'
+            echo "backup_dir=$BACKUP"
+            echo 'ORIGINALS_PRESERVED=1'
+            exit 0
+          fi
+
+          echo 'ZEBRA_REPAIR_VERIFIED=0'
+          echo 'RESULT=Inconclusive process state; originals remain preserved and no deletion occurred.'
+          exit 32
           EOS
-          } | timeout 120s sshpass -e ssh \
+          } | timeout 180s sshpass -e ssh \
               -o BatchMode=no \
               -o ConnectTimeout=20 \
               -o ServerAliveInterval=10 \
@@ -95,11 +236,12 @@ jobs:
               -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
               mobile@"$IPHONE_HOST" \
               'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
-              2>&1 | tee iphone-zebra-hot-stack.txt
+              2>&1 | tee iphone-zebra-repair.txt
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: iphone-zebra-hot-stack-${{ github.run_id }}
-          path: iphone-zebra-hot-stack.txt
+          name: iphone-zebra-repair-${{ github.run_id }}
+          path: iphone-zebra-repair.txt
           if-no-files-found: warn
           retention-days: 7
