@@ -3,9 +3,10 @@ name: Patch ByeTunes iOS15 Schema Compatibility
 on:
   workflow_dispatch:
   push:
-    branches: [temp/byetunes-ios16-rootless]
+    branches:
+      - temp/byetunes-ios16-rootless
     paths:
-      - '.github/workflows/patch-byetunes15-schema.yml'
+      - 'triggers/byetunes15-schema-patch.txt'
 
 permissions:
   contents: write
@@ -14,74 +15,27 @@ jobs:
   patch:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout temp branch
+        uses: actions/checkout@v4
         with:
           ref: temp/byetunes-ios16-rootless
           fetch-depth: 0
 
-      - name: Patch container_item UUID compatibility
+      - name: Apply schema patch
+        run: python3 scripts/patch_byetunes15_schema.py
+
+      - name: Verify patch
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-
-          p = Path('byetunes16/daemon/BTImporter.m')
-          s = p.read_text()
-          old = '''static BOOL BTCreatePlaylistInternal(sqlite3*db,NSString*name,NSArray<NSNumber*>*pids,int64_t*pidOut,NSString**errorOut){if(!name.length){if(errorOut)*errorOut=@"Playlist name is empty";return NO;}int64_t order=0;NSInteger section=0;if(!BTSort(db,name,&order,&section,errorOut))return NO;int64_t pid=BTPID(),now=(int64_t)NSDate.date.timeIntervalSince1970;sqlite3_stmt*s=NULL;if(sqlite3_prepare_v2(db,"INSERT INTO container(container_pid,name,name_order,date_created,date_modified,contained_media_type,is_owner,is_editable,distinguished_kind) VALUES(?,?,?,?,?,8,1,1,0)",-1,&s,NULL)!=SQLITE_OK)goto fail;sqlite3_bind_int64(s,1,pid);sqlite3_bind_text(s,2,name.UTF8String,-1,SQLITE_TRANSIENT);sqlite3_bind_int64(s,3,order);sqlite3_bind_int64(s,4,now);sqlite3_bind_int64(s,5,now);if(sqlite3_step(s)!=SQLITE_DONE)goto fail;sqlite3_finalize(s);NSInteger pos=0;for(NSNumber*n in pids){if(sqlite3_prepare_v2(db,"INSERT INTO container_item(container_item_pid,container_pid,item_pid,position,uuid) VALUES(?,?,?,?,?)",-1,&s,NULL)!=SQLITE_OK)goto fail;NSString*u=NSUUID.UUID.UUIDString;sqlite3_bind_int64(s,1,BTPID());sqlite3_bind_int64(s,2,pid);sqlite3_bind_int64(s,3,n.longLongValue);sqlite3_bind_int64(s,4,pos++);sqlite3_bind_text(s,5,u.UTF8String,-1,SQLITE_TRANSIENT);if(sqlite3_step(s)!=SQLITE_DONE)goto fail;sqlite3_finalize(s);}if(pidOut)*pidOut=pid;return YES;
-fail:if(errorOut)*errorOut=[NSString stringWithUTF8String:sqlite3_errmsg(db)];sqlite3_finalize(s);return NO;}'''
-          new = '''static BOOL BTCreatePlaylistInternal(sqlite3*db,NSString*name,NSArray<NSNumber*>*pids,int64_t*pidOut,NSString**errorOut){if(!name.length){if(errorOut)*errorOut=@"Playlist name is empty";return NO;}int64_t order=0;NSInteger section=0;if(!BTSort(db,name,&order,&section,errorOut))return NO;int64_t pid=BTPID(),now=(int64_t)NSDate.date.timeIntervalSince1970;sqlite3_stmt*s=NULL;if(sqlite3_prepare_v2(db,"INSERT INTO container(container_pid,name,name_order,date_created,date_modified,contained_media_type,is_owner,is_editable,distinguished_kind) VALUES(?,?,?,?,?,8,1,1,0)",-1,&s,NULL)!=SQLITE_OK)goto fail;sqlite3_bind_int64(s,1,pid);sqlite3_bind_text(s,2,name.UTF8String,-1,SQLITE_TRANSIENT);sqlite3_bind_int64(s,3,order);sqlite3_bind_int64(s,4,now);sqlite3_bind_int64(s,5,now);if(sqlite3_step(s)!=SQLITE_DONE)goto fail;sqlite3_finalize(s);BOOL hasUUID=BTColumn(db,@"container_item",@"uuid");NSInteger pos=0;for(NSNumber*n in pids){const char*sql=hasUUID?"INSERT INTO container_item(container_item_pid,container_pid,item_pid,position,uuid) VALUES(?,?,?,?,?)":"INSERT INTO container_item(container_item_pid,container_pid,item_pid,position) VALUES(?,?,?,?)";if(sqlite3_prepare_v2(db,sql,-1,&s,NULL)!=SQLITE_OK)goto fail;sqlite3_bind_int64(s,1,BTPID());sqlite3_bind_int64(s,2,pid);sqlite3_bind_int64(s,3,n.longLongValue);sqlite3_bind_int64(s,4,pos++);if(hasUUID){NSString*u=NSUUID.UUID.UUIDString;sqlite3_bind_text(s,5,u.UTF8String,-1,SQLITE_TRANSIENT);}if(sqlite3_step(s)!=SQLITE_DONE)goto fail;sqlite3_finalize(s);}if(pidOut)*pidOut=pid;return YES;
-fail:if(errorOut)*errorOut=[NSString stringWithUTF8String:sqlite3_errmsg(db)];sqlite3_finalize(s);return NO;}'''
-          if old not in s:
-              raise SystemExit('BTImporter.m target block not found')
-          p.write_text(s.replace(old, new, 1))
-
-          p = Path('byetunes16/daemon/BTImporter+Full.m')
-          s = p.read_text()
-          old = '''        if (sqlite3_prepare_v2(db, "INSERT INTO container_item(container_item_pid,container_pid,item_pid,position,uuid) VALUES(?,?,?,?,?)", -1, &stmt, NULL) != SQLITE_OK) {
-            ok = NO;
-            error = [NSString stringWithUTF8String:sqlite3_errmsg(db)];
-            break;
-        }
-        NSString *uuid = NSUUID.UUID.UUIDString;
-        sqlite3_bind_int64(stmt, 1, BTFullPID());
-        sqlite3_bind_int64(stmt, 2, playlistPID);
-        sqlite3_bind_int64(stmt, 3, itemPID);
-        sqlite3_bind_int64(stmt, 4, position++);
-        sqlite3_bind_text(stmt, 5, uuid.UTF8String, -1, SQLITE_TRANSIENT);'''
-          new = '''        BOOL hasUUID = BTFullColumn(db, @"container_item", @"uuid");
-        const char *insertSQL = hasUUID
-            ? "INSERT INTO container_item(container_item_pid,container_pid,item_pid,position,uuid) VALUES(?,?,?,?,?)"
-            : "INSERT INTO container_item(container_item_pid,container_pid,item_pid,position) VALUES(?,?,?,?)";
-        if (sqlite3_prepare_v2(db, insertSQL, -1, &stmt, NULL) != SQLITE_OK) {
-            ok = NO;
-            error = [NSString stringWithUTF8String:sqlite3_errmsg(db)];
-            break;
-        }
-        sqlite3_bind_int64(stmt, 1, BTFullPID());
-        sqlite3_bind_int64(stmt, 2, playlistPID);
-        sqlite3_bind_int64(stmt, 3, itemPID);
-        sqlite3_bind_int64(stmt, 4, position++);
-        if (hasUUID) {
-            NSString *uuid = NSUUID.UUID.UUIDString;
-            sqlite3_bind_text(stmt, 5, uuid.UTF8String, -1, SQLITE_TRANSIENT);
-        }'''
-          if old not in s:
-              raise SystemExit('BTImporter+Full.m target block not found')
-          p.write_text(s.replace(old, new, 1))
-          PY
-
           git diff --check
           grep -F 'BOOL hasUUID=BTColumn(db,@"container_item",@"uuid")' byetunes16/daemon/BTImporter.m
           grep -F 'BOOL hasUUID = BTFullColumn(db, @"container_item", @"uuid")' byetunes16/daemon/BTImporter+Full.m
 
-      - name: Commit patch and remove one-shot workflow
+      - name: Commit patched sources
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git rm .github/workflows/patch-byetunes15-schema.yml
           git add byetunes16/daemon/BTImporter.m byetunes16/daemon/BTImporter+Full.m
-          git commit -m 'Fix iOS 15 playlist schema compatibility'
+          git commit -m 'Fix iOS 15 playlist schema compatibility' || exit 0
           git push origin HEAD:temp/byetunes-ios16-rootless
-
-# retrigger: 2026-08-31 iOS15 schema patch attempt 2
