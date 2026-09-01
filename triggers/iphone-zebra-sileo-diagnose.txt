@@ -1,4 +1,4 @@
-run=2026-09-01T14:45:00-05:00
-purpose=iphone-zebra-hot-frame-symbol-match
-mode=read-only-binary-inspection
-workflow_commit=2458820b37b117ba27336ae37af20c8828871a9b
+run=2026-09-01T14:48:00-05:00
+purpose=iphone-zebra-licgenerator-targeted-repair
+mode=non-destructive-quarantine-only
+workflow_commit=6a85d20b1bf3facdfdde03279d450b723efe3b06
