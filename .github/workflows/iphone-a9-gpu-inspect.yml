@@ -1,0 +1,80 @@
+name: iPhone A9 GPU DVFS Inspect
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/iphone-a9-gpu-inspect.txt
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: iphone-a9-gpu-inspect
+  cancel-in-progress: true
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    environment:
+      name: TAILSCALE_AUTHKEY-
+    steps:
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends openssh-client sshpass >/dev/null
+      - name: Read-only A9 GPU and DVFS inspection
+        env:
+          IPHONE_HOST: 100.96.37.124
+          IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"; chmod 700 "$HOME/.ssh"
+          ssh-keyscan -T 15 -H "$IPHONE_HOST" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+          {
+            printf '%s\n' "$IPHONE_PASSWORD"
+            cat <<'EOS'
+          set -u
+          export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
+          echo '=== DEVICE ==='
+          uname -a || true
+          sysctl hw.model hw.machine hw.ncpu hw.cpufrequency hw.cpufrequency_max hw.cpufrequency_min 2>&1 || true
+          echo '=== AVAILABLE TOOLS ==='
+          for x in ioreg sysctl kextstat kmutil strings nm otool jtool2 jq plutil; do command -v "$x" 2>/dev/null || true; done
+          echo '=== LOADED GPU/POWER DRIVERS ==='
+          if command -v kextstat >/dev/null 2>&1; then kextstat 2>/dev/null | grep -Ei 'AGX|GPU|SGX|PowerVR|AppleM2|AppleCLPC|ApplePMGR|AppleARM|graphics|metal' || true; fi
+          if command -v kmutil >/dev/null 2>&1; then kmutil showloaded 2>/dev/null | grep -Ei 'AGX|GPU|SGX|PowerVR|AppleM2|AppleCLPC|ApplePMGR|AppleARM|graphics|metal' || true; fi
+          echo '=== IOREGISTRY GPU CLASS/NAME SEARCH ==='
+          if command -v ioreg >/dev/null 2>&1; then
+            ioreg -l -w0 2>/dev/null | grep -Ei -C 3 'AGX|PowerVR|SGX|GPU|gfx|graphics|perf-state|performance-state|voltage-state|voltage|clock-frequency|frequency' | head -n 900 || true
+            echo '=== IODEVICETREE TARGETED SEARCH ==='
+            ioreg -p IODeviceTree -l -w0 2>/dev/null | grep -Ei -C 5 'gpu|sgx|gfx|graphics|perf|p-state|voltage|clock|frequency|pmgr' | head -n 1200 || true
+          else
+            echo 'IOREG_MISSING=1'
+          fi
+          echo '=== KERNEL/EXTENSION CANDIDATES ==='
+          find /System/Library/Extensions /System/Library/DriverExtensions /var/jb/System/Library/Extensions -maxdepth 3 -type f 2>/dev/null | grep -Ei 'AGX|GPU|SGX|PowerVR|AppleCLPC|ApplePMGR|graphics' | head -n 250 || true
+          echo '=== DYLD/FRAMEWORK GPU STRINGS ==='
+          for f in /System/Library/Frameworks/Metal.framework/Metal /System/Library/Frameworks/IOKit.framework/IOKit; do
+            [ -f "$f" ] || continue
+            echo "FILE=$f"
+            strings "$f" 2>/dev/null | grep -Ei 'gpu.*freq|freq.*gpu|voltage.*gpu|gpu.*voltage|performance state|perf.?state|power state' | head -n 120 || true
+          done
+          echo '=== NO WRITES PERFORMED ==='
+          echo 'RESULT=READ_ONLY'
+          EOS
+          } | timeout 120 sshpass -e ssh -o BatchMode=no -o ConnectTimeout=20 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" mobile@"$IPHONE_HOST" 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' 2>&1 | tee a9-gpu-inspect.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: iphone-a9-gpu-inspect-${{ github.run_id }}
+          path: a9-gpu-inspect.txt
+          retention-days: 7
