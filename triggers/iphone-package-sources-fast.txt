@@ -1,4 +1,4 @@
-run=2026-09-01T15:34:00-05:00
-purpose=inspect-exact-sileo-zebra-databases
-mode=read-only-exact-paths
-workflow_commit=21d9d70c945a607322dde3a029d0d82b2a8b284d
+run=2026-09-01T15:37:00-05:00
+purpose=inspect-sileo-zebra-ui-filter-state
+mode=read-only-targeted
+workflow_commit=ad5cf4e772396934f847019660173fa22b271be7
