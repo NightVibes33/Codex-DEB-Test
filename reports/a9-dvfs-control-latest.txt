@@ -1,0 +1,5 @@
+# A9 DVFS stock control validation
+
+Run: 33584186233
+Commit: 6b593484e0f2d12bd1eda06b34450d2f701ccd1d
+
