@@ -1,19 +1,20 @@
 # A9 overclock control-path probe
 
-Run: 33584742149
-Commit: 9883712e0ab14a92f86fd1d5efc2e95c20427ba7
+Run: 33586033607
+Commit: 1f959d06679f2332ac988cac9085405cf361672e
 
 === CONNECTIVITY ===
-100.113.203.68  github-runnervmgx7h7  NightVibes33@  linux    -                           
-100.116.117.65  bobbys-ipad           NightVibes33@  iOS      -                           
-100.127.94.70   desktop-o56xs         NightVibes33@  windows  offline, last seen 38d ago  
-100.96.37.124   iphone                NightVibes33@  iOS      -                           
-100.79.177.16   iphone173             NightVibes33@  iOS      offline, last seen 1d ago   
+100.121.115.40  github-runnervmgx7h7-1  NightVibes33@  linux    -                           
+100.116.117.65  bobbys-ipad             NightVibes33@  iOS      -                           
+100.127.94.70   desktop-o56xs           NightVibes33@  windows  offline, last seen 38d ago  
+100.97.52.69    github-runnervmgx7h7    NightVibes33@  linux    -                           
+100.96.37.124   iphone                  NightVibes33@  iOS      -                           
+100.79.177.16   iphone173               NightVibes33@  iOS      offline, last seen 1d ago   
 REACHABILITY_ATTEMPT=1
-pong from iphone (100.96.37.124) via DERP(dfw) in 194ms
-pong from iphone (100.96.37.124) via DERP(dfw) in 119ms
-pong from iphone (100.96.37.124) via DERP(dfw) in 132ms
-pong from iphone (100.96.37.124) via 57.138.38.169:43095 in 122ms
+pong from iphone (100.96.37.124) via DERP(dfw) in 63ms
+pong from iphone (100.96.37.124) via DERP(dfw) in 30ms
+pong from iphone (100.96.37.124) via DERP(dfw) in 31ms
+pong from iphone (100.96.37.124) via 57.138.38.169:44073 in 24ms
 SSH_KEYSCAN_ATTEMPT=1
 === A9 CONTROL PATH READ-ONLY PROBE ===
 KERNEL_WRITES=0
@@ -29,15 +30,15 @@ kern.osversion: 19H422
 /var/jb/usr/bin/jbctl
 === BASEBIN ===
 total 5264
-drwxr-xr-x 30 root wheel    960 Sep  1 00:11 .
-drwxr-xr-x 22 root wheel    704 Sep  1 11:57 ..
-drwxr-xr-x 20 root wheel    640 Sep  1 00:11 .fakelib
+drwxr-xr-x 30 root wheel    960 Sep  1 22:06 .
+drwxr-xr-x 22 root wheel    704 Sep  1 22:06 ..
+drwxr-xr-x 20 root wheel    640 Sep  1 22:06 .fakelib
 -rw-r--r--  1 root wheel      5 Aug 22 16:20 .version
 drwxr-xr-x  4 root wheel    128 Aug 22 16:20 LaunchDaemons
 -rwxr-xr-x  1 root wheel 654672 Aug 22 16:20 MachOMerger
 -rw-r--r--  1 root wheel    640 Aug 22 16:20 basebin.tc
 -rwxr-xr-x  1 root wheel 134864 Aug 22 16:20 boomerang
--rw-r--r--  1 root wheel 108644 Sep  1 00:11 bootlogo.jp2
+-rw-r--r--  1 root wheel 108644 Sep  1 22:06 bootlogo.jp2
 -rwxr-xr-x  1 root wheel 972480 Aug 22 16:20 dopamine
 -rwxr-xr-x  1 root wheel  74064 Aug 22 16:20 dyldhook_merge.arm64.iOS15.dylib
 -rwxr-xr-x  1 root wheel  74336 Aug 22 16:20 dyldhook_merge.arm64.iOS16-17.dylib
@@ -47,7 +48,7 @@ drwxr-xr-x  4 root wheel    128 Aug 22 16:20 LaunchDaemons
 -rwxr-xr-x  1 root wheel  74272 Aug 22 16:20 dyldhook_merge.arm64e.iOS18+.dylib
 drwxr-xr-x  3 root wheel     96 Aug 22 16:20 fallback
 -rwxr-xr-x  1 root wheel  58400 Aug 22 16:20 forkfix.dylib
-drwxr-xr-x  4 root wheel    128 Sep  1 00:11 gen
+drwxr-xr-x  4 root wheel    128 Sep  1 22:06 gen
 -rwxr-xr-x  1 root wheel 134080 Aug 22 16:20 hookd
 -rwxr-xr-x  1 root wheel 184928 Aug 22 16:20 idownloadd
 -rwxr-xr-x  1 root wheel 173152 Aug 22 16:20 jbctl
@@ -60,6 +61,7 @@ drwxr-xr-x  4 root wheel    128 Sep  1 00:11 gen
 -rwxr-xr-x  1 root wheel 234704 Aug 22 16:20 systemhook.dylib
 -rwxr-xr-x  1 root wheel 139440 Aug 22 16:20 watchdoghook.dylib
 === LIBKRW / LIBJAILBREAK PACKAGES ===
+ii  com.nightvibes.byetunes16                                  0.3.0                       iphoneos-arm64 Full rootless iOS 15-16 ByeTunes app, Apple Music tweak and local helper for Dopamine/ElleKit. Includes Home Screen UI, local audio import, metadata search, artwork, playlists, backup, repair and restore.
 ii  dopamine-basebin-link                                      1.0.0                       iphoneos-arm64 Symlinks to Dopamine Base Binaries
 ii  ellekit                                                    1.2                         iphoneos-arm64 ElleKit tweak injection libraries and loader
 ii  libkrw0                                                    1.1.1-2                     iphoneos-arm64 A kernel R/W API for jailbreaks (Shared Library)
@@ -67,7 +69,7 @@ ii  libkrw0-dopamine                                           2.0.4            
 ii  libroot-dopamine                                           1.0.1                       iphoneos-arm64 libroot for Dopamine
 === LIBRARY SYMBOLS ===
 === PMGR / CLPC / SGX SERVICES ===
-+-o pmgr@E000000  <class AppleARMIODevice, id 0x100000117, registered, matched, active, busy 0 (391 ms), retain 10>
++-o pmgr@E000000  <class AppleARMIODevice, id 0x100000117, registered, matched, active, busy 0 (376 ms), retain 10>
   |   "IODeviceMemory" = (({"address"=8824815616,"length"=1048576}),({"address"=8860467200,"length"=1048576}),({"address"=8625717248,"length"=8192}),({"address"=8858386432,"length"=20}),({"address"=8625848320,"length"=65536}),({"address"=8625913856,"length"=65536}),({"address"=8707375104,"length"=4096}),({"address"=8715763712,"length"=36864}),({"address"=8717860864,"length"=36864}),({"address"=8719958016,"length"=36864}),({"address"=8722055168,"length"=20480}),({"address"=8685355008,"length"=36864}),({"address"=8690597888,"length"=4096}),({"address"=8691646464,"length"=36864}),({"address"=8622440448,"length"=20480}),({"address"=8622964736,"length"=4096}),({"address"=8802795520,"length"=4096}),({"address"=25769869312,"length"=20480}),({"address"=8722579456,"length"=4096}),({"address"=8841592832,"length"=36864}))
   |   "voltage-states0" = <00000000000000000100000000000000>
   |   "voltage-states1" = <7686020035020000aaaa010058020000b3180100af02000055d50000130300004fa9000080030000388e000042040000878a0000420400000000000000000000>
@@ -75,25 +77,25 @@ ii  libroot-dopamine                                           1.0.1            
   |   "compatible" = <"pmgr1,s8000">
   |   "nominal-performance1" = <b3180100>
   |   "clpc" = <01000000>
-  +-o AppleS8000PMGR  <class AppleS8000PMGR, id 0x1000001e3, registered, matched, active, busy 0 (187 ms), retain 22>
+  +-o AppleS8000PMGR  <class AppleS8000PMGR, id 0x1000001e4, registered, matched, active, busy 0 (311 ms), retain 22>
     |   "AppleARMPerformanceControllerDVDThresholdUS1" = 1000
-    |   "AppleARMPerformanceControllerDVDFactor1-slowloop" = 65536
-    |   "AppleARMPerformanceControllerDVDFactor1-lpm" = 24248
+    |   "AppleARMPerformanceControllerDVDFactor1-slowloop" = 36700
+    |   "AppleARMPerformanceControllerDVDFactor1-lpm" = 65536
     |   "AppleARMPerformanceControllerDVDFactor1-upo" = 65536
     |   "AppleARMPerformanceControllerDVDFactor1-hip" = 65536
     |   "AppleARMPerformanceControllerDVDFactor1" = 65536
     |   "IOReportLegend" = ({"IOReportGroupName"="CPU Stats","IOReportChannels"=((4850470396053376084,30064902146,"CPU")),"IOReportChannelInfo"={"IOReportChannelUnit"=72058115876454424},"IOReportSubGroupName"="CPU Complex Voltage States"},{"IOReportGroupName"="CPU Stats","IOReportChannels"=((4850470463324815360,34359869442),(4850470467619782656,34359869442)),"IOReportChannelInfo"={"IOReportChannelUnit"=72058115876454424},"IOReportSubGroupName"="CPU Core Performance States"},{"IOReportGroupName"="CPU Stats","IOReportChannels"=((4850470395751842816,47244771330,"CPU")),"IOReportChannelInfo"={"IOReportChannelUnit"=72058115876454424},"IOReportSubGroupName"="CPU Complex DVD States"},{"IOReportGroupName"="CPU Stats","IOReportChannels"=((4850470623585972224,98801156098,"CLTM-f"),(4850470623585972480,98801156098,"CLTM-s"),(4850470623585972736,98801156098,"HIP"),(4850470623585972992,98801156098,"UPO"),(4850470623585973248,98801156098,"LPM"),(4850470623585973504,98801156098,"Droop"),(4850470623585973760,98801156098,"CLTM-a")),"IOReportChannelInfo"={"IOReportChannelUnit"=72058115876454424},"IOReportSubGroupName"="CPU Complex Thermal/UPO Limiting"},{"IOReportChannels"=((4850470546798956620,64424640514,"CPU")),"IOReportGroupName"="Core Performance Level","IOReportChannelInfo"={"IOReportChannelUnit"=72058115876454424}},{"IOReportGroupName"="SoC Stats","IOReportChannels"=((4849333569110212608,4295098369),(4849333569110278144,4295098369),(4849333569110343680,4295098369),(4849333569110409216,4295098369),(4849333569110474752,4295098369),(4849333569110540288,4295098369),(4849333569110605824,4295098369),(4849333569110671360,4295098369),(4849333569110736896,4295098369),(5789186212928487424,4295098369),(5789186212928552960,4295098369),(5789186212928618496,4295098369),(5789186212928684032,4295098369),(5789186212928749568,4295098369),(5789186212928815104,4295098369),(5789186212928880640,4295098369),(5789186212928946176,4295098369),(5789186212929011712,4295098369),(4996273402557825024,4295098369),(4996273402557890560,4295098369),(4996273402557956096,4295098369),(4996273402558021632,4295098369),(4996273402558087168,4295098369),(4996273402558152704,4295098369),(4996273402558218240,4295098369),(4996273402558283776,4295098369),(4996273402574602240,4295098369),(4996273402574667776,4295098369),(4996273402574733312,4295098369),(4919432932939202560,4295098369),(4919432932956176384,4295098369),(4919432932956307456,4295098369),(4919432932972888064,4295098369),(4919432932972953600,4295098369),(4919432932973019136,4295098369),(4919432932973084672,4295098369),(4919432932989337600,4295098369),(4919432933006245888,4295098369),(4919432933006442496,4295098369),(4919432933006508032,4295098369),(4919432933006573568,4295098369),(4919432933006704640,4295098369),(4919432933023088640,4295098369),(4919432933023154176,4295098369),(4919432933023219712,4295098369),(4919432933023416320,4295098369),(4919432933023481856,4295098369),(4919432933039669248,4295098369),(4919432933039734784,4295098369),(4919432933039800320,4295098369),(4919432933090000896,4295098369),(4919432933090066432,4295098369),(4919432933090131968,4295098369),(4919432933090394112,4295098369),(4919432933090459648,4295098369),(4919432933090525184,4295098369),(4919432933090590720,4295098369),(4919432937233973248,4295098369),(4919432937234366464,4295098369),(4919432937234432000,4295098369),(4919432937251340288,4295098369),(4919432937267855360,4295098369)),"IOReportChannelInfo"={"IOReportChannelUnit"=0},"IOReportSubGroupName"="PMGR Counters"},{"IOReportGroupName"="SoC Stats","IOReportChannels"=((4996273402558349312,8590065666,"SOCHOT0"),(4996273402574536704,8590065666,"SOCHOT1")),"IOReportChannelInfo"={"IOReportChannelUnit"=72058115876454424},"IOReportSubGroupName"="Events"},{"IOReportGroupName"="CPU Stats","IOReportChannels"=((4850470257166385152,34359869442,"CPU"),(4850461461073362944,34359869442,"CPM")),"IOReportChannelInfo"={"IOReportChannelUnit"=72058115876454424},"IOReportSubGroupName"="CPU Complex Performance States"},{"IOReportGroupName"="SoC Stats","IOReportChannels"=((5715158448672354352,4295098369),(5715158448672354353,4295098369),(5715158448672419888,4295098369),(5715158448672419889,4295098369),(5715158448672419890,4295098369),(5715158448672419891,4295098369),(5715158448672419892,4295098369),(5715158448672419893,4295098369),(5715158448672419894,4295098369)),"IOReportChannelInfo"={"IOReportChannelUnit"=0},"IOReportSubGroupName"="oprtp"},{"IOReportChannels"=((5643651555341172736,4295098369,"Rest of SoC Energy"),(5643651555341238272,4295098369,"VENC Energy"),(5643651555341303808,4295098369,"VDEC Energy"),(5643651555341369344,4295098369,"ISP Energy"),(5643651555341434880,4295098369,"CPU0 Energy"),(5643651555341500416,4295098369,"CPU1 Energy"),(5643651555341565952,4295098369,"SoC Base Energy"),(5643651555358277632,4295098369,"SoC Energy"),(5643651555358343168,4295098369,"CPU Energy"),(4850470550638440496,4295098369,"CPUDTL00"),(4850470550638440497,4295098369,"CPUDTL01"),(4850470550638440498,4295098369,"CPUDTL02"),(4850470550638440499,4295098369,"CPUDTL03"),(4850470550638440500,4295098369,"CPUDTL04"),(4850470550638440501,4295098369,"CPUDTL05"),(4850470550638440502,4295098369,"CPUDTL06"),(4850470550638440752,4295098369,"CPUDTL10"),(4850470550638440753,4295098369,"CPUDTL11"),(4850470550638440754,4295098369,"CPUDTL12"),(4850470550638440755,4295098369,"CPUDTL13"),(4850470550638440756,4295098369,"CPUDTL14"),(4850470550638440757,4295098369,"CPUDTL15"),(4850470550638440758,4295098369,"CPUDTL16")),"IOReportGroupName"="Energy Model","IOReportChannelInfo"={"IOReportChannelUnit"=216173314689728512}})
     |   "AppleARMPerformanceControllerDVDPeriodUS1" = 8000
-    +-o soc-tuner  <class ApplePMGRNub, id 0x100000118, registered, matched, active, busy 0 (187 ms), retain 8>
+    +-o soc-tuner  <class ApplePMGRNub, id 0x100000118, registered, matched, active, busy 0 (311 ms), retain 8>
     | |   "compatible" = <"soc-tuner,s8000">
-    | +-o AppleS8000SOCTuner  <class AppleS8000SOCTuner, id 0x10000022d, registered, matched, active, busy 0 (0 ms), retain 5>
-    +-o clpc@2010000  <class ApplePMGRNub, id 0x100000119, registered, matched, active, busy 0 (65 ms), retain 8>
+    | +-o AppleS8000SOCTuner  <class AppleS8000SOCTuner, id 0x100000208, registered, matched, active, busy 0 (0 ms), retain 5>
+    +-o clpc@2010000  <class ApplePMGRNub, id 0x100000119, registered, matched, active, busy 0 (188 ms), retain 8>
       |   "qos-min-performance" = <cc4c0000>
       |   "clpc-match-version" = 1
       |   "compatible" = <"clpc,s8000">
       |   "name" = <"clpc">
       |   "device_type" = <"clpc">
-      +-o AppleS8000CLPC  <class AppleS8000CLPC, id 0x10000022e, registered, matched, active, busy 0 (1 ms), retain 6>
+      +-o AppleS8000CLPC  <class AppleS8000CLPC, id 0x1000001ef, registered, matched, active, busy 0 (2 ms), retain 6>
             "CFBundleIdentifierKernel" = "com.apple.driver.AppleS8000CLPC"
             "MemPerformanceState" = 0
             "CFBundleIdentifier" = "com.apple.driver.AppleS8000CLPC"
@@ -104,7 +106,7 @@ ii  libroot-dopamine                                           1.0.1            
             "IONameMatch" = "clpc,s8000"
             "IONameMatched" = "clpc,s8000"
             "IOReportLegend" = ({"IOReportGroupName"="CLPC Stats","IOReportChannels"=((8463219314540965237,8590065666,"CPMU In Use")),"IOReportChannelInfo"={"IOReportChannelUnit"=72058115876454424},"IOReportSubGroupName"="Counters"},{"IOReportGroupName"="CLPC Stats","IOReportChannels"=((7167869599138971648,4311875585,"cyclecount"),(7597136563474006016,4311875585,"instructioncount"),(7954886835056934912,4311875585,"neoncount")),"IOReportChannelInfo"={"IOReportChannelUnit"=0},"IOReportSubGroupName"="Counters"},{"IOReportGroupName"="CLPC Stats","IOReportChannels"=((7166478661069075712,42949804034),(7166478661337441024,42949804034),(7166478661236124928,42949804034),(7166478661069009509,42949804034)),"IOReportChannelInfo"={"IOReportChannelUnit"=72058115876454424},"IOReportSubGroupName"="Leading Controller"})
-+-o clpc@2010000  <class ApplePMGRNub, id 0x100000119, registered, matched, active, busy 0 (65 ms), retain 8>
++-o clpc@2010000  <class ApplePMGRNub, id 0x100000119, registered, matched, active, busy 0 (188 ms), retain 8>
   |   "cpu-ldst-density-threshold-ipc" = <00800000>
   |   "qos-min-performance" = <cc4c0000>
   |   "soc-throughput-cpu-threshold" = <00000400>
@@ -137,11 +139,11 @@ ii  libroot-dopamine                                           1.0.1            
   |   "cpu-write-threshold-gbps" = <66660000>
   |   "cpu-device-index" = <00000000>
   |   "sched-synchronous-perf-changes" = <00000000>
-  +-o AppleS8000CLPC  <class AppleS8000CLPC, id 0x10000022e, registered, matched, active, busy 0 (1 ms), retain 6>
+  +-o AppleS8000CLPC  <class AppleS8000CLPC, id 0x1000001ef, registered, matched, active, busy 0 (2 ms), retain 6>
         "SoCThroughputGPUKiUp" = 6553
         "CPUPowerKiDown" = 3276
         "MemPerformanceState" = 0
-        "CPUPowerTarget" = 205783
+        "CPUPowerTarget" = 211550
         "CPUUtilizationKiDownSlow" = 3276
         "CPUBusyThresholdMHz" = 32768000
         "SoCThroughputGPUThreshold" = 163840
@@ -171,7 +173,7 @@ ii  libroot-dopamine                                           1.0.1            
         "CPUUtilizationKiDownNominal" = 3276
         "MinCPUControlEffort" = 0
         "CPUFastUtilizationThreshold" = 32768
-+-o sgx@1000000  <class AppleARMIODevice, id 0x10000016a, registered, matched, active, busy 0 (496 ms), retain 8>
++-o sgx@1000000  <class AppleARMIODevice, id 0x10000016a, registered, matched, active, busy 0 (392 ms), retain 8>
   |   "gpu-num-perf-states" = <04000000>
   |   "gpu-perf-tgt-utilization" = <5f000000>
   |   "perf-states" = <00000000f401000000fd4314cb02000080aa401c0d0300008055c820200300000054ea2a9303000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000>
@@ -180,22 +182,15 @@ ii  libroot-dopamine                                           1.0.1            
   |   "power-gates" = <7c000000>
   |   "gpu-device-max-power" = <28140000>
   |   "compatible" = <"gpu,s8000">
-  +-o AGXAcceleratorG5P_C0  <class AGXAcceleratorG5P_C0, id 0x10000020f, registered, matched, active, busy 0 (110 ms), retain 19>
+  +-o AGXAcceleratorG5P_C0  <class AGXAcceleratorG5P_C0, id 0x100000257, registered, matched, active, busy 0 (15 ms), retain 29>
     |   "IOPowerManagement" = {"CurrentPowerState"=1,"CapabilityFlags"=2,"MaxPowerState"=1,"DriverPowerState"=1}
-    |   "PerformanceStatistics" = {"TiledSceneBytes"=413696,"Alloc system memory"=218710016,"Tiler Utilization %"=30,"recoveryCount"=0,"Renderer Utilization %"=24,"SplitSceneCount"=0,"Allocated PB Size"=6160384,"Device Utilization %"=32,"In use system memory"=31391744}
-    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x1000007f3, !registered, !matched, active, busy 0, retain 5>
-    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x1000008dc, !registered, !matched, active, busy 0, retain 5>
-    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100000fab, !registered, !matched, active, busy 0, retain 5>
-    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100000fb1, !registered, !matched, active, busy 0, retain 5>
-    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100001019, !registered, !matched, active, busy 0, retain 5>
-    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x1000016f7, !registered, !matched, active, busy 0, retain 5>
-    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100003e57, !registered, !matched, active, busy 0, retain 5>
-    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100003e5f, !registered, !matched, active, busy 0, retain 5>
-    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100003e64, !registered, !matched, active, busy 0, retain 5>
-    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100003ea5, !registered, !matched, active, busy 0, retain 5>
-    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100003ebf, !registered, !matched, active, busy 0, retain 5>
-    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100003efc, !registered, !matched, active, busy 0, retain 5>
-    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100003efd, !registered, !matched, active, busy 0, retain 5>
+    |   "PerformanceStatistics" = {"TiledSceneBytes"=249856,"Alloc system memory"=50757632,"Tiler Utilization %"=21,"recoveryCount"=0,"Renderer Utilization %"=17,"SplitSceneCount"=0,"Allocated PB Size"=2490368,"Device Utilization %"=22,"In use system memory"=34537472}
+    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100000803, !registered, !matched, active, busy 0, retain 5>
+    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100000806, !registered, !matched, active, busy 0, retain 5>
+    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100000866, !registered, !matched, active, busy 0, retain 5>
+    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x10000091f, !registered, !matched, active, busy 0, retain 5>
+    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100000991, !registered, !matched, active, busy 0, retain 5>
+    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x1000009e1, !registered, !matched, active, busy 0, retain 5>
 === RESULT ===
 RESULT=READ_ONLY_COMPLETE
 SSH_PROBE_RC=0
