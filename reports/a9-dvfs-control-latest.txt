@@ -1,7 +1,23 @@
 # A9 DVFS stock control validation
 
-Run: 33584600417
-Commit: 79a6ef8cb3609f6356088bbf1b0cc244ef71219c
+Run: 33585293941
+Commit: 694b34ad4525ce50fe181946dfbc01b1b4b5288d
 
-## a9-readonly.txt
+## a9-before.txt
+=== BEFORE ===
+hw.model: N71AP
+hw.machine: iPhone8,1
+kern.osversion: 19H422
+kern.boottime: { sec = 1788239380, usec = 562535 } Tue Sep  1 00:09:40 2026
+Darwin iPhone 21.6.0 Darwin Kernel Version 21.6.0: Fri Mar  6 21:01:24 PST 2026; root:xnu-8020.241.44~1/RELEASE_ARM64_S8000 iPhone8,1 arm Darwin
+
+## a9-init.txt
+A9KRW_START pid=11485 euid=0
+STAGE=DLOPEN_BEGIN
+STAGE=DLOPEN_OK
+LIBJAILBREAK_SYMBOLS=OK init=0x104fa008c read=0x104fa2f18 write=0x104fa3190
+STAGE=PTE_INIT_BEGIN
+PTE_INIT_RC=0
+STAGE=PTE_INIT_OK
+RESULT=SINGLE_PTE_INIT_OK
 
