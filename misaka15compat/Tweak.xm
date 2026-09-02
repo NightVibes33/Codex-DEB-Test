@@ -1,4 +1,5 @@
 #import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
 #import <mach-o/dyld.h>
 #import <mach-o/loader.h>
 #import <sys/sysctl.h>
