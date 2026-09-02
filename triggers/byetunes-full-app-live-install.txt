@@ -1,0 +1,3 @@
+trigger=2026-09-01T21:54:00-05:00
+package=ByeTunes 0.3.0 full Home Screen app + tweak + daemon
+target=100.96.37.124 iPhone8,1 iOS 15.8.8
