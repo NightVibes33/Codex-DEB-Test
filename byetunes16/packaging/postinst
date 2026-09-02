@@ -1,7 +1,14 @@
 #!/bin/sh
 set -u
 PLIST="/var/jb/Library/LaunchDaemons/com.nightvibes.byetunes16d.plist"
+APP="/var/jb/Applications/ByeTunes.app"
 /bin/launchctl bootout system/com.nightvibes.byetunes16d >/dev/null 2>&1 || true
 /bin/launchctl bootstrap system "$PLIST" >/dev/null 2>&1 || /bin/launchctl load "$PLIST" >/dev/null 2>&1 || true
-/usr/bin/killall Music >/dev/null 2>&1 || true
+/bin/launchctl kickstart -k system/com.nightvibes.byetunes16d >/dev/null 2>&1 || true
+if command -v uicache >/dev/null 2>&1; then
+  uicache -p "$APP" >/dev/null 2>&1 || uicache -a >/dev/null 2>&1 || true
+elif [ -x /var/jb/usr/bin/uicache ]; then
+  /var/jb/usr/bin/uicache -p "$APP" >/dev/null 2>&1 || /var/jb/usr/bin/uicache -a >/dev/null 2>&1 || true
+fi
+if command -v killall >/dev/null 2>&1; then killall Music >/dev/null 2>&1 || true; fi
 exit 0
