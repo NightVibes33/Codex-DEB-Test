@@ -1,5 +1,5 @@
-run=2026-09-01T22:20:00-05:00
-purpose=validate-dopamine-magic-pte-layout-before-device-mmio
+run=2026-09-01T22:24:00-05:00
+purpose=validate-dopamine-magic-pte-free-slot-scan-before-device-mmio
 stage=layout
-helper_commit=a8d6741e7e2be5fe849482f70d01f5daabcb11cc
-workflow_commit=fafabb053a14bc3bb8a70c3134c7547e071fc288
+helper_commit=abcd14d2fc8d3f86e7f58ecfc73832fa7bb25d33
+workflow_commit=5130cc980b11d0a18dee5356b555a6ac7a73fb79
