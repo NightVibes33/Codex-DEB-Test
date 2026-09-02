@@ -1,0 +1,157 @@
+name: Misaka iOS15.8.8 Compatibility Diagnose
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [temp/byetunes-ios16-rootless]
+    paths:
+      - '.github/workflows/misaka-ios15-compat-diagnose.yml'
+      - 'triggers/misaka-ios15-compat-diagnose.txt'
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  env:
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.e.outputs.name }}
+    steps:
+      - id: e
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fsSL -H 'Accept: application/vnd.github+json' -H "Authorization: Bearer $GH_TOKEN" -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" >/tmp/e.json
+          python3 - <<'PY' >>"$GITHUB_OUTPUT"
+          import json
+          for e in json.load(open('/tmp/e.json')).get('environments', []):
+              if int(e.get('id', -1)) == 18728387881:
+                  print('name=' + e['name']); break
+          else: raise SystemExit('environment not found')
+          PY
+
+  diagnose:
+    needs: env
+    environment:
+      name: ${{ needs.env.outputs.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PORT: '22'
+      SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+      PASS: ${{ secrets.IPAD_PASSWORD }}
+    steps:
+      - name: Prepare runner
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq openssh-client sshpass
+
+      - name: Join Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: Discover exact iPhone8,1 iOS 15.8.8
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"; chmod 700 "$HOME/.ssh"
+          tailscale status --json >/tmp/ts.json
+          python3 - <<'PY' >/tmp/candidates.txt
+          import json,ipaddress
+          d=json.load(open('/tmp/ts.json')); rows=[]
+          for p in d.get('Peer',{}).values():
+              name=((p.get('HostName') or '')+' '+(p.get('DNSName') or '')).strip(); online=bool(p.get('Online'))
+              for ip in p.get('TailscaleIPs') or []:
+                  try:a=ipaddress.ip_address(ip)
+                  except ValueError:continue
+                  if a.version==4: rows.append((0 if 'iphone' in name.lower() else 1,0 if online else 1,ip,name,online))
+          for _,_,ip,name,online in sorted(rows): print(f'{ip}|{name}|{online}')
+          PY
+          : > peer-probes.txt
+          cat >/tmp/gate.sh <<'SH'
+          set -eu
+          P=/System/Library/CoreServices/SystemVersion.plist
+          V="$(sed -n '/<key>ProductVersion<\/key>/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' "$P" | head -n1)"
+          M="$(sysctl -n hw.machine 2>/dev/null || /usr/sbin/sysctl -n hw.machine 2>/dev/null || uname -m)"
+          echo "machine=$M version=$V"
+          [ "$M" = iPhone8,1 ] || exit 20
+          [ "$V" = 15.8.8 ] || exit 21
+          [ -d /var/jb ] || exit 22
+          echo MISAKA_DEVICE_GATE_PASS
+          SH
+          HOST=''
+          while IFS='|' read -r ip name online; do
+            echo "--- $ip $name online=$online ---" | tee -a peer-probes.txt
+            tailscale ping --timeout=4s --c 1 "$ip" >>peer-probes.txt 2>&1 || true
+            timeout 7s ssh-keyscan -T 5 -H -p "$PORT" "$ip" >/tmp/kh 2>>peer-probes.txt || continue
+            [ -s /tmp/kh ] || continue
+            set +e
+            OUT="$({ printf '%s\n' "$PASS"; cat /tmp/gate.sh; } | timeout 30s sshpass -e ssh -p "$PORT" -o BatchMode=no -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/tmp/kh "mobile@$ip" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s' 2>&1)"; RC=$?
+            set -e
+            printf '%s\n' "$OUT" | tee -a peer-probes.txt
+            if [ "$RC" -eq 0 ] && printf '%s\n' "$OUT" | grep -q MISAKA_DEVICE_GATE_PASS; then HOST="$ip"; cp /tmp/kh "$HOME/.ssh/known_hosts"; chmod 600 "$HOME/.ssh/known_hosts"; break; fi
+          done </tmp/candidates.txt
+          test -n "$HOST"
+          echo "HOST=$HOST" >> "$GITHUB_ENV"
+          echo "selected_host=$HOST" | tee selected.txt
+
+      - name: Inspect installed Misaka and crashes
+        run: |
+          set -euo pipefail
+          cat >/tmp/diag.sh <<'SH'
+          set -eu
+          echo '=== DEVICE ==='
+          uname -a || true
+          sw_vers 2>/dev/null || true
+          echo '=== UICACHE ==='
+          U="$(command -v uicache || true)"; [ -n "$U" ] || U=/var/jb/usr/bin/uicache
+          "$U" -l 2>/dev/null | grep -i -E 'misaka|straight-tamago' || true
+          echo '=== LOCATE APP ==='
+          APP=''
+          for root in /var/containers/Bundle/Application /Applications /var/jb/Applications; do
+            [ -d "$root" ] || continue
+            while IFS= read -r p; do
+              [ -f "$p/Info.plist" ] || continue
+              BID="$(plutil -extract CFBundleIdentifier raw -o - "$p/Info.plist" 2>/dev/null || /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$p/Info.plist" 2>/dev/null || true)"
+              case "$BID" in *misaka*|*Misaka*|com.straight-tamago.misakaRS) APP="$p"; echo "found=$p bundle=$BID"; break 2;; esac
+            done <<EOF
+          $(find "$root" -maxdepth 3 -type d -name '*.app' -print 2>/dev/null)
+          EOF
+          done
+          [ -n "$APP" ] || { echo MISAKA_NOT_INSTALLED; exit 31; }
+          EXE_NAME="$(plutil -extract CFBundleExecutable raw -o - "$APP/Info.plist" 2>/dev/null || true)"
+          [ -n "$EXE_NAME" ] || EXE_NAME=Misaka
+          EXE="$APP/$EXE_NAME"
+          echo "app=$APP"
+          echo "exe=$EXE"
+          echo '=== INFO ==='
+          plutil -p "$APP/Info.plist" 2>/dev/null || cat "$APP/Info.plist" || true
+          echo '=== BINARY ==='
+          file "$EXE" || true
+          ls -l "$EXE" || true
+          if command -v ldid >/dev/null 2>&1; then ldid -e "$EXE" 2>/dev/null || true; elif [ -x /var/jb/usr/bin/ldid ]; then /var/jb/usr/bin/ldid -e "$EXE" 2>/dev/null || true; fi
+          echo '=== VERSION / EXPLOIT STRINGS ==='
+          strings "$EXE" 2>/dev/null | grep -i -E '15\.8\.1|15\.8\.8|unsupported|not supported|KFD|MacDirtyCow|puaf|landa|systemVersion|operatingSystemVersion' | head -n 250 || true
+          echo '=== RECENT MISAKA CRASHES ==='
+          find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -iname 'Misaka-*.ips' -o -iname 'Misaka-*.crash' -o -iname '*misaka*.ips' -o -iname '*misaka*.crash' \) -print 2>/dev/null | tail -n 12 | while read -r c; do echo "--- $c ---"; tail -n 220 "$c" 2>/dev/null || true; done
+          echo '=== REGISTER ==='
+          "$U" -p "$APP" >/dev/null 2>&1 || "$U" -a >/dev/null 2>&1 || true
+          echo MISAKA_DIAG_PASS
+          SH
+          { printf '%s\n' "$PASS"; cat /tmp/diag.sh; } | timeout 100s sshpass -e ssh -p "$PORT" -o BatchMode=no -o ConnectTimeout=10 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s' | tee misaka-diagnose.txt
+          grep -q MISAKA_DIAG_PASS misaka-diagnose.txt
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Misaka-iOS15.8.8-diagnose-${{ github.run_id }}
+          path: |
+            peer-probes.txt
+            selected.txt
+            misaka-diagnose.txt
+          if-no-files-found: ignore
+          retention-days: 14
