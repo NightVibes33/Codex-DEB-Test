@@ -1,0 +1,4 @@
+trigger=2026-09-01T22:18:00-05:00
+target=iPhone8,1 iOS 15.8.8
+app=Misaka com.straight-tamago.misakaRS
+mode=diagnose installed app, registration, binary and crash logs
