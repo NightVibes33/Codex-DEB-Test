@@ -1,8 +1,7 @@
 # A9 DVFS stock control validation
 
-Run: 33584345184
-Commit: fa3c144932eb6526398502da7bbfc8a052cc8f3b
+Run: 33584600417
+Commit: 79a6ef8cb3609f6356088bbf1b0cc244ef71219c
 
 ## a9-readonly.txt
-Darwin iPhone 21.6.0 Darwin Kernel Version 21.6.0: Fri Mar  6 21:01:24 PST 2026; root:xnu-8020.241.44~1/RELEASE_ARM64_S8000 iPhone8,1 arm Darwin
 
