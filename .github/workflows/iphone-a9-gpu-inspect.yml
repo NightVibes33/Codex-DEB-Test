@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: iphone-a9-gpu-inspect
@@ -17,10 +17,11 @@ concurrency:
 jobs:
   inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 6
     environment:
       name: TAILSCALE_AUTHKEY-
     steps:
+      - uses: actions/checkout@v4
       - uses: tailscale/github-action@v4
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
@@ -42,36 +43,68 @@ jobs:
           {
             printf '%s\n' "$IPHONE_PASSWORD"
             cat <<'EOS'
-          set -u
+          set +e
           export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
+          echo '=== A9 DVFS READ-ONLY REPORT ==='
+          echo 'DEVICE_WRITES=0'
+          echo 'KERNEL_WRITES=0'
+          echo 'PMGR_WRITES=0'
+          echo 'CLOCK_WRITES=0'
+          echo 'VOLTAGE_WRITES=0'
           echo '=== DEVICE ==='
           uname -a || true
           sysctl hw.model hw.machine hw.ncpu hw.cpufrequency hw.cpufrequency_max hw.cpufrequency_min 2>&1 || true
-          echo '=== AVAILABLE TOOLS ==='
-          for x in ioreg sysctl kextstat kmutil strings nm otool jtool2 jq plutil; do command -v "$x" 2>/dev/null || true; done
-          echo '=== LOADED GPU/POWER DRIVERS ==='
-          if command -v kextstat >/dev/null 2>&1; then kextstat 2>/dev/null | grep -Ei 'AGX|GPU|SGX|PowerVR|AppleM2|AppleCLPC|ApplePMGR|AppleARM|graphics|metal' || true; fi
-          if command -v kmutil >/dev/null 2>&1; then kmutil showloaded 2>/dev/null | grep -Ei 'AGX|GPU|SGX|PowerVR|AppleM2|AppleCLPC|ApplePMGR|AppleARM|graphics|metal' || true; fi
-          echo '=== IOREGISTRY GPU CLASS/NAME SEARCH ==='
+          sysctl kern.osversion kern.osrelease 2>&1 || true
+          echo '=== CHIP / BOARD HINTS ==='
           if command -v ioreg >/dev/null 2>&1; then
-            ioreg -l -w0 2>/dev/null | grep -Ei -C 3 'AGX|PowerVR|SGX|GPU|gfx|graphics|perf-state|performance-state|voltage-state|voltage|clock-frequency|frequency' | head -n 900 || true
-            echo '=== IODEVICETREE TARGETED SEARCH ==='
-            ioreg -p IODeviceTree -l -w0 2>/dev/null | grep -Ei -C 5 'gpu|sgx|gfx|graphics|perf|p-state|voltage|clock|frequency|pmgr' | head -n 1200 || true
+            ioreg -p IODeviceTree -l -w0 2>/dev/null | grep -Ei 'model|compatible|chip-id|cpufreq|clpc|pmgr|gpu|sgx' | grep -Eiv 'serial|unique|ecid|imei|mac-address|wifi-address|bluetooth-address' | head -n 220 || true
+          fi
+          echo '=== LOADED POWER / GPU DRIVERS ==='
+          if command -v kextstat >/dev/null 2>&1; then kextstat 2>/dev/null | grep -Ei 'AGX|GPU|SGX|PowerVR|AppleCLPC|ApplePMGR|AppleARM|graphics|metal' || true; fi
+          if command -v kmutil >/dev/null 2>&1; then kmutil showloaded 2>/dev/null | grep -Ei 'AGX|GPU|SGX|PowerVR|AppleCLPC|ApplePMGR|AppleARM|graphics|metal' || true; fi
+          echo '=== CPU/GPU DVFS / VOLTAGE PROPERTIES ==='
+          if command -v ioreg >/dev/null 2>&1; then
+            ioreg -p IODeviceTree -l -w0 2>/dev/null \
+              | grep -Ei -C 5 'cpufreq|gpu|sgx|gfx|perf-state|performance-state|p-state|voltage-state|voltage-states|clock-frequency|frequency|clpc|pmgr' \
+              | grep -Eiv 'serial|unique|ecid|imei|mac-address|wifi-address|bluetooth-address' \
+              | head -n 1400 || true
+            echo '=== SERVICE PLANE TARGETS ==='
+            ioreg -l -w0 2>/dev/null \
+              | grep -Ei -C 4 'AppleCLPC|ApplePMGR|AGX|SGX|PowerVR|gpu|perf-state|voltage-state|clock-frequency' \
+              | grep -Eiv 'serial|unique|ecid|imei|mac-address|wifi-address|bluetooth-address' \
+              | head -n 900 || true
           else
             echo 'IOREG_MISSING=1'
           fi
-          echo '=== KERNEL/EXTENSION CANDIDATES ==='
-          find /System/Library/Extensions /System/Library/DriverExtensions /var/jb/System/Library/Extensions -maxdepth 3 -type f 2>/dev/null | grep -Ei 'AGX|GPU|SGX|PowerVR|AppleCLPC|ApplePMGR|graphics' | head -n 250 || true
-          echo '=== DYLD/FRAMEWORK GPU STRINGS ==='
-          for f in /System/Library/Frameworks/Metal.framework/Metal /System/Library/Frameworks/IOKit.framework/IOKit; do
-            [ -f "$f" ] || continue
-            echo "FILE=$f"
-            strings "$f" 2>/dev/null | grep -Ei 'gpu.*freq|freq.*gpu|voltage.*gpu|gpu.*voltage|performance state|perf.?state|power state' | head -n 120 || true
-          done
-          echo '=== NO WRITES PERFORMED ==='
-          echo 'RESULT=READ_ONLY'
+          echo '=== AVAILABLE LOW-LEVEL TOOLS ==='
+          for x in ioreg sysctl kextstat kmutil strings nm otool jtool2 jq plutil vm_stat powermetrics ioio memtool dt; do command -v "$x" 2>/dev/null || true; done
+          echo '=== RESULT ==='
+          echo 'RESULT=READ_ONLY_COMPLETE'
           EOS
-          } | timeout 120 sshpass -e ssh -o BatchMode=no -o ConnectTimeout=20 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" mobile@"$IPHONE_HOST" 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' 2>&1 | tee a9-gpu-inspect.txt
+          } | timeout 180 sshpass -e ssh -o BatchMode=no -o ConnectTimeout=20 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" mobile@"$IPHONE_HOST" 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' 2>&1 | tee a9-gpu-inspect.txt
+      - name: Publish sanitized latest report
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports
+          {
+            echo '# A9 CPU/GPU DVFS probe'
+            echo
+            echo "Run: $GITHUB_RUN_ID"
+            echo "Commit: $GITHUB_SHA"
+            echo
+            cat a9-gpu-inspect.txt 2>/dev/null || true
+          } > reports/a9-dvfs-latest.txt
+          # Defense-in-depth redaction in case a nearby IORegistry property leaks an identifier.
+          sed -Ei '/(serial|unique.?chip|ecid|imei|mac.?address|wifi.?address|bluetooth.?address)/Id' reports/a9-dvfs-latest.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add reports/a9-dvfs-latest.txt
+          if ! git diff --cached --quiet; then
+            git commit -m 'Update A9 DVFS probe report'
+            git push origin HEAD:main
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
