@@ -22,7 +22,7 @@ APPLICATION_NAME = ByeTunes
 ByeTunes_FILES = app/BTApp.m BTClient.m
 ByeTunes_FRAMEWORKS = UIKit
 ByeTunes_CFLAGS = -fobjc-arc -Wall -Wextra -Wno-deprecated-declarations -Werror=unguarded-availability
-ByeTunes_RESOURCE_DIRS = app/Resources
+ByeTunes_RESOURCE_DIRS = Resources
 ByeTunes_INSTALL_PATH = /Applications
 
 include $(THEOS_MAKE_PATH)/tweak.mk
@@ -30,7 +30,7 @@ include $(THEOS_MAKE_PATH)/tool.mk
 include $(THEOS_MAKE_PATH)/application.mk
 
 before-all::
-	@python3 scripts/make_icon.py app/Resources
+	@python3 scripts/make_icon.py Resources
 
 before-package::
 	@mkdir -p $(THEOS_STAGING_DIR)/Library/LaunchDaemons
