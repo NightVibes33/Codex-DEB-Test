@@ -28,7 +28,7 @@ static void *g_jb;
 #define PTE_PNX              0x0020000000000000ULL
 #define PTE_NX               0x0040000000000000ULL
 #define PTE_KRW_URW_PERM     0x0060000000000040ULL
-#define PTE_ATTRIDX_DISABLE  (3ULL << 2) /* XNU device memory, no cache/no buffer */
+#define PTE_ATTRIDX_DISABLE  (3ULL << 2) /* XNU device memory: no cache/no buffer */
 #define PTE_DEVICE_RW_USER   (PTE_KRW_URW_PERM | PTE_NON_GLOBAL | PTE_AF | PTE_LEVEL3_TYPE | PTE_PNX | PTE_NX | PTE_ATTRIDX_DISABLE)
 
 static void stage(const char *s) {
@@ -63,28 +63,34 @@ struct pte_layout {
     uint64_t page_size;
     uint64_t l1_block_size;
     uint64_t l1_block_count;
+    uint64_t l2_block_count;
     uintptr_t magic_pt_addr;
     volatile uint64_t *magic_pt;
+    unsigned free_slot;
     jb_flush_tlb_t flush_tlb;
 };
 
-static int get_pte_layout(struct pte_layout *o, bool require_empty_slot2) {
+static int get_pte_layout(struct pte_layout *o, bool require_free_slot) {
     if (!g_jb || !o) return EINVAL;
     memset(o, 0, sizeof(*o));
+    o->free_slot = UINT32_MAX;
 
     jb_u64_func_t get_page_size = (jb_u64_func_t)dlsym(g_jb, "get_vm_real_kernel_page_size");
     jb_u64_func_t get_l1_size = (jb_u64_func_t)dlsym(g_jb, "get_l1_block_size");
     jb_u64_func_t get_l1_count = (jb_u64_func_t)dlsym(g_jb, "get_l1_block_count");
+    jb_u64_func_t get_l2_count = (jb_u64_func_t)dlsym(g_jb, "get_l2_block_count");
     o->flush_tlb = (jb_flush_tlb_t)dlsym(g_jb, "flush_tlb");
-    if (!get_page_size || !get_l1_size || !get_l1_count || !o->flush_tlb) {
-        fprintf(stderr, "ERROR=missing PTE layout symbols page=%d l1size=%d l1count=%d flush=%d\n",
-                !!get_page_size, !!get_l1_size, !!get_l1_count, !!o->flush_tlb);
+    if (!get_page_size || !get_l1_size || !get_l1_count || !get_l2_count || !o->flush_tlb) {
+        fprintf(stderr, "ERROR=missing PTE layout symbols page=%d l1size=%d l1count=%d l2count=%d flush=%d\n",
+                !!get_page_size, !!get_l1_size, !!get_l1_count, !!get_l2_count, !!o->flush_tlb);
         return ENOSYS;
     }
 
     o->page_size = get_page_size();
     o->l1_block_size = get_l1_size();
     o->l1_block_count = get_l1_count();
+    o->l2_block_count = get_l2_count();
+
     if (o->page_size != 0x4000ULL) {
         fprintf(stderr, "REFUSE=unexpected kernel page size 0x%llx\n", (unsigned long long)o->page_size);
         return ERANGE;
@@ -94,27 +100,45 @@ static int get_pte_layout(struct pte_layout *o, bool require_empty_slot2) {
                 (unsigned long long)o->l1_block_size, (unsigned long long)o->l1_block_count);
         return ERANGE;
     }
+    /* For A9/16K, this is expected to be the number of L3 entries in the magic PT page. */
+    if (o->l2_block_count < 4 || o->l2_block_count > 4096) {
+        fprintf(stderr, "REFUSE=unexpected L2 entry count %llu\n", (unsigned long long)o->l2_block_count);
+        return ERANGE;
+    }
+
     __uint128_t magic128 = (__uint128_t)o->l1_block_size * (__uint128_t)(o->l1_block_count - 3);
     if (magic128 > UINTPTR_MAX) return EOVERFLOW;
     o->magic_pt_addr = (uintptr_t)magic128;
     o->magic_pt = (volatile uint64_t *)o->magic_pt_addr;
 
-    /* Slots 0/1 are owned by Dopamine; slot 2 must be unused before we borrow it. */
-    uint64_t e0 = o->magic_pt[0];
-    uint64_t e1 = o->magic_pt[1];
-    uint64_t e2 = o->magic_pt[2];
-    printf("PTE_LAYOUT page=0x%llx l1_size=0x%llx l1_count=%llu magic=0x%llx entry0=0x%016llx entry1=0x%016llx entry2=0x%016llx\n",
+    unsigned preview = (o->l2_block_count < 8) ? (unsigned)o->l2_block_count : 8U;
+    printf("PTE_LAYOUT page=0x%llx l1_size=0x%llx l1_count=%llu l2_count=%llu magic=0x%llx",
            (unsigned long long)o->page_size,
            (unsigned long long)o->l1_block_size,
            (unsigned long long)o->l1_block_count,
-           (unsigned long long)o->magic_pt_addr,
-           (unsigned long long)e0,
-           (unsigned long long)e1,
-           (unsigned long long)e2);
+           (unsigned long long)o->l2_block_count,
+           (unsigned long long)o->magic_pt_addr);
+    for (unsigned i = 0; i < preview; i++) {
+        printf(" entry%u=0x%016llx", i, (unsigned long long)o->magic_pt[i]);
+    }
+    printf("\n");
+
+    /* Mirror Dopamine's allocator policy: slots 0/1 are reserved; find a genuinely empty slot >=2. */
+    for (uint64_t i = 2; i < o->l2_block_count; i++) {
+        if (o->magic_pt[i] == 0) {
+            o->free_slot = (unsigned)i;
+            break;
+        }
+    }
+    if (o->free_slot != UINT32_MAX) {
+        printf("PTE_FREE_SLOT=%u\n", o->free_slot);
+    } else {
+        printf("PTE_FREE_SLOT=NONE\n");
+    }
     fflush(stdout);
 
-    if (require_empty_slot2 && e2 != 0) {
-        fprintf(stderr, "REFUSE=magic PTE slot2 already in use\n");
+    if (require_free_slot && o->free_slot == UINT32_MAX) {
+        fprintf(stderr, "REFUSE=no empty Dopamine magic PTE slot available\n");
         return EBUSY;
     }
     return 0;
@@ -130,7 +154,7 @@ static int pte_layout_probe(void) {
     int rc = get_pte_layout(&l, true);
     if (rc) return rc;
     stage("PTE_LAYOUT_OK");
-    printf("RESULT=PTE_LAYOUT_OK\n");
+    printf("RESULT=PTE_LAYOUT_OK free_slot=%u\n", l.free_slot);
     return 0;
 }
 
@@ -150,7 +174,12 @@ static int device_mmio_read32(uint64_t pa, uint32_t *value) {
     uint64_t page_off = pa & page_mask;
     if (page_off + sizeof(uint32_t) > l.page_size) return EINVAL;
 
-    const unsigned slot = 2;
+    unsigned slot = l.free_slot;
+    if (slot < 2 || slot >= l.l2_block_count || l.magic_pt[slot] != 0) {
+        fprintf(stderr, "REFUSE=selected magic PTE slot is not empty slot=%u\n", slot);
+        return EBUSY;
+    }
+
     volatile uint64_t *entry = &l.magic_pt[slot];
     uintptr_t mapped_page = l.magic_pt_addr + ((uintptr_t)slot * (uintptr_t)l.page_size);
     volatile uint32_t *mapped_reg = (volatile uint32_t *)(mapped_page + (uintptr_t)page_off);
@@ -183,6 +212,11 @@ static int device_mmio_read32(uint64_t pa, uint32_t *value) {
     full_barrier();
     l.flush_tlb();
     full_barrier();
+
+    if (*entry != 0) {
+        fprintf(stderr, "ERROR=borrowed magic PTE slot did not clear\n");
+        return EIO;
+    }
 
     *value = v;
     stage("DEVICE_MMIO_READ32_OK");
