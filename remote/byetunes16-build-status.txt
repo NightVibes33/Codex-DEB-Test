@@ -1,21 +1,14 @@
 ByeTunes iOS 15-16 Rootless Build
-run_id=33585191923
-commit=79d45abb0880069fd7b7206c31219f51a72f8cf7
+run_id=33585232521
+commit=c9c6aced61a84f4f564cd068594122b11c45d211
 compile=success
-validate=success
+validate=failure
 
-validation=success
-version=0.2.2
-package=com.nightvibes.byetunes16
-architecture=iphoneos-arm64
-depends=firmware (>= 15.0), firmware (<< 17.0), ellekit
-    minos 15.0
-    minos 15.0
-715e50803210289171510ffb14801502777e50fca55f800cc7302f2906461b02  byetunes16/packages/com.nightvibes.byetunes16_0.2.2_iphoneos-arm64.deb
 
 --- build tail ---
 [0;36m==> [1;39mCleaning…[m
 [0;36m==> [1;36mNotice:[m Build may be slow as Theos isn’t using all available CPU cores on this computer. Consider upgrading GNU Make: https://theos.dev/docs/parallel-building
+app/Resources
 [1;31m> [1;3;39mMaking all for tweak ByeTunes16…[m
 [0;31m==> [1;39mPreprocessing Tweak.xm…[m
 [0;32m==> [1;39mCompiling Tweak.xm (arm64)…[m
@@ -36,6 +29,16 @@ ld: warning: -multiply_defined is obsolete
 [0;34m==> [1;39mGenerating debug symbols for byetunes16d…[m
 [0;34m==> [1;39mStripping byetunes16d (arm64)…[m
 [0;34m==> [1;39mSigning byetunes16d…[m
+[1;31m> [1;3;39mMaking all for application ByeTunes…[m
+[0;35m==> [1;39mCopying resource directories into the application wrapper…[m
+[0;32m==> [1;39mCompiling app/BTApp.m (arm64)…[m
+[0;32m==> [1;39mCompiling BTClient.m (arm64)…[m
+[0;33m==> [1;39mLinking application ByeTunes (arm64)…[m
+ld: warning: -multiply_defined is obsolete
+[0;34m==> [1;39mGenerating debug symbols for ByeTunes…[m
+[0;34m==> [1;39mStripping ByeTunes (arm64)…[m
+[0;34m==> [1;39mSigning ByeTunes…[m
 [1;31m> [1;3;39mMaking stage for tweak ByeTunes16…[m
 [1;31m> [1;3;39mMaking stage for tool byetunes16d…[m
-dm.pl: building package `com.nightvibes.byetunes16:iphoneos-arm64' in `./packages/com.nightvibes.byetunes16_0.2.2_iphoneos-arm64.deb'
+[1;31m> [1;3;39mMaking stage for application ByeTunes…[m
+dm.pl: building package `com.nightvibes.byetunes16:iphoneos-arm64' in `./packages/com.nightvibes.byetunes16_0.3.0_iphoneos-arm64.deb'
