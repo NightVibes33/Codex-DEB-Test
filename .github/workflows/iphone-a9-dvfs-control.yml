@@ -50,7 +50,7 @@ jobs:
   validate:
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 14
+    timeout-minutes: 12
     environment:
       name: TAILSCALE_AUTHKEY-
     steps:
@@ -69,7 +69,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends openssh-client sshpass >/dev/null
-      - name: Single-PTE init, MMIO probe, no-op write, stock P8 pulse
+      - name: Validate PTE layout or one read-only device MMIO access
         env:
           IPHONE_HOST: 100.96.37.124
           IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
@@ -77,6 +77,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          CONTROL_STAGE="$(sed -n 's/^stage=//p' triggers/iphone-a9-dvfs-control.txt | tail -n1 | tr -d '\r[:space:]')"
+          case "$CONTROL_STAGE" in
+            layout|mmio-read32) ;;
+            *) echo "RESULT=REFUSE_UNKNOWN_STAGE stage=$CONTROL_STAGE"; exit 64 ;;
+          esac
+          echo "CONTROL_STAGE=$CONTROL_STAGE"
+          echo 'CLOCK_WRITES=0'
+          echo 'VOLTAGE_WRITES=0'
+
           chmod 755 helper/a9krw
           CDHASH="$(tr -d '[:space:]' < helper/a9krw.cdhash)"
           [[ "$CDHASH" =~ ^[0-9A-Fa-f]{40}$ ]] || { echo 'RESULT=INVALID_CDHASH'; exit 22; }
@@ -86,7 +95,7 @@ jobs:
 
           wait_phone() {
             local ok=0
-            for n in $(seq 1 18); do
+            for n in $(seq 1 24); do
               echo "WAIT_PHONE_ATTEMPT=$n"
               if tailscale ping --timeout=4s "$IPHONE_HOST" >/dev/null 2>&1; then
                 : > "$HOME/.ssh/known_hosts.tmp"
@@ -106,7 +115,6 @@ jobs:
           }
 
           wait_phone || { echo 'RESULT=PHONE_OR_SSH_OFFLINE'; exit 20; }
-
           SSH=(sshpass -e ssh -o BatchMode=no -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" mobile@"$IPHONE_HOST")
           SCP=(sshpass -e scp -o BatchMode=no -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts")
 
@@ -125,86 +133,70 @@ jobs:
             SCP=(sshpass -e scp -o BatchMode=no -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts")
           }
 
-          "${SCP[@]}" helper/a9krw mobile@"$IPHONE_HOST":/var/mobile/Documents/a9krw
-          rootrun "set -e; chmod 755 /var/mobile/Documents/a9krw; /var/jb/usr/bin/jbctl trustcache add '$CDHASH'; echo HELPER_TRUSTED=1"
-
-          rootrun 'echo === BEFORE ===; sysctl hw.model hw.machine kern.osversion kern.boottime; uname -a' | tee a9-before.txt
-          grep -q 'hw.machine: iPhone8,1' a9-before.txt
-          grep -q 'RELEASE_ARM64_S8000' a9-before.txt
-          BOOT_BEFORE="$(grep 'kern.boottime' a9-before.txt | head -n1 || true)"
-
           run_detached_stage() {
-            local stage_name="$1"
-            local args="$2"
-            local local_log="$3"
+            local stage_name="$1" args="$2" local_log="$3"
             local base="/var/mobile/Documents/a9krw-${stage_name}"
-            local log="${base}.log"
-            local rcf="${base}.rc"
-            local launch
-            launch="rm -f '$log' '$rcf'; ( /var/mobile/Documents/a9krw $args >'$log' 2>&1; printf '%s\\n' \$? >'$rcf' ) </dev/null >/dev/null 2>&1 & echo DETACHED_${stage_name}_LAUNCHED=1"
-
+            local log="${base}.log" rcf="${base}.rc"
+            local launch="rm -f '$log' '$rcf'; ( /var/mobile/Documents/a9krw $args >'$log' 2>&1; printf '%s\\n' \$? >'$rcf' ) </dev/null >/dev/null 2>&1 & echo DETACHED_${stage_name}_LAUNCHED=1"
             set +e
             rootrun "$launch"
             local launch_rc=$?
             set -e
             echo "${stage_name}_LAUNCH_SSH_RC=$launch_rc"
-
-            sleep 3
+            sleep 2
             refresh_ssh || { echo "RESULT=${stage_name}_PHONE_NOT_RETURNED"; return 90; }
-
             local rcval=''
-            for n in $(seq 1 30); do
+            for n in $(seq 1 20); do
               rcval="$("${SSH[@]}" "cat '$rcf' 2>/dev/null || true" | tr -d '\r\n[:space:]')"
-              if [[ "$rcval" =~ ^[0-9]+$ ]]; then break; fi
+              [[ "$rcval" =~ ^[0-9]+$ ]] && break
               sleep 2
             done
             "${SSH[@]}" "cat '$log' 2>/dev/null || true" | tee "$local_log"
             echo "${stage_name}_RC=${rcval:-MISSING}"
             [[ "$rcval" =~ ^[0-9]+$ ]] || return 91
             [ "$rcval" = 0 ] || return "$rcval"
-            return 0
           }
+
+          "${SCP[@]}" helper/a9krw mobile@"$IPHONE_HOST":/var/mobile/Documents/a9krw
+          rootrun "set -e; chmod 755 /var/mobile/Documents/a9krw; /var/jb/usr/bin/jbctl trustcache add '$CDHASH'; echo HELPER_TRUSTED=1"
+
+          rootrun 'echo === BEFORE ===; date; sysctl hw.model hw.machine kern.osversion kern.boottime; uname -a' | tee a9-before.txt
+          grep -q 'hw.machine: iPhone8,1' a9-before.txt
+          grep -q 'RELEASE_ARM64_S8000' a9-before.txt
+          BOOT_BEFORE="$(grep 'kern.boottime' a9-before.txt | head -n1 || true)"
 
           run_detached_stage init 'init-only' a9-init.txt
           grep -q 'STAGE=PTE_INIT_OK' a9-init.txt
           grep -q 'RESULT=SINGLE_PTE_INIT_OK' a9-init.txt
 
-          run_detached_stage probe 'probe' a9-readonly.txt
-          grep -q 'STAGE=MMIO_PROBE_OK' a9-readonly.txt
-          grep -q 'RESULT=READ_ONLY_COMPLETE' a9-readonly.txt
-          grep -q 'cmd_rc=0' a9-readonly.txt
-          grep -q 'status_rc=0' a9-readonly.txt
+          run_detached_stage layout 'pte-layout' a9-layout.txt
+          grep -q 'STAGE=PTE_LAYOUT_OK' a9-layout.txt
+          grep -q 'RESULT=PTE_LAYOUT_OK' a9-layout.txt
+          grep -q 'page=0x4000' a9-layout.txt
+          grep -q 'entry2=0x0000000000000000' a9-layout.txt
 
-          python3 - <<'PY'
-          import re
-          s=open('a9-readonly.txt').read()
-          rows=re.findall(r'PROBE .*?ps1=(\d+) ps2=(\d+).*?cur=(\d+) tgt=(\d+)',s)
-          if not rows:
-              raise SystemExit('NO_DVFS_ROWS')
-          vals=[tuple(map(int,r)) for r in rows]
-          print('PROBE_STATES=',vals)
-          if any(max(v)>8 for v in vals):
-              raise SystemExit('REFUSE_UNEXPECTED_PSTATE')
-          factors=re.findall(r'factor_rc=0 factor=0x([0-9a-fA-F]+)',s)
-          print('PLL_FACTORS=',factors)
-          PY
-
-          run_detached_stage same 'same-state-write' a9-same-state.txt
-          grep -q 'PHYSWRITE_RC=0' a9-same-state.txt
-          grep -q 'RESULT=SAME_STATE_OK rc=0' a9-same-state.txt
-
-          run_detached_stage p8 'pulse-stock-max 100' a9-stock-pulse.txt
-          grep -q 'MAX_WRITE_RC=0' a9-stock-pulse.txt
-          grep -q 'ROLLBACK_WRITE_RC=0' a9-stock-pulse.txt
-          grep -q 'RESULT=STOCK_P8_PULSE_OK rc=0' a9-stock-pulse.txt
+          if [ "$CONTROL_STAGE" = mmio-read32 ]; then
+            echo 'INTENT=ONE_READ_ONLY_32BIT_DEVICE_MMIO_AT_0x202220020' | tee a9-mmio-intent.txt
+            run_detached_stage mmio 'mmio-device-read32 0x20' a9-mmio.txt
+            grep -q 'STAGE=DEVICE_MMIO_READ32_OK' a9-mmio.txt
+            grep -q 'RESULT=DEVICE_MMIO_READ32_OK offset=0x20' a9-mmio.txt
+          fi
 
           refresh_ssh
-          rootrun 'echo === AFTER ===; sysctl hw.model hw.machine kern.osversion kern.boottime; uname -a' | tee a9-after.txt
+          rootrun 'echo === AFTER ===; date; sysctl hw.model hw.machine kern.osversion kern.boottime; uname -a' | tee a9-after.txt
           BOOT_AFTER="$(grep 'kern.boottime' a9-after.txt | head -n1 || true)"
-          echo "BOOT_BEFORE=$BOOT_BEFORE" | tee a9-result.txt
-          echo "BOOT_AFTER=$BOOT_AFTER" | tee -a a9-result.txt
+          {
+            echo "CONTROL_STAGE=$CONTROL_STAGE"
+            echo "BOOT_BEFORE=$BOOT_BEFORE"
+            echo "BOOT_AFTER=$BOOT_AFTER"
+          } | tee a9-result.txt
           [ "$BOOT_BEFORE" = "$BOOT_AFTER" ] || { echo 'RESULT=BOOT_TIME_CHANGED_ABORT' | tee -a a9-result.txt; exit 92; }
-          echo 'RESULT=STOCK_DVFS_CONTROL_VALIDATED' | tee -a a9-result.txt
+          if [ "$CONTROL_STAGE" = layout ]; then
+            echo 'RESULT=PTE_LAYOUT_VALIDATED' | tee -a a9-result.txt
+          else
+            echo 'RESULT=DEVICE_MMIO_READ32_VALIDATED' | tee -a a9-result.txt
+          fi
+
       - name: Publish sanitized result
         if: always()
         shell: bash
@@ -212,12 +204,12 @@ jobs:
           set -euo pipefail
           mkdir -p /tmp/report reports
           {
-            echo '# A9 DVFS stock control validation'
+            echo '# A9 DVFS device-memory validation'
             echo
             echo "Run: $GITHUB_RUN_ID"
             echo "Commit: $GITHUB_SHA"
             echo
-            for f in a9-before.txt a9-init.txt a9-readonly.txt a9-same-state.txt a9-stock-pulse.txt a9-after.txt a9-result.txt; do
+            for f in a9-before.txt a9-init.txt a9-layout.txt a9-mmio-intent.txt a9-mmio.txt a9-after.txt a9-result.txt; do
               [ -f "$f" ] || continue
               echo "## $f"
               cat "$f"
@@ -242,9 +234,9 @@ jobs:
           path: |
             a9-before.txt
             a9-init.txt
-            a9-readonly.txt
-            a9-same-state.txt
-            a9-stock-pulse.txt
+            a9-layout.txt
+            a9-mmio-intent.txt
+            a9-mmio.txt
             a9-after.txt
             a9-result.txt
           if-no-files-found: ignore
