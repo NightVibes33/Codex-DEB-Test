@@ -1,23 +1,35 @@
-# A9 DVFS stock control validation
+# A9 DVFS device-memory validation
 
-Run: 33585293941
-Commit: 694b34ad4525ce50fe181946dfbc01b1b4b5288d
+Run: 33586728192
+Commit: 082cbc7eb2bd622caad8847b172a7eedb1f5d23d
 
 ## a9-before.txt
 === BEFORE ===
+Tue Sep  1 22:22:24 CDT 2026
 hw.model: N71AP
 hw.machine: iPhone8,1
 kern.osversion: 19H422
-kern.boottime: { sec = 1788239380, usec = 562535 } Tue Sep  1 00:09:40 2026
+kern.boottime: { sec = 1788318229, usec = 738661 } Tue Sep  1 22:03:49 2026
 Darwin iPhone 21.6.0 Darwin Kernel Version 21.6.0: Fri Mar  6 21:01:24 PST 2026; root:xnu-8020.241.44~1/RELEASE_ARM64_S8000 iPhone8,1 arm Darwin
 
 ## a9-init.txt
-A9KRW_START pid=11485 euid=0
+A9KRW_START pid=3506 euid=0
 STAGE=DLOPEN_BEGIN
 STAGE=DLOPEN_OK
-LIBJAILBREAK_SYMBOLS=OK init=0x104fa008c read=0x104fa2f18 write=0x104fa3190
 STAGE=PTE_INIT_BEGIN
 PTE_INIT_RC=0
 STAGE=PTE_INIT_OK
 RESULT=SINGLE_PTE_INIT_OK
+
+## a9-layout.txt
+A9KRW_START pid=3531 euid=0
+STAGE=DLOPEN_BEGIN
+STAGE=DLOPEN_OK
+STAGE=PTE_INIT_BEGIN
+PTE_INIT_RC=0
+STAGE=PTE_INIT_OK
+STAGE=PTE_LAYOUT_BEGIN
+PTE_LAYOUT page=0x4000 l1_size=0x1000000000 l1_count=8 magic=0x5000000000 entry0=0x0060000824b64e43 entry1=0x00600008081e8e43 entry2=0x0060000804d34e43
+REFUSE=magic PTE slot2 already in use
+RESULT=PTE_LAYOUT_FAILED rc=16
 
