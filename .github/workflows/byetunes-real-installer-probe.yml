@@ -1,0 +1,92 @@
+name: Real ByeTunes Installer Probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [temp/byetunes-ios16-rootless]
+    paths:
+      - '.github/workflows/byetunes-real-installer-probe.yml'
+      - 'triggers/byetunes-real-installer-probe.txt'
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  env:
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.e.outputs.name }}
+    steps:
+      - id: e
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fsSL -H 'Accept: application/vnd.github+json' -H "Authorization: Bearer $GH_TOKEN" -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" >/tmp/e.json
+          python3 - <<'PY' >>"$GITHUB_OUTPUT"
+          import json
+          for e in json.load(open('/tmp/e.json')).get('environments',[]):
+              if int(e.get('id',-1))==18728387881:
+                  print('name='+e['name']); break
+          else: raise SystemExit('environment not found')
+          PY
+
+  probe:
+    needs: env
+    environment:
+      name: ${{ needs.env.outputs.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+      PASS: ${{ secrets.IPAD_PASSWORD }}
+    steps:
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq openssh-client sshpass
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+      - name: Gate exact iPhone and inspect installers
+        run: |
+          set -euo pipefail
+          HOST=100.96.37.124
+          mkdir -p "$HOME/.ssh"; chmod 700 "$HOME/.ssh"
+          tailscale ping --timeout=5s --c 1 "$HOST" | tee probe.txt || true
+          timeout 10s ssh-keyscan -T 7 -H "$HOST" >"$HOME/.ssh/known_hosts" 2>>probe.txt
+          test -s "$HOME/.ssh/known_hosts"; chmod 600 "$HOME/.ssh/known_hosts"
+          cat >/tmp/remote.sh <<'SH'
+          set -eu
+          P=/System/Library/CoreServices/SystemVersion.plist
+          V="$(sed -n '/<key>ProductVersion<\/key>/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' "$P" | head -n1)"
+          M="$(sysctl -n hw.machine 2>/dev/null || /usr/sbin/sysctl -n hw.machine 2>/dev/null || uname -m)"
+          echo "machine=$M version=$V"
+          [ "$M" = iPhone8,1 ] && [ "$V" = 15.8.8 ] && [ -d /var/jb ]
+          echo '=== INSTALLER COMMANDS ==='
+          for x in appinst trollstorehelper TrollStoreHelper ldid uicache uiopen open; do
+            printf '%s=' "$x"; command -v "$x" 2>/dev/null || true
+          done
+          for p in /var/jb/usr/bin/appinst /usr/local/bin/appinst /var/jb/usr/bin/trollstorehelper /var/jb/usr/bin/TrollStoreHelper /var/jb/Applications/TrollStore.app/trollstorehelper /var/jb/Applications/TrollStore.app/TrollStore; do
+            [ -e "$p" ] && ls -l "$p" || true
+          done
+          echo '=== INSTALLED APP REGISTRY ==='
+          U="$(command -v uicache || true)"; [ -n "$U" ] || U=/var/jb/usr/bin/uicache
+          "$U" -l 2>/dev/null | grep -E 'com\.EduAlexxis\.MusicManager|com\.nightvibes\.byetunes|com\.opa334\.TrollStore|trollstore|com\.straight-tamago\.misakaRS' || true
+          echo '=== CUSTOM PACKAGE OWNERSHIP ==='
+          DQ=/var/jb/usr/bin/dpkg-query; [ -x "$DQ" ] || DQ="$(command -v dpkg-query || true)"
+          "$DQ" -W -f='${Package} ${Version} ${Status}\n' com.nightvibes.byetunes16 2>/dev/null || true
+          "$DQ" -L com.nightvibes.byetunes16 2>/dev/null | grep -E 'Applications/ByeTunes|ByeTunes16|byetunes16d' || true
+          echo '=== TROLLSTORE / APPINST PACKAGES ==='
+          "$DQ" -W 2>/dev/null | grep -i -E 'trollstore|appinst|ldid|uikittools' || true
+          echo '=== HELP ==='
+          A="$(command -v appinst 2>/dev/null || true)"; [ -z "$A" ] || "$A" --help 2>&1 | head -n 100 || true
+          T="$(command -v trollstorehelper 2>/dev/null || command -v TrollStoreHelper 2>/dev/null || true)"; [ -z "$T" ] || "$T" 2>&1 | head -n 100 || true
+          echo REAL_BYETUNES_INSTALLER_PROBE_PASS
+          SH
+          { printf '%s\n' "$PASS"; cat /tmp/remote.sh; } | timeout 80s sshpass -e ssh -o BatchMode=no -o ConnectTimeout=10 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s' | tee -a probe.txt
+          grep -q REAL_BYETUNES_INSTALLER_PROBE_PASS probe.txt
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-bytunes-installer-probe-${{ github.run_id }}
+          path: probe.txt
+          if-no-files-found: ignore
