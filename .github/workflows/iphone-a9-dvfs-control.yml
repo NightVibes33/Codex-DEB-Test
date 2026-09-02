@@ -173,7 +173,7 @@ jobs:
           grep -q 'STAGE=PTE_LAYOUT_OK' a9-layout.txt
           grep -q 'RESULT=PTE_LAYOUT_OK' a9-layout.txt
           grep -q 'page=0x4000' a9-layout.txt
-          grep -q 'entry2=0x0000000000000000' a9-layout.txt
+          grep -Eq '^PTE_FREE_SLOT=[0-9]+$' a9-layout.txt
 
           if [ "$CONTROL_STAGE" = mmio-read32 ]; then
             echo 'INTENT=ONE_READ_ONLY_32BIT_DEVICE_MMIO_AT_0x202220020' | tee a9-mmio-intent.txt
