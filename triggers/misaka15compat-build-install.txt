@@ -1,0 +1,4 @@
+trigger=2026-09-01T22:34:00-05:00
+target=iPhone8,1 iOS 15.8.8
+misaka=8.2.4 Beta uuid=f85d4968-8571-3b96-94ce-e2baf372fadd
+fix=skip unsupported startup kopen_all via exact-version ElleKit shim
