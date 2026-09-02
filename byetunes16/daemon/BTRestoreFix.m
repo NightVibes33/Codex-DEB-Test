@@ -1,5 +1,6 @@
 #import "BTRestoreFix.h"
 #import <sqlite3.h>
+#import <sys/stat.h>
 #import <unistd.h>
 
 static NSString * const kBTDB = @"/var/mobile/Media/iTunes_Control/iTunes/MediaLibrary.sqlitedb";
