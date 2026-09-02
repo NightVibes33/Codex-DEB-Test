@@ -28,10 +28,8 @@ jobs:
           import json
           for e in json.load(open('/tmp/e.json')).get('environments', []):
               if int(e.get('id', -1)) == 18728387881:
-                  print('name=' + e['name'])
-                  break
-          else:
-              raise SystemExit('environment not found')
+                  print('name=' + e['name']); break
+          else: raise SystemExit('environment not found')
           PY
 
   install:
@@ -45,7 +43,7 @@ jobs:
       SSHPASS: ${{ secrets.IPAD_PASSWORD }}
       PASS: ${{ secrets.IPAD_PASSWORD }}
     steps:
-      - name: Download already-green full app
+      - name: Download green full app
         uses: actions/download-artifact@v4
         with:
           name: ByeTunes-0.3.0-Full-App
@@ -53,7 +51,7 @@ jobs:
           github-token: ${{ github.token }}
           path: /tmp/a
 
-      - name: Prepare package and tools
+      - name: Prepare validated package
         run: |
           set -euo pipefail
           sudo apt-get update -qq
@@ -64,7 +62,9 @@ jobs:
           test "$(dpkg-deb --field /tmp/ByeTunes-0.3.0.deb Package)" = com.nightvibes.byetunes16
           test "$(dpkg-deb --field /tmp/ByeTunes-0.3.0.deb Version)" = 0.3.0
           dpkg-deb --contents /tmp/ByeTunes-0.3.0.deb | tee package-contents.txt
-          grep -Fq './var/jb/Applications/ByeTunes.app/ByeTunes' package-contents.txt
+          grep -Fq 'var/jb/Applications/ByeTunes.app/ByeTunes' package-contents.txt
+          grep -Fq 'var/jb/Library/MobileSubstrate/DynamicLibraries/ByeTunes16.dylib' package-contents.txt
+          grep -Fq 'var/jb/usr/libexec/byetunes16d' package-contents.txt
           sha256sum /tmp/ByeTunes-0.3.0.deb | tee local-sha256.txt
 
       - name: Join Tailscale
@@ -77,7 +77,6 @@ jobs:
           set -euo pipefail
           mkdir -p "$HOME/.ssh"; chmod 700 "$HOME/.ssh"
           : > peer-probes.txt
-
           cat >/tmp/gate.sh <<'SH'
           set -eu
           P=/System/Library/CoreServices/SystemVersion.plist
@@ -98,43 +97,30 @@ jobs:
             echo "=== discovery round $round ===" | tee -a peer-probes.txt
             tailscale status --json >/tmp/ts.json
             python3 - <<'PY' >/tmp/candidates.txt
-          import json, ipaddress
-          d=json.load(open('/tmp/ts.json'))
-          rows=[]
-          for p in d.get('Peer', {}).values():
-              name=((p.get('HostName') or '')+' '+(p.get('DNSName') or '')).strip()
-              online=p.get('Online')
+          import json,ipaddress
+          d=json.load(open('/tmp/ts.json')); rows=[]
+          for p in d.get('Peer',{}).values():
+              name=((p.get('HostName') or '')+' '+(p.get('DNSName') or '')).strip(); online=bool(p.get('Online'))
               for ip in p.get('TailscaleIPs') or []:
                   try: a=ipaddress.ip_address(ip)
                   except ValueError: continue
-                  if a.version != 4: continue
-                  priority=0 if 'iphone' in name.lower() else 1
-                  rows.append((priority,0 if online else 1,ip,name,online))
-          for _,_,ip,name,online in sorted(rows):
-              print(f"{ip}|{name}|{online}")
+                  if a.version==4: rows.append((0 if 'iphone' in name.lower() else 1,0 if online else 1,ip,name,online))
+          for _,_,ip,name,online in sorted(rows): print(f'{ip}|{name}|{online}')
           PY
             cat /tmp/candidates.txt | tee -a peer-probes.txt
             while IFS='|' read -r ip peer_name online; do
               [ -n "$ip" ] || continue
               echo "--- probing $ip $peer_name online=$online ---" | tee -a peer-probes.txt
               tailscale ping --timeout=4s --c 1 "$ip" >>peer-probes.txt 2>&1 || true
-              if ! timeout 7s ssh-keyscan -T 5 -H -p "$PORT" "$ip" >/tmp/kh 2>>peer-probes.txt; then
-                echo reject=ssh_unreachable | tee -a peer-probes.txt
-                continue
-              fi
+              if ! timeout 7s ssh-keyscan -T 5 -H -p "$PORT" "$ip" >/tmp/kh 2>>peer-probes.txt; then echo reject=ssh_unreachable | tee -a peer-probes.txt; continue; fi
               [ -s /tmp/kh ] || continue
               set +e
-              OUT="$({ printf '%s\n' "$PASS"; cat /tmp/gate.sh; } | timeout 30s sshpass -e ssh -p "$PORT" -o BatchMode=no -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/tmp/kh "mobile@$ip" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s' 2>&1)"
-              RC=$?
+              OUT="$({ printf '%s\n' "$PASS"; cat /tmp/gate.sh; } | timeout 30s sshpass -e ssh -p "$PORT" -o BatchMode=no -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/tmp/kh "mobile@$ip" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s' 2>&1)"; RC=$?
               set -e
               printf '%s\n' "$OUT" | tee -a peer-probes.txt
               echo gate_rc=$RC | tee -a peer-probes.txt
               if [ "$RC" -eq 0 ] && printf '%s\n' "$OUT" | grep -q EXACT_BYETUNES_IPHONE_PASS; then
-                HOST="$ip"
-                cp /tmp/kh "$HOME/.ssh/known_hosts"
-                chmod 600 "$HOME/.ssh/known_hosts"
-                printf '%s\n' "$OUT" > gate.txt
-                break
+                HOST="$ip"; cp /tmp/kh "$HOME/.ssh/known_hosts"; chmod 600 "$HOME/.ssh/known_hosts"; printf '%s\n' "$OUT" > gate.txt; break
               fi
             done </tmp/candidates.txt
             [ -z "$HOST" ] || break
@@ -144,7 +130,7 @@ jobs:
           echo "HOST=$HOST" >> "$GITHUB_ENV"
           echo "selected_host=$HOST" | tee selected.txt
 
-      - name: Transfer and verify full app DEB
+      - name: Transfer and round-trip verify
         run: |
           set -euo pipefail
           sshpass -e scp -P "$PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" /tmp/ByeTunes-0.3.0.deb "mobile@$HOST:/var/mobile/ByeTunes-0.3.0.deb"
@@ -159,51 +145,35 @@ jobs:
           set -eu
           D=/var/jb/usr/bin/dpkg; [ -x "$D" ] || D="$(command -v dpkg)"
           "$D" -i /var/mobile/ByeTunes-0.3.0.deb
-          "$D" -s com.nightvibes.byetunes16 | tee /var/mobile/ByeTunes-install-status.txt
           "$D" -s com.nightvibes.byetunes16 | grep -q '^Version: 0.3.0$'
           APP=/var/jb/Applications/ByeTunes.app
-          test -x "$APP/ByeTunes"
-          test -f "$APP/Info.plist"
-          test -f "$APP/AppIcon60x60@2x.png"
-          test -f "$APP/AppIcon60x60@3x.png"
-          test -x /var/jb/usr/libexec/byetunes16d
-          test -f /var/jb/Library/MobileSubstrate/DynamicLibraries/ByeTunes16.dylib
-
+          test -x "$APP/ByeTunes"; test -f "$APP/Info.plist"; test -f "$APP/AppIcon60x60@2x.png"; test -f "$APP/AppIcon60x60@3x.png"
+          test -x /var/jb/usr/libexec/byetunes16d; test -f /var/jb/Library/MobileSubstrate/DynamicLibraries/ByeTunes16.dylib
           U="$(command -v uicache || true)"; [ -n "$U" ] || U=/var/jb/usr/bin/uicache
           "$U" -p "$APP" >/dev/null 2>&1 || "$U" -a >/dev/null 2>&1
-
           launchctl bootout system/com.nightvibes.byetunes16d >/dev/null 2>&1 || true
           launchctl bootstrap system /var/jb/Library/LaunchDaemons/com.nightvibes.byetunes16d.plist >/dev/null 2>&1 || launchctl load /var/jb/Library/LaunchDaemons/com.nightvibes.byetunes16d.plist >/dev/null 2>&1 || true
           launchctl kickstart -k system/com.nightvibes.byetunes16d >/dev/null 2>&1 || true
           sleep 2
-
           O="$(command -v uiopen || true)"; [ -n "$O" ] || O=/var/jb/usr/bin/uiopen
           "$O" byetunes:// >/dev/null 2>&1
           sleep 6
-
-          echo '=== BYETUNES APP ==='
-          ls -la "$APP"
-          echo '=== UICACHE ==='
-          "$U" -l 2>/dev/null | grep -i 'com.nightvibes.byetunes' || true
-          echo '=== GUI REGISTRATION ==='
-          launchctl print gui/501 2>/dev/null | grep -i -A5 -B5 'com.nightvibes.byetunes' || true
+          echo '=== BYETUNES APP ==='; ls -la "$APP"
+          echo '=== UICACHE ==='; "$U" -l 2>/dev/null | grep -i 'com.nightvibes.byetunes' || true
           C="$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -name 'ByeTunes-*.ips' -o -name 'ByeTunes-*.crash' \) -mmin -3 -print 2>/dev/null || true)"
-          printf 'recent_crashes=%s\n' "$C"
-          test -z "$C"
+          printf 'recent_crashes=%s\n' "$C"; test -z "$C"
           echo REAL_BYETUNES_APP_INSTALLED
           SH
           { printf '%s\n' "$PASS"; cat /tmp/install.sh; } | timeout 100s sshpass -e ssh -p "$PORT" -o BatchMode=no -o ConnectTimeout=10 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s' | tee install.txt
           grep -q REAL_BYETUNES_APP_INSTALLED install.txt
 
-      - name: Verify daemon after Home Screen app launch
+      - name: Verify daemon after app launch
         run: |
           set -euo pipefail
           sshpass -e ssh -f -N -L 45981:127.0.0.1:45981 -p "$PORT" -o ExitOnForwardFailure=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST"
           sleep 2
           printf '%s\n' '{"op":"probe"}' | nc -w 10 127.0.0.1 45981 | tee probe.json
-          grep -q '"ok":true' probe.json
-          grep -q '"quickCheck":"ok"' probe.json
-          grep -q '"schemaOK":true' probe.json
+          grep -q '"ok":true' probe.json; grep -q '"quickCheck":"ok"' probe.json; grep -q '"schemaOK":true' probe.json
           echo REAL_BYETUNES_END_TO_END_PASS
 
       - name: Upload diagnostics
