@@ -1,0 +1,9 @@
+Package: com.nightvibes.misaka15compat
+Name: Misaka 15.8.8 Compatibility
+Version: 0.1.0
+Architecture: iphoneos-arm64
+Description: Exact-version rootless compatibility shim for Misaka 8.2.4 Beta on iPhone8,1 iOS 15.8.8. Disables the unsupported startup KFD initialization while leaving other app behavior untouched.
+Maintainer: NightVibes33
+Author: NightVibes33
+Section: Tweaks
+Depends: firmware (>= 15.8.8), firmware (<< 15.9), ellekit
