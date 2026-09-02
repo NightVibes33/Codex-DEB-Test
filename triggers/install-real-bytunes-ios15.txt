@@ -1,0 +1,5 @@
+trigger=2026-09-01T23:33:00-05:00
+target=iPhone8,1 iOS 15.8.8
+source=NightVibes33/ByeTunes ios15-real-test release
+bundle=com.EduAlexxis.MusicManager
+remove_reconstructed_only_after_real_launch=true
