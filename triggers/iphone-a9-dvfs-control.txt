@@ -1,4 +1,5 @@
-run=continue-single-pte-validation-2026-09-01
-purpose=validate-single-pte-mmio-noop-stock-p8-100ms-detached
-workflow_commit=0f9f009d4c9833c02457ff26d28a5cfaeacef488
-nonce=20260901-continue-01
+run=2026-09-01T22:20:00-05:00
+purpose=validate-dopamine-magic-pte-layout-before-device-mmio
+stage=layout
+helper_commit=a8d6741e7e2be5fe849482f70d01f5daabcb11cc
+workflow_commit=fafabb053a14bc3bb8a70c3134c7547e071fc288
