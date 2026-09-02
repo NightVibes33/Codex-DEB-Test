@@ -17,11 +17,13 @@ concurrency:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 8
     environment:
       name: TAILSCALE_AUTHKEY-
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: tailscale/github-action@v4
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
@@ -36,9 +38,39 @@ jobs:
           SSHPASS: ${{ secrets.IPAD_PASSWORD }}
         shell: bash
         run: |
-          set -euo pipefail
+          set -u
+          : > a9-control-probe.txt
+          exec > >(tee -a a9-control-probe.txt) 2>&1
+          echo '=== CONNECTIVITY ==='
+          tailscale status || true
+          reachable=0
+          for attempt in 1 2 3 4 5 6; do
+            echo "REACHABILITY_ATTEMPT=$attempt"
+            if tailscale ping --timeout=5s "$IPHONE_HOST" 2>&1; then
+              reachable=1
+              break
+            fi
+            sleep 5
+          done
+          if [ "$reachable" -ne 1 ]; then
+            echo 'RESULT=PHONE_OFFLINE'
+            exit 20
+          fi
           mkdir -p "$HOME/.ssh"; chmod 700 "$HOME/.ssh"
-          ssh-keyscan -T 15 -H "$IPHONE_HOST" > "$HOME/.ssh/known_hosts"
+          : > "$HOME/.ssh/known_hosts"
+          key_ok=0
+          for attempt in 1 2 3 4; do
+            echo "SSH_KEYSCAN_ATTEMPT=$attempt"
+            if ssh-keyscan -T 8 -H "$IPHONE_HOST" >> "$HOME/.ssh/known_hosts" 2>/dev/null && [ -s "$HOME/.ssh/known_hosts" ]; then
+              key_ok=1
+              break
+            fi
+            sleep 4
+          done
+          if [ "$key_ok" -ne 1 ]; then
+            echo 'RESULT=SSH_PORT_UNREACHABLE'
+            exit 21
+          fi
           chmod 600 "$HOME/.ssh/known_hosts"
           {
             printf '%s\n' "$IPHONE_PASSWORD"
@@ -58,42 +90,37 @@ jobs:
           jbctl --help 2>&1 | head -n 200 || true
           jbctl help 2>&1 | head -n 200 || true
           echo '=== BASEBIN ==='
-          ls -la /var/jb/basebin 2>/dev/null | head -n 240 || true
-          echo '=== KERNEL R/W CANDIDATES ==='
-          find /var/jb /usr/local /opt -maxdepth 5 \( -type f -o -type l \) 2>/dev/null \
-            | grep -Ei '/(libkrw|libjailbreak|libkfd|kread|kwrite|ktool|krw|physrw|memctl|kernelrw|kcall|jbctl|Dopamine|ElleKit)' \
-            | head -n 500 || true
+          ls -la /var/jb/basebin 2>/dev/null | head -n 300 || true
+          echo '=== LIBKRW / LIBJAILBREAK PACKAGES ==='
+          dpkg -l 2>/dev/null | grep -Ei 'libkrw|libjailbreak|dopamine|ellekit' || true
+          find /var/jb -maxdepth 6 \( -type f -o -type l \) 2>/dev/null \
+            | grep -Ei '(libkrw|libjailbreak|libkfd|krw|kcall|physrw|jbctl)' \
+            | head -n 600 || true
           echo '=== LIBRARY SYMBOLS ==='
-          for f in /var/jb/basebin/*.dylib /var/jb/usr/lib/*.dylib /var/jb/usr/lib/lib*.so*; do
-            [ -f "$f" ] || continue
-            bn="$(basename "$f")"
-            case "$bn" in
-              *jailbreak*|*krw*|*kfd*|*ellekit*|*root*)
-                echo "FILE=$f"
-                nm -g "$f" 2>/dev/null | grep -Ei 'kread|kwrite|kcall|kernel|phys|virt|kalloc|kfree|slide|pmap|io.*map' | head -n 180 || true
-                strings "$f" 2>/dev/null | grep -Ei 'kread|kwrite|kcall|kernel read|kernel write|physical|physrw|kernel slide' | head -n 100 || true
-                ;;
-            esac
+          find /var/jb -maxdepth 6 -type f 2>/dev/null | grep -Ei '(libjailbreak|libkrw|krw.*plugin|provider).*\.(dylib|so)$' | while IFS= read -r f; do
+            echo "FILE=$f"
+            nm -g "$f" 2>/dev/null | grep -Ei 'jbclient_initialize_primitives|kread|kwrite|kcall|physread|physwrite|kalloc|kfree|kernel|kbase' | head -n 240 || true
+            strings "$f" 2>/dev/null | grep -Ei 'jbclient_initialize_primitives|kread|kwrite|kcall|physread|physwrite|kernel slide|kernel base' | head -n 120 || true
           done
-          echo '=== PMGR / CLPC SERVICES ==='
+          echo '=== PMGR / CLPC / SGX SERVICES ==='
           if command -v ioreg >/dev/null 2>&1; then
-            ioreg -r -n pmgr -l -w0 2>/dev/null | grep -Ei 'class |compatible|voltage-states|boost-performance|IODeviceMemory|clpc|performance' | head -n 350 || true
-            ioreg -r -n clpc -l -w0 2>/dev/null | grep -Ei 'class |compatible|IODeviceMemory|performance|perf|gpu|cpu|throughput' | head -n 350 || true
-            ioreg -r -n sgx -l -w0 2>/dev/null | grep -Ei 'class |compatible|perf-states|gpu-num-perf-states|IODeviceMemory|power|utilization' | head -n 350 || true
+            ioreg -r -n pmgr -l -w0 2>/dev/null | grep -Ei 'class |compatible|voltage-states|boost-performance|IODeviceMemory|clpc|performance' | head -n 400 || true
+            ioreg -r -n clpc -l -w0 2>/dev/null | grep -Ei 'class |compatible|IODeviceMemory|performance|perf|gpu|cpu|throughput' | head -n 400 || true
+            ioreg -r -n sgx -l -w0 2>/dev/null | grep -Ei 'class |compatible|perf-states|gpu-num-perf-states|IODeviceMemory|power|utilization' | head -n 400 || true
           fi
-          echo '=== DRIVER FILE CANDIDATES ==='
-          find /System/Library/Extensions /System/Library/DriverExtensions -maxdepth 4 -type f 2>/dev/null \
-            | grep -Ei 'ApplePMGR|AppleCLPC|AppleD5500|AGX|PowerVR|SGX' | head -n 240 || true
           echo '=== RESULT ==='
           echo 'RESULT=READ_ONLY_COMPLETE'
           EOS
-          } | timeout 180 sshpass -e ssh -o BatchMode=no -o ConnectTimeout=20 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" mobile@"$IPHONE_HOST" 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' 2>&1 | tee a9-control-probe.txt
+          } | timeout 180 sshpass -e ssh -o BatchMode=no -o ConnectTimeout=20 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" mobile@"$IPHONE_HOST" 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s'
+          rc=$?
+          echo "SSH_PROBE_RC=$rc"
+          exit "$rc"
       - name: Publish sanitized report
         if: always()
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p reports
+          mkdir -p /tmp/a9-report
           {
             echo '# A9 overclock control-path probe'
             echo
@@ -101,10 +128,14 @@ jobs:
             echo "Commit: $GITHUB_SHA"
             echo
             cat a9-control-probe.txt 2>/dev/null || true
-          } > reports/a9-control-latest.txt
-          sed -Ei '/(serial|unique.?chip|ecid|imei|mac.?address|wifi.?address|bluetooth.?address)/Id' reports/a9-control-latest.txt
+          } > /tmp/a9-report/a9-control-latest.txt
+          sed -Ei '/(serial|unique.?chip|ecid|imei|mac.?address|wifi.?address|bluetooth.?address)/Id' /tmp/a9-report/a9-control-latest.txt
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin main
+          git reset --hard origin/main
+          mkdir -p reports
+          cp /tmp/a9-report/a9-control-latest.txt reports/a9-control-latest.txt
           git add reports/a9-control-latest.txt
           if ! git diff --cached --quiet; then
             git commit -m 'Update A9 control-path report'
@@ -113,6 +144,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: iphone-a9-control-probe-${{ github.run_id }}
+          name: iphone-a9-control-probe-${{ github.run_id }}-${{ github.run_attempt }}
           path: a9-control-probe.txt
           retention-days: 7
