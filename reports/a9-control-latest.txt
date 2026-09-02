@@ -1,20 +1,20 @@
 # A9 overclock control-path probe
 
-Run: 33586033607
-Commit: 1f959d06679f2332ac988cac9085405cf361672e
+Run: 33586354221
+Commit: 029e106500f0b4d6f176e36e4188de1726d8726a
 
 === CONNECTIVITY ===
-100.121.115.40  github-runnervmgx7h7-1  NightVibes33@  linux    -                           
+100.97.127.81   github-runnervmgx7h7-1  NightVibes33@  linux    -                           
 100.116.117.65  bobbys-ipad             NightVibes33@  iOS      -                           
 100.127.94.70   desktop-o56xs           NightVibes33@  windows  offline, last seen 38d ago  
-100.97.52.69    github-runnervmgx7h7    NightVibes33@  linux    -                           
+100.73.81.39    github-runnervmgx7h7    NightVibes33@  linux    -                           
 100.96.37.124   iphone                  NightVibes33@  iOS      -                           
 100.79.177.16   iphone173               NightVibes33@  iOS      offline, last seen 1d ago   
 REACHABILITY_ATTEMPT=1
-pong from iphone (100.96.37.124) via DERP(dfw) in 63ms
-pong from iphone (100.96.37.124) via DERP(dfw) in 30ms
-pong from iphone (100.96.37.124) via DERP(dfw) in 31ms
-pong from iphone (100.96.37.124) via 57.138.38.169:44073 in 24ms
+pong from iphone (100.96.37.124) via DERP(dfw) in 131ms
+pong from iphone (100.96.37.124) via DERP(dfw) in 51ms
+pong from iphone (100.96.37.124) via DERP(dfw) in 68ms
+pong from iphone (100.96.37.124) via 57.138.38.169:44073 in 42ms
 SSH_KEYSCAN_ATTEMPT=1
 === A9 CONTROL PATH READ-ONLY PROBE ===
 KERNEL_WRITES=0
@@ -22,10 +22,12 @@ PMGR_WRITES=0
 CLOCK_WRITES=0
 VOLTAGE_WRITES=0
 === DEVICE ===
+Tue Sep  1 22:16:05 CDT 2026
 Darwin iPhone 21.6.0 Darwin Kernel Version 21.6.0: Fri Mar  6 21:01:24 PST 2026; root:xnu-8020.241.44~1/RELEASE_ARM64_S8000 iPhone8,1 arm Darwin
 hw.model: N71AP
 hw.machine: iPhone8,1
 kern.osversion: 19H422
+kern.boottime: { sec = 1788318229, usec = 738661 } Tue Sep  1 22:03:49 2026
 === JBCTL ===
 /var/jb/usr/bin/jbctl
 === BASEBIN ===
@@ -79,7 +81,7 @@ ii  libroot-dopamine                                           1.0.1            
   |   "clpc" = <01000000>
   +-o AppleS8000PMGR  <class AppleS8000PMGR, id 0x1000001e4, registered, matched, active, busy 0 (311 ms), retain 22>
     |   "AppleARMPerformanceControllerDVDThresholdUS1" = 1000
-    |   "AppleARMPerformanceControllerDVDFactor1-slowloop" = 36700
+    |   "AppleARMPerformanceControllerDVDFactor1-slowloop" = 28835
     |   "AppleARMPerformanceControllerDVDFactor1-lpm" = 65536
     |   "AppleARMPerformanceControllerDVDFactor1-upo" = 65536
     |   "AppleARMPerformanceControllerDVDFactor1-hip" = 65536
@@ -143,7 +145,7 @@ ii  libroot-dopamine                                           1.0.1            
         "SoCThroughputGPUKiUp" = 6553
         "CPUPowerKiDown" = 3276
         "MemPerformanceState" = 0
-        "CPUPowerTarget" = 211550
+        "CPUPowerTarget" = 251789
         "CPUUtilizationKiDownSlow" = 3276
         "CPUBusyThresholdMHz" = 32768000
         "SoCThroughputGPUThreshold" = 163840
@@ -173,7 +175,7 @@ ii  libroot-dopamine                                           1.0.1            
         "CPUUtilizationKiDownNominal" = 3276
         "MinCPUControlEffort" = 0
         "CPUFastUtilizationThreshold" = 32768
-+-o sgx@1000000  <class AppleARMIODevice, id 0x10000016a, registered, matched, active, busy 0 (392 ms), retain 8>
++-o sgx@1000000  <class AppleARMIODevice, id 0x10000016a, registered, matched, active, busy 0 (397 ms), retain 8>
   |   "gpu-num-perf-states" = <04000000>
   |   "gpu-perf-tgt-utilization" = <5f000000>
   |   "perf-states" = <00000000f401000000fd4314cb02000080aa401c0d0300008055c820200300000054ea2a9303000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000>
@@ -182,15 +184,16 @@ ii  libroot-dopamine                                           1.0.1            
   |   "power-gates" = <7c000000>
   |   "gpu-device-max-power" = <28140000>
   |   "compatible" = <"gpu,s8000">
-  +-o AGXAcceleratorG5P_C0  <class AGXAcceleratorG5P_C0, id 0x100000257, registered, matched, active, busy 0 (15 ms), retain 29>
+  +-o AGXAcceleratorG5P_C0  <class AGXAcceleratorG5P_C0, id 0x100000257, registered, matched, active, busy 0 (20 ms), retain 13>
     |   "IOPowerManagement" = {"CurrentPowerState"=1,"CapabilityFlags"=2,"MaxPowerState"=1,"DriverPowerState"=1}
-    |   "PerformanceStatistics" = {"TiledSceneBytes"=249856,"Alloc system memory"=50757632,"Tiler Utilization %"=21,"recoveryCount"=0,"Renderer Utilization %"=17,"SplitSceneCount"=0,"Allocated PB Size"=2490368,"Device Utilization %"=22,"In use system memory"=34537472}
+    |   "PerformanceStatistics" = {"TiledSceneBytes"=217088,"Alloc system memory"=62652416,"Tiler Utilization %"=24,"recoveryCount"=0,"Renderer Utilization %"=21,"SplitSceneCount"=0,"Allocated PB Size"=3407872,"Device Utilization %"=26,"In use system memory"=31440896}
     +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100000803, !registered, !matched, active, busy 0, retain 5>
     +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100000806, !registered, !matched, active, busy 0, retain 5>
     +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100000866, !registered, !matched, active, busy 0, retain 5>
     +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x10000091f, !registered, !matched, active, busy 0, retain 5>
     +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100000991, !registered, !matched, active, busy 0, retain 5>
-    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x1000009e1, !registered, !matched, active, busy 0, retain 5>
+    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100000a68, !registered, !matched, active, busy 0, retain 5>
+    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100000a97, !registered, !matched, active, busy 0, retain 5>
 === RESULT ===
 RESULT=READ_ONLY_COMPLETE
 SSH_PROBE_RC=0
