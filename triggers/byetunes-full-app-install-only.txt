@@ -1,4 +1,5 @@
-trigger=2026-09-01T22:11:00-05:00
+trigger=2026-09-01T22:12:00-05:00
 source_run=33585678855
 source_artifact=ByeTunes-0.3.0-Full-App
 target=iPhone8,1 iOS 15.8.8 dynamically discovered
+attempt=2
