@@ -1,4 +1,4 @@
-run=2026-09-01T22:10:00-05:00
-purpose=post-mmio-probe-health-and-reboot-check-read-only
+run=2026-09-01T22:14:00-05:00
+purpose=confirm-boot-time-after-mmio-probe-failure-read-only
 reference_dvfs_run=33585293941
-reference_dvfs_report_commit=29300353
+probe_workflow_commit=81b73892d88b984ea042c2b9db16f702487a8728
