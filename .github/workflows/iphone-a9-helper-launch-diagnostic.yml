@@ -1,0 +1,129 @@
+name: iPhone A9 Helper Launch Diagnostic
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/iphone-a9-helper-launch-diagnostic.txt
+
+permissions:
+  contents: read
+
+concurrency:
+  group: iphone-a9-helper-launch-diagnostic
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build known-good-source and current helpers
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show a8d6741e7e2be5fe849482f70d01f5daabcb11cc:tools/a9krw/a9krw.c > /tmp/a9krw-old.c
+          cp tools/a9krw/a9krw.c /tmp/a9krw-new.c
+          for V in old new; do
+            xcrun --sdk iphoneos clang -arch arm64 -miphoneos-version-min=15.0 -Os -Wall -Wextra "/tmp/a9krw-${V}.c" -o a9krw
+            codesign --force --sign - --entitlements tools/a9krw/entitlements.plist a9krw
+            codesign -dvvv --entitlements :- a9krw 2>&1 | tee "codesign-${V}.txt"
+            H="$(sed -n 's/^CDHash=//p' "codesign-${V}.txt" | head -n1 | tr -d '[:space:]')"
+            [[ "$H" =~ ^[0-9A-Fa-f]{40}$ ]]
+            grep -q '<key>platform-application</key>' "codesign-${V}.txt"
+            grep -q 'IOSurfaceRootUserClient' "codesign-${V}.txt"
+            printf '%s\n' "$H" > "a9krw-${V}.cdhash"
+            mv a9krw "a9krw-${V}"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: a9-helper-ab
+          path: |
+            a9krw-old
+            a9krw-new
+            a9krw-old.cdhash
+            a9krw-new.cdhash
+          retention-days: 2
+
+  diagnose:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: TAILSCALE_AUTHKEY-
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: a9-helper-ab
+          path: helper
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - name: Install SSH client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends openssh-client sshpass >/dev/null
+      - name: Verify trustcache then A/B init-only launch
+        env:
+          IPHONE_HOST: 100.96.37.124
+          IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          OLD_HASH="$(tr -d '[:space:]' < helper/a9krw-old.cdhash)"
+          NEW_HASH="$(tr -d '[:space:]' < helper/a9krw-new.cdhash)"
+          chmod 755 helper/a9krw-old helper/a9krw-new
+
+          mkdir -p "$HOME/.ssh"; chmod 700 "$HOME/.ssh"; : > "$HOME/.ssh/known_hosts"
+          ok=0
+          for n in $(seq 1 20); do
+            echo "WAIT_PHONE_ATTEMPT=$n"
+            if tailscale ping --timeout=4s "$IPHONE_HOST" >/dev/null 2>&1; then
+              ssh-keyscan -T 6 -H "$IPHONE_HOST" > "$HOME/.ssh/known_hosts.tmp" 2>/dev/null || true
+              if [ -s "$HOME/.ssh/known_hosts.tmp" ]; then
+                mv "$HOME/.ssh/known_hosts.tmp" "$HOME/.ssh/known_hosts"; chmod 600 "$HOME/.ssh/known_hosts"
+                if sshpass -e ssh -o ConnectTimeout=6 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" mobile@"$IPHONE_HOST" 'echo SSH_OK' 2>/dev/null | grep -q SSH_OK; then ok=1; break; fi
+              fi
+            fi
+            sleep 4
+          done
+          [ "$ok" = 1 ] || { echo RESULT=PHONE_OFFLINE; exit 20; }
+
+          SSH=(sshpass -e ssh -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" mobile@"$IPHONE_HOST")
+          SCP=(sshpass -e scp -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts")
+          rootrun() {
+            local cmd="$1"
+            { printf '%s\n' "$IPHONE_PASSWORD"; printf '%s\n' 'export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH'; printf '%s\n' "$cmd"; } |
+              "${SSH[@]}" 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s'
+          }
+
+          "${SCP[@]}" helper/a9krw-old helper/a9krw-new mobile@"$IPHONE_HOST":/var/mobile/Documents/
+          rootrun "chmod 755 /var/mobile/Documents/a9krw-old /var/mobile/Documents/a9krw-new; /var/jb/usr/bin/jbctl trustcache add '$OLD_HASH'; /var/jb/usr/bin/jbctl trustcache add '$NEW_HASH'; echo TRUSTCACHE_ADD_RC=0"
+          rootrun "/var/jb/usr/bin/jbctl trustcache info | grep -qi '$OLD_HASH' && echo OLD_HASH_PRESENT=1"
+          rootrun "/var/jb/usr/bin/jbctl trustcache info | grep -qi '$NEW_HASH' && echo NEW_HASH_PRESENT=1"
+          rootrun "echo === OLD_ENTITLEMENTS ===; /var/jb/usr/bin/ldid -e /var/mobile/Documents/a9krw-old 2>&1; echo === NEW_ENTITLEMENTS ===; /var/jb/usr/bin/ldid -e /var/mobile/Documents/a9krw-new 2>&1"
+          rootrun "sysctl kern.boottime" | tee before.txt
+          BEFORE_SEC="$(sed -n 's/.*sec = \([0-9][0-9]*\).*/\1/p' before.txt | head -n1)"
+
+          set +e
+          rootrun "/var/mobile/Documents/a9krw-old init-only"
+          OLD_RC=$?
+          echo "OLD_INIT_RC=$OLD_RC"
+          rootrun "/var/mobile/Documents/a9krw-new init-only"
+          NEW_RC=$?
+          echo "NEW_INIT_RC=$NEW_RC"
+          set -e
+
+          rootrun "sysctl kern.boottime" | tee after.txt
+          AFTER_SEC="$(sed -n 's/.*sec = \([0-9][0-9]*\).*/\1/p' after.txt | head -n1)"
+          echo "BOOT_BEFORE_SEC=$BEFORE_SEC"
+          echo "BOOT_AFTER_SEC=$AFTER_SEC"
+          [ -n "$BEFORE_SEC" ] && [ "$BEFORE_SEC" = "$AFTER_SEC" ] || { echo RESULT=BOOT_CHANGED; exit 92; }
+          echo "RESULT=AB_COMPLETE old_rc=$OLD_RC new_rc=$NEW_RC"
+          [ "$OLD_RC" = 0 ] || exit 81
+          [ "$NEW_RC" = 0 ] || exit 82
