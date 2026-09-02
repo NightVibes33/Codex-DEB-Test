@@ -30,11 +30,13 @@ jobs:
             -Os -Wall -Wextra \
             tools/a9krw/a9krw.c \
             -o a9krw
-          codesign --force --sign - a9krw
+          codesign --force --sign - --entitlements tools/a9krw/entitlements.plist a9krw
           file a9krw
-          codesign -dvvv a9krw 2>&1 | tee codesign.txt
+          codesign -dvvv --entitlements :- a9krw 2>&1 | tee codesign.txt
           CDHASH="$(sed -n 's/^CDHash=//p' codesign.txt | head -n1 | tr -d '[:space:]')"
           [[ "$CDHASH" =~ ^[0-9A-Fa-f]{40}$ ]] || { echo "Invalid CDHash: $CDHASH"; exit 1; }
+          grep -q '<key>platform-application</key>' codesign.txt
+          grep -q 'IOSurfaceRootUserClient' codesign.txt
           printf '%s\n' "$CDHASH" > a9krw.cdhash
           echo "CDHASH_READY=1"
       - uses: actions/upload-artifact@v4
@@ -100,8 +102,11 @@ jobs:
 
           rootrun() {
             local cmd="$1"
-            { printf '%s\n' "$IPHONE_PASSWORD"; printf '%s\n' "$cmd"; } \
-              | "${SSH[@]}" 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s'
+            { 
+              printf '%s\n' "$IPHONE_PASSWORD"
+              printf '%s\n' 'export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH'
+              printf '%s\n' "$cmd"
+            } | "${SSH[@]}" 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s'
           }
 
           rootrun "set -e; chmod 755 /var/mobile/Documents/a9krw; /var/jb/usr/bin/jbctl trustcache add '$CDHASH'; echo HELPER_TRUSTED=1"
