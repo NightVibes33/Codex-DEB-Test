@@ -29,7 +29,7 @@ static BOOL NVExactUUID(const struct mach_header_64 *header) {
 static NSString *NVMachine(void) {
     size_t size = 0;
     if (sysctlbyname("hw.machine", NULL, &size, NULL, 0) != 0 || size == 0) return @"";
-    char *buf = calloc(1, size + 1);
+    char *buf = (char *)calloc(1, size + 1);
     if (!buf) return @"";
     if (sysctlbyname("hw.machine", buf, &size, NULL, 0) != 0) { free(buf); return @""; }
     NSString *result = [NSString stringWithUTF8String:buf] ?: @"";
