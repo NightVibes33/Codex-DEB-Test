@@ -98,7 +98,7 @@ jobs:
           echo "HOST=$HOST" >> "$GITHUB_ENV"
           echo "selected_host=$HOST" | tee selected.txt
 
-      - name: Inspect installed Misaka and crashes
+      - name: Inspect registered Misaka binary and crashes
         run: |
           set -euo pipefail
           cat >/tmp/diag.sh <<'SH'
@@ -106,42 +106,52 @@ jobs:
           echo '=== DEVICE ==='
           uname -a || true
           sw_vers 2>/dev/null || true
-          echo '=== UICACHE ==='
           U="$(command -v uicache || true)"; [ -n "$U" ] || U=/var/jb/usr/bin/uicache
-          "$U" -l 2>/dev/null | grep -i -E 'misaka|straight-tamago' || true
-          echo '=== LOCATE APP ==='
-          APP=''
-          for root in /var/containers/Bundle/Application /Applications /var/jb/Applications; do
-            [ -d "$root" ] || continue
-            while IFS= read -r p; do
-              [ -f "$p/Info.plist" ] || continue
-              BID="$(plutil -extract CFBundleIdentifier raw -o - "$p/Info.plist" 2>/dev/null || /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$p/Info.plist" 2>/dev/null || true)"
-              case "$BID" in *misaka*|*Misaka*|com.straight-tamago.misakaRS) APP="$p"; echo "found=$p bundle=$BID"; break 2;; esac
-            done <<EOF
-          $(find "$root" -maxdepth 3 -type d -name '*.app' -print 2>/dev/null)
-          EOF
-          done
-          [ -n "$APP" ] || { echo MISAKA_NOT_INSTALLED; exit 31; }
-          EXE_NAME="$(plutil -extract CFBundleExecutable raw -o - "$APP/Info.plist" 2>/dev/null || true)"
-          [ -n "$EXE_NAME" ] || EXE_NAME=Misaka
-          EXE="$APP/$EXE_NAME"
+          echo '=== UICACHE ==='
+          ROW="$($U -l 2>/dev/null | grep -i '^com\.straight-tamago\.misakaRS ' | head -n1 || true)"
+          printf '%s\n' "$ROW"
+          [ -n "$ROW" ] || { echo MISAKA_NOT_REGISTERED; exit 31; }
+          APP="${ROW#* : }"
+          [ -d "$APP" ] || { echo "MISAKA_PATH_MISSING=$APP"; exit 32; }
           echo "app=$APP"
+
+          echo '=== INFO.PLIST ==='
+          plutil -p "$APP/Info.plist" 2>/dev/null || strings "$APP/Info.plist" 2>/dev/null || true
+          echo '=== APP FILES ==='
+          ls -la "$APP" || true
+
+          EXE=''
+          if [ -x "$APP/misaka" ]; then EXE="$APP/misaka"; fi
+          if [ -z "$EXE" ]; then
+            for f in "$APP"/*; do
+              [ -f "$f" ] || continue
+              [ -x "$f" ] || continue
+              if command -v file >/dev/null 2>&1 && file "$f" 2>/dev/null | grep -q 'Mach-O'; then EXE="$f"; break; fi
+            done
+          fi
+          [ -n "$EXE" ] || { echo MISAKA_EXECUTABLE_NOT_FOUND; exit 33; }
           echo "exe=$EXE"
-          echo '=== INFO ==='
-          plutil -p "$APP/Info.plist" 2>/dev/null || cat "$APP/Info.plist" || true
+
           echo '=== BINARY ==='
-          file "$EXE" || true
+          file "$EXE" 2>/dev/null || true
           ls -l "$EXE" || true
           if command -v ldid >/dev/null 2>&1; then ldid -e "$EXE" 2>/dev/null || true; elif [ -x /var/jb/usr/bin/ldid ]; then /var/jb/usr/bin/ldid -e "$EXE" 2>/dev/null || true; fi
+
           echo '=== VERSION / EXPLOIT STRINGS ==='
-          strings "$EXE" 2>/dev/null | grep -i -E '15\.8\.1|15\.8\.8|unsupported|not supported|KFD|MacDirtyCow|puaf|landa|systemVersion|operatingSystemVersion' | head -n 250 || true
+          strings "$EXE" 2>/dev/null | grep -i -E '15\.8\.1|15\.8\.8|unsupported|not supported|KFD|MacDirtyCow|puaf|landa|systemVersion|operatingSystemVersion|kern\.osproductversion' | head -n 400 || true
+
           echo '=== RECENT MISAKA CRASHES ==='
-          find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -iname 'Misaka-*.ips' -o -iname 'Misaka-*.crash' -o -iname '*misaka*.ips' -o -iname '*misaka*.crash' \) -print 2>/dev/null | tail -n 12 | while read -r c; do echo "--- $c ---"; tail -n 220 "$c" 2>/dev/null || true; done
-          echo '=== REGISTER ==='
+          find /var/mobile/Library/Logs/CrashReporter -maxdepth 1 -type f \( -iname 'Misaka-*.ips' -o -iname 'misaka-*.ips' -o -iname 'Misaka-*.crash' -o -iname 'misaka-*.crash' -o -iname '*misaka*.ips' -o -iname '*misaka*.crash' \) -print 2>/dev/null | tail -n 15 | while read -r c; do echo "--- $c ---"; tail -n 260 "$c" 2>/dev/null || true; done
+
+          echo '=== PROCESS / URL SCHEMES ==='
+          pgrep -fl -i misaka 2>/dev/null || true
+          strings "$APP/Info.plist" 2>/dev/null | grep -i -A4 -B4 -E 'CFBundleURLSchemes|misaka' | head -n 120 || true
+
+          echo '=== RE-REGISTER ==='
           "$U" -p "$APP" >/dev/null 2>&1 || "$U" -a >/dev/null 2>&1 || true
           echo MISAKA_DIAG_PASS
           SH
-          { printf '%s\n' "$PASS"; cat /tmp/diag.sh; } | timeout 100s sshpass -e ssh -p "$PORT" -o BatchMode=no -o ConnectTimeout=10 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s' | tee misaka-diagnose.txt
+          { printf '%s\n' "$PASS"; cat /tmp/diag.sh; } | timeout 110s sshpass -e ssh -p "$PORT" -o BatchMode=no -o ConnectTimeout=10 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" "mobile@$HOST" 'S="$(command -v sh || echo /var/jb/bin/sh)"; sudo -k; exec sudo -S -p "" "$S" -s' | tee misaka-diagnose.txt
           grep -q MISAKA_DIAG_PASS misaka-diagnose.txt
 
       - name: Upload diagnostics
