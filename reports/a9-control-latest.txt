@@ -1,19 +1,19 @@
 # A9 overclock control-path probe
 
-Run: 33583911711
-Commit: 97a74feb65a82464b159b6f6287ae2b64a700352
+Run: 33584742149
+Commit: 9883712e0ab14a92f86fd1d5efc2e95c20427ba7
 
 === CONNECTIVITY ===
-100.116.53.9    github-runnervmgx7h7  NightVibes33@  linux    -                           
+100.113.203.68  github-runnervmgx7h7  NightVibes33@  linux    -                           
 100.116.117.65  bobbys-ipad           NightVibes33@  iOS      -                           
 100.127.94.70   desktop-o56xs         NightVibes33@  windows  offline, last seen 38d ago  
 100.96.37.124   iphone                NightVibes33@  iOS      -                           
 100.79.177.16   iphone173             NightVibes33@  iOS      offline, last seen 1d ago   
 REACHABILITY_ATTEMPT=1
-pong from iphone (100.96.37.124) via DERP(dfw) in 109ms
-pong from iphone (100.96.37.124) via DERP(dfw) in 77ms
-pong from iphone (100.96.37.124) via DERP(dfw) in 32ms
-pong from iphone (100.96.37.124) via 57.138.38.169:43095 in 24ms
+pong from iphone (100.96.37.124) via DERP(dfw) in 194ms
+pong from iphone (100.96.37.124) via DERP(dfw) in 119ms
+pong from iphone (100.96.37.124) via DERP(dfw) in 132ms
+pong from iphone (100.96.37.124) via 57.138.38.169:43095 in 122ms
 SSH_KEYSCAN_ATTEMPT=1
 === A9 CONTROL PATH READ-ONLY PROBE ===
 KERNEL_WRITES=0
@@ -141,7 +141,7 @@ ii  libroot-dopamine                                           1.0.1            
         "SoCThroughputGPUKiUp" = 6553
         "CPUPowerKiDown" = 3276
         "MemPerformanceState" = 0
-        "CPUPowerTarget" = 201916
+        "CPUPowerTarget" = 205783
         "CPUUtilizationKiDownSlow" = 3276
         "CPUBusyThresholdMHz" = 32768000
         "SoCThroughputGPUThreshold" = 163840
@@ -171,7 +171,7 @@ ii  libroot-dopamine                                           1.0.1            
         "CPUUtilizationKiDownNominal" = 3276
         "MinCPUControlEffort" = 0
         "CPUFastUtilizationThreshold" = 32768
-+-o sgx@1000000  <class AppleARMIODevice, id 0x10000016a, registered, matched, active, busy 0 (485 ms), retain 8>
++-o sgx@1000000  <class AppleARMIODevice, id 0x10000016a, registered, matched, active, busy 0 (496 ms), retain 8>
   |   "gpu-num-perf-states" = <04000000>
   |   "gpu-perf-tgt-utilization" = <5f000000>
   |   "perf-states" = <00000000f401000000fd4314cb02000080aa401c0d0300008055c820200300000054ea2a9303000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000>
@@ -180,9 +180,9 @@ ii  libroot-dopamine                                           1.0.1            
   |   "power-gates" = <7c000000>
   |   "gpu-device-max-power" = <28140000>
   |   "compatible" = <"gpu,s8000">
-  +-o AGXAcceleratorG5P_C0  <class AGXAcceleratorG5P_C0, id 0x10000020f, registered, matched, active, busy 0 (99 ms), retain 17>
+  +-o AGXAcceleratorG5P_C0  <class AGXAcceleratorG5P_C0, id 0x10000020f, registered, matched, active, busy 0 (110 ms), retain 19>
     |   "IOPowerManagement" = {"CurrentPowerState"=1,"CapabilityFlags"=2,"MaxPowerState"=1,"DriverPowerState"=1}
-    |   "PerformanceStatistics" = {"TiledSceneBytes"=282624,"Alloc system memory"=128204800,"Tiler Utilization %"=24,"recoveryCount"=0,"Renderer Utilization %"=19,"SplitSceneCount"=0,"Allocated PB Size"=3932160,"Device Utilization %"=25,"In use system memory"=33554432}
+    |   "PerformanceStatistics" = {"TiledSceneBytes"=413696,"Alloc system memory"=218710016,"Tiler Utilization %"=30,"recoveryCount"=0,"Renderer Utilization %"=24,"SplitSceneCount"=0,"Allocated PB Size"=6160384,"Device Utilization %"=32,"In use system memory"=31391744}
     +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x1000007f3, !registered, !matched, active, busy 0, retain 5>
     +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x1000008dc, !registered, !matched, active, busy 0, retain 5>
     +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100000fab, !registered, !matched, active, busy 0, retain 5>
@@ -193,7 +193,9 @@ ii  libroot-dopamine                                           1.0.1            
     +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100003e5f, !registered, !matched, active, busy 0, retain 5>
     +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100003e64, !registered, !matched, active, busy 0, retain 5>
     +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100003ea5, !registered, !matched, active, busy 0, retain 5>
-    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100003ea8, !registered, !matched, active, busy 0, retain 5>
+    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100003ebf, !registered, !matched, active, busy 0, retain 5>
+    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100003efc, !registered, !matched, active, busy 0, retain 5>
+    +-o AGXDeviceUserClient  <class AGXDeviceUserClient, id 0x100003efd, !registered, !matched, active, busy 0, retain 5>
 === RESULT ===
 RESULT=READ_ONLY_COMPLETE
 SSH_PROBE_RC=0
