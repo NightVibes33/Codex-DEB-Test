@@ -83,8 +83,9 @@ jobs:
           echo 'CLOCK_WRITES=0'
           echo 'VOLTAGE_WRITES=0'
           echo '=== DEVICE ==='
+          date || true
           uname -a || true
-          sysctl hw.model hw.machine kern.osversion 2>&1 || true
+          sysctl hw.model hw.machine kern.osversion kern.boottime 2>&1 || true
           echo '=== JBCTL ==='
           command -v jbctl || true
           jbctl --help 2>&1 | head -n 200 || true
