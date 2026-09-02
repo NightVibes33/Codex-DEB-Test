@@ -1,0 +1,118 @@
+name: iPhone A9 Overclock Control Probe
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - triggers/iphone-a9-control-probe.txt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: iphone-a9-control-probe
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    environment:
+      name: TAILSCALE_AUTHKEY-
+    steps:
+      - uses: actions/checkout@v4
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends openssh-client sshpass >/dev/null
+      - name: Probe reversible A9 control paths
+        env:
+          IPHONE_HOST: 100.96.37.124
+          IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"; chmod 700 "$HOME/.ssh"
+          ssh-keyscan -T 15 -H "$IPHONE_HOST" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+          {
+            printf '%s\n' "$IPHONE_PASSWORD"
+            cat <<'EOS'
+          set +e
+          export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
+          echo '=== A9 CONTROL PATH READ-ONLY PROBE ==='
+          echo 'KERNEL_WRITES=0'
+          echo 'PMGR_WRITES=0'
+          echo 'CLOCK_WRITES=0'
+          echo 'VOLTAGE_WRITES=0'
+          echo '=== DEVICE ==='
+          uname -a || true
+          sysctl hw.model hw.machine kern.osversion 2>&1 || true
+          echo '=== JBCTL ==='
+          command -v jbctl || true
+          jbctl --help 2>&1 | head -n 200 || true
+          jbctl help 2>&1 | head -n 200 || true
+          echo '=== BASEBIN ==='
+          ls -la /var/jb/basebin 2>/dev/null | head -n 240 || true
+          echo '=== KERNEL R/W CANDIDATES ==='
+          find /var/jb /usr/local /opt -maxdepth 5 \( -type f -o -type l \) 2>/dev/null \
+            | grep -Ei '/(libkrw|libjailbreak|libkfd|kread|kwrite|ktool|krw|physrw|memctl|kernelrw|kcall|jbctl|Dopamine|ElleKit)' \
+            | head -n 500 || true
+          echo '=== LIBRARY SYMBOLS ==='
+          for f in /var/jb/basebin/*.dylib /var/jb/usr/lib/*.dylib /var/jb/usr/lib/lib*.so*; do
+            [ -f "$f" ] || continue
+            bn="$(basename "$f")"
+            case "$bn" in
+              *jailbreak*|*krw*|*kfd*|*ellekit*|*root*)
+                echo "FILE=$f"
+                nm -g "$f" 2>/dev/null | grep -Ei 'kread|kwrite|kcall|kernel|phys|virt|kalloc|kfree|slide|pmap|io.*map' | head -n 180 || true
+                strings "$f" 2>/dev/null | grep -Ei 'kread|kwrite|kcall|kernel read|kernel write|physical|physrw|kernel slide' | head -n 100 || true
+                ;;
+            esac
+          done
+          echo '=== PMGR / CLPC SERVICES ==='
+          if command -v ioreg >/dev/null 2>&1; then
+            ioreg -r -n pmgr -l -w0 2>/dev/null | grep -Ei 'class |compatible|voltage-states|boost-performance|IODeviceMemory|clpc|performance' | head -n 350 || true
+            ioreg -r -n clpc -l -w0 2>/dev/null | grep -Ei 'class |compatible|IODeviceMemory|performance|perf|gpu|cpu|throughput' | head -n 350 || true
+            ioreg -r -n sgx -l -w0 2>/dev/null | grep -Ei 'class |compatible|perf-states|gpu-num-perf-states|IODeviceMemory|power|utilization' | head -n 350 || true
+          fi
+          echo '=== DRIVER FILE CANDIDATES ==='
+          find /System/Library/Extensions /System/Library/DriverExtensions -maxdepth 4 -type f 2>/dev/null \
+            | grep -Ei 'ApplePMGR|AppleCLPC|AppleD5500|AGX|PowerVR|SGX' | head -n 240 || true
+          echo '=== RESULT ==='
+          echo 'RESULT=READ_ONLY_COMPLETE'
+          EOS
+          } | timeout 180 sshpass -e ssh -o BatchMode=no -o ConnectTimeout=20 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" mobile@"$IPHONE_HOST" 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' 2>&1 | tee a9-control-probe.txt
+      - name: Publish sanitized report
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports
+          {
+            echo '# A9 overclock control-path probe'
+            echo
+            echo "Run: $GITHUB_RUN_ID"
+            echo "Commit: $GITHUB_SHA"
+            echo
+            cat a9-control-probe.txt 2>/dev/null || true
+          } > reports/a9-control-latest.txt
+          sed -Ei '/(serial|unique.?chip|ecid|imei|mac.?address|wifi.?address|bluetooth.?address)/Id' reports/a9-control-latest.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add reports/a9-control-latest.txt
+          if ! git diff --cached --quiet; then
+            git commit -m 'Update A9 control-path report'
+            git push origin HEAD:main
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: iphone-a9-control-probe-${{ github.run_id }}
+          path: a9-control-probe.txt
+          retention-days: 7
