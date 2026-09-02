@@ -12,7 +12,7 @@ ByeTunes16_CFLAGS = -fobjc-arc -Wall -Wextra -Wno-deprecated-declarations -Werro
 ByeTunes16_INSTALL_TARGET_PROCESSES = Music
 
 TOOL_NAME = byetunes16d
-byetunes16d_FILES = daemon/main.m daemon/BTImporter.m daemon/BTImporter+Full.m daemon/BTMetadataService.m
+byetunes16d_FILES = daemon/main.m daemon/BTImporter.m daemon/BTImporter+Full.m daemon/BTMetadataService.m daemon/BTRestoreFix.m
 byetunes16d_FRAMEWORKS = Foundation AVFoundation CoreMedia
 byetunes16d_LIBRARIES = sqlite3
 byetunes16d_CFLAGS = -fobjc-arc -Wall -Wextra -Wno-deprecated-declarations -Werror=unguarded-availability
