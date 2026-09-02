@@ -1,5 +1,6 @@
 #import <Foundation/Foundation.h>
 #import "BTImporter.h"
+#import "BTRestoreFix.h"
 #import <arpa/inet.h>
 #import <errno.h>
 #import <signal.h>
@@ -14,7 +15,7 @@ static NSDictionary *BTHandle(NSDictionary *request) {
     NSString *op = [request[@"op"] isKindOfClass:NSString.class] ? request[@"op"] : @"";
     if ([op isEqualToString:@"probe"]) return [BTImporter probe];
     if ([op isEqualToString:@"backup"]) return [BTImporter createBackup];
-    if ([op isEqualToString:@"restore"]) return [BTImporter restoreLatestBackup];
+    if ([op isEqualToString:@"restore"]) return [BTRestoreFix restoreLatestBackupSafely];
     if ([op isEqualToString:@"repair"]) return [BTImporter repairLibrary];
     if ([op isEqualToString:@"library"]) {
         NSUInteger limit = [request[@"limit"] unsignedIntegerValue];
