@@ -1,38 +1,24 @@
 #include <dlfcn.h>
 #include <errno.h>
-#include <glob.h>
 #include <inttypes.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-typedef int (*krw_kbase_func_t)(uint64_t *addr);
-typedef int (*krw_kread_func_t)(uint64_t from, void *to, size_t len);
-typedef int (*krw_kwrite_func_t)(void *from, uint64_t to, size_t len);
-typedef int (*krw_kmalloc_func_t)(uint64_t *addr, size_t size);
-typedef int (*krw_kdealloc_func_t)(uint64_t addr, size_t size);
-typedef int (*krw_kcall_func_t)(uint64_t func, size_t argc, const uint64_t *argv, uint64_t *ret);
-typedef int (*krw_physread_func_t)(uint64_t from, void *to, size_t len, uint8_t granule);
-typedef int (*krw_physwrite_func_t)(void *from, uint64_t to, size_t len, uint8_t granule);
+typedef int (*jb_init_internal_t)(bool physrwPTE);
+typedef int (*jb_physreadbuf_t)(uint64_t physaddr, void *output, size_t size);
+typedef int (*jb_physwritebuf_t)(uint64_t physaddr, const void *input, size_t size);
 
-struct krw_handlers_s {
-    uint64_t version;
-    krw_kbase_func_t kbase;
-    krw_kread_func_t kread;
-    krw_kwrite_func_t kwrite;
-    krw_kmalloc_func_t kmalloc;
-    krw_kdealloc_func_t kdealloc;
-    krw_kcall_func_t kcall;
-    krw_physread_func_t physread;
-    krw_physwrite_func_t physwrite;
-};
-typedef struct krw_handlers_s *krw_handlers_t;
-typedef int (*krw_plugin_initializer_t)(krw_handlers_t handlers);
+typedef int (*jb_kreadbuf_t)(uint64_t kaddr, void *output, size_t size);
 
-static void *g_plugin;
-static struct krw_handlers_s g_h;
+typedef int (*jb_kbase_func_t)(uint64_t *addr);
+
+static void *g_jb;
+static jb_physreadbuf_t g_physread;
+static jb_physwritebuf_t g_physwrite;
 
 #define S8000_DVFS_BASE 0x202220000ULL
 #define DVFS_CMD         0x20ULL
@@ -45,56 +31,48 @@ static struct krw_handlers_s g_h;
 #define CMD_PS1_MASK     0x1fULL
 #define CMD_PS2_MASK     (0xfULL << 12)
 
-static int load_krw(void) {
-    glob_t gl = {0};
-    const char *patterns[] = {
-        "/var/jb/usr/lib/libkrw/*.dylib",
-        "/usr/lib/libkrw/*.dylib",
-    };
-    memset(&g_h, 0, sizeof(g_h));
-    g_h.version = 0;
+static void stage(const char *s) {
+    printf("STAGE=%s\n", s);
+    fflush(stdout);
+}
 
-    for (size_t p = 0; p < sizeof(patterns)/sizeof(patterns[0]); p++) {
-        memset(&gl, 0, sizeof(gl));
-        if (glob(patterns[p], 0, NULL, &gl) != 0) continue;
-        for (size_t i = 0; i < gl.gl_pathc; i++) {
-            void *h = dlopen(gl.gl_pathv[i], RTLD_NOW | RTLD_LOCAL);
-            if (!h) continue;
-            krw_plugin_initializer_t init = (krw_plugin_initializer_t)dlsym(h, "krw_initializer");
-            krw_plugin_initializer_t kinit = (krw_plugin_initializer_t)dlsym(h, "kcall_initializer");
-            if (!init) { dlclose(h); continue; }
-            struct krw_handlers_s cand = {0};
-            cand.version = 0;
-            int rc = init(&cand);
-            if (rc != 0) { dlclose(h); continue; }
-            if (kinit) (void)kinit(&cand);
-            if (cand.physread) {
-                g_h = cand;
-                g_plugin = h;
-                printf("KRW_PLUGIN=%s\n", gl.gl_pathv[i]);
-                globfree(&gl);
-                return 0;
-            }
-            dlclose(h);
-        }
-        globfree(&gl);
+static int load_single_pte(void) {
+    stage("DLOPEN_BEGIN");
+    g_jb = dlopen("/var/jb/basebin/libjailbreak.dylib", RTLD_NOW | RTLD_LOCAL);
+    if (!g_jb) {
+        fprintf(stderr, "ERROR=dlopen libjailbreak: %s\n", dlerror());
+        return ENOENT;
     }
-    fprintf(stderr, "ERROR=no usable Dopamine/libkrw provider\n");
-    return ENOTSUP;
+    stage("DLOPEN_OK");
+
+    jb_init_internal_t init = (jb_init_internal_t)dlsym(g_jb, "jbclient_initialize_primitives_internal");
+    g_physread = (jb_physreadbuf_t)dlsym(g_jb, "physreadbuf");
+    g_physwrite = (jb_physwritebuf_t)dlsym(g_jb, "physwritebuf");
+    if (!init || !g_physread || !g_physwrite) {
+        fprintf(stderr, "ERROR=missing libjailbreak symbols init=%p read=%p write=%p\n", init, g_physread, g_physwrite);
+        return ENOSYS;
+    }
+    printf("LIBJAILBREAK_SYMBOLS=OK init=%p read=%p write=%p\n", init, g_physread, g_physwrite);
+    stage("PTE_INIT_BEGIN");
+    int rc = init(true);
+    printf("PTE_INIT_RC=%d\n", rc);
+    if (rc != 0) return rc;
+    stage("PTE_INIT_OK");
+    return 0;
 }
 
 static int pr64(uint64_t pa, uint64_t *v) {
-    if (!g_h.physread) return ENOTSUP;
+    if (!g_physread) return ENOTSUP;
     *v = 0;
-    return g_h.physread(pa, v, sizeof(*v), 8);
+    return g_physread(pa, v, sizeof(*v));
 }
 
 static int pw64(uint64_t pa, uint64_t v) {
-    if (!g_h.physwrite) return ENOTSUP;
-    return g_h.physwrite(&v, pa, sizeof(v), 8);
+    if (!g_physwrite) return ENOTSUP;
+    return g_physwrite(pa, &v, sizeof(v));
 }
 
-static void dump_once(const char *tag) {
+static int dump_once(const char *tag) {
     uint64_t cmd=0, last=0, status=0, pll=0, factor=0;
     int a=pr64(S8000_DVFS_BASE+DVFS_CMD,&cmd);
     int b=pr64(S8000_DVFS_BASE+DVFS_LAST_CHG,&last);
@@ -105,6 +83,10 @@ static void dump_once(const char *tag) {
     unsigned ps1=(unsigned)(cmd&0x1f), ps2=(unsigned)((cmd>>12)&0xf);
     printf("%s cmd_rc=%d cmd=0x%016" PRIx64 " ps1=%u ps2=%u busy=%u status_rc=%d status=0x%016" PRIx64 " cur=%u tgt=%u last_rc=%d last=0x%016" PRIx64 " pll_rc=%d pll=0x%016" PRIx64 " factor_rc=%d factor=0x%016" PRIx64 "\n",
            tag,a,cmd,ps1,ps2,(unsigned)((cmd>>31)&1),c,status,cur,tgt,b,last,d,pll,e,factor);
+    fflush(stdout);
+    if (a || b || c || d || e) return EIO;
+    if (ps1 > 8 || ps2 > 8 || cur > 8 || tgt > 8) return ERANGE;
+    return 0;
 }
 
 static int wait_not_busy(uint64_t *cmd_out) {
@@ -140,9 +122,10 @@ static int same_state_write(void) {
     printf("SAME_STATE_WRITE target=%u original_cmd=0x%016" PRIx64 " write_cmd=0x%016" PRIx64 "\n",ps,cmd,out);
     rc=pw64(S8000_DVFS_BASE+DVFS_CMD,out);
     printf("PHYSWRITE_RC=%d\n",rc);
+    fflush(stdout);
+    if (rc) return rc;
     usleep(30000);
-    dump_once("AFTER_SAME");
-    return rc;
+    return dump_once("AFTER_SAME");
 }
 
 static int pulse_stock_max(unsigned duration_ms) {
@@ -159,46 +142,78 @@ static int pulse_stock_max(unsigned duration_ms) {
         return ERANGE;
     }
     printf("PULSE_STOCK_MAX=8 duration_ms=%u rollback_target=%u\n",duration_ms,orig);
+    fflush(stdout);
     uint64_t maxcmd=command_for_pstate(original,8);
     rc=pw64(S8000_DVFS_BASE+DVFS_CMD,maxcmd);
     printf("MAX_WRITE_RC=%d\n",rc);
+    fflush(stdout);
     if (rc) return rc;
     for (unsigned elapsed=0; elapsed<duration_ms; elapsed+=25) {
         usleep(25000);
-        dump_once("PULSE");
+        rc=dump_once("PULSE");
+        if (rc) break;
     }
+
     uint64_t now=0;
-    rc=wait_not_busy(&now);
-    if (rc) return rc;
+    int waitrc=wait_not_busy(&now);
+    if (waitrc) {
+        fprintf(stderr,"ROLLBACK_WAIT_RC=%d\n",waitrc);
+        return waitrc;
+    }
     uint64_t rollback=command_for_pstate(now,orig);
     int rr=pw64(S8000_DVFS_BASE+DVFS_CMD,rollback);
     printf("ROLLBACK_WRITE_RC=%d target=%u\n",rr,orig);
+    fflush(stdout);
     usleep(50000);
-    dump_once("AFTER_ROLLBACK");
-    return rr;
+    int dr=dump_once("AFTER_ROLLBACK");
+    return rr ? rr : (rc ? rc : dr);
 }
 
 int main(int argc, char **argv) {
     setvbuf(stdout,NULL,_IOLBF,0);
+    setvbuf(stderr,NULL,_IOLBF,0);
+    printf("A9KRW_START pid=%d euid=%d\n",getpid(),geteuid());
     if (geteuid()!=0) { fprintf(stderr,"ERROR=root required\n"); return 2; }
-    int rc=load_krw();
-    if (rc) return rc;
-    uint64_t kb=0;
-    if (g_h.kbase) printf("KBASE_RC=%d KBASE=0x%016" PRIx64 "\n",g_h.kbase(&kb),kb);
+
+    int rc=load_single_pte();
+    if (rc) {
+        printf("RESULT=INIT_FAILED rc=%d\n",rc);
+        return rc;
+    }
+
+    if (argc >= 2 && !strcmp(argv[1],"init-only")) {
+        printf("RESULT=SINGLE_PTE_INIT_OK\n");
+        return 0;
+    }
+
     if (argc < 2 || !strcmp(argv[1],"probe")) {
         printf("MODE=READ_ONLY\n");
-        for (int i=0;i<12;i++) { dump_once("PROBE"); usleep(50000); }
+        stage("MMIO_PROBE_BEGIN");
+        for (int i=0;i<12;i++) {
+            rc=dump_once("PROBE");
+            if (rc) {
+                printf("RESULT=MMIO_PROBE_FAILED rc=%d\n",rc);
+                return rc;
+            }
+            usleep(50000);
+        }
+        stage("MMIO_PROBE_OK");
+        printf("RESULT=READ_ONLY_COMPLETE\n");
         return 0;
     }
     if (!strcmp(argv[1],"same-state-write")) {
         printf("MODE=SAME_STATE_WRITE_ONLY\n");
-        return same_state_write();
+        rc=same_state_write();
+        printf("RESULT=SAME_STATE_%s rc=%d\n",rc?"FAILED":"OK",rc);
+        return rc;
     }
     if (!strcmp(argv[1],"pulse-stock-max")) {
         unsigned ms=250;
         if (argc>=3) ms=(unsigned)strtoul(argv[2],NULL,0);
-        return pulse_stock_max(ms);
+        rc=pulse_stock_max(ms);
+        printf("RESULT=STOCK_P8_PULSE_%s rc=%d\n",rc?"FAILED":"OK",rc);
+        return rc;
     }
-    fprintf(stderr,"usage: %s [probe|same-state-write|pulse-stock-max [ms]]\n",argv[0]);
+    fprintf(stderr,"usage: %s [init-only|probe|same-state-write|pulse-stock-max [ms]]\n",argv[0]);
     return 64;
 }
