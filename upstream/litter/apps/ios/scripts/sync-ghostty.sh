@@ -62,6 +62,21 @@ for PATCH_FILE in "${PATCH_FILES[@]}"; do
         exit 1
     fi
 
+    # This repository vendors Ghostty as ordinary source files rather than a
+    # nested git checkout.  In that layout `git apply` cannot operate even
+    # though the source tree is valid.  Use the POSIX patch tool and make the
+    # operation idempotent by checking the exported mobile API first.
+    if [ ! -d "$SUBMODULE_DIR/.git" ] && [ ! -f "$SUBMODULE_DIR/.git" ]; then
+        if grep -q 'ghostty_surface_write' "$SUBMODULE_DIR/include/ghostty.h" &&
+           grep -q 'external_pty_write' "$SUBMODULE_DIR/include/ghostty.h"; then
+            echo "==> $PATCH_NAME already applied to vendored Ghostty source."
+        else
+            patch --batch --forward --silent -p1 -d "$SUBMODULE_DIR" < "$PATCH_FILE"
+            echo "==> Applied $PATCH_NAME to vendored Ghostty source."
+        fi
+        continue
+    fi
+
     if git -C "$SUBMODULE_DIR" apply --reverse --check "$PATCH_FILE" >/dev/null 2>&1; then
         echo "==> $PATCH_NAME already applied."
     elif git -C "$SUBMODULE_DIR" apply --check "$PATCH_FILE" >/dev/null 2>&1; then
