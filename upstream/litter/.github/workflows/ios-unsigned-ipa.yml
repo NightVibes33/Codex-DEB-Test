@@ -16,6 +16,7 @@ on:
   push:
     branches:
       - main
+      - temp/darwin-vm-windows11
     paths:
       - 'Makefile'
       - 'Package.swift'
