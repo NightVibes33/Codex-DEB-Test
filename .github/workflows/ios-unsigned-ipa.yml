@@ -14,7 +14,9 @@ on:
           - release-device
           - nyxian-private
   push:
-    branches: [main]
+    branches:
+      - main
+      - temp/darwin-vm-windows11
     paths:
       - upstream/litter/**
       - .github/workflows/ios-unsigned-ipa.yml
