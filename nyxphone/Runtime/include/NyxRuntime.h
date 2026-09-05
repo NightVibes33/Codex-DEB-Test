@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-#define NYX_RUNTIME_ABI_VERSION 13u
+#define NYX_RUNTIME_ABI_VERSION 14u
 
 typedef struct NyxVM NyxVM;
 

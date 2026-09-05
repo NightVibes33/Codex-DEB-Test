@@ -185,6 +185,35 @@ static uint64_t vp_extend_register(uint64_t value, uint32_t option) {
     }
 }
 
+static uint64_t vp_reverse_bits(uint64_t value, uint32_t width) {
+    uint64_t result = 0;
+    for (uint32_t bit = 0; bit < width; bit++) {
+        result |= ((value >> bit) & 1u) << (width - 1u - bit);
+    }
+    return width == 32u ? (uint32_t)result : result;
+}
+
+static uint64_t vp_reverse_bytes(uint64_t value, uint32_t width, uint32_t container) {
+    uint64_t result = 0;
+    for (uint32_t base = 0; base < container; base += width) {
+        for (uint32_t byte = 0; byte < width; byte += 8u) {
+            result |= ((value >> (base + byte)) & UINT64_C(0xFF))
+                      << (base + width - 8u - byte);
+        }
+    }
+    return container == 32u ? (uint32_t)result : result;
+}
+
+static uint32_t vp_count_leading(uint64_t value, uint32_t width, int sign) {
+    const uint64_t expected = sign ? (value >> (width - 1u)) & 1u : 0u;
+    uint32_t count = 0;
+    for (uint32_t bit = width; bit > 0; bit--) {
+        if (((value >> (bit - 1u)) & 1u) != expected) break;
+        count++;
+    }
+    return sign && count ? count - 1u : count;
+}
+
 static VPCPUStepResult vp_retire(VPAArch64CPU *cpu, uint64_t next_pc) {
     cpu->pc = next_pc;
     cpu->instructions_retired++;
@@ -416,6 +445,40 @@ VPCPUStepResult vp_aarch64_step(VPRuntime *runtime, VPAArch64CPU *cpu, uint32_t 
             value = (uint64_t)((int64_t)current_pc + imm);
         }
         vp_reg_write(cpu, rd, value, 1, 0);
+        return vp_retire(cpu, next_pc);
+    }
+
+    /* EXTR, including the ROR-immediate alias when both source registers match. */
+    if ((insn & UINT32_C(0x7F800000)) == UINT32_C(0x13800000)) {
+        const int is64 = (int)((insn >> 31) & 1u);
+        const uint32_t width = is64 ? 64u : 32u;
+        const uint32_t n = (insn >> 22) & 1u;
+        const uint32_t shift = (insn >> 10) & 63u;
+        if (n != (uint32_t)is64 || shift >= width) return VP_CPU_STEP_UNIMPLEMENTED;
+        const uint64_t high = vp_reg_read(cpu, (insn >> 5) & 31u, 0);
+        const uint64_t low = vp_reg_read(cpu, (insn >> 16) & 31u, 0);
+        const uint64_t mask = is64 ? UINT64_MAX : UINT64_C(0xFFFFFFFF);
+        const uint64_t result = shift == 0u ? low & mask
+            : ((low >> shift) | (high << (width - shift))) & mask;
+        vp_reg_write(cpu, insn & 31u, result, is64, 0);
+        return vp_retire(cpu, next_pc);
+    }
+
+    /* RBIT, REV16, REV32/REV64, CLZ, and CLS data-processing-one-source. */
+    if ((insn & UINT32_C(0x7FE00000)) == UINT32_C(0x5AC00000)) {
+        const int is64 = (int)((insn >> 31) & 1u);
+        const uint32_t width = is64 ? 64u : 32u;
+        const uint32_t opcode = (insn >> 10) & 0x3Fu;
+        const uint64_t value = vp_reg_read(cpu, (insn >> 5) & 31u, 0);
+        uint64_t result;
+        if (opcode == 0u) result = vp_reverse_bits(value, width);
+        else if (opcode == 1u) result = vp_reverse_bytes(value, 16u, width);
+        else if (opcode == 2u) result = vp_reverse_bytes(value, 32u, width);
+        else if (opcode == 3u && is64) result = vp_reverse_bytes(value, 64u, 64u);
+        else if (opcode == 4u) result = vp_count_leading(value, width, 0);
+        else if (opcode == 5u) result = vp_count_leading(value, width, 1);
+        else return VP_CPU_STEP_UNIMPLEMENTED;
+        vp_reg_write(cpu, insn & 31u, result, is64, 0);
         return vp_retire(cpu, next_pc);
     }
 
