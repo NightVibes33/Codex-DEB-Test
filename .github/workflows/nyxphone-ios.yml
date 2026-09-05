@@ -651,6 +651,9 @@ jobs:
         working-directory: VibeContainersHost
         run: |
           set -euo pipefail
+          python3 "$GITHUB_WORKSPACE/nyxphone/Tools/apply_certificate_import_fix.py" "$PWD"
+          grep -Fq 'allowedContentTypes: [.item]' iOSSim/Apps/SettingsApp.swift
+          grep -Fq 'guard ext == "p12" || ext == "pfx" else {' iOSSim/Apps/SettingsApp.swift
           python3 scripts/apply_installer_fixes.py
           python3 scripts/apply_installer_followups.py
           python3 scripts/apply_xcode26_fixes.py
