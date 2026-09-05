@@ -179,7 +179,7 @@ STAMP_ANDROID_ALPINE_FS := $(STAMPS)/android-alpine-fs-$(ALPINE_FS_VERSION)
 PROOT_COMMIT := ee10b279a38d34b6704345bc448d18f019ca1b49
 TALLOC_VERSION := 2.4.3
 STAMP_PROOT_ANDROID = $(STAMPS)/proot-android-$(PROOT_COMMIT)-talloc-$(TALLOC_VERSION)-$(ANDROID_ABIS_SAFE)
-GHOSTTY_DIR := $(ROOT)/shared/third_party/ghostty
+GHOSTTY_DIR ?= $(ROOT)/shared/third_party/ghostty
 GHOSTTY_COMMIT := $(shell if [ -e "$(GHOSTTY_DIR)/.git" ]; then git -C $(GHOSTTY_DIR) rev-parse --short=12 HEAD 2>/dev/null; else git -C $(ROOT) rev-parse --short=12 HEAD:shared/third_party/ghostty 2>/dev/null; fi || echo missing)
 GHOSTTY_PATCH_FILES := $(wildcard $(ROOT)/patches/ghostty/*.patch)
 GHOSTTY_PATCH_FINGERPRINT := $(shell if command -v shasum >/dev/null 2>&1; then cat $(GHOSTTY_PATCH_FILES) 2>/dev/null | shasum -a 256 | cut -c1-12; elif command -v sha256sum >/dev/null 2>&1; then cat $(GHOSTTY_PATCH_FILES) 2>/dev/null | sha256sum | cut -c1-12; else echo missinghash; fi)

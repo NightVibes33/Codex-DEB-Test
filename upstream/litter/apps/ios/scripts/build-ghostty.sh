@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 IOS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_DIR="$(cd "$IOS_DIR/../.." && pwd)"
-GHOSTTY_DIR="$REPO_DIR/shared/third_party/ghostty"
+GHOSTTY_DIR="${GHOSTTY_DIR:-$REPO_DIR/shared/third_party/ghostty}"
 GENERATED_DIR="$IOS_DIR/GeneratedRust"
 STAGING_DIR="${GHOSTTY_BUILD_DIR:-$GENERATED_DIR/ghostty-build}"
 XCODE_DEVELOPER_DIR="${GHOSTTY_XCODE_DEVELOPER_DIR:-$(xcode-select -p)}"

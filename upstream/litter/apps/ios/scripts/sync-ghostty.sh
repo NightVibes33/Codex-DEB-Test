@@ -15,7 +15,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 IOS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_DIR="$(cd "$IOS_DIR/../.." && pwd)"
-SUBMODULE_DIR="$REPO_DIR/shared/third_party/ghostty"
+SUBMODULE_DIR="${GHOSTTY_DIR:-$REPO_DIR/shared/third_party/ghostty}"
 PATCH_DIR="$REPO_DIR/patches/ghostty"
 
 PATCH_FILES=(

@@ -61,6 +61,19 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Prepare complete Ghostty checkout
+        run: |
+          set -euo pipefail
+          GHOSTTY_ROOT="$RUNNER_TEMP/ghostty"
+          if [ ! -f "$GHOSTTY_ROOT/src/build/main.zig" ]; then
+            rm -rf "$GHOSTTY_ROOT"
+            git clone --filter=blob:none https://github.com/ghostty-org/ghostty.git "$GHOSTTY_ROOT"
+            git -C "$GHOSTTY_ROOT" fetch --depth=1 origin a968e120dd084bd886239d1cac938f0177f019d9
+            git -C "$GHOSTTY_ROOT" checkout --detach a968e120dd084bd886239d1cac938f0177f019d9
+          fi
+          test -f "$GHOSTTY_ROOT/src/build/main.zig"
+          echo "GHOSTTY_DIR=$GHOSTTY_ROOT" >> "$GITHUB_ENV"
+
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
