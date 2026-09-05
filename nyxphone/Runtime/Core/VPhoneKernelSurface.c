@@ -9,6 +9,9 @@ struct VPKernelSurface {
     VPRuntime *runtime;
     VPProcessIdentity identity;
     char process_name[32];
+    char process_path[1024];
+    char entitlements[VP_KSURFACE_MAX_ENTITLEMENTS][VP_KSURFACE_MAX_ENTITLEMENT_KEY];
+    uint32_t entitlement_count;
     uint64_t handled;
     uint64_t rejected;
     uint32_t mode;
@@ -37,6 +40,7 @@ VPKernelSurface *vp_ksurface_create(VPRuntime *runtime) {
     surface->identity.egid = 0;
     surface->identity.task_handle = UINT64_C(0x4E595849414E0001);
     (void)snprintf(surface->process_name, sizeof(surface->process_name), "nyxinit");
+    (void)snprintf(surface->process_path, sizeof(surface->process_path), "/sbin/nyxinit");
     surface->mode = VP_KSURFACE_MODE_NORMAL;
     surface->next_port = 100u;
 #ifdef DEBUG
@@ -68,6 +72,34 @@ void vp_ksurface_set_identity(VPKernelSurface *surface, const VPProcessIdentity 
 void vp_ksurface_set_process_name(VPKernelSurface *surface, const char *process_name) {
     if (!surface || !process_name || !process_name[0]) return;
     (void)snprintf(surface->process_name, sizeof(surface->process_name), "%s", process_name);
+}
+
+VPStatus vp_ksurface_set_process_path(VPKernelSurface *surface, const char *process_path) {
+    if (!surface || !process_path || process_path[0] != '/' ||
+        strlen(process_path) >= sizeof(surface->process_path)) return VP_STATUS_INVALID_ARGUMENT;
+    (void)snprintf(surface->process_path, sizeof(surface->process_path), "%s", process_path);
+    return VP_STATUS_OK;
+}
+
+VPStatus vp_ksurface_grant_entitlement(VPKernelSurface *surface, const char *key) {
+    if (!surface || !key || !key[0] || strlen(key) >= VP_KSURFACE_MAX_ENTITLEMENT_KEY) {
+        return VP_STATUS_INVALID_ARGUMENT;
+    }
+    for (uint32_t i = 0; i < surface->entitlement_count; i++) {
+        if (strcmp(surface->entitlements[i], key) == 0) return VP_STATUS_OK;
+    }
+    if (surface->entitlement_count >= VP_KSURFACE_MAX_ENTITLEMENTS) return VP_STATUS_OUT_OF_MEMORY;
+    (void)snprintf(surface->entitlements[surface->entitlement_count++],
+                   VP_KSURFACE_MAX_ENTITLEMENT_KEY, "%s", key);
+    return VP_STATUS_OK;
+}
+
+int vp_ksurface_has_entitlement(const VPKernelSurface *surface, const char *key) {
+    if (!surface || !key) return 0;
+    for (uint32_t i = 0; i < surface->entitlement_count; i++) {
+        if (strcmp(surface->entitlements[i], key) == 0) return 1;
+    }
+    return 0;
 }
 
 VPProcessIdentity vp_ksurface_identity(const VPKernelSurface *surface) {
@@ -252,11 +284,36 @@ VPStatus vp_ksurface_handle_syscall(
         case VP_NYX_SYS_PECTL:
             surface->handled++;
             return vp_pectl(surface, args, result);
-        case VP_NYX_SYS_PROCPATH:
+        case VP_NYX_SYS_PROCPATH: {
+            const size_t path_length = strlen(surface->process_path);
+            if (args[1] <= path_length ||
+                vp_runtime_memory_write(runtime, args[0], surface->process_path, path_length + 1u) != VP_STATUS_OK) {
+                *result = vp_errno_result(args[1] <= path_length ? ERANGE : EFAULT);
+                surface->rejected++;
+                return VP_STATUS_OK;
+            }
+            *result = path_length;
+            surface->handled++;
+            return VP_STATUS_OK;
+        }
         case VP_NYX_SYS_HANDOFFEP:
-        case VP_NYX_SYS_SIGN:
             *result = vp_errno_result(ENOTSUP);
             surface->rejected++;
+            return VP_STATUS_OK;
+        case VP_NYX_SYS_SIGN:
+            /* Guest-only policy mediation. This never signs or changes the host device. */
+            if (!vp_ksurface_has_entitlement(surface, "com.nyxphone.virtual-signing")) {
+                *result = vp_errno_result(EPERM);
+                surface->rejected++;
+                return VP_STATUS_OK;
+            }
+            if (args[1] == 0 || args[1] > 64u * 1024u * 1024u) {
+                *result = vp_errno_result(EINVAL);
+                surface->rejected++;
+                return VP_STATUS_OK;
+            }
+            *result = 0;
+            surface->handled++;
             return VP_STATUS_OK;
         default: {
             char diagnostic[256];
