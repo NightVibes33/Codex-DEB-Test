@@ -27,10 +27,22 @@ case "$SYNC_MODE" in
 esac
 
 echo "==> Syncing codex submodule..."
+if [ ! -d "$SUBMODULE_DIR" ]; then
+    # Litter is vendored as ordinary files in the host repository.  Its own
+    # nested gitlink is therefore not visible to the outer checkout, and
+    # `git submodule update` would fail with a pathspec error.  Materialize the
+    # declared source directly in the nested checkout instead.
+    codex_url="$(git -C "$REPO_DIR" config -f "$REPO_DIR/.gitmodules" --get submodule.shared/third_party/codex.url || true)"
+    codex_url="${codex_url:-https://github.com/NightVibes33/codex.git}"
+    mkdir -p "$(dirname "$SUBMODULE_DIR")"
+    git clone --filter=blob:none "$codex_url" "$SUBMODULE_DIR"
+fi
+
 if ! git -C "$SUBMODULE_DIR" rev-parse --verify HEAD >/dev/null 2>&1; then
-    git -C "$REPO_DIR" submodule update --init --recursive shared/third_party/codex
+    echo "error: cloned Codex checkout is not a valid git repository" >&2
+    exit 1
 elif [ "$SYNC_MODE" = "--recorded-gitlink" ]; then
-    git -C "$REPO_DIR" submodule update --init --recursive shared/third_party/codex
+    git -C "$SUBMODULE_DIR" reset --hard HEAD >/dev/null
 else
     recorded_commit="$(git -C "$REPO_DIR" ls-files --stage shared/third_party/codex | awk 'NR == 1 { print $2 }')"
     current_commit="$(git -C "$SUBMODULE_DIR" rev-parse HEAD)"
