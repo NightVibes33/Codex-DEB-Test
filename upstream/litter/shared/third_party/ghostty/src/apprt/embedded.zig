@@ -15,6 +15,7 @@ const input = @import("../input.zig");
 const internal_os = @import("../os/main.zig");
 const renderer = @import("../renderer.zig");
 const terminal = @import("../terminal/main.zig");
+const termio = @import("../termio.zig");
 const CoreApp = @import("../App.zig");
 const CoreInspector = @import("../inspector/main.zig").Inspector;
 const CoreSurface = @import("../Surface.zig");
@@ -25,6 +26,13 @@ const String = @import("../main_c.zig").String;
 const log = std.log.scoped(.embedded_window);
 
 pub const resourcesDir = internal_os.resourcesDir;
+
+/// Android embeds Ghostty into a host-owned EGL window surface. That context
+/// is bound on the app thread by the JNI bridge, so OpenGL draw calls must
+/// be routed back through the app mailbox instead of running on the renderer
+/// worker thread.
+pub const must_draw_from_app_thread =
+    builtin.target.os.tag == .linux and builtin.target.abi.isAndroid();
 
 pub const App = struct {
     /// Because we only expect the embedding API to be used in embedded
@@ -345,6 +353,7 @@ pub const App = struct {
 pub const Platform = union(PlatformTag) {
     macos: MacOS,
     ios: IOS,
+    android: Android,
 
     // If our build target for libghostty is not darwin then we do
     // not include macos support at all.
@@ -358,6 +367,11 @@ pub const Platform = union(PlatformTag) {
         uiview: objc.Object,
     } else void;
 
+    pub const Android = if (builtin.target.os.tag == .linux and builtin.target.abi.isAndroid()) struct {
+        /// The ANativeWindow-compatible surface provided by the embedding host.
+        native_window: *anyopaque,
+    } else void;
+
     // The C ABI compatible version of this union. The tag is expected
     // to be stored elsewhere.
     pub const C = extern union {
@@ -367,6 +381,10 @@ pub const Platform = union(PlatformTag) {
 
         ios: extern struct {
             uiview: ?*anyopaque,
+        },
+
+        android: extern struct {
+            native_window: ?*anyopaque,
         },
     };
 
@@ -387,6 +405,13 @@ pub const Platform = union(PlatformTag) {
                     break :ios error.UIViewMustBeSet);
                 break :ios .{ .ios = .{ .uiview = uiview } };
             } else error.UnsupportedPlatform,
+
+            .android => if (Android != void) android: {
+                const config = c_platform.android;
+                const native_window = config.native_window orelse
+                    break :android error.NativeWindowMustBeSet;
+                break :android .{ .android = .{ .native_window = native_window } };
+            } else error.UnsupportedPlatform,
         };
     }
 };
@@ -397,6 +422,7 @@ pub const PlatformTag = enum(c_int) {
 
     macos = 1,
     ios = 2,
+    android = 3,
 };
 
 pub const EnvVar = extern struct {
@@ -411,6 +437,8 @@ pub const Surface = struct {
     app: *App,
     platform: Platform,
     userdata: ?*anyopaque = null,
+    external_pty: bool = false,
+    external_pty_write: ?termio.backend.ExternalPtyWriteFn = null,
     core_surface: CoreSurface,
     content_scale: apprt.ContentScale,
     size: apprt.SurfaceSize,
@@ -460,6 +488,15 @@ pub const Surface = struct {
         /// Wait after the command exits
         wait_after_command: bool = false,
 
+        /// When true, the embedder owns the pty/process lifecycle and Ghostty
+        /// only parses, renders, and translates input. PTY output is delivered
+        /// with ghostty_surface_write.
+        external_pty: bool = false,
+
+        /// Callback used by external_pty mode to send encoded terminal input
+        /// bytes back to the embedding host.
+        external_pty_write: ?termio.backend.ExternalPtyWriteFn = null,
+
         /// Context for the new surface
         context: apprt.surface.NewSurfaceContext = .window,
     };
@@ -469,6 +506,8 @@ pub const Surface = struct {
             .app = app,
             .platform = try .init(opts.platform_tag, opts.platform),
             .userdata = opts.userdata,
+            .external_pty = opts.external_pty,
+            .external_pty_write = opts.external_pty_write,
             .core_surface = undefined,
             .content_scale = .{
                 .x = @floatCast(opts.scale_factor),
@@ -481,6 +520,10 @@ pub const Surface = struct {
         // Add ourselves to the list of surfaces on the app.
         try app.core_app.addSurface(self);
         errdefer app.core_app.deleteSurface(self);
+
+        if (opts.external_pty and opts.external_pty_write == null) {
+            return error.MissingExternalPtyWriteCallback;
+        }
 
         // Shallow copy the config so that we can modify it.
         var config = try apprt.surface.newConfig(app.core_app, &app.config, opts.context);
@@ -592,6 +635,19 @@ pub const Surface = struct {
             font_size.points = opts.font_size;
             try self.core_surface.setFontSize(font_size);
         }
+    }
+
+    pub const ExternalPtyOptions = struct {
+        userdata: ?*anyopaque,
+        write: termio.backend.ExternalPtyWriteFn,
+    };
+
+    pub fn externalPtyOptions(self: *Surface) ?ExternalPtyOptions {
+        if (!self.external_pty) return null;
+        return .{
+            .userdata = self.userdata,
+            .write = self.external_pty_write orelse return null,
+        };
     }
 
     pub fn deinit(self: *Surface) void {
@@ -1692,6 +1748,23 @@ pub const CAPI = struct {
         surface.draw();
     }
 
+    /// Synchronously rebuild frame data from terminal state and draw it.
+    ///
+    /// Embedders that feed an externally-owned PTY may not have a platform
+    /// event loop that reliably lets the renderer thread rebuild GPU cells
+    /// before the host asks for a frame. This keeps the external PTY API able
+    /// to render output immediately after ghostty_surface_write.
+    export fn ghostty_surface_render(surface: *Surface) void {
+        surface.core_surface.renderer.updateFrame(
+            &surface.core_surface.renderer_state,
+            surface.core_surface.renderer_thread.flags.cursor_blink_visible,
+        ) catch |err| {
+            log.err("error updating frame err={}", .{err});
+            return;
+        };
+        surface.draw();
+    }
+
     /// Update the size of a surface. This will trigger resize notifications
     /// to the pty and the renderer.
     export fn ghostty_surface_set_size(surface: *Surface, w: u32, h: u32) void {
@@ -1821,6 +1894,20 @@ pub const CAPI = struct {
         len: usize,
     ) void {
         surface.textCallback(ptr[0..len]);
+    }
+
+    /// Process raw output bytes from an embedder-owned pty.
+    ///
+    /// This is the output-side companion to external_pty mode. The bytes are
+    /// parsed as terminal output and rendered by Ghostty; user input produced
+    /// by key/text callbacks is returned through external_pty_write.
+    export fn ghostty_surface_write(
+        surface: *Surface,
+        ptr: [*]const u8,
+        len: usize,
+    ) void {
+        if (len == 0) return;
+        surface.core_surface.io.processOutput(ptr[0..len]);
     }
 
     /// Set the preedit text for the surface. This is used for IME

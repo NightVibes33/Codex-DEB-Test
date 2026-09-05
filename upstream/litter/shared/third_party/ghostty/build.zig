@@ -44,6 +44,11 @@ pub fn build(b: *std.Build) !void {
         "test-filter",
         "Filter for test. Only applies to Zig tests.",
     ) orelse &[0][]const u8{};
+    const litter_ios_static = b.option(
+        bool,
+        "litter-ios-static",
+        "Build only the static iOS library artifact needed by Litter.",
+    ) orelse false;
 
     // Ghostty dependencies used by many artifacts.
     const deps = try buildpkg.SharedDeps.init(b, &config);
@@ -114,42 +119,44 @@ pub fn build(b: *std.Build) !void {
     }
 
     // libghostty-vt
-    const libghostty_vt_shared = shared: {
-        if (config.target.result.cpu.arch.isWasm()) {
-            break :shared try buildpkg.GhosttyLibVt.initWasm(
+    if (!litter_ios_static) {
+        const libghostty_vt_shared = shared: {
+            if (config.target.result.cpu.arch.isWasm()) {
+                break :shared try buildpkg.GhosttyLibVt.initWasm(
+                    b,
+                    &mod,
+                );
+            }
+
+            break :shared try buildpkg.GhosttyLibVt.initShared(
                 b,
                 &mod,
             );
-        }
+        };
+        libghostty_vt_shared.install(b.getInstallStep());
 
-        break :shared try buildpkg.GhosttyLibVt.initShared(
+        // libghostty-vt static lib
+        const libghostty_vt_static = try buildpkg.GhosttyLibVt.initStatic(
             b,
             &mod,
         );
-    };
-    libghostty_vt_shared.install(b.getInstallStep());
-
-    // libghostty-vt static lib
-    const libghostty_vt_static = try buildpkg.GhosttyLibVt.initStatic(
-        b,
-        &mod,
-    );
-    if (config.is_dep) {
-        // If we're a dependency, we need to install everything as-is
-        // so that dep.artifact("ghostty-vt-static") works.
-        libghostty_vt_static.install(b.getInstallStep());
-    } else {
-        // If we're not a dependency, we rename the static lib to
-        // be idiomatic. On Windows, we use a distinct name to avoid
-        // colliding with the DLL import library (ghostty-vt.lib).
-        const static_lib_name = if (config.target.result.os.tag == .windows)
-            "ghostty-vt-static.lib"
-        else
-            "libghostty-vt.a";
-        b.getInstallStep().dependOn(&b.addInstallLibFile(
-            libghostty_vt_static.output,
-            static_lib_name,
-        ).step);
+        if (config.is_dep) {
+            // If we're a dependency, we need to install everything as-is
+            // so that dep.artifact("ghostty-vt-static") works.
+            libghostty_vt_static.install(b.getInstallStep());
+        } else {
+            // If we're not a dependency, we rename the static lib to
+            // be idiomatic. On Windows, we use a distinct name to avoid
+            // colliding with the DLL import library (ghostty-vt.lib).
+            const static_lib_name = if (config.target.result.os.tag == .windows)
+                "ghostty-vt-static.lib"
+            else
+                "libghostty-vt.a";
+            b.getInstallStep().dependOn(&b.addInstallLibFile(
+                libghostty_vt_static.output,
+                static_lib_name,
+            ).step);
+        }
     }
 
     // libghostty-vt xcframework (Apple only, universal binary).
@@ -186,19 +193,25 @@ pub fn build(b: *std.Build) !void {
         // This is NOT libghostty (even though its named that for historical
         // reasons). It is just the glue between Ghostty GUI on macOS and
         // the full Ghostty GUI core.
-        const lib_shared = try buildpkg.GhosttyLib.initShared(b, &deps);
-        const lib_static = try buildpkg.GhosttyLib.initStatic(b, &deps);
+        if (litter_ios_static) {
+            const lib_static = try buildpkg.GhosttyLib.initStatic(b, &deps);
+            lib_static.installHeader();
+            lib_static.install("ghostty-internal.a");
+        } else {
+            const lib_shared = try buildpkg.GhosttyLib.initShared(b, &deps);
+            const lib_static = try buildpkg.GhosttyLib.initStatic(b, &deps);
 
-        // We shouldn't have this guard but we don't currently
-        // build on macOS this way ironically so we need to fix that.
-        if (!config.target.result.os.tag.isDarwin()) {
-            lib_shared.installHeader(); // Only need one header
-            if (config.target.result.os.tag == .windows) {
-                lib_shared.install("ghostty-internal.dll");
-                lib_static.install("ghostty-internal-static.lib");
-            } else {
-                lib_shared.install("ghostty-internal.so");
-                lib_static.install("ghostty-internal.a");
+            // We shouldn't have this guard but we don't currently
+            // build on macOS this way ironically so we need to fix that.
+            if (!config.target.result.os.tag.isDarwin()) {
+                lib_shared.installHeader(); // Only need one header
+                if (config.target.result.os.tag == .windows) {
+                    lib_shared.install("ghostty-internal.dll");
+                    lib_static.install("ghostty-internal-static.lib");
+                } else {
+                    lib_shared.install("ghostty-internal.so");
+                    lib_static.install("ghostty-internal.a");
+                }
             }
         }
     }

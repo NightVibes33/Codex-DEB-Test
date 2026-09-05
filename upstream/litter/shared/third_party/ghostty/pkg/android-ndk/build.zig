@@ -116,6 +116,35 @@ pub fn addPaths(b: *std.Build, step: *std.Build.Step.Compile) !void {
     step.root_module.addLibraryPath(value.lib);
 }
 
+pub fn addTranslateCPaths(b: *std.Build, step: *std.Build.Step.TranslateC) !void {
+    const target = step.target.result;
+    if (!target.abi.isAndroid()) return;
+
+    const ndk_path = findNDKPath(b) orelse return error.AndroidNDKNotFound;
+    const ndk_triple = ndkTriple(target) orelse return error.AndroidNDKUnsupportedTarget;
+    const host = hostTag() orelse return error.AndroidNDKUnsupportedHost;
+    const sysroot = b.pathJoin(&.{
+        ndk_path,
+        "toolchains",
+        "llvm",
+        "prebuilt",
+        host,
+        "sysroot",
+    });
+
+    step.addSystemIncludePath(.{ .cwd_relative = b.pathJoin(&.{
+        sysroot,
+        "usr",
+        "include",
+    }) });
+    step.addSystemIncludePath(.{ .cwd_relative = b.pathJoin(&.{
+        sysroot,
+        "usr",
+        "include",
+        ndk_triple,
+    }) });
+}
+
 fn findNDKPath(b: *std.Build) ?[]const u8 {
     // Check if user has set the environment variable for the NDK path.
     if (std.process.getEnvVarOwned(b.allocator, "ANDROID_NDK_HOME") catch null) |value| {

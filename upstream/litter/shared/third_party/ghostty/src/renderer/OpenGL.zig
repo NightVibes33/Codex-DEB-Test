@@ -12,6 +12,17 @@ const configpkg = @import("../config.zig");
 const rendererpkg = @import("../renderer.zig");
 const Renderer = rendererpkg.GenericRenderer(OpenGL);
 
+const android_egl = if (builtin.target.os.tag == .linux and builtin.target.abi.isAndroid()) struct {
+    const c = @cImport({
+        @cInclude("EGL/egl.h");
+    });
+    const Proc = *const fn () callconv(.c) void;
+
+    fn getProcAddress(name: [*:0]const u8) callconv(.c) ?Proc {
+        return @ptrCast(c.eglGetProcAddress(name));
+    }
+} else struct {};
+
 pub const GraphicsAPI = OpenGL;
 pub const Target = @import("opengl/Target.zig");
 pub const Frame = @import("opengl/Frame.zig");
@@ -170,9 +181,9 @@ pub fn surfaceInit(surface: *apprt.Surface) !void {
         => try prepareContext(null),
 
         apprt.embedded => {
-            // TODO(mitchellh): this does nothing today to allow libghostty
-            // to compile for OpenGL targets but libghostty is strictly
-            // broken for rendering on this platforms.
+            if (comptime builtin.target.os.tag == .linux and builtin.target.abi.isAndroid()) {
+                try prepareContext(&android_egl.getProcAddress);
+            }
         },
     }
 

@@ -10,29 +10,135 @@ const ProcessInfo = @import("../pty.zig").ProcessInfo;
 // enough to satisfy most write requests. It must be a power of 2.
 const WRITE_REQ_PREALLOC = std.math.pow(usize, 2, 5);
 
+/// Callback used by the external backend to hand encoded terminal input
+/// back to the embedding host.
+pub const ExternalPtyWriteFn = *const fn (?*anyopaque, [*]const u8, usize) callconv(.c) void;
+
 /// The kinds of backends.
-pub const Kind = enum { exec };
+pub const Kind = enum { exec, external };
 
 /// Configuration for the various backend types.
 pub const Config = union(Kind) {
     /// Exec uses posix exec to run a command with a pty.
     exec: termio.Exec.Config,
+
+    /// External relies on the embedding host to own the pty.
+    external: External.Config,
+};
+
+/// External backend for embedders that own the pty/process lifecycle.
+///
+/// Ghostty still owns the terminal parser, key translation, selection,
+/// rendering, and mailbox plumbing. Raw pty output is fed in through
+/// Termio.processOutput, while encoded user input is sent back to the host via
+/// the callback below.
+pub const External = struct {
+    userdata: ?*anyopaque,
+    write: ExternalPtyWriteFn,
+
+    pub const Config = struct {
+        write: ExternalPtyWriteFn,
+        userdata: ?*anyopaque = null,
+    };
+
+    pub const ThreadData = struct {
+        pub fn deinit(_: *@This(), _: Allocator) void {}
+        pub fn changeConfig(_: *@This(), _: *termio.DerivedConfig) void {}
+    };
+
+    pub fn deinit(_: *External) void {}
+
+    pub fn initTerminal(_: *External, _: *terminal.Terminal) void {}
+
+    pub fn threadEnter(
+        _: *External,
+        _: Allocator,
+        _: *termio.Termio,
+        td: *termio.Termio.ThreadData,
+    ) !void {
+        td.backend = .{ .external = .{} };
+    }
+
+    pub fn threadExit(_: *External, _: *termio.Termio.ThreadData) void {}
+
+    pub fn focusGained(
+        _: *External,
+        _: *termio.Termio.ThreadData,
+        _: bool,
+    ) !void {}
+
+    pub fn resize(
+        _: *External,
+        _: renderer.GridSize,
+        _: renderer.ScreenSize,
+    ) !void {}
+
+    pub fn queueWrite(
+        self: *External,
+        _: Allocator,
+        _: *termio.Termio.ThreadData,
+        data: []const u8,
+        linefeed: bool,
+    ) !void {
+        if (!linefeed) {
+            if (data.len > 0) self.write(self.userdata, data.ptr, data.len);
+            return;
+        }
+
+        var i: usize = 0;
+        var buf: [128]u8 = undefined;
+        while (i < data.len) {
+            var len: usize = 0;
+            while (i < data.len and len < buf.len - 1) {
+                const ch = data[i];
+                i += 1;
+                if (ch == '\r') {
+                    buf[len] = '\r';
+                    buf[len + 1] = '\n';
+                    len += 2;
+                } else {
+                    buf[len] = ch;
+                    len += 1;
+                }
+            }
+
+            if (len > 0) self.write(self.userdata, buf[0..len].ptr, len);
+        }
+    }
+
+    pub fn childExitedAbnormally(
+        _: *External,
+        _: Allocator,
+        _: *terminal.Terminal,
+        _: u32,
+        _: u64,
+    ) !void {}
+
+    pub fn getProcessInfo(
+        _: *External,
+        comptime info: ProcessInfo,
+    ) ?ProcessInfo.Type(info) {
+        return null;
+    }
 };
 
 /// Backend implementations. A backend is responsible for owning the pty
 /// behavior and providing read/write capabilities.
 pub const Backend = union(Kind) {
     exec: termio.Exec,
+    external: External,
 
     pub fn deinit(self: *Backend) void {
         switch (self.*) {
             .exec => |*exec| exec.deinit(),
+            .external => |*external| external.deinit(),
         }
     }
 
     pub fn initTerminal(self: *Backend, t: *terminal.Terminal) void {
         switch (self.*) {
             .exec => |*exec| exec.initTerminal(t),
+            .external => |*external| external.initTerminal(t),
         }
     }
 
@@ -44,12 +150,14 @@ pub const Backend = union(Kind) {
     ) !void {
         switch (self.*) {
             .exec => |*exec| try exec.threadEnter(alloc, io, td),
+            .external => |*external| try external.threadEnter(alloc, io, td),
         }
     }
 
     pub fn threadExit(self: *Backend, td: *termio.Termio.ThreadData) void {
         switch (self.*) {
             .exec => |*exec| exec.threadExit(td),
+            .external => |*external| external.threadExit(td),
         }
     }
 
@@ -60,6 +168,7 @@ pub const Backend = union(Kind) {
     ) !void {
         switch (self.*) {
             .exec => |*exec| try exec.focusGained(td, focused),
+            .external => |*external| try external.focusGained(td, focused),
         }
     }
 
@@ -70,6 +179,7 @@ pub const Backend = union(Kind) {
     ) !void {
         switch (self.*) {
             .exec => |*exec| try exec.resize(grid_size, screen_size),
+            .external => |*external| try external.resize(grid_size, screen_size),
         }
     }
 
@@ -82,6 +192,7 @@ pub const Backend = union(Kind) {
     ) !void {
         switch (self.*) {
             .exec => |*exec| try exec.queueWrite(alloc, td, data, linefeed),
+            .external => |*external| try external.queueWrite(alloc, td, data, linefeed),
         }
     }
 
@@ -99,6 +210,12 @@ pub const Backend = union(Kind) {
                 exit_code,
                 runtime_ms,
             ),
+            .external => |*external| try external.childExitedAbnormally(
+                gpa,
+                t,
+                exit_code,
+                runtime_ms,
+            ),
         }
     }
 
@@ -108,6 +225,7 @@ pub const Backend = union(Kind) {
     pub fn getProcessInfo(self: *Backend, comptime info: ProcessInfo) ?ProcessInfo.Type(info) {
         return switch (self.*) {
             .exec => |*exec| exec.getProcessInfo(info),
+            .external => |*external| external.getProcessInfo(info),
         };
     }
 };
@@ -115,15 +233,19 @@ pub const Backend = union(Kind) {
 /// Termio thread data. See termio.ThreadData for docs.
 pub const ThreadData = union(Kind) {
     exec: termio.Exec.ThreadData,
+    external: External.ThreadData,
 
     pub fn deinit(self: *ThreadData, alloc: Allocator) void {
         switch (self.*) {
             .exec => |*exec| exec.deinit(alloc),
+            .external => |*external| external.deinit(alloc),
         }
     }
 
     pub fn changeConfig(self: *ThreadData, config: *termio.DerivedConfig) void {
-        _ = self;
-        _ = config;
+        switch (self.*) {
+            .exec => {},
+            .external => |*external| external.changeConfig(config),
+        }
     }
 };
