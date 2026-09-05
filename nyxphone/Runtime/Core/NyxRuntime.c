@@ -50,7 +50,7 @@ static void nyx_emit(NyxVM *vm, const char *message) {
 }
 
 const char *nyx_runtime_version(void) {
-    return "NyxRuntime/0.17-dyld-logical-immediate";
+    return "NyxRuntime/0.18-ksurface-mediation";
 }
 
 uint32_t nyx_runtime_abi_version(void) {
@@ -347,6 +347,9 @@ int32_t nyx_vm_load_macho(
             vm->dyld_entry = info.entry_address;
             nyx_emit(vm, "[NYXDYLD] standalone dyld staged\n");
         } else {
+            vp_ksurface_set_process_name(vm->surface, "launchd");
+            (void)vp_ksurface_set_process_path(vm->surface, "/sbin/launchd");
+            (void)vp_ksurface_grant_entitlement(vm->surface, "com.nyxphone.virtual-signing");
             vm->launchd_entry = info.entry_address;
             nyx_emit(vm, "[NYXLAUNCHD] user Mach-O staged\n");
         }
@@ -374,7 +377,6 @@ int32_t nyx_vm_start_launchd(NyxVM *vm) {
     uint64_t stack_pointer = 0;
     const int32_t status = nyx_vm_prepare_launchd(vm, &stack_pointer);
     if (status != (int32_t)VP_STATUS_OK) return status;
-    vp_ksurface_set_process_name(vm->surface, "launchd");
     vp_runtime_set_instruction_budget(vm->runtime, UINT64_C(500000));
     return (int32_t)vp_runtime_boot(vm->runtime);
 }

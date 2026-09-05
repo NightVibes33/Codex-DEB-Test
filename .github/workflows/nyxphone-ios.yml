@@ -7,7 +7,7 @@ on:
       - temp/darwin-vm-windows11
     paths:
       - 'nyxphone/**'
-      - '.github/workflows/viphone-ios.yml'
+      - '.github/workflows/nyxphone-ios.yml'
 
 permissions:
   contents: read
@@ -113,7 +113,7 @@ jobs:
           }
 
           int main(void) {
-              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.17-dyld-logical-immediate") != 0) return 9;
+              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.18-ksurface-mediation") != 0) return 9;
               VPMachineConfig cfg = {8, 32ULL * 1024 * 1024 * 1024, 1290, 2796, 460, 3.0};
               VPRuntime *rt = vp_runtime_create(&cfg);
               if (!rt) return 10;
@@ -130,6 +130,27 @@ jobs:
                   !strstr(syscall_capture.bytes, "arguments=1,2,3,4,5,6,7,8")) return 80;
               vp_ksurface_set_process_name(surface, "nyxinit");
               vp_runtime_set_serial_callback(rt, NULL, NULL);
+
+              const uint64_t path_address = 0x18000;
+              uint64_t procpath_args[8] = {path_address, 128, 0, 0, 0, 0, 0, 0};
+              uint64_t procpath_result = 0;
+              if (vp_ksurface_set_process_path(surface, "/sbin/nyxinit") != VP_STATUS_OK ||
+                  vp_ksurface_handle_syscall(rt, VP_NYX_SYS_PROCPATH, procpath_args,
+                                             &procpath_result, surface) != VP_STATUS_OK ||
+                  procpath_result != strlen("/sbin/nyxinit")) return 119;
+              char procpath[32] = {0};
+              if (vp_runtime_memory_read(rt, path_address, procpath, sizeof(procpath)) != VP_STATUS_OK ||
+                  strcmp(procpath, "/sbin/nyxinit") != 0) return 120;
+              uint64_t sign_args[8] = {0x20000, 4096, 0, 0, 0, 0, 0, 0};
+              uint64_t sign_result = 0;
+              if (vp_ksurface_handle_syscall(rt, VP_NYX_SYS_SIGN, sign_args,
+                                             &sign_result, surface) != VP_STATUS_OK ||
+                  (int64_t)sign_result != -EPERM) return 121;
+              if (vp_ksurface_grant_entitlement(surface, "com.nyxphone.virtual-signing") != VP_STATUS_OK ||
+                  !vp_ksurface_has_entitlement(surface, "com.nyxphone.virtual-signing") ||
+                  vp_ksurface_handle_syscall(rt, VP_NYX_SYS_SIGN, sign_args,
+                                             &sign_result, surface) != VP_STATUS_OK ||
+                  sign_result != 0) return 122;
 
               uint8_t backing_bytes[VP_GUEST_PAGE_SIZE * 2u];
               for (size_t i = 0; i < sizeof(backing_bytes); i++) backing_bytes[i] = (uint8_t)(i * 17u + 3u);
@@ -253,7 +274,7 @@ jobs:
               }
               if (cpu.x[1] != 0x1239 || cpu.x[2] != 0x1239) return 31;
               if (cpu.x[0] != 1 || cpu.syscalls_retired != 1) return 32;
-              if (vp_ksurface_syscalls_handled(surface) != 1) return 33;
+              if (vp_ksurface_syscalls_handled(surface) != 3) return 33;
 
               const uint64_t dyld_cpu_base = 0xB0000;
               const uint32_t dyld_cpu_program[] = {
@@ -400,7 +421,7 @@ jobs:
               if (vp_runtime_boot(rt) != VP_STATUS_OK) return 34;
               if (vp_runtime_state(rt) != VP_RUNTIME_STOPPED) return 35;
               if (vp_runtime_instructions_retired(rt) != 8) return 36;
-              if (vp_ksurface_syscalls_handled(surface) != 2) return 37;
+              if (vp_ksurface_syscalls_handled(surface) != 4) return 37;
 
               printf("ABI=%u boot-stage=ok retired=%llu ksurface=%llu committed=%llu\n",
                      vp_runtime_abi_version(),
@@ -536,8 +557,8 @@ jobs:
           Nyxian=$NYXIAN_SHA
           vphone-cli=$VPHONE_CLI_SHA
           runtime-branch=$GITHUB_SHA
-          runtime-abi=12
-          core-abi=18
+          runtime-abi=13
+          core-abi=19
           execution=ViPhone-custom-aarch64
           apple-boot-staging=vp_runtime_stage_boot_images
           qemu=none
@@ -724,8 +745,8 @@ jobs:
             "nyxianCommit": "$NYXIAN_SHA",
             "bootAndCFWDonor": "Lakr233/vphone-cli",
             "vphoneCliCommit": "$VPHONE_CLI_SHA",
-            "runtimeABI": 12,
-            "coreABI": 18,
+            "runtimeABI": 13,
+            "coreABI": 19,
             "execution": "NyxPhone custom AArch64 runtime",
             "appleBootImageStaging": true,
             "builtInNyxianEmbedded": true,
@@ -739,6 +760,9 @@ jobs:
             "networkTestEndpoint": "https://example.com/",
             "builtInDarwinABI": true,
             "builtInMachIPC": true,
+            "builtInProcessPath": true,
+            "virtualSigningEntitlementMediation": true,
+            "hostCodeSigningPerformed": false,
             "builtInMachOLoader": true,
             "builtInDyldCacheDemandPaging": true,
             "builtInDyldMachOLoader": true,

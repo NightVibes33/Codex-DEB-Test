@@ -50,6 +50,8 @@ extern "C" {
 #define VP_KSURFACE_MODE_NORMAL 0u
 #define VP_KSURFACE_BUILD_RELEASE 0u
 #define VP_KSURFACE_BUILD_DEBUG 1u
+#define VP_KSURFACE_MAX_ENTITLEMENTS 32u
+#define VP_KSURFACE_MAX_ENTITLEMENT_KEY 96u
 
 typedef struct VPKernelSurface VPKernelSurface;
 
@@ -68,6 +70,9 @@ VPKernelSurface *vp_ksurface_attach(VPRuntime *runtime);
 void vp_ksurface_destroy(VPKernelSurface *surface);
 void vp_ksurface_set_identity(VPKernelSurface *surface, const VPProcessIdentity *identity);
 void vp_ksurface_set_process_name(VPKernelSurface *surface, const char *process_name);
+VPStatus vp_ksurface_set_process_path(VPKernelSurface *surface, const char *process_path);
+VPStatus vp_ksurface_grant_entitlement(VPKernelSurface *surface, const char *key);
+int vp_ksurface_has_entitlement(const VPKernelSurface *surface, const char *key);
 VPProcessIdentity vp_ksurface_identity(const VPKernelSurface *surface);
 uint64_t vp_ksurface_syscalls_handled(const VPKernelSurface *surface);
 uint64_t vp_ksurface_syscalls_rejected(const VPKernelSurface *surface);
