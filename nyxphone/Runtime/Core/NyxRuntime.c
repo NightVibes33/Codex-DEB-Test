@@ -50,7 +50,7 @@ static void nyx_emit(NyxVM *vm, const char *message) {
 }
 
 const char *nyx_runtime_version(void) {
-    return "NyxRuntime/0.18-ksurface-mediation";
+    return "NyxRuntime/0.19-dyld-bit-operations";
 }
 
 uint32_t nyx_runtime_abi_version(void) {

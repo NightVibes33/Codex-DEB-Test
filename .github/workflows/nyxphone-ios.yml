@@ -113,7 +113,7 @@ jobs:
           }
 
           int main(void) {
-              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.18-ksurface-mediation") != 0) return 9;
+              if (strcmp(nyx_runtime_version(), "NyxRuntime/0.19-dyld-bit-operations") != 0) return 9;
               VPMachineConfig cfg = {8, 32ULL * 1024 * 1024 * 1024, 1290, 2796, 460, 3.0};
               VPRuntime *rt = vp_runtime_create(&cfg);
               if (!rt) return 10;
@@ -418,6 +418,34 @@ jobs:
                   logical_imm_cpu.x[8] != 0 || logical_imm_cpu.x[9] != 0xFF ||
                   ((logical_imm_cpu.sys.nzcv >> 30) & 1u) != 1u) return 118;
 
+              const uint64_t bit_ops_cpu_base = 0x5A0000;
+              const uint32_t bit_ops_program[] = {
+                  0x93C22023u,       /* EXTR X3, X1, X2, #8 */
+                  0xDAC00004u,       /* RBIT X4, X0 */
+                  0xDAC00C25u,       /* REV X5, X1 */
+                  0xDAC01046u,       /* CLZ X6, X2 */
+                  0xDAC01467u,       /* CLS X7, X3 */
+                  0x93C12028u,       /* ROR X8, X1, #8 */
+                  0xD4400000u,       /* HLT 0 */
+              };
+              if (vp_runtime_memory_write(rt, bit_ops_cpu_base, bit_ops_program,
+                                          sizeof(bit_ops_program)) != VP_STATUS_OK) return 123;
+              VPAArch64CPU bit_ops_cpu;
+              vp_aarch64_reset(&bit_ops_cpu, bit_ops_cpu_base);
+              bit_ops_cpu.x[0] = 1;
+              bit_ops_cpu.x[1] = UINT64_C(0x1122334455667788);
+              bit_ops_cpu.x[2] = UINT64_C(0x99AABBCCDDEEFF00);
+              for (unsigned i = 0; i < 7; i++) {
+                  const VPCPUStepResult step = vp_aarch64_step(rt, &bit_ops_cpu, NULL);
+                  if (i < 6 && step != VP_CPU_STEP_OK) return 124 + (int)i;
+                  if (i == 6 && step != VP_CPU_STEP_HALTED) return 130;
+              }
+              if (bit_ops_cpu.x[3] != UINT64_C(0x8899AABBCCDDEEFF) ||
+                  bit_ops_cpu.x[4] != UINT64_C(0x8000000000000000) ||
+                  bit_ops_cpu.x[5] != UINT64_C(0x8877665544332211) ||
+                  bit_ops_cpu.x[6] != 0 || bit_ops_cpu.x[7] != 0 ||
+                  bit_ops_cpu.x[8] != UINT64_C(0x8811223344556677)) return 131;
+
               if (vp_runtime_boot(rt) != VP_STATUS_OK) return 34;
               if (vp_runtime_state(rt) != VP_RUNTIME_STOPPED) return 35;
               if (vp_runtime_instructions_retired(rt) != 8) return 36;
@@ -557,8 +585,8 @@ jobs:
           Nyxian=$NYXIAN_SHA
           vphone-cli=$VPHONE_CLI_SHA
           runtime-branch=$GITHUB_SHA
-          runtime-abi=13
-          core-abi=19
+          runtime-abi=14
+          core-abi=20
           execution=ViPhone-custom-aarch64
           apple-boot-staging=vp_runtime_stage_boot_images
           qemu=none
@@ -745,8 +773,8 @@ jobs:
             "nyxianCommit": "$NYXIAN_SHA",
             "bootAndCFWDonor": "Lakr233/vphone-cli",
             "vphoneCliCommit": "$VPHONE_CLI_SHA",
-            "runtimeABI": 13,
-            "coreABI": 19,
+            "runtimeABI": 14,
+            "coreABI": 20,
             "execution": "NyxPhone custom AArch64 runtime",
             "appleBootImageStaging": true,
             "builtInNyxianEmbedded": true,
@@ -768,7 +796,7 @@ jobs:
             "builtInDyldMachOLoader": true,
             "builtInDarwinInitialStack": true,
             "builtInDyldEntryAttempt": true,
-            "builtInDyldCPUInstructions": ["PAC-hints", "STP-LDP", "ADDS-SUBS", "B.cond", "logical-register", "LDUR-STUR", "LDR-literal", "CSEL-CSINC", "MADD-MSUB", "SBFM-UBFM", "LDRSW-LDURSW", "UDIV-SDIV", "LSLV-LSRV-ASRV-RORV", "ADD-SUB-extended", "LDR-STR-register-offset", "logical-immediate"],
+            "builtInDyldCPUInstructions": ["PAC-hints", "STP-LDP", "ADDS-SUBS", "B.cond", "logical-register", "LDUR-STUR", "LDR-literal", "CSEL-CSINC", "MADD-MSUB", "SBFM-UBFM", "LDRSW-LDURSW", "UDIV-SDIV", "LSLV-LSRV-ASRV-RORV", "ADD-SUB-extended", "LDR-STR-register-offset", "logical-immediate", "EXTR-ROR", "RBIT-REV", "CLZ-CLS"],
             "builtInDeviceDiagnostics": true,
             "builtInDeviceDiagnosticShare": true,
             "cpuFaultMarker": "NYX_CPU_FAULT",
