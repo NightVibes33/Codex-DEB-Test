@@ -1,0 +1,116 @@
+name: Chromecast ADB Pair + Connect
+
+on:
+  workflow_dispatch:
+    inputs:
+      pairing_port:
+        description: "Wireless debugging pairing port (from Pair device with pairing code)"
+        required: true
+        type: string
+      pairing_code:
+        description: "6-digit pairing code"
+        required: true
+        type: string
+      adb_port:
+        description: "Wireless debugging connection port"
+        required: true
+        default: "41747"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chromecast-adb-pair
+  cancel-in-progress: true
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve environment
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+
+          curl -fsSL \
+            -H 'Accept: application/vnd.github+json' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" \
+            -o environments.json
+
+          python3 scripts/resolve-github-environment.py \
+            environments.json \
+            "$TARGET_ENVIRONMENT_ID" >> "$GITHUB_OUTPUT"
+
+  pair-and-connect:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      TARGET: "100.81.33.70"
+      PAIR_PORT: ${{ inputs.pairing_port }}
+      PAIR_CODE: ${{ inputs.pairing_code }}
+      ADB_PORT: ${{ inputs.adb_port }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Join Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Install current Android platform-tools
+        run: |
+          set -euo pipefail
+
+          curl -fsSLo /tmp/platform-tools.zip \
+            https://dl.google.com/android/repository/platform-tools-latest-linux.zip
+
+          unzip -q /tmp/platform-tools.zip -d /tmp
+          echo "/tmp/platform-tools" >> "$GITHUB_PATH"
+
+      - name: Verify Chromecast is reachable
+        run: |
+          set -euo pipefail
+          tailscale ping -c 3 "$TARGET"
+
+      - name: Pair ADB
+        run: |
+          set -euo pipefail
+
+          # Avoid echoing the pairing code into the Actions log.
+          set +x
+          printf '%s\n' "$PAIR_CODE" | \
+            adb pair "${TARGET}:${PAIR_PORT}"
+
+      - name: Connect ADB
+        run: |
+          set -euo pipefail
+
+          adb connect "${TARGET}:${ADB_PORT}"
+          adb devices -l
+
+      - name: Verify shell access
+        run: |
+          set -euo pipefail
+
+          SERIAL="${TARGET}:${ADB_PORT}"
+
+          adb -s "$SERIAL" shell 'echo "ADB_OK"; id; uname -a'
+          adb -s "$SERIAL" shell getprop ro.product.model
+          adb -s "$SERIAL" shell getprop ro.build.version.release
+          adb -s "$SERIAL" shell getprop ro.build.version.security_patch
