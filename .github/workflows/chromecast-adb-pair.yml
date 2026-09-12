@@ -1,15 +1,17 @@
-name: Chromecast ADB Pair + Connect
+name: Chromecast ADB Persistent Access
 
 on:
   workflow_dispatch:
     inputs:
       pairing_port:
-        description: "Wireless debugging pairing port (from Pair device with pairing code)"
-        required: true
+        description: "Pairing port (only needed the first time / if cache is lost)"
+        required: false
+        default: ""
         type: string
       pairing_code:
-        description: "6-digit pairing code"
-        required: true
+        description: "6-digit pairing code (only needed the first time / if cache is lost)"
+        required: false
+        default: ""
         type: string
       adb_port:
         description: "Wireless debugging connection port"
@@ -21,7 +23,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: chromecast-adb-pair
+  group: chromecast-adb-persistent
   cancel-in-progress: true
 
 jobs:
@@ -39,33 +41,43 @@ jobs:
           TARGET_ENVIRONMENT_ID: "18728387881"
         run: |
           set -euo pipefail
-
           curl -fsSL \
             -H 'Accept: application/vnd.github+json' \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H 'X-GitHub-Api-Version: 2022-11-28' \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" \
             -o environments.json
-
           python3 scripts/resolve-github-environment.py \
             environments.json \
             "$TARGET_ENVIRONMENT_ID" >> "$GITHUB_OUTPUT"
 
-  pair-and-connect:
+  adb:
     needs: resolve-environment
     environment:
       name: ${{ needs.resolve-environment.outputs.environment_name }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
 
     env:
       TARGET: "100.81.33.70"
-      PAIR_PORT: ${{ inputs.pairing_port }}
-      PAIR_CODE: ${{ inputs.pairing_code }}
-      ADB_PORT: ${{ inputs.adb_port }}
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Load inputs and mask pairing code
+        run: |
+          set -euo pipefail
+          PAIR_PORT="$(jq -r '.inputs.pairing_port // ""' "$GITHUB_EVENT_PATH")"
+          PAIR_CODE="$(jq -r '.inputs.pairing_code // ""' "$GITHUB_EVENT_PATH")"
+          ADB_PORT="$(jq -r '.inputs.adb_port // "41747"' "$GITHUB_EVENT_PATH")"
+          if [ -n "$PAIR_CODE" ]; then
+            echo "::add-mask::$PAIR_CODE"
+          fi
+          {
+            echo "PAIR_PORT=$PAIR_PORT"
+            echo "PAIR_CODE=$PAIR_CODE"
+            echo "ADB_PORT=$ADB_PORT"
+          } >> "$GITHUB_ENV"
 
       - name: Join Tailscale
         uses: tailscale/github-action@v4
@@ -76,41 +88,145 @@ jobs:
       - name: Install current Android platform-tools
         run: |
           set -euo pipefail
-
           curl -fsSLo /tmp/platform-tools.zip \
             https://dl.google.com/android/repository/platform-tools-latest-linux.zip
-
           unzip -q /tmp/platform-tools.zip -d /tmp
           echo "/tmp/platform-tools" >> "$GITHUB_PATH"
 
-      - name: Verify Chromecast is reachable
+      - name: Restore persistent ADB host key
+        id: adb-key-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.android/adbkey
+            ~/.android/adbkey.pub
+          key: chromecast-adb-host-key-v1
+
+      - name: Prepare restored key
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.android"
+          chmod 700 "$HOME/.android"
+          if [ -f "$HOME/.android/adbkey" ]; then chmod 600 "$HOME/.android/adbkey"; fi
+          if [ -f "$HOME/.android/adbkey.pub" ]; then chmod 644 "$HOME/.android/adbkey.pub"; fi
+
+      - name: Verify Chromecast route
         run: |
           set -euo pipefail
           tailscale ping -c 3 "$TARGET" || true
 
-      - name: Pair ADB
+      - name: Try cached ADB authorization
+        id: cached-connect
+        run: |
+          set -u
+          adb start-server
+          adb connect "${TARGET}:${ADB_PORT}" || true
+          if [ "$(adb -s "${TARGET}:${ADB_PORT}" get-state 2>/dev/null || true)" = "device" ]; then
+            echo "connected=true" >> "$GITHUB_OUTPUT"
+            echo "Persistent ADB key accepted."
+          else
+            echo "connected=false" >> "$GITHUB_OUTPUT"
+            echo "Cached key unavailable or not authorized; pairing is required."
+          fi
+
+      - name: Pair ADB when needed
+        if: steps.cached-connect.outputs.connected != 'true'
         run: |
           set -euo pipefail
-
-          # Avoid echoing the pairing code into the Actions log.
+          if [ -z "${PAIR_PORT:-}" ] || [ -z "${PAIR_CODE:-}" ]; then
+            echo "::error::No usable cached ADB key. Open Pair device with pairing code on the Chromecast and rerun with pairing_port + pairing_code once."
+            exit 1
+          fi
           set +x
-          printf '%s\n' "$PAIR_CODE" | \
-            adb pair "${TARGET}:${PAIR_PORT}"
+          printf '%s\n' "$PAIR_CODE" | adb pair "${TARGET}:${PAIR_PORT}"
+          adb connect "${TARGET}:${ADB_PORT}"
 
-      - name: Connect ADB
+      - name: Verify ADB shell
         run: |
           set -euo pipefail
-
-          adb connect "${TARGET}:${ADB_PORT}"
+          SERIAL="${TARGET}:${ADB_PORT}"
+          test "$(adb -s "$SERIAL" get-state)" = "device"
+          adb -s "$SERIAL" shell 'echo ADB_OK; id; uname -a'
           adb devices -l
 
-      - name: Verify shell access
+      - name: Save persistent ADB host key
+        if: steps.adb-key-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.android/adbkey
+            ~/.android/adbkey.pub
+          key: chromecast-adb-host-key-v1
+
+      - name: Collect boot, AVB, SELinux, SoC and partition diagnostics
         run: |
           set -euo pipefail
-
           SERIAL="${TARGET}:${ADB_PORT}"
+          mkdir -p diagnostics
+          OUT="diagnostics/chromecast-adb-diagnostics.txt"
 
-          adb -s "$SERIAL" shell 'echo "ADB_OK"; id; uname -a'
-          adb -s "$SERIAL" shell getprop ro.product.model
-          adb -s "$SERIAL" shell getprop ro.build.version.release
-          adb -s "$SERIAL" shell getprop ro.build.version.security_patch
+          prop() {
+            key="$1"
+            value="$(adb -s "$SERIAL" shell getprop "$key" 2>/dev/null | tr -d '\r' || true)"
+            printf '%s=%s\n' "$key" "$value"
+          }
+
+          {
+            echo "=== identity ==="
+            adb -s "$SERIAL" shell id 2>&1 || true
+            adb -s "$SERIAL" shell uname -a 2>&1 || true
+            prop ro.product.manufacturer
+            prop ro.product.model
+            prop ro.product.device
+            prop ro.product.board
+            prop ro.hardware
+            prop ro.soc.manufacturer
+            prop ro.soc.model
+            prop ro.build.fingerprint
+            prop ro.build.id
+            prop ro.build.version.release
+            prop ro.build.version.sdk
+            prop ro.build.version.security_patch
+
+            echo
+            echo "=== security / boot ==="
+            prop ro.secure
+            prop ro.debuggable
+            prop ro.adb.secure
+            prop ro.boot.verifiedbootstate
+            prop ro.boot.flash.locked
+            prop ro.boot.vbmeta.device_state
+            prop ro.boot.veritymode
+            prop ro.boot.avb_version
+            prop ro.boot.slot_suffix
+            prop ro.boot.bootdevice
+            printf 'getenforce='; adb -s "$SERIAL" shell getenforce 2>&1 | tr -d '\r' || true
+            echo "su_path=$(adb -s "$SERIAL" shell 'command -v su 2>/dev/null || true' | tr -d '\r')"
+            echo "su_test:"
+            adb -s "$SERIAL" shell 'su -c id 2>&1 || true' || true
+
+            echo
+            echo "=== kernel / cmdline ==="
+            adb -s "$SERIAL" shell cat /proc/version 2>&1 || true
+            adb -s "$SERIAL" shell cat /proc/cmdline 2>&1 || true
+
+            echo
+            echo "=== partitions ==="
+            adb -s "$SERIAL" shell 'ls -la /dev/block/by-name 2>&1 || true' || true
+            adb -s "$SERIAL" shell 'for d in /dev/block/platform/*/by-name; do [ -e "$d" ] && { echo "-- $d"; ls -la "$d"; }; done 2>&1 || true' || true
+
+            echo
+            echo "=== mounts ==="
+            adb -s "$SERIAL" shell cat /proc/mounts 2>&1 || true
+
+            echo
+            echo "=== storage ==="
+            adb -s "$SERIAL" shell df -h 2>&1 || true
+          } | tee "$OUT"
+
+      - name: Upload diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: chromecast-adb-diagnostics-${{ github.run_id }}
+          path: diagnostics/chromecast-adb-diagnostics.txt
+          retention-days: 3
