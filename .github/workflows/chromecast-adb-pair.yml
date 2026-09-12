@@ -4,12 +4,12 @@ on:
   workflow_dispatch:
     inputs:
       pairing_port:
-        description: "Pairing port (only needed the first time / if saved authorization is lost)"
+        description: "Pairing port (usually 5 digits; only needed if saved authorization is lost)"
         required: false
         default: ""
         type: string
       pairing_code:
-        description: "6-digit pairing code (only needed the first time / if saved authorization is lost)"
+        description: "6-digit pairing code (only needed if saved authorization is lost)"
         required: false
         default: ""
         type: string
@@ -65,12 +65,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Load inputs and mask pairing code
+      - name: Load, normalize and mask pairing inputs
         run: |
           set -euo pipefail
           PAIR_PORT="$(jq -r '.inputs.pairing_port // ""' "$GITHUB_EVENT_PATH")"
           PAIR_CODE="$(jq -r '.inputs.pairing_code // ""' "$GITHUB_EVENT_PATH")"
           ADB_PORT="$(jq -r '.inputs.adb_port // "41747"' "$GITHUB_EVENT_PATH")"
+
+          # If the 6-digit code and <=65535 port were entered backwards,
+          # detect that obvious case and correct it automatically.
+          if [[ "$PAIR_PORT" =~ ^[0-9]{6}$ ]] && \
+             [[ "$PAIR_CODE" =~ ^[0-9]{1,5}$ ]] && \
+             (( 10#$PAIR_CODE >= 1 && 10#$PAIR_CODE <= 65535 )); then
+            TMP="$PAIR_PORT"
+            PAIR_PORT="$PAIR_CODE"
+            PAIR_CODE="$TMP"
+            echo "Detected swapped pairing port/code; corrected automatically."
+          fi
+
+          if [ -n "$PAIR_PORT" ] || [ -n "$PAIR_CODE" ]; then
+            if ! [[ "$PAIR_PORT" =~ ^[0-9]{1,5}$ ]] || \
+               (( 10#$PAIR_PORT < 1 || 10#$PAIR_PORT > 65535 )); then
+              echo "::error::Invalid pairing port. Use the port shown under 'Pair device with pairing code'."
+              exit 1
+            fi
+            if ! [[ "$PAIR_CODE" =~ ^[0-9]{6}$ ]]; then
+              echo "::error::Invalid pairing code. It must be the 6-digit code shown on the Chromecast."
+              exit 1
+            fi
+          fi
+
           if [ -n "$PAIR_CODE" ]; then
             echo "::add-mask::$PAIR_CODE"
           fi
