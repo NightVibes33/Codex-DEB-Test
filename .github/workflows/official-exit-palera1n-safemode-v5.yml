@@ -50,19 +50,13 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          path=Path('scripts/official-exit-palera1n-v4.sh')
-          text=path.read_text()
-          old='''CLANG="$THEOS/toolchain/linux/iphone/bin/clang"
-LDID="$THEOS/bin/ldid"
-'''
-          new='''CLANG="$(find "$THEOS/toolchain" -type f -name clang -perm -111 -print -quit)"
-LDID="$(find "$THEOS/toolchain" "$THEOS/bin" -type f -name ldid -perm -111 -print -quit)"
-echo "clang_path=$CLANG"
-echo "ldid_path=$LDID"
-'''
+          path = Path('scripts/official-exit-palera1n-v4.sh')
+          text = path.read_text()
+          old = 'CLANG="$THEOS/toolchain/linux/iphone/bin/clang"\nLDID="$THEOS/bin/ldid"\n'
+          new = 'CLANG="$(find "$THEOS/toolchain" -type f -name clang -perm -111 -print -quit)"\nLDID="$(find "$THEOS/toolchain" "$THEOS/bin" -type f -name ldid -perm -111 -print -quit)"\necho "clang_path=$CLANG"\necho "ldid_path=$LDID"\n'
           if old not in text:
               raise SystemExit('tool_path_block_not_found')
-          path.write_text(text.replace(old,new,1))
+          path.write_text(text.replace(old, new, 1))
           PY
       - name: Join Tailscale
         id: tailscale
