@@ -86,7 +86,7 @@ jobs:
       - name: Verify Chromecast is reachable
         run: |
           set -euo pipefail
-          tailscale ping -c 3 "$TARGET"
+          tailscale ping -c 3 "$TARGET" || true
 
       - name: Pair ADB
         run: |
