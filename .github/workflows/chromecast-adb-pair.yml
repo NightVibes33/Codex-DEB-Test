@@ -4,12 +4,12 @@ on:
   workflow_dispatch:
     inputs:
       pairing_port:
-        description: "Pairing port (only needed the first time / if cache is lost)"
+        description: "Pairing port (only needed the first time / if saved authorization is lost)"
         required: false
         default: ""
         type: string
       pairing_code:
-        description: "6-digit pairing code (only needed the first time / if cache is lost)"
+        description: "6-digit pairing code (only needed the first time / if saved authorization is lost)"
         required: false
         default: ""
         type: string
@@ -60,6 +60,7 @@ jobs:
 
     env:
       TARGET: "100.81.33.70"
+      ADB_KEY_CACHE_FILE: ~/.cache/chromecast-adb/adbkey.tar.gpg
 
     steps:
       - uses: actions/checkout@v4
@@ -93,29 +94,42 @@ jobs:
           unzip -q /tmp/platform-tools.zip -d /tmp
           echo "/tmp/platform-tools" >> "$GITHUB_PATH"
 
-      - name: Restore persistent ADB host key
+      - name: Restore encrypted ADB host key cache
         id: adb-key-cache
         uses: actions/cache/restore@v4
         with:
-          path: |
-            ~/.android/adbkey
-            ~/.android/adbkey.pub
-          key: chromecast-adb-host-key-v1
+          path: ~/.cache/chromecast-adb/adbkey.tar.gpg
+          key: chromecast-adb-host-key-encrypted-v1
 
-      - name: Prepare restored key
+      - name: Decrypt restored ADB host key
+        env:
+          KEY_PASSPHRASE: ${{ secrets.TAILSCALE_AUTHKEY }}
         run: |
           set -euo pipefail
           mkdir -p "$HOME/.android"
           chmod 700 "$HOME/.android"
-          if [ -f "$HOME/.android/adbkey" ]; then chmod 600 "$HOME/.android/adbkey"; fi
-          if [ -f "$HOME/.android/adbkey.pub" ]; then chmod 644 "$HOME/.android/adbkey.pub"; fi
+          CACHE_FILE="${ADB_KEY_CACHE_FILE/#\~/$HOME}"
+          if [ -f "$CACHE_FILE" ]; then
+            PASSFILE="$RUNNER_TEMP/adb-key-passphrase"
+            umask 077
+            printf '%s' "$KEY_PASSPHRASE" > "$PASSFILE"
+            gpg --batch --yes --pinentry-mode loopback \
+              --passphrase-file "$PASSFILE" \
+              --decrypt "$CACHE_FILE" | tar -x -C "$HOME/.android"
+            rm -f "$PASSFILE"
+            chmod 600 "$HOME/.android/adbkey"
+            chmod 644 "$HOME/.android/adbkey.pub"
+            echo "Encrypted ADB key restored."
+          else
+            echo "No encrypted ADB key cache yet; one successful pairing will seed it."
+          fi
 
       - name: Verify Chromecast route
         run: |
           set -euo pipefail
           tailscale ping -c 3 "$TARGET" || true
 
-      - name: Try cached ADB authorization
+      - name: Try saved ADB authorization
         id: cached-connect
         run: |
           set -u
@@ -123,10 +137,10 @@ jobs:
           adb connect "${TARGET}:${ADB_PORT}" || true
           if [ "$(adb -s "${TARGET}:${ADB_PORT}" get-state 2>/dev/null || true)" = "device" ]; then
             echo "connected=true" >> "$GITHUB_OUTPUT"
-            echo "Persistent ADB key accepted."
+            echo "Saved ADB authorization accepted."
           else
             echo "connected=false" >> "$GITHUB_OUTPUT"
-            echo "Cached key unavailable or not authorized; pairing is required."
+            echo "Saved authorization unavailable or rejected; pairing is required."
           fi
 
       - name: Pair ADB when needed
@@ -134,7 +148,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${PAIR_PORT:-}" ] || [ -z "${PAIR_CODE:-}" ]; then
-            echo "::error::No usable cached ADB key. Open Pair device with pairing code on the Chromecast and rerun with pairing_port + pairing_code once."
+            echo "::error::No usable saved ADB key. Open Pair device with pairing code on the Chromecast and rerun with pairing_port + pairing_code once."
             exit 1
           fi
           set +x
@@ -149,14 +163,34 @@ jobs:
           adb -s "$SERIAL" shell 'echo ADB_OK; id; uname -a'
           adb devices -l
 
-      - name: Save persistent ADB host key
+      - name: Encrypt ADB host key for persistence
+        if: steps.adb-key-cache.outputs.cache-hit != 'true'
+        env:
+          KEY_PASSPHRASE: ${{ secrets.TAILSCALE_AUTHKEY }}
+        run: |
+          set -euo pipefail
+          test -f "$HOME/.android/adbkey"
+          test -f "$HOME/.android/adbkey.pub"
+          CACHE_FILE="${ADB_KEY_CACHE_FILE/#\~/$HOME}"
+          mkdir -p "$(dirname "$CACHE_FILE")"
+          PASSFILE="$RUNNER_TEMP/adb-key-passphrase"
+          umask 077
+          printf '%s' "$KEY_PASSPHRASE" > "$PASSFILE"
+          tar -C "$HOME/.android" -cf - adbkey adbkey.pub | \
+            gpg --batch --yes --pinentry-mode loopback \
+              --passphrase-file "$PASSFILE" \
+              --symmetric --cipher-algo AES256 \
+              --output "$CACHE_FILE"
+          rm -f "$PASSFILE"
+          chmod 600 "$CACHE_FILE"
+          echo "ADB private key encrypted before persistence."
+
+      - name: Save encrypted ADB host key cache
         if: steps.adb-key-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: |
-            ~/.android/adbkey
-            ~/.android/adbkey.pub
-          key: chromecast-adb-host-key-v1
+          path: ~/.cache/chromecast-adb/adbkey.tar.gpg
+          key: chromecast-adb-host-key-encrypted-v1
 
       - name: Collect boot, AVB, SELinux, SoC and partition diagnostics
         run: |
