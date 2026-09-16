@@ -12,67 +12,111 @@ permissions:
 jobs:
   analyze:
     runs-on: macos-15
-    timeout-minutes: 45
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           ref: temp-killerplus-free-20260916
 
-      - name: Download and analyze IPAs
+      - name: Acquire tweak packages
         shell: bash
         run: |
           set -euo pipefail
           rm -rf killerplus-work killerplus-analysis killerplus-extracted
           mkdir -p killerplus-work killerplus-analysis killerplus-extracted
 
-          fetch_ipa() {
-            local name="$1" url="$2" referer="$3"
-            echo "== downloading $name =="
-            curl -fL --retry 4 --retry-all-errors --connect-timeout 30 --max-time 1200 \
-              -A 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Safari/537.36' \
-              -H 'Accept: application/octet-stream,*/*' \
-              -H 'Accept-Language: en-US,en;q=0.9' \
-              -e "$referer" \
-              "$url" -o "killerplus-work/$name.ipa"
-            file "killerplus-work/$name.ipa"
-            unzip -tq "killerplus-work/$name.ipa" >/dev/null
-          }
+          echo '===== YTKP MIRROR =====' | tee killerplus-analysis/acquisition.txt
+          if git clone --depth=1 https://git.0x0.st/mrdrvt99/YTKP.git killerplus-work/YTKP; then
+            find killerplus-work/YTKP -maxdepth 6 -type f -print | sort | tee -a killerplus-analysis/acquisition.txt
+            if [[ -f killerplus-work/YTKP/DEBIAN/control ]]; then
+              echo '--- control ---' | tee -a killerplus-analysis/acquisition.txt
+              cat killerplus-work/YTKP/DEBIAN/control | tee -a killerplus-analysis/acquisition.txt
+            fi
+          else
+            echo 'YTKP mirror clone failed' | tee -a killerplus-analysis/acquisition.txt
+          fi
 
-          fetch_ipa YTKillerPlus 'https://ikghd.site/ipa/YouTube_21.37_YTKillerPlus_6.5.ipa' 'https://github.com/iKarwan/YTKillerPlus'
-          fetch_ipa TTKillerPlus 'https://ikghd.site/ipa/TikTok_46.9_TTKillerPlus_2.2.ipa' 'https://github.com/iKarwan/TTKillerPlus'
-
-          analyze_one() {
-            local name="$1"
-            local root="killerplus-work/$name"
-            mkdir -p "$root"
-            ditto -x -k "killerplus-work/$name.ipa" "$root"
-            local app
-            app=$(find "$root/Payload" -maxdepth 1 -type d -name '*.app' | head -1)
-            test -n "$app"
-            echo "APP=$app" | tee "killerplus-analysis/$name-summary.txt"
-            echo >> "killerplus-analysis/$name-summary.txt"
-            echo '## Top-level app files' >> "killerplus-analysis/$name-summary.txt"
-            find "$app" -maxdepth 2 -type f -print | sed "s#^$app/##" | sort >> "killerplus-analysis/$name-summary.txt"
-
-            echo >> "killerplus-analysis/$name-summary.txt"
-            echo '## Mach-O inventory' >> "killerplus-analysis/$name-summary.txt"
-            : > "killerplus-analysis/$name-machos.tsv"
-            while IFS= read -r -d '' f; do
-              desc=$(file -b "$f" || true)
-              if [[ "$desc" == *Mach-O* ]]; then
-                rel=${f#"$app/"}
-                sz=$(stat -f '%z' "$f")
-                sha=$(shasum -a 256 "$f" | awk '{print $1}')
-                printf '%s\t%s\t%s\t%s\n' "$rel" "$sz" "$sha" "$desc" >> "killerplus-analysis/$name-machos.tsv"
+          echo '===== IKGHd PACKAGE INDEX PROBES =====' | tee -a killerplus-analysis/acquisition.txt
+          for idx in Packages Packages.gz Packages.bz2 Packages.xz dists/stable/main/binary-iphoneos-arm/Packages dists/stable/main/binary-iphoneos-arm/Packages.gz; do
+            url="https://repo.ikghd.me/$idx"
+            echo "--- $url ---" | tee -a killerplus-analysis/acquisition.txt
+            if curl -fL --connect-timeout 20 --max-time 60 -A 'Cydia/1.1.36' "$url" -o killerplus-work/pkgindex.bin 2>>killerplus-analysis/acquisition.txt; then
+              case "$idx" in
+                *.gz) gzip -dc killerplus-work/pkgindex.bin > killerplus-work/Packages.txt || true ;;
+                *.bz2) bzip2 -dc killerplus-work/pkgindex.bin > killerplus-work/Packages.txt || true ;;
+                *.xz) xz -dc killerplus-work/pkgindex.bin > killerplus-work/Packages.txt || true ;;
+                *) cp killerplus-work/pkgindex.bin killerplus-work/Packages.txt ;;
+              esac
+              if grep -Eai -B5 -A20 'ytkiller|ytkplus|ttkiller|ttkplus|me\.ikghd\.ytk|me\.ikghd\.ttk' killerplus-work/Packages.txt > killerplus-work/matches.txt; then
+                cat killerplus-work/matches.txt | tee -a killerplus-analysis/acquisition.txt
+                cp killerplus-work/Packages.txt killerplus-analysis/Packages.txt
+                break
               fi
-            done < <(find "$app" -type f -print0)
-            cat "killerplus-analysis/$name-machos.tsv" >> "killerplus-analysis/$name-summary.txt"
+            fi
+          done
 
-            mkdir -p "killerplus-analysis/$name-files"
-            while IFS=$'\t' read -r rel sz sha desc; do
-              f="$app/$rel"
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, urllib.parse, subprocess
+          p=Path('killerplus-work/Packages.txt')
+          if not p.exists():
+              raise SystemExit(0)
+          txt=p.read_text(errors='ignore')
+          stanzas=re.split(r'\n\s*\n', txt)
+          for stanza in stanzas:
+              low=stanza.lower()
+              if any(k in low for k in ['ytkiller','ytkplus','ttkiller','ttkplus','me.ikghd.ytk','me.ikghd.ttk']):
+                  d={}
+                  for line in stanza.splitlines():
+                      if ': ' in line:
+                          k,v=line.split(': ',1); d[k]=v
+                  fn=d.get('Filename')
+                  pkg=d.get('Package','unknown')
+                  ver=d.get('Version','unknown')
+                  if fn:
+                      url=urllib.parse.urljoin('https://repo.ikghd.me/',fn)
+                      out=Path('killerplus-work')/(re.sub(r'[^A-Za-z0-9_.-]+','_',pkg)+'_'+re.sub(r'[^A-Za-z0-9_.-]+','_',ver)+'.deb')
+                      print('DOWNLOAD',pkg,ver,url,'->',out)
+                      subprocess.run(['curl','-fL','--retry','3','--connect-timeout','20','--max-time','180','-A','Cydia/1.1.36',url,'-o',str(out)],check=False)
+          PY
+
+          echo '===== ACQUIRED FILES =====' | tee -a killerplus-analysis/acquisition.txt
+          find killerplus-work -type f -maxdepth 8 -exec sh -c 'printf "%s\t" "$1"; file -b "$1"' _ {} \; | tee -a killerplus-analysis/acquisition.txt
+
+      - name: Extract and analyze Mach-O tweak binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p killerplus-work/roots
+
+          if [[ -d killerplus-work/YTKP ]]; then
+            mkdir -p killerplus-work/roots/YTKP
+            cp -R killerplus-work/YTKP/. killerplus-work/roots/YTKP/
+          fi
+
+          n=0
+          while IFS= read -r -d '' deb; do
+            n=$((n+1))
+            root="killerplus-work/roots/deb$n"
+            mkdir -p "$root"
+            dpkg-deb -x "$deb" "$root" || true
+            dpkg-deb -e "$deb" "$root/DEBIAN" || true
+            echo "DEB $deb -> $root" >> killerplus-analysis/acquisition.txt
+            [[ -f "$root/DEBIAN/control" ]] && cat "$root/DEBIAN/control" >> killerplus-analysis/acquisition.txt || true
+          done < <(find killerplus-work -type f -name '*.deb' -print0)
+
+          : > killerplus-analysis/machos.tsv
+          mkdir -p killerplus-analysis/files
+          while IFS= read -r -d '' f; do
+            desc=$(file -b "$f" || true)
+            if [[ "$desc" == *Mach-O* ]]; then
+              rel=${f#killerplus-work/roots/}
               safe=$(printf '%s' "$rel" | tr '/ ' '__')
-              report="killerplus-analysis/$name-files/$safe.txt"
+              sz=$(stat -f '%z' "$f")
+              sha=$(shasum -a 256 "$f" | awk '{print $1}')
+              printf '%s\t%s\t%s\t%s\n' "$rel" "$sz" "$sha" "$desc" >> killerplus-analysis/machos.tsv
+              mkdir -p "killerplus-extracted/$(dirname "$rel")"
+              cp -p "$f" "killerplus-extracted/$rel"
               {
                 echo "FILE: $rel"
                 echo "SIZE: $sz"
@@ -82,47 +126,32 @@ jobs:
                 echo '===== CODESIGN ====='
                 codesign -dvvv "$f" 2>&1 || true
                 echo
-                echo '===== LOAD COMMANDS / LINKED LIBRARIES ====='
+                echo '===== LINKED LIBRARIES ====='
                 otool -L "$f" 2>&1 || true
                 echo
-                echo '===== SELECTED SYMBOLS ====='
-                nm -m "$f" 2>/dev/null | grep -Eai 'license|licen[cs]e|activat|purchase|payment|receipt|subscription|premium|trial|restore|unlink|email|device|key|ikghd|killer' || true
+                echo '===== SYMBOLS ====='
+                nm -m "$f" 2>/dev/null | grep -Eai 'license|licen[cs]e|activat|purchase|payment|receipt|subscription|premium|trial|restore|unlink|email|device|key|ikghd|killer|valid|verify|entitle' || true
                 echo
-                echo '===== SELECTED STRINGS WITH HEX FILE OFFSETS ====='
-                strings -a -t x "$f" 2>/dev/null | grep -Eai 'license|licen[cs]e|activat|purchase|payment|receipt|subscription|premium|trial|restore|unlink|email|device|key|ikghd|killer|paypal|buymeacoffee|api\.|https?://' || true
+                echo '===== STRINGS + FILE OFFSETS ====='
+                strings -a -t x "$f" 2>/dev/null | grep -Eai 'license|licen[cs]e|activat|purchase|payment|receipt|subscription|premium|trial|restore|unlink|email|device|key|ikghd|killer|valid|verify|entitle|https?://' || true
                 echo
-                echo '===== OBJC METADATA FILTER ====='
-                otool -ov "$f" 2>/dev/null | grep -Eai -B4 -A8 'license|licen[cs]e|activat|purchase|payment|receipt|subscription|premium|trial|restore|unlink|email|device|key|ikghd|killer' || true
-              } > "$report"
+                echo '===== OBJC METADATA ====='
+                otool -ov "$f" 2>/dev/null | grep -Eai -B8 -A14 'license|licen[cs]e|activat|purchase|payment|receipt|subscription|premium|trial|restore|unlink|email|device|key|ikghd|killer|valid|verify|entitle' || true
+              } > "killerplus-analysis/files/$safe.txt"
+            fi
+          done < <(find killerplus-work/roots -type f -print0)
 
-              if printf '%s' "$rel" | grep -Eqi 'killer|tweak|\.dylib$|Frameworks/.+\.framework/'; then
-                mkdir -p "killerplus-extracted/$name/$(dirname "$rel")"
-                cp -p "$f" "killerplus-extracted/$name/$rel"
-              fi
-            done < "killerplus-analysis/$name-machos.tsv"
-
-            echo >> "killerplus-analysis/$name-summary.txt"
-            echo '## Activation-related resource strings' >> "killerplus-analysis/$name-summary.txt"
-            grep -RInaE --binary-files=without-match 'license|licen[cs]e|activat|purchase|payment|receipt|subscription|premium|trial|restore|unlink|email|device|key|ikghd|killer' "$app" \
-              --exclude='*.dylib' --exclude='YouTube' --exclude='TikTok' 2>/dev/null | head -n 3000 >> "killerplus-analysis/$name-summary.txt" || true
-          }
-
-          analyze_one YTKillerPlus
-          analyze_one TTKillerPlus
-
-          echo '===== YTKillerPlus interesting binaries ====='
-          grep -Eai 'killer|plus|dylib|tweak' killerplus-analysis/YTKillerPlus-machos.tsv || true
-          echo '===== TTKillerPlus interesting binaries ====='
-          grep -Eai 'killer|plus|dylib|tweak' killerplus-analysis/TTKillerPlus-machos.tsv || true
-          echo '===== activation hits ====='
-          grep -RInaE 'license|licen[cs]e|activat|purchase|payment|receipt|subscription|premium|trial|restore|unlink|email|device|key|ikghd' killerplus-analysis/*-files | head -n 1200 || true
+          echo '===== MACH-O INVENTORY ====='
+          cat killerplus-analysis/machos.tsv
+          echo '===== LICENSING HITS ====='
+          grep -RInaE 'license|licen[cs]e|activat|purchase|payment|receipt|subscription|premium|trial|restore|unlink|email|device|key|ikghd|valid|verify|entitle' killerplus-analysis/files | head -n 1600 || true
 
       - name: Upload extracted tweak binaries
         uses: actions/upload-artifact@v4
         with:
           name: killerplus-extracted-binaries
           path: killerplus-extracted
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 7
 
       - name: Upload analysis reports
@@ -133,7 +162,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Commit analysis reports to temp branch
+      - name: Commit reports to temp branch
         shell: bash
         run: |
           set -euo pipefail
@@ -144,6 +173,6 @@ jobs:
           cp -R killerplus-analysis analysis/killerplus
           git add analysis/killerplus
           if ! git diff --cached --quiet; then
-            git commit -m 'temp: add KillerPlus binary analysis reports'
+            git commit -m 'temp: add KillerPlus package analysis'
             git push origin HEAD:temp-killerplus-free-20260916
           fi
