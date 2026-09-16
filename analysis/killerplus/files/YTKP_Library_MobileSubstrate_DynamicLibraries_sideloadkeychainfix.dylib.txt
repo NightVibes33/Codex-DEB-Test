@@ -1,0 +1,63 @@
+FILE: YTKP/Library/MobileSubstrate/DynamicLibraries/sideloadkeychainfix.dylib
+SIZE: 70176
+SHA256: f8d81929c4de5799c9f5cb5b3e7d7410a7374224bef63afe88128f66fc351d79
+TYPE: Mach-O universal binary with 1 architecture: [arm64:Mach-O 64-bit dynamically linked shared library arm64]
+killerplus-work/roots/YTKP/Library/MobileSubstrate/DynamicLibraries/sideloadkeychainfix.dylib (for architecture arm64):	Mach-O 64-bit dynamically linked shared library arm64
+
+===== CODESIGN =====
+Executable=/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/killerplus-work/roots/YTKP/Library/MobileSubstrate/DynamicLibraries/sideloadkeychainfix.dylib
+Identifier=sideloadKeychainfix.dylib
+Format=Mach-O universal (arm64)
+CodeDirectory v=20400 size=594 flags=0x0(none) hashes=13+2 location=embedded
+Hash type=sha256 size=32
+CandidateCDHash sha1=3a8403db37a05a13819ea2a979fea92eb5ce6185
+CandidateCDHashFull sha1=3a8403db37a05a13819ea2a979fea92eb5ce6185
+CandidateCDHash sha256=43f755bc12ad7377743b96c099c013dd8f605fdd
+CandidateCDHashFull sha256=43f755bc12ad7377743b96c099c013dd8f605fdd15cc937b462bb9a14949fa48
+Hash choices=sha1,sha256
+CMSDigest=0adf8c2a298032972c43b1f8aca4844c0e21fe3c69325609eb4ffc973403f53f
+CMSDigestType=2
+CDHash=43f755bc12ad7377743b96c099c013dd8f605fdd
+killerplus-work/roots/YTKP/Library/MobileSubstrate/DynamicLibraries/sideloadkeychainfix.dylib: no signature
+Info.plist=not bound
+TeamIdentifier=not set
+Sealed Resources=none
+Internal requirements count=1 size=144
+
+===== LINKED LIBRARIES =====
+killerplus-work/roots/YTKP/Library/MobileSubstrate/DynamicLibraries/sideloadkeychainfix.dylib (architecture arm64):
+	/Library/MobileSubstrate/DynamicLibraries/sideloadKeychainfix.dylib (compatibility version 0.0.0, current version 0.0.0)
+	/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)
+	/System/Library/Frameworks/Foundation.framework/Foundation (compatibility version 300.0.0, current version 1971.0.0)
+	/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation (compatibility version 150.0.0, current version 1971.0.0)
+	/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 1500.65.0)
+	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1319.100.3)
+	/System/Library/Frameworks/Security.framework/Security (compatibility version 1.0.0, current version 60420.102.1)
+
+===== SYMBOLS =====
+
+===== STRINGS + FILE OFFSETS =====
+7da4 setObject:forKeyedSubscript:
+7e31 dictionaryWithObjects:forKeys:count:
+7e56 objectForKey:
+
+===== OBJC METADATA =====
+killerplus-work/roots/YTKP/Library/MobileSubstrate/DynamicLibraries/sideloadkeychainfix.dylib (architecture arm64):
+Contents of (__DATA,__objc_classrefs) section
+0000000000008250 0x0 _OBJC_CLASS_$_NSDictionary
+0000000000008258 0x0 _OBJC_CLASS_$_NSFileManager
+Contents of (__DATA,__objc_selrefs) section
+    0x7d98 mutableCopy
+    0x7da4 setObject:forKeyedSubscript:
+    0x7dc1 containerURLForSecurityApplicationGroupIdentifier:
+    0x7df4 _setupWithContainerID:options:
+    0x7e13 _initWithContainerIdentifier:
+    0x7e31 dictionaryWithObjects:forKeys:count:
+    0x7e56 objectForKey:
+    0x7e64 defaultManager
+    0x7e73 URLsForDirectory:inDomains:
+    0x7e8f lastObject
+    0x7e9a URLByAppendingPathComponent:
+Contents of (__DATA,__objc_imageinfo) section
+    version 0
+    flags   0x40

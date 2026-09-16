@@ -1,0 +1,82 @@
+FILE: YTKP/Library/MobileSubstrate/DynamicLibraries/libYTKPlus.dylib
+SIZE: 3237056
+SHA256: 2daf18b756c564c4d4216137abde8f8354891b1cdb42fca82f64395ce23a6d32
+TYPE: Mach-O 64-bit dynamically linked shared library arm64
+
+===== CODESIGN =====
+Executable=/Users/runner/work/Codex-DEB-Test/Codex-DEB-Test/killerplus-work/roots/YTKP/Library/MobileSubstrate/DynamicLibraries/libYTKPlus.dylib
+Identifier=libYTKPlus.dylib
+Format=Mach-O thin (arm64)
+CodeDirectory v=20400 size=25289 flags=0x0(none) hashes=785+2 location=embedded
+Hash type=sha256 size=32
+CandidateCDHash sha256=9f7738ffb9d69a114ce17833e8269bcbdd0b1492
+CandidateCDHashFull sha256=9f7738ffb9d69a114ce17833e8269bcbdd0b1492a18c998d188c023289ded4a7
+Hash choices=sha256
+CMSDigest=9f7738ffb9d69a114ce17833e8269bcbdd0b1492a18c998d188c023289ded4a7
+CMSDigestType=2
+CDHash=9f7738ffb9d69a114ce17833e8269bcbdd0b1492
+killerplus-work/roots/YTKP/Library/MobileSubstrate/DynamicLibraries/libYTKPlus.dylib: no signature
+Info.plist=not bound
+TeamIdentifier=not set
+Sealed Resources=none
+Internal requirements count=1 size=132
+
+===== LINKED LIBRARIES =====
+killerplus-work/roots/YTKP/Library/MobileSubstrate/DynamicLibraries/libYTKPlus.dylib:
+	@rpath/libYTKPlus.dylib (compatibility version 0.0.0, current version 0.0.0)
+	/System/Library/Frameworks/Foundation.framework/Foundation (compatibility version 300.0.0, current version 5026.5.4)
+	/System/Library/Frameworks/UIKit.framework/UIKit (compatibility version 1.0.0, current version 9126.5.5)
+	/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)
+	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)
+	/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation (compatibility version 150.0.0, current version 5026.5.4)
+
+===== SYMBOLS =====
+                 (undefined) external _kCFTypeDictionaryKeyCallBacks (from CoreFoundation)
+                 (undefined) external _sys_icache_invalidate (from libSystem)
+
+===== STRINGS + FILE OFFSETS =====
+2e6ca4 dictionaryWithObjects:forKeys:count:
+2e6d29 isKeyWindow
+
+===== OBJC METADATA =====
+killerplus-work/roots/YTKP/Library/MobileSubstrate/DynamicLibraries/libYTKPlus.dylib:
+Contents of (__DATA_CONST,__objc_classlist) section
+0000000000304cb0 0x308638
+    isa        0x308660
+    superclass 0x0 _OBJC_CLASS_$_NSObject
+    cache      0x0 __objc_empty_cache
+    vtable     0x0
+    data       0x308060
+        flags          0x90
+        instanceStart  8
+        instanceSize   8
+        reserved       0x0
+        ivarLayout     0x0
+        name           0x2e6764 Mje5_s4_0VHHl
+        baseMethods    0x2e5040
+--
+    0x2e6867 YX27Ms6Ul1esTT:
+    0x2e6c15 appendFormat:
+    0x2e6c23 arrayWithObjects:count:
+    0x2e6c49 bPq4NsNr_P4nwr
+    0x2e6c63 bytes
+    0x2e6c69 ck2z2Mv2:
+    0x2e6c73 count
+    0x2e6c79 countByEnumeratingWithState:objects:count:
+    0x2e6ca4 dictionaryWithObjects:forKeys:count:
+    0x2e6cd5 dwEKXpMoMI1s:E0iOzY_a0_Zfd_3e:
+    0x2e6d29 isKeyWindow
+    0x2e67df ivYq7H8
+    0x2e6d72 kk4_A_1fA9q___z_AeVP:W4s1:fy0__uG_kktrHf:Esn66K2rVD_518o:
+    0x2e6dac lDA7o4ey_hU
+    0x2e6db8 ldOSpWJ_a4_UD
+    0x2e6dc6 length
+    0x2e688b lowercaseString
+    0x2e6de1 nT_C
+    0x2e6de6 nf_leXMITwcY5_a8_H__wy
+    0x2e67ec numberWithBool:
+    0x2e6e1a numberWithDouble:
+    0x2e6e2c numberWithInt:
+    0x2e6e3b numberWithUnsignedInteger:
+    0x2e6e83 objectAtIndexedSubscript:
+    0x2e6ebf qbzIp
