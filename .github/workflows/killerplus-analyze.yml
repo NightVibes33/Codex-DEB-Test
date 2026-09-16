@@ -1,0 +1,149 @@
+name: KillerPlus binary analysis
+
+on:
+  push:
+    branches:
+      - temp-killerplus-free-20260916
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  analyze:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp-killerplus-free-20260916
+
+      - name: Download and analyze IPAs
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf killerplus-work killerplus-analysis killerplus-extracted
+          mkdir -p killerplus-work killerplus-analysis killerplus-extracted
+
+          fetch_ipa() {
+            local name="$1" url="$2" referer="$3"
+            echo "== downloading $name =="
+            curl -fL --retry 4 --retry-all-errors --connect-timeout 30 --max-time 1200 \
+              -A 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Safari/537.36' \
+              -H 'Accept: application/octet-stream,*/*' \
+              -H 'Accept-Language: en-US,en;q=0.9' \
+              -e "$referer" \
+              "$url" -o "killerplus-work/$name.ipa"
+            file "killerplus-work/$name.ipa"
+            unzip -tq "killerplus-work/$name.ipa" >/dev/null
+          }
+
+          fetch_ipa YTKillerPlus 'https://ikghd.site/ipa/YouTube_21.37_YTKillerPlus_6.5.ipa' 'https://github.com/iKarwan/YTKillerPlus'
+          fetch_ipa TTKillerPlus 'https://ikghd.site/ipa/TikTok_46.9_TTKillerPlus_2.2.ipa' 'https://github.com/iKarwan/TTKillerPlus'
+
+          analyze_one() {
+            local name="$1"
+            local root="killerplus-work/$name"
+            mkdir -p "$root"
+            ditto -x -k "killerplus-work/$name.ipa" "$root"
+            local app
+            app=$(find "$root/Payload" -maxdepth 1 -type d -name '*.app' | head -1)
+            test -n "$app"
+            echo "APP=$app" | tee "killerplus-analysis/$name-summary.txt"
+            echo >> "killerplus-analysis/$name-summary.txt"
+            echo '## Top-level app files' >> "killerplus-analysis/$name-summary.txt"
+            find "$app" -maxdepth 2 -type f -print | sed "s#^$app/##" | sort >> "killerplus-analysis/$name-summary.txt"
+
+            echo >> "killerplus-analysis/$name-summary.txt"
+            echo '## Mach-O inventory' >> "killerplus-analysis/$name-summary.txt"
+            : > "killerplus-analysis/$name-machos.tsv"
+            while IFS= read -r -d '' f; do
+              desc=$(file -b "$f" || true)
+              if [[ "$desc" == *Mach-O* ]]; then
+                rel=${f#"$app/"}
+                sz=$(stat -f '%z' "$f")
+                sha=$(shasum -a 256 "$f" | awk '{print $1}')
+                printf '%s\t%s\t%s\t%s\n' "$rel" "$sz" "$sha" "$desc" >> "killerplus-analysis/$name-machos.tsv"
+              fi
+            done < <(find "$app" -type f -print0)
+            cat "killerplus-analysis/$name-machos.tsv" >> "killerplus-analysis/$name-summary.txt"
+
+            mkdir -p "killerplus-analysis/$name-files"
+            while IFS=$'\t' read -r rel sz sha desc; do
+              f="$app/$rel"
+              safe=$(printf '%s' "$rel" | tr '/ ' '__')
+              report="killerplus-analysis/$name-files/$safe.txt"
+              {
+                echo "FILE: $rel"
+                echo "SIZE: $sz"
+                echo "SHA256: $sha"
+                echo "TYPE: $desc"
+                echo
+                echo '===== CODESIGN ====='
+                codesign -dvvv "$f" 2>&1 || true
+                echo
+                echo '===== LOAD COMMANDS / LINKED LIBRARIES ====='
+                otool -L "$f" 2>&1 || true
+                echo
+                echo '===== SELECTED SYMBOLS ====='
+                nm -m "$f" 2>/dev/null | grep -Eai 'license|licen[cs]e|activat|purchase|payment|receipt|subscription|premium|trial|restore|unlink|email|device|key|ikghd|killer' || true
+                echo
+                echo '===== SELECTED STRINGS WITH HEX FILE OFFSETS ====='
+                strings -a -t x "$f" 2>/dev/null | grep -Eai 'license|licen[cs]e|activat|purchase|payment|receipt|subscription|premium|trial|restore|unlink|email|device|key|ikghd|killer|paypal|buymeacoffee|api\.|https?://' || true
+                echo
+                echo '===== OBJC METADATA FILTER ====='
+                otool -ov "$f" 2>/dev/null | grep -Eai -B4 -A8 'license|licen[cs]e|activat|purchase|payment|receipt|subscription|premium|trial|restore|unlink|email|device|key|ikghd|killer' || true
+              } > "$report"
+
+              if printf '%s' "$rel" | grep -Eqi 'killer|tweak|\.dylib$|Frameworks/.+\.framework/'; then
+                mkdir -p "killerplus-extracted/$name/$(dirname "$rel")"
+                cp -p "$f" "killerplus-extracted/$name/$rel"
+              fi
+            done < "killerplus-analysis/$name-machos.tsv"
+
+            echo >> "killerplus-analysis/$name-summary.txt"
+            echo '## Activation-related resource strings' >> "killerplus-analysis/$name-summary.txt"
+            grep -RInaE --binary-files=without-match 'license|licen[cs]e|activat|purchase|payment|receipt|subscription|premium|trial|restore|unlink|email|device|key|ikghd|killer' "$app" \
+              --exclude='*.dylib' --exclude='YouTube' --exclude='TikTok' 2>/dev/null | head -n 3000 >> "killerplus-analysis/$name-summary.txt" || true
+          }
+
+          analyze_one YTKillerPlus
+          analyze_one TTKillerPlus
+
+          echo '===== YTKillerPlus interesting binaries ====='
+          grep -Eai 'killer|plus|dylib|tweak' killerplus-analysis/YTKillerPlus-machos.tsv || true
+          echo '===== TTKillerPlus interesting binaries ====='
+          grep -Eai 'killer|plus|dylib|tweak' killerplus-analysis/TTKillerPlus-machos.tsv || true
+          echo '===== activation hits ====='
+          grep -RInaE 'license|licen[cs]e|activat|purchase|payment|receipt|subscription|premium|trial|restore|unlink|email|device|key|ikghd' killerplus-analysis/*-files | head -n 1200 || true
+
+      - name: Upload extracted tweak binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: killerplus-extracted-binaries
+          path: killerplus-extracted
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload analysis reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: killerplus-analysis
+          path: killerplus-analysis
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Commit analysis reports to temp branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          rm -rf analysis/killerplus
+          mkdir -p analysis
+          cp -R killerplus-analysis analysis/killerplus
+          git add analysis/killerplus
+          if ! git diff --cached --quiet; then
+            git commit -m 'temp: add KillerPlus binary analysis reports'
+            git push origin HEAD:temp-killerplus-free-20260916
+          fi
