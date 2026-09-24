@@ -3,150 +3,83 @@ set +e
 export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
 export HOME=/var/mobile
 
-echo '=== IPHONE SPRINGBOARD SAFE-MODE FORENSICS ==='
+echo '=== IPHONE SAFE MODE TRIAGE ==='
 printf 'started='; date '+%Y-%m-%d %H:%M:%S %z'
 printf 'identity='; id
 printf 'ios='; sw_vers -productVersion 2>/dev/null || true
 printf 'build='; sw_vers -buildVersion 2>/dev/null || true
 printf 'model='; sysctl -n hw.model 2>/dev/null || true
-printf 'uname='; uname -a 2>/dev/null || true
-printf 'uptime='; uptime 2>/dev/null || true
 
 echo
-echo '=== JAILBREAK / INJECTION RUNTIME ==='
-for f in /var/jb/.installed_dopamine /var/jb/.procursus_strapped /var/jb/usr/lib/ellekit/libinjector.dylib /var/jb/usr/lib/ellekit/pspawn.dylib /var/jb/usr/lib/TweakLoader.dylib /var/jb/usr/lib/TweakInject.dylib; do
-  [ -e "$f" ] || [ -L "$f" ] || continue
-  ls -la "$f" 2>/dev/null || true
-  readlink "$f" 2>/dev/null || true
-done
-echo '--- injection framework packages ---'
-dpkg-query -W -f='${Status} | ${Package} | ${Version}\n' 2>/dev/null | grep -Ei 'ellekit|substrate|substitute|libhooker|safe.?mode|dopamine' || true
-
-echo
-echo '=== SPRINGBOARD / BACKBOARDD PROCESS STATE ==='
+echo '=== PROCESS STATE ==='
 ps ax 2>/dev/null | grep -E '[S]pringBoard|[b]ackboardd' || true
-SBPID="$(ps ax 2>/dev/null | awk '/[S]pringBoard/{print $1; exit}')"
-BBPID="$(ps ax 2>/dev/null | awk '/[b]ackboardd/{print $1; exit}')"
-[ -n "$SBPID" ] && { echo "--- SpringBoard env pid=$SBPID ---"; ps eww -p "$SBPID" 2>/dev/null | head -c 16000; echo; }
-[ -n "$BBPID" ] && { echo "--- backboardd env pid=$BBPID ---"; ps eww -p "$BBPID" 2>/dev/null | head -c 16000; echo; }
 
 echo
-echo '=== SAFE-MODE MARKERS / PREFS ==='
-find /var/mobile/Library/Preferences /var/jb/var/mobile/Library/Preferences -maxdepth 1 -type f 2>/dev/null \
-  | grep -Ei 'substrate|ellekit|substitute|safemode|safe.?mode|crash' | head -n 120 || true
-for f in \
-  /var/mobile/Library/Preferences/com.saurik.substrate.safemode.plist \
-  /var/mobile/Library/Preferences/com.saurik.substrate.plist \
-  /var/mobile/Library/Preferences/com.opa334.ellekit.plist \
-  /var/mobile/Library/Preferences/com.ellekit.plist; do
+echo '=== INJECTION FRAMEWORK ==='
+dpkg-query -W -f='${Status} | ${Package} | ${Version}\n' 2>/dev/null | grep -Ei 'ellekit|substrate|substitute|libhooker|dopamine|safe.?mode' || true
+ls -la /var/jb/usr/lib/TweakLoader.dylib /var/jb/usr/lib/TweakInject.dylib /var/jb/usr/lib/ellekit/libinjector.dylib 2>/dev/null || true
+
+echo
+echo '=== SAFE MODE PREFS / MARKERS ==='
+find /var/mobile/Library/Preferences -maxdepth 1 -type f 2>/dev/null | grep -Ei 'safe.?mode|substrate|ellekit|substitute|crash' | head -n 80 || true
+for f in /var/mobile/Library/Preferences/*safe* /var/mobile/Library/Preferences/*substrate* /var/mobile/Library/Preferences/*ellekit*; do
   [ -f "$f" ] || continue
   echo "--- $f ---"
-  plutil -p "$f" 2>/dev/null || cat "$f" 2>/dev/null || true
+  plutil -p "$f" 2>/dev/null | head -n 80 || true
 done
 
 echo
-echo '=== INSTALLED TWEAK PAYLOADS + OWNERS ==='
-TMP_TWEAKS="/tmp/safemode-tweaks.$$"
-: > "$TMP_TWEAKS"
-for d in \
-  /var/jb/Library/MobileSubstrate/DynamicLibraries \
-  /Library/MobileSubstrate/DynamicLibraries \
-  /var/jb/usr/lib/TweakInject \
-  /usr/lib/TweakInject; do
+echo '=== ACTIVE TWEAK FILES ==='
+for d in /var/jb/Library/MobileSubstrate/DynamicLibraries /var/jb/usr/lib/TweakInject; do
   [ -d "$d" ] || continue
-  echo "TWEAK_DIR=$d"
-  find "$d" -maxdepth 1 \( -type f -o -type l \) 2>/dev/null | sort | while IFS= read -r f; do
-    case "$f" in
-      *.dylib|*.dylib.disabled|*.disabled|*.plist)
-        printf '%s\n' "$f" >> "$TMP_TWEAKS"
-        ;;
-    esac
+  echo "DIR=$d"
+  find "$d" -maxdepth 1 -type f \( -name '*.dylib' -o -name '*.plist' \) -print 2>/dev/null | sort
+done
+
+echo
+echo '=== TWEAK FILTERS ==='
+for d in /var/jb/Library/MobileSubstrate/DynamicLibraries /var/jb/usr/lib/TweakInject; do
+  [ -d "$d" ] || continue
+  for f in "$d"/*.plist; do
+    [ -f "$f" ] || continue
+    echo "--- FILTER $f ---"
+    plutil -p "$f" 2>/dev/null | head -n 80 || strings "$f" 2>/dev/null | head -n 80 || true
   done
 done
-sort -u "$TMP_TWEAKS" -o "$TMP_TWEAKS" 2>/dev/null || true
-while IFS= read -r f; do
-  [ -e "$f" ] || [ -L "$f" ] || continue
-  echo "--- PAYLOAD $f ---"
-  ls -lT "$f" 2>/dev/null || ls -l "$f" 2>/dev/null || true
-  echo "owner=$(dpkg-query -S "$f" 2>/dev/null | head -n 1)"
-  case "$f" in
-    *.plist)
-      echo 'filter:'
-      plutil -p "$f" 2>/dev/null | head -n 120 || strings "$f" 2>/dev/null | head -n 120 || true
-      ;;
-  esac
-done < "$TMP_TWEAKS"
 
 echo
-echo '=== TWEAK PACKAGE INVENTORY ==='
-dpkg-query -W -f='${Package}\t${Version}\t${Architecture}\t${Status}\n' 2>/dev/null \
-  | grep -Ei 'tweak|substrate|ellekit|theme|springboard|snowboard|velvet|lynx|atria|choicy|shuffle|nicebar|floatingdock|fiveicon|dock|ccsupport|powerselector|ampere|aim|designer|lock|statusbar|controlcenter|keyboard|homebar|gesture|animation|sim|speedy|gif2ani' \
-  | sort | head -n 500 || true
+echo '=== DPKG OWNERSHIP FOR TWEAK DIRECTORIES ==='
+dpkg-query -S '/var/jb/Library/MobileSubstrate/DynamicLibraries/*' 2>/dev/null | head -n 500 || true
+dpkg-query -S '/var/jb/usr/lib/TweakInject/*' 2>/dev/null | head -n 500 || true
 
 echo
-echo '=== RECENT PACKAGE CHANGES ==='
-for log in /var/jb/var/log/dpkg.log /var/log/dpkg.log /var/jb/var/log/apt/history.log /var/log/apt/history.log /var/jb/var/log/apt/term.log /var/log/apt/term.log; do
-  [ -f "$log" ] || continue
-  echo "--- $log (tail) ---"
-  tail -n 220 "$log" 2>/dev/null || true
-done
-
-echo
-echo '=== RECENT SPRINGBOARD / BACKBOARDD CRASH FILES ==='
-TMP_CRASH="/tmp/safemode-crashes.$$"
-: > "$TMP_CRASH"
-for root in /var/mobile/Library/Logs/CrashReporter /private/var/mobile/Library/Logs/CrashReporter /Library/Logs/CrashReporter /private/var/Library/Logs/CrashReporter; do
-  [ -d "$root" ] || continue
-  find "$root" -maxdepth 2 -type f \( \
-    -iname 'SpringBoard-*.ips' -o -iname 'SpringBoard-*.crash' -o \
-    -iname 'backboardd-*.ips' -o -iname 'backboardd-*.crash' -o \
-    -iname '*SafeMode*.ips' -o -iname '*SafeMode*.crash' -o \
-    -iname 'JetsamEvent-*.ips' \
-  \) -print 2>/dev/null
-done | sort -u > "$TMP_CRASH"
-ls -lt $(cat "$TMP_CRASH" 2>/dev/null) 2>/dev/null | head -n 40 || true
-
-echo
-echo '=== LATEST CRASH CONTENT / INJECTED IMAGES ==='
-COUNT=0
-for f in $(ls -t $(cat "$TMP_CRASH" 2>/dev/null) 2>/dev/null | head -n 8); do
+echo '=== RECENT PACKAGE LOG ==='
+for f in /var/jb/var/log/dpkg.log /var/log/dpkg.log; do
   [ -f "$f" ] || continue
-  COUNT=$((COUNT+1))
-  echo "===== CRASH_$COUNT=$f ====="
-  echo '--- header / exception / termination ---'
-  head -n 35 "$f" 2>/dev/null || true
-  grep -a -Ei 'exception|termination|reason|signal|faulting|triggered|culprit|safe.?mode|watchdog|jetsam|namespace' "$f" 2>/dev/null | head -n 100 || true
-  echo '--- tweak / jailbreak image references ---'
-  strings "$f" 2>/dev/null \
-    | grep -Ei '/var/jb|MobileSubstrate|TweakInject|DynamicLibraries|ellekit|substrate|substitute|\.dylib' \
-    | sed -E 's/[[:space:]]+/ /g' \
-    | head -n 260 || true
+  echo "--- $f ---"
+  tail -n 160 "$f" 2>/dev/null || true
 done
-echo "crash_files_examined=$COUNT"
 
 echo
-echo '=== CRASH FREQUENCY LAST 24H ==='
+echo '=== LATEST SPRINGBOARD CRASHES ==='
+TMP=/tmp/sbcrashes.$$
+: > "$TMP"
 for root in /var/mobile/Library/Logs/CrashReporter /private/var/mobile/Library/Logs/CrashReporter; do
   [ -d "$root" ] || continue
-  echo "ROOT=$root"
-  find "$root" -maxdepth 1 -type f -mmin -1440 2>/dev/null \
-    | sed 's#.*/##' \
-    | sed -E 's/-[0-9]{4}-[0-9]{2}-[0-9]{2}.*##' \
-    | sort | uniq -c | sort -nr | head -n 80 || true
+  find "$root" -maxdepth 1 -type f \( -name 'SpringBoard-*.ips' -o -name 'SpringBoard-*.crash' \) -print 2>/dev/null
+done | sort -u > "$TMP"
+CRASHES="$(ls -t $(cat "$TMP" 2>/dev/null) 2>/dev/null | head -n 5)"
+for f in $CRASHES; do
+  [ -f "$f" ] || continue
+  echo "===== CRASH=$f ====="
+  echo '--- metadata ---'
+  sed -n '1p' "$f" 2>/dev/null | cut -c 1-3000 || true
+  echo '--- key fields ---'
+  tr ',' '\n' < "$f" 2>/dev/null | grep -a -Ei 'procName|exception|termination|reason|signal|faultingThread|triggered|lastException|abort|namespace|watchdog' | cut -c 1-2200 | head -n 120 || true
+  echo '--- jailbreak / injected image fields ---'
+  tr ',' '\n' < "$f" 2>/dev/null | grep -a -Ei '/var/jb|DynamicLibraries|TweakInject|MobileSubstrate|ellekit|substrate|substitute|\.dylib' | cut -c 1-2200 | head -n 220 || true
 done
+rm -f "$TMP"
 
-echo
-echo '=== DYLIB ARCH CHECK ==='
-while IFS= read -r f; do
-  case "$f" in
-    *.dylib)
-      [ -f "$f" ] || continue
-      printf '%s | ' "$f"
-      file "$f" 2>/dev/null || true
-      ;;
-  esac
-done < "$TMP_TWEAKS"
-
-rm -f "$TMP_TWEAKS" "$TMP_CRASH"
-echo 'IPHONE_SAFE_MODE_FORENSICS_COMPLETE=1'
+echo 'IPHONE_SAFE_MODE_TRIAGE_COMPLETE=1'
 exit 0
