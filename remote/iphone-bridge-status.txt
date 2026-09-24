@@ -1,17 +1,53 @@
 iPhone Tailscale SSH Bridge
-run_id=36013334746
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/36013334746
-commit=442525e35706fd03180d091854025eb2f3cae7a1
+run_id=36014182026
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/36014182026
+commit=8711a9ab07ddb3828a9e2029d08bcd4f6ac512b8
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
 tailscale=success
 install_ssh=success
-ssh=failure
+ssh=success
 
 --- sanitized SSH output ---
 Waking and checking iPhone SSH port over Tailscale...
 SSH port attempt 1/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 2/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 3/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 4/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 5/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 6/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 7/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 8/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 9/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 10/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 11/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 12/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 13/18
 # 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
 # 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
 # 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
@@ -19,37 +55,43 @@ SSH port attempt 1/18
 # 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
 iphone_ssh_port_ready=success
 Staging native rfmonctl and running probe as root...
-=== CONFIRMED CULPRIT ISOLATION: CircleAppsiPhone ===
-time=2026-09-24 09:31:43 -0500
+=== POST-CIRCLEAPPS BOUNDED VERIFICATION ===
+time=2026-09-24 09:44:54 -0500
 ios=15.8.8
 build=19H422
-backup=/var/mobile/Media/SafeModeIsolation-20260924-093142
 
-=== PACKAGE OWNER SEARCH ===
-/var/jb/Library/dpkg/info/com.sugiuta.circleapps15.list
-/var/jb/var/lib/dpkg/info/com.sugiuta.circleapps15.list
-/var/lib/dpkg/info/com.sugiuta.circleapps15.list
-com.sugiuta.circleapps15	1.0.2	install ok installed
+=== CIRCLEAPPS INJECTION STATE ===
+absent=/var/jb/usr/lib/TweakInject/CircleAppsiPhone.dylib
+absent=/var/jb/usr/lib/TweakInject/CircleAppsiPhone.plist
+present=/var/jb/usr/lib/TweakInject/CircleAppsiPhone.dylib.disabled
+present=/var/jb/usr/lib/TweakInject/CircleAppsiPhone.plist.disabled
+absent=/var/jb/Library/MobileSubstrate/DynamicLibraries/CircleAppsiPhone.dylib
+absent=/var/jb/Library/MobileSubstrate/DynamicLibraries/CircleAppsiPhone.plist
+present=/var/jb/Library/MobileSubstrate/DynamicLibraries/CircleAppsiPhone.dylib.disabled
+present=/var/jb/Library/MobileSubstrate/DynamicLibraries/CircleAppsiPhone.plist.disabled
 
-=== PRE-STATE ===
-pre_springboard_pid=605
-  605   ??  Ss    33:51.36 /System/Library/CoreServices/SpringBoard.app/SpringBoard
-/var/mobile/Library/Logs/CrashReporter/Retired/SpringBoard-2026-09-24-015355.ips
-/var/mobile/Library/Logs/CrashReporter/Retired/SpringBoard-2026-09-24-015406.ips
-/var/mobile/Library/Logs/CrashReporter/Retired/SpringBoard-2026-09-24-015423.ips
-/var/mobile/Library/Logs/CrashReporter/Retired/SpringBoard-2026-09-24-015438.ips
+=== SPRINGBOARD STABILITY ===
+pid_t0=10457
+10457   ??  Ss     0:33.15 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+10475   ??  Ss     0:00.92 /System/Library/PrivateFrameworks/SpringBoard.framework/XPCServices/SBRendererService.xpc/SBRendererService
+pid_t15=10457
+10457   ??  Ss     0:33.34 /System/Library/CoreServices/SpringBoard.app/SpringBoard
+10475   ??  Ss     0:00.92 /System/Library/PrivateFrameworks/SpringBoard.framework/XPCServices/SBRendererService.xpc/SBRendererService
 
-=== BACKUP + DISABLE ===
-disabled_any=0
-total 0
-drwxr-xr-x  2 root   mobile  64 Sep 24 09:31 .
-drwxr-x--- 18 mobile mobile 576 Sep 24 09:31 ..
--rwxr-xr-x 1 root wheel 239952 Jan 29  2024 /var/jb/Library/MobileSubstrate/DynamicLibraries/CircleAppsiPhone.dylib.disabled
--rw-r--r-- 1 root wheel     57 Jan 29  2024 /var/jb/Library/MobileSubstrate/DynamicLibraries/CircleAppsiPhone.plist.disabled
--rwxr-xr-x 1 root wheel 239952 Jan 29  2024 /var/jb/usr/lib/TweakInject/CircleAppsiPhone.dylib.disabled
--rw-r--r-- 1 root wheel     57 Jan 29  2024 /var/jb/usr/lib/TweakInject/CircleAppsiPhone.plist.disabled
+=== RETIRED SPRINGBOARD CRASHES ===
+-rw-rw---- 1 root _analyticsusers 33110 Sep 24 01:54 /var/mobile/Library/Logs/CrashReporter/Retired/SpringBoard-2026-09-24-015423.ips
+-rw-rw---- 1 root _analyticsusers 35084 Sep 24 01:54 /var/mobile/Library/Logs/CrashReporter/Retired/SpringBoard-2026-09-24-015438.ips
+-rw-rw---- 1 root _analyticsusers 43964 Sep 24 01:54 /var/mobile/Library/Logs/CrashReporter/Retired/SpringBoard-2026-09-24-015355.ips
+-rw-rw---- 1 root _analyticsusers 47249 Sep 24 01:54 /var/mobile/Library/Logs/CrashReporter/Retired/SpringBoard-2026-09-24-015406.ips
 
-=== RESTART SPRINGBOARD ===
-restart_method=sbreload
-Timeout, server 100.96.37.124 not responding.
-ssh_exit_code=255
+=== ACTIVE CRASHREPORTER TOP-LEVEL SPRINGBOARD ===
+
+=== QUICK CIRCLEAPPS LOAD CHECK ===
+vmmap_unavailable_or_no_pid=1
+
+=== RESULT ===
+springboard_stable_15s=yes
+circleappsiphone_enabled_payload_absent=yes
+verification_result=pass
+POST_CIRCLEAPPS_BOUNDED_VERIFY_COMPLETE=1
+ssh_exit_code=0
