@@ -1,7 +1,7 @@
 iPhone Tailscale SSH Bridge
-run_id=36015033178
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/36015033178
-commit=37ea2e90bd7eb185f5948744e16d71ad37bb59f9
+run_id=36015075328
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/36015075328
+commit=3f209d4f1562979cfb0e46f6304e2abb86c3a9eb
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
