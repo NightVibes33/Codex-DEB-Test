@@ -1,13 +1,13 @@
 iPhone Tailscale SSH Bridge
-run_id=36021396204
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/36021396204
-commit=e3c10d72bfd57fb33bf60e2bbf8965de9a0b4cd4
+run_id=36022053438
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/36022053438
+commit=e089c00eee515973c48e2b38694194782ad22300
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
 tailscale=success
 install_ssh=success
-ssh=cancelled
+ssh=failure
 
 --- sanitized SSH output ---
 Waking and checking iPhone SSH port over Tailscale...
@@ -57,3 +57,12 @@ SSH port attempt 15/18
 ping "100.96.37.124" timed out
 no reply
 SSH port attempt 16/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 17/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 18/18
+ping "100.96.37.124" timed out
+no reply
+Could not reach iPhone TCP port 22
