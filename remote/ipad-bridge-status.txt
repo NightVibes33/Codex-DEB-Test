@@ -1,7 +1,7 @@
 iPad Tailscale SSH Bridge
-run_id=36013334436
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/36013334436
-commit=442525e35706fd03180d091854025eb2f3cae7a1
+run_id=36014315571
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/36014315571
+commit=6efa35e31eb8e7ca18e499276c7e1bbe7710f3ad
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
@@ -25,13 +25,3 @@ no reply
 SSH port attempt 5/18
 ping "100.116.117.65" timed out
 no reply
-SSH port attempt 6/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 7/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 8/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 9/18
