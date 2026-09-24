@@ -2,135 +2,173 @@
 set +e
 export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
 export HOME=/var/mobile
+
 TI=/var/jb/usr/lib/TweakInject
-STAGED=/var/jb/usr/local/share/ZZCircleAppsCompat.dylib
 MARKER=/var/mobile/Media/circleapps-final-fix.marker
 
-echo '=== FINAL CIRCLEAPPS + SPRINGBOARD INJECTION VERIFY ==='
+echo '=== POST-RESTART TWEAK VERIFICATION ==='
 date '+time=%Y-%m-%d %H:%M:%S %z'
 printf 'ios='; sw_vers -productVersion 2>/dev/null || true
 printf 'build='; sw_vers -buildVersion 2>/dev/null || true
 
 echo
-echo '=== INSTALL REAL CIRCLEAPPS GUARD ==='
-test -s "$STAGED" || { echo 'FATAL|staged-guard-missing'; exit 20; }
-cp -f "$STAGED" "$TI/ZZCircleAppsCompat.dylib"
-chmod 755 "$TI/ZZCircleAppsCompat.dylib"
-cat > "$TI/ZZCircleAppsCompat.plist" <<'PLIST'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-<key>Filter</key><dict><key>Bundles</key><array><string>com.apple.springboard</string></array></dict>
-</dict></plist>
-PLIST
-chmod 644 "$TI/ZZCircleAppsCompat.plist"
-plutil -lint "$TI/ZZCircleAppsCompat.plist" 2>&1 || exit 21
-file "$TI/ZZCircleAppsCompat.dylib" 2>/dev/null || true
-
-for ext in dylib plist; do
-  if [ -e "$TI/CircleAppsiPhone.$ext.disabled" ]; then
-    mv -f "$TI/CircleAppsiPhone.$ext.disabled" "$TI/CircleAppsiPhone.$ext"
-  fi
-done
-chmod 755 "$TI/CircleAppsiPhone.dylib" 2>/dev/null || true
-chmod 644 "$TI/CircleAppsiPhone.plist" 2>/dev/null || true
-test -f "$TI/CircleAppsiPhone.dylib" || { echo 'FATAL|circleapps-dylib-missing'; exit 22; }
-test -f "$TI/CircleAppsiPhone.plist" || { echo 'FATAL|circleapps-filter-missing'; exit 23; }
-echo 'circleapps_enabled=yes'
-echo 'circleapps_guard_installed=yes'
+echo '=== SPRINGBOARD / SAFE MODE ==='
+echo "_MSSafeMode=$(launchctl getenv _MSSafeMode 2>/dev/null)"
+echo "_SafeMode=$(launchctl getenv _SafeMode 2>/dev/null)"
+SBPID="$(ps ax 2>/dev/null | awk '/[S]pringBoard/{print $1; exit}')"
+BBPID="$(ps ax 2>/dev/null | awk '/[b]ackboardd/{print $1; exit}')"
+echo "springboard_pid=$SBPID"
+echo "backboardd_pid=$BBPID"
+ps ax 2>/dev/null | grep -E '[S]pringBoard|[b]ackboardd' || true
 
 echo
-echo '=== EXPECTED SPRINGBOARD TWEAKS ==='
+echo '=== CIRCLEAPPS INSTALLED STATE ==='
+for f in  "$TI/CircleAppsiPhone.dylib"  "$TI/CircleAppsiPhone.plist"  "$TI/ZZCircleAppsCompat.dylib"  "$TI/ZZCircleAppsCompat.plist"; do
+  if [ -e "$f" ]; then
+    ls -lT "$f" 2>/dev/null || ls -l "$f" 2>/dev/null || true
+    [ "${f##*.}" = dylib ] && file "$f" 2>/dev/null || true
+  else
+    echo "MISSING=$f"
+  fi
+done
+if [ -e "$TI/CircleAppsiPhone.dylib.disabled" ] || [ -e "$TI/CircleAppsiPhone.plist.disabled" ]; then
+  echo 'circleapps_disabled_copy_present=yes'
+else
+  echo 'circleapps_disabled_copy_present=no'
+fi
+dpkg-query -W -f='${Package}\t${Version}\t${Status}\n'   com.sugiuta.circleapps15 ws.hbang.common com.opa334.altlist preferenceloader ellekit 2>/dev/null || true
+
+echo
+echo '=== CIRCLEAPPS PREFERENCES ==='
+for f in /var/mobile/Library/Preferences/com.sugiuta.circleapps15.plist /var/mobile/Library/Preferences/*.plist; do
+  [ -f "$f" ] || continue
+  strings "$f" 2>/dev/null | grep -q 'selectedApplications' || continue
+  echo "--- $f ---"
+  plutil -p "$f" 2>/dev/null | grep -A50 -B5 'selectedApplications' || true
+done
+
+echo
+echo '=== CIRCLEAPPS GUARD LOG ==='
+if command -v log >/dev/null 2>&1; then
+  log show --last 15m --style compact 2>/dev/null     | grep -F 'ZZCircleAppsCompat' | tail -n 80 || true
+else
+  echo 'log_tool=missing'
+fi
+
+echo
+echo '=== CRASHES SINCE CIRCLEAPPS RESTART MARKER ==='
+NEWCR=0
+if [ -e "$MARKER" ]; then
+  ls -lT "$MARKER" 2>/dev/null || true
+  for root in /var/mobile/Library/Logs/CrashReporter /var/mobile/Library/Logs/CrashReporter/Retired; do
+    [ -d "$root" ] || continue
+    for f in "$root"/SpringBoard-*.ips; do
+      [ -f "$f" ] || continue
+      [ "$f" -nt "$MARKER" ] || continue
+      NEWCR=$((NEWCR+1))
+      echo "NEW_CRASH=$f"
+      tr ',' '\n' < "$f" 2>/dev/null         | grep -a -Ei 'exception|signal|abort|CircleApps|ZZCircleAppsCompat|insertObject|TweakInject|faultingThread'         | cut -c 1-1800 | head -n 120 || true
+    done
+  done
+else
+  echo 'restart_marker=missing'
+fi
+echo "new_springboard_crashes=$NEWCR"
+
+echo
+echo '=== SPRINGBOARD-TARGETING TWEAK INVENTORY ==='
 EXP=/tmp/sb-expected.$$
 : > "$EXP"
 for p in "$TI"/*.plist; do
   [ -f "$p" ] || continue
   strings "$p" 2>/dev/null | grep -Eqi 'com\.apple\.springboard|SpringBoard' || continue
   n="$(basename "$p" .plist)"
-  [ -f "$TI/$n.dylib" ] || continue
-  echo "$n" >> "$EXP"
+  if [ -f "$TI/$n.dylib" ]; then
+    echo "$n" >> "$EXP"
+  else
+    echo "ISSUE|filter-without-dylib|$n"
+  fi
 done
 sort -u "$EXP" -o "$EXP"
 cat "$EXP"
-echo "expected_springboard_tweaks=$(wc -l < "$EXP" | tr -d ' ')"
+echo "springboard_targeting_count=$(wc -l < "$EXP" | tr -d ' ')"
 
 echo
-echo '=== PRE-RESTART SAFE MODE ==='
-echo "_MSSafeMode=$(launchctl getenv _MSSafeMode 2>/dev/null)"
-echo "_SafeMode=$(launchctl getenv _SafeMode 2>/dev/null)"
-PRE="$(ps ax 2>/dev/null | awk '/[S]pringBoard/{print $1; exit}')"
-echo "springboard_pre=$PRE"
-
-echo
-echo '=== ONE SPRINGBOARD RESTART ==='
-touch "$MARKER"
-killall cfprefsd 2>/dev/null || true
-killall -9 SpringBoard 2>/dev/null || true
-sleep 10
-P1="$(ps ax 2>/dev/null | awk '/[S]pringBoard/{print $1; exit}')"
-echo "springboard_t10=$P1"
-sleep 25
-P2="$(ps ax 2>/dev/null | awk '/[S]pringBoard/{print $1; exit}')"
-echo "springboard_t35=$P2"
-
-echo
-echo '=== NEW SPRINGBOARD CRASHES ==='
-NEWCR=0
-for root in /var/mobile/Library/Logs/CrashReporter /var/mobile/Library/Logs/CrashReporter/Retired; do
-  [ -d "$root" ] || continue
-  for f in "$root"/SpringBoard-*.ips; do
-    [ -f "$f" ] || continue
-    [ "$f" -nt "$MARKER" ] || continue
-    NEWCR=$((NEWCR+1))
-    echo "NEW_CRASH=$f"
-    tr ',' '\n' < "$f" 2>/dev/null       | grep -a -Ei 'exception|signal|CircleApps|ZZCircleAppsCompat|insertObject|faultingThread'       | cut -c 1-1800 | head -n 120 || true
-  done
+echo '=== DISABLED SPRINGBOARD-RELATED PAYLOADS ==='
+for f in "$TI"/*.disabled; do
+  [ -f "$f" ] || continue
+  base="$(basename "$f")"
+  stem="${base%%.*}"
+  sibling="$TI/$stem.plist"
+  if strings "$f" 2>/dev/null | grep -Eqi 'com\.apple\.springboard|SpringBoard|CircleApps'      || { [ -f "$sibling" ] && strings "$sibling" 2>/dev/null | grep -Eqi 'com\.apple\.springboard|SpringBoard'; }; then
+    echo "DISABLED=$f"
+  fi
 done
-echo "new_springboard_crashes=$NEWCR"
 
 echo
-echo '=== GUARD LOG ==='
-if command -v log >/dev/null 2>&1; then
-  log show --last 3m --style compact 2>/dev/null     | grep -F 'ZZCircleAppsCompat' | tail -n 50 || true
-fi
+echo '=== FILTER VALIDITY / FILE PERMISSIONS ==='
+BAD=0
+for p in "$TI"/*.plist; do
+  [ -f "$p" ] || continue
+  n="$(basename "$p" .plist)"
+  if ! plutil -p "$p" >/dev/null 2>&1; then
+    BAD=$((BAD+1))
+    echo "ISSUE|unreadable-or-malformed-filter|$n|$p"
+  fi
+done
+for d in "$TI"/*.dylib; do
+  [ -f "$d" ] || continue
+  [ -r "$d" ] || echo "ISSUE|unreadable-dylib|$d"
+  [ -x "$d" ] || echo "ISSUE|non-executable-dylib|$d"
+  [ -s "$d" ] || echo "ISSUE|zero-size-dylib|$d"
+done
+echo "bad_filter_count=$BAD"
 
 echo
-echo '=== LIVE LOAD STATE ==='
+echo '=== CHOICY SPRINGBOARD RULES ==='
+for f in /var/mobile/Library/Preferences/com.opa334.choicy.plist /var/mobile/Library/Preferences/com.opa334.choicyprefs.plist; do
+  [ -f "$f" ] || continue
+  echo "--- $f ---"
+  plutil -p "$f" 2>/dev/null || true
+done
+
+echo
+echo '=== LIVE SPRINGBOARD TWEAK IMAGES ==='
 LOADED=/tmp/sb-loaded.$$
 : > "$LOADED"
-if [ -n "$P2" ] && command -v vmmap >/dev/null 2>&1; then
-  vmmap "$P2" 2>/dev/null     | grep -E '/(TweakInject|DynamicLibraries)/.*\.dylib'     | sed -E 's#^.*(/TweakInject/|/DynamicLibraries/)##; s#\.dylib.*$##'     | sed 's#^.*/##' | sort -u > "$LOADED" || true
-elif [ -n "$P2" ] && command -v lsof >/dev/null 2>&1; then
-  lsof -p "$P2" 2>/dev/null     | grep -E '/(TweakInject|DynamicLibraries)/.*\.dylib'     | sed -E 's#^.*(/TweakInject/|/DynamicLibraries/)##; s#\.dylib.*$##'     | sed 's#^.*/##' | sort -u > "$LOADED" || true
+if [ -n "$SBPID" ] && command -v vmmap >/dev/null 2>&1; then
+  vmmap "$SBPID" 2>/dev/null     | grep -E '/(TweakInject|DynamicLibraries)/.*\.dylib'     | sed -E 's#^.*(/TweakInject/|/DynamicLibraries/)##; s#\.dylib.*$##'     | sed 's#^.*/##' | sort -u > "$LOADED" || true
+  echo 'live_probe=vmmap'
+elif [ -n "$SBPID" ] && command -v lsof >/dev/null 2>&1; then
+  lsof -p "$SBPID" 2>/dev/null     | grep -E '/(TweakInject|DynamicLibraries)/.*\.dylib'     | sed -E 's#^.*(/TweakInject/|/DynamicLibraries/)##; s#\.dylib.*$##'     | sed 's#^.*/##' | sort -u > "$LOADED" || true
+  echo 'live_probe=lsof'
 else
-  echo 'live_image_tool=unavailable'
+  echo 'live_probe=unavailable'
 fi
 if [ -s "$LOADED" ]; then
-  echo '--- loaded ---'
+  echo '--- LOADED ---'
   cat "$LOADED"
-  echo '--- expected but not observed ---'
+  echo '--- EXPECTED BUT NOT OBSERVED ---'
   while IFS= read -r n; do
     grep -Fxq "$n" "$LOADED" || echo "NOT_OBSERVED=$n"
   done < "$EXP"
 fi
 
 echo
-echo '=== FINAL STATE ==='
-echo "_MSSafeMode=$(launchctl getenv _MSSafeMode 2>/dev/null)"
-echo "_SafeMode=$(launchctl getenv _SafeMode 2>/dev/null)"
-ps ax 2>/dev/null | grep -E '[S]pringBoard|[b]ackboardd' || true
-if [ -n "$P1" ] && [ "$P1" = "$P2" ] && [ "$NEWCR" -eq 0 ]; then
-  echo 'springboard_stable_35s=yes'
-else
-  echo 'springboard_stable_35s=no'
-fi
+echo '=== PACKAGE HEALTH ==='
+dpkg --audit 2>&1 || true
 
-if [ "$NEWCR" -eq 0 ] && [ -n "$P1" ] && [ "$P1" = "$P2" ]; then
-  echo 'CIRCLEAPPS_FIX_RESULT=PASS'
+echo
+echo '=== VERDICT SIGNALS ==='
+[ -f "$TI/CircleAppsiPhone.dylib" ] && echo 'circleapps_dylib_active=yes' || echo 'circleapps_dylib_active=no'
+[ -f "$TI/ZZCircleAppsCompat.dylib" ] && echo 'circleapps_guard_active=yes' || echo 'circleapps_guard_active=no'
+[ -z "$(launchctl getenv _MSSafeMode 2>/dev/null)" ] && echo 'substrate_safe_mode_env=clear' || echo 'substrate_safe_mode_env=set'
+if [ -n "$SBPID" ] && [ "$NEWCR" -eq 0 ]; then
+  echo 'post_restart_springboard_state=stable'
 else
-  echo 'CIRCLEAPPS_FIX_RESULT=FAIL'
+  echo 'post_restart_springboard_state=needs-attention'
 fi
 
 rm -f "$EXP" "$LOADED"
-echo 'FINAL_CIRCLEAPPS_VERIFY_COMPLETE=1'
+echo 'POST_RESTART_TWEAK_VERIFY_COMPLETE=1'
 exit 0
