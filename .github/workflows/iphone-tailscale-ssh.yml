@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: iphone-tailscale-ssh-bounded-verify
+  group: iphone-tailscale-ssh-circleapps-re
   cancel-in-progress: true
 
 jobs:
