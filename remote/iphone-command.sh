@@ -136,22 +136,13 @@ for root in /var/mobile/Library/Logs/CrashReporter /private/var/mobile/Library/L
 done
 
 echo
-echo '=== UNIFIED LOG SAFE-MODE / SPRINGBOARD SIGNALS (BEST EFFORT) ==='
-if command -v log >/dev/null 2>&1; then
-  log show --last 45m --style compact 2>/dev/null \
-    | grep -Ei 'SpringBoard|backboardd|safe.?mode|substrate|ellekit|tweak|dyld|abort|crash' \
-    | tail -n 320 || true
-fi
-
-echo
-echo '=== DYLIB ARCH / DEPENDENCY CHECK ==='
+echo '=== DYLIB ARCH CHECK ==='
 while IFS= read -r f; do
   case "$f" in
     *.dylib)
       [ -f "$f" ] || continue
-      echo "--- $f ---"
+      printf '%s | ' "$f"
       file "$f" 2>/dev/null || true
-      otool -L "$f" 2>/dev/null | head -n 80 || true
       ;;
   esac
 done < "$TMP_TWEAKS"
