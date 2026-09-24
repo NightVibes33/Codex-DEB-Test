@@ -3,131 +3,159 @@ set +e
 export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
 export HOME=/var/mobile
 
-echo '=== IPHONE ZEBRA + SILEO READ-ONLY DIAGNOSTICS ==='
+echo '=== IPHONE SPRINGBOARD SAFE-MODE FORENSICS ==='
 printf 'started='; date '+%Y-%m-%d %H:%M:%S %z'
 printf 'identity='; id
 printf 'ios='; sw_vers -productVersion 2>/dev/null || true
 printf 'build='; sw_vers -buildVersion 2>/dev/null || true
 printf 'model='; sysctl -n hw.model 2>/dev/null || true
-printf 'device_name='; scutil --get ComputerName 2>/dev/null || true
+printf 'uname='; uname -a 2>/dev/null || true
+printf 'uptime='; uptime 2>/dev/null || true
 
 echo
-echo '--- storage ---'
-df -h / /var /var/jb 2>/dev/null || true
+echo '=== JAILBREAK / INJECTION RUNTIME ==='
+for f in /var/jb/.installed_dopamine /var/jb/.procursus_strapped /var/jb/usr/lib/ellekit/libinjector.dylib /var/jb/usr/lib/ellekit/pspawn.dylib /var/jb/usr/lib/TweakLoader.dylib /var/jb/usr/lib/TweakInject.dylib; do
+  [ -e "$f" ] || [ -L "$f" ] || continue
+  ls -la "$f" 2>/dev/null || true
+  readlink "$f" 2>/dev/null || true
+done
+echo '--- injection framework packages ---'
+dpkg-query -W -f='${Status} | ${Package} | ${Version}\n' 2>/dev/null | grep -Ei 'ellekit|substrate|substitute|libhooker|safe.?mode|dopamine' || true
 
 echo
-echo '--- Zebra + Sileo package records ---'
-dpkg-query -W -f='${Status} | ${Package} | ${Version} | ${Architecture}\n' 2>/dev/null | grep -Ei 'zebra|sileo|ellekit|substrate|substitute|libhooker' || true
+echo '=== SPRINGBOARD / BACKBOARDD PROCESS STATE ==='
+ps ax 2>/dev/null | grep -E '[S]pringBoard|[b]ackboardd' || true
+SBPID="$(ps ax 2>/dev/null | awk '/[S]pringBoard/{print $1; exit}')"
+BBPID="$(ps ax 2>/dev/null | awk '/[b]ackboardd/{print $1; exit}')"
+[ -n "$SBPID" ] && { echo "--- SpringBoard env pid=$SBPID ---"; ps eww -p "$SBPID" 2>/dev/null | head -c 16000; echo; }
+[ -n "$BBPID" ] && { echo "--- backboardd env pid=$BBPID ---"; ps eww -p "$BBPID" 2>/dev/null | head -c 16000; echo; }
 
 echo
-echo '--- Zebra package metadata ---'
-for pkg in xyz.willy.zebra xyz.willy.Zebra; do
-  dpkg-query -W -f='Package=${Package}\nVersion=${Version}\nArchitecture=${Architecture}\nDepends=${Depends}\nStatus=${Status}\n' "$pkg" 2>/dev/null || true
+echo '=== SAFE-MODE MARKERS / PREFS ==='
+find /var/mobile/Library/Preferences /var/jb/var/mobile/Library/Preferences -maxdepth 1 -type f 2>/dev/null \
+  | grep -Ei 'substrate|ellekit|substitute|safemode|safe.?mode|crash' | head -n 120 || true
+for f in \
+  /var/mobile/Library/Preferences/com.saurik.substrate.safemode.plist \
+  /var/mobile/Library/Preferences/com.saurik.substrate.plist \
+  /var/mobile/Library/Preferences/com.opa334.ellekit.plist \
+  /var/mobile/Library/Preferences/com.ellekit.plist; do
+  [ -f "$f" ] || continue
+  echo "--- $f ---"
+  plutil -p "$f" 2>/dev/null || cat "$f" 2>/dev/null || true
 done
 
 echo
-echo '--- Zebra bundle candidates ---'
-for app in /var/jb/Applications/Zebra.app /Applications/Zebra.app; do
-  [ -d "$app" ] || continue
-  echo "ZEBRA_APP=$app"
-  ls -ld "$app" 2>/dev/null || true
-  ls -l "$app/Zebra" 2>/dev/null || true
-  file "$app/Zebra" 2>/dev/null || true
-  if command -v plutil >/dev/null 2>&1; then
-    echo 'Info.plist identifiers:'
-    plutil -p "$app/Info.plist" 2>/dev/null | grep -E 'CFBundleIdentifier|CFBundleShortVersionString|CFBundleVersion|CFBundleURLSchemes' || true
-  fi
-  if command -v otool >/dev/null 2>&1; then
-    echo 'linked libraries:'
-    otool -L "$app/Zebra" 2>/dev/null | sed -n '1,100p' || true
-  fi
+echo '=== INSTALLED TWEAK PAYLOADS + OWNERS ==='
+TMP_TWEAKS="/tmp/safemode-tweaks.$$"
+: > "$TMP_TWEAKS"
+for d in \
+  /var/jb/Library/MobileSubstrate/DynamicLibraries \
+  /Library/MobileSubstrate/DynamicLibraries \
+  /var/jb/usr/lib/TweakInject \
+  /usr/lib/TweakInject; do
+  [ -d "$d" ] || continue
+  echo "TWEAK_DIR=$d"
+  find "$d" -maxdepth 1 \( -type f -o -type l \) 2>/dev/null | sort | while IFS= read -r f; do
+    case "$f" in
+      *.dylib|*.dylib.disabled|*.disabled|*.plist)
+        printf '%s\n' "$f" >> "$TMP_TWEAKS"
+        ;;
+    esac
+  done
+done
+sort -u "$TMP_TWEAKS" -o "$TMP_TWEAKS" 2>/dev/null || true
+while IFS= read -r f; do
+  [ -e "$f" ] || [ -L "$f" ] || continue
+  echo "--- PAYLOAD $f ---"
+  ls -lT "$f" 2>/dev/null || ls -l "$f" 2>/dev/null || true
+  echo "owner=$(dpkg-query -S "$f" 2>/dev/null | head -n 1)"
+  case "$f" in
+    *.plist)
+      echo 'filter:'
+      plutil -p "$f" 2>/dev/null | head -n 120 || strings "$f" 2>/dev/null | head -n 120 || true
+      ;;
+  esac
+done < "$TMP_TWEAKS"
+
+echo
+echo '=== TWEAK PACKAGE INVENTORY ==='
+dpkg-query -W -f='${Package}\t${Version}\t${Architecture}\t${Status}\n' 2>/dev/null \
+  | grep -Ei 'tweak|substrate|ellekit|theme|springboard|snowboard|velvet|lynx|atria|choicy|shuffle|nicebar|floatingdock|fiveicon|dock|ccsupport|powerselector|ampere|aim|designer|lock|statusbar|controlcenter|keyboard|homebar|gesture|animation|sim|speedy|gif2ani' \
+  | sort | head -n 500 || true
+
+echo
+echo '=== RECENT PACKAGE CHANGES ==='
+for log in /var/jb/var/log/dpkg.log /var/log/dpkg.log /var/jb/var/log/apt/history.log /var/log/apt/history.log /var/jb/var/log/apt/term.log /var/log/apt/term.log; do
+  [ -f "$log" ] || continue
+  echo "--- $log (tail) ---"
+  tail -n 220 "$log" 2>/dev/null || true
 done
 
 echo
-echo '--- Zebra dpkg verification ---'
-dpkg -V xyz.willy.zebra 2>&1 || true
-
-echo
-echo '--- Zebra registration ---'
-uicache -l 2>/dev/null | grep -i -A5 -B5 zebra || true
-
-echo
-echo '--- currently running Zebra ---'
-ps ax 2>/dev/null | grep -i '[Z]ebra' || true
-
-echo
-echo '--- recent Zebra crash reports ---'
-TMP=/tmp/zebra-crash-list.$$
-: > "$TMP"
+echo '=== RECENT SPRINGBOARD / BACKBOARDD CRASH FILES ==='
+TMP_CRASH="/tmp/safemode-crashes.$$"
+: > "$TMP_CRASH"
 for root in /var/mobile/Library/Logs/CrashReporter /private/var/mobile/Library/Logs/CrashReporter /Library/Logs/CrashReporter /private/var/Library/Logs/CrashReporter; do
   [ -d "$root" ] || continue
-  find "$root" -maxdepth 3 -type f \( -iname '*zebra*.ips' -o -iname '*zebra*.crash' -o -iname '*zebra*' \) -print 2>/dev/null | while IFS= read -r f; do
-    TS="$(stat -f '%m' "$f" 2>/dev/null || echo 0)"
-    printf '%s\t%s\n' "$TS" "$f"
-  done >> "$TMP"
+  find "$root" -maxdepth 2 -type f \( \
+    -iname 'SpringBoard-*.ips' -o -iname 'SpringBoard-*.crash' -o \
+    -iname 'backboardd-*.ips' -o -iname 'backboardd-*.crash' -o \
+    -iname '*SafeMode*.ips' -o -iname '*SafeMode*.crash' -o \
+    -iname 'JetsamEvent-*.ips' \
+  \) -print 2>/dev/null
+done | sort -u > "$TMP_CRASH"
+ls -lt $(cat "$TMP_CRASH" 2>/dev/null) 2>/dev/null | head -n 40 || true
+
+echo
+echo '=== LATEST CRASH CONTENT / INJECTED IMAGES ==='
+COUNT=0
+for f in $(ls -t $(cat "$TMP_CRASH" 2>/dev/null) 2>/dev/null | head -n 8); do
+  [ -f "$f" ] || continue
+  COUNT=$((COUNT+1))
+  echo "===== CRASH_$COUNT=$f ====="
+  echo '--- header / exception / termination ---'
+  head -n 35 "$f" 2>/dev/null || true
+  grep -a -Ei 'exception|termination|reason|signal|faulting|triggered|culprit|safe.?mode|watchdog|jetsam|namespace' "$f" 2>/dev/null | head -n 100 || true
+  echo '--- tweak / jailbreak image references ---'
+  strings "$f" 2>/dev/null \
+    | grep -Ei '/var/jb|MobileSubstrate|TweakInject|DynamicLibraries|ellekit|substrate|substitute|\.dylib' \
+    | sed -E 's/[[:space:]]+/ /g' \
+    | head -n 260 || true
 done
-sort -nr "$TMP" 2>/dev/null | head -n 12 || true
-LATEST="$(sort -nr "$TMP" 2>/dev/null | head -n 1 | cut -f2-)"
-rm -f "$TMP"
-if [ -n "$LATEST" ] && [ -f "$LATEST" ]; then
-  echo "LATEST_ZEBRA_CRASH=$LATEST"
-  sed -n '1,420p' "$LATEST" 2>/dev/null || true
-else
-  echo 'no_zebra_crash_report_found=true'
+echo "crash_files_examined=$COUNT"
+
+echo
+echo '=== CRASH FREQUENCY LAST 24H ==='
+for root in /var/mobile/Library/Logs/CrashReporter /private/var/mobile/Library/Logs/CrashReporter; do
+  [ -d "$root" ] || continue
+  echo "ROOT=$root"
+  find "$root" -maxdepth 1 -type f -mmin -1440 2>/dev/null \
+    | sed 's#.*/##' \
+    | sed -E 's/-[0-9]{4}-[0-9]{2}-[0-9]{2}.*##' \
+    | sort | uniq -c | sort -nr | head -n 80 || true
+done
+
+echo
+echo '=== UNIFIED LOG SAFE-MODE / SPRINGBOARD SIGNALS (BEST EFFORT) ==='
+if command -v log >/dev/null 2>&1; then
+  log show --last 45m --style compact 2>/dev/null \
+    | grep -Ei 'SpringBoard|backboardd|safe.?mode|substrate|ellekit|tweak|dyld|abort|crash' \
+    | tail -n 320 || true
 fi
 
 echo
-echo '=== SILEO / CYPWN REPO DIAGNOSTICS ==='
-echo '--- source definitions matching cypwn/cydwn ---'
-for aptroot in /var/jb/etc/apt /etc/apt; do
-  [ -d "$aptroot" ] || continue
-  find "$aptroot" -maxdepth 4 -type f \( -name '*.list' -o -name '*.sources' -o -name 'sources.list' \) -print 2>/dev/null | while IFS= read -r src; do
-    if grep -Eqi 'cypwn|cydwn' "$src" 2>/dev/null; then
-      echo "SOURCE_FILE=$src"
-      grep -Ein 'cypwn|cydwn|^(deb |deb-src |Types:|URIs:|Suites:|Components:|Architectures:|Enabled:|Signed-By:)' "$src" 2>/dev/null | sed -E 's#(https?://)[^/@[:space:]]+:[^/@[:space:]]+@#\1***:***@#g'
-    fi
-  done
-done
+echo '=== DYLIB ARCH / DEPENDENCY CHECK ==='
+while IFS= read -r f; do
+  case "$f" in
+    *.dylib)
+      [ -f "$f" ] || continue
+      echo "--- $f ---"
+      file "$f" 2>/dev/null || true
+      otool -L "$f" 2>/dev/null | head -n 80 || true
+      ;;
+  esac
+done < "$TMP_TWEAKS"
 
-echo
-echo '--- cached package indexes matching cypwn/cydwn ---'
-for listroot in /var/jb/var/lib/apt/lists /var/lib/apt/lists; do
-  [ -d "$listroot" ] || continue
-  find "$listroot" -maxdepth 2 -type f -print 2>/dev/null | grep -Ei 'cypwn|cydwn' | while IFS= read -r idx; do
-    BYTES="$(wc -c < "$idx" 2>/dev/null || echo 0)"
-    COUNT="$(grep -c '^Package:' "$idx" 2>/dev/null || echo 0)"
-    echo "INDEX=$idx bytes=$BYTES package_records=$COUNT"
-    grep '^Package:' "$idx" 2>/dev/null | head -n 20 || true
-  done
-done
-
-echo
-echo '--- APT index target mapping for CyPwn ---'
-apt-get indextargets 2>/dev/null | grep -Ei -A16 -B4 'cypwn|cydwn' || true
-
-echo
-echo '--- partial / failed CyPwn index files ---'
-for d in /var/jb/var/lib/apt/lists/partial /var/lib/apt/lists/partial; do
-  [ -d "$d" ] || continue
-  find "$d" -maxdepth 1 -type f -print 2>/dev/null | grep -Ei 'cypwn|cydwn' || true
-done
-
-echo
-echo '--- apt/dpkg health ---'
-ls -ld /var/jb/etc/apt /var/jb/etc/apt/sources.list.d /var/jb/var/lib/apt/lists /var/jb/var/lib/apt/lists/partial 2>/dev/null || true
-dpkg --audit 2>&1 || true
-
-echo
-echo '--- Sileo process and bundle ---'
-ps ax 2>/dev/null | grep -i '[S]ileo' || true
-for app in /var/jb/Applications/Sileo.app /Applications/Sileo.app; do
-  [ -d "$app" ] || continue
-  echo "SILEO_APP=$app"
-  ls -ld "$app" 2>/dev/null || true
-  if command -v plutil >/dev/null 2>&1; then
-    plutil -p "$app/Info.plist" 2>/dev/null | grep -E 'CFBundleIdentifier|CFBundleShortVersionString|CFBundleVersion' || true
-  fi
-done
-
-echo 'IPHONE_READ_ONLY_DIAGNOSTICS_COMPLETE=1'
+rm -f "$TMP_TWEAKS" "$TMP_CRASH"
+echo 'IPHONE_SAFE_MODE_FORENSICS_COMPLETE=1'
 exit 0
