@@ -1,85 +1,59 @@
 iPhone Tailscale SSH Bridge
-run_id=36019714803
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/36019714803
-commit=b1ba4c9174b0743c4bc6076854b6750ee4c3fc03
+run_id=36021396204
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/36021396204
+commit=e3c10d72bfd57fb33bf60e2bbf8965de9a0b4cd4
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
 tailscale=success
 install_ssh=success
-ssh=failure
+ssh=cancelled
 
 --- sanitized SSH output ---
 Waking and checking iPhone SSH port over Tailscale...
 SSH port attempt 1/18
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
-iphone_ssh_port_ready=success
-Staging native helpers and running iPhone command as root...
-=== FINAL CIRCLEAPPS + SPRINGBOARD INJECTION VERIFY ===
-time=2026-09-24 10:23:45 -0500
-ios=15.8.8
-build=19H422
-
-=== INSTALL REAL CIRCLEAPPS GUARD ===
-Error: Object not found at keypath "lint" in file /var/jb/usr/lib/TweakInject/ZZCircleAppsCompat.plist
-/var/jb/usr/lib/TweakInject/ZZCircleAppsCompat.dylib: Mach-O 64-bit arm64 dynamically linked shared library, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|NO_REEXPORTED_DYLIBS>
-circleapps_enabled=yes
-circleapps_guard_installed=yes
-
-=== EXPECTED SPRINGBOARD TWEAKS ===
-0Hello3Q
-0Snail
-0nazuna
-1NebbsCrack
-3DAppVersionSpoofer
-AAASnowBoardStub
-AirpodsCompanion
-AppData
-AppList
-CCSupport
-ChargingBanner
-ChoicyMenu
-ChoicySB
-CircleAppsiPad
-CircleAppsiPhone
-CraneSB
-CyDownDebGetter
-Cylinder
-DownloadPercent
-DynamicStage
-Eneko
-ExplosiveIcons
-Exsto15
-FiveColumnsCC
-InteractiveSiri
-Little16
-MacOSNotifications
-MacPass
-NFCSpringBoard
-Nazuna
-RocketBootstrap
-Sentinel
-Sonus15
-SparkAppListSB
-Speedster
-Stella
-TweakHub
-Vol15
-Waktos
-Xinam1ne
-ZZCircleAppsCompat
-libbulletin
-expected_springboard_tweaks=42
-
-=== PRE-RESTART SAFE MODE ===
-_MSSafeMode=
-_SafeMode=
-springboard_pre=10457
-
-=== ONE SPRINGBOARD RESTART ===
-Timeout, server 100.96.37.124 not responding.
-ssh_exit_code=255
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 2/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 3/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 4/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 5/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 6/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 7/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 8/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 9/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 10/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 11/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 12/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 13/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 14/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 15/18
+ping "100.96.37.124" timed out
+no reply
+SSH port attempt 16/18
