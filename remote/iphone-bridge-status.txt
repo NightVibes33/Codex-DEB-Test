@@ -1,7 +1,7 @@
 iPhone Tailscale SSH Bridge
-run_id=36015621900
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/36015621900
-commit=84e0692ae9795f5942113fc56b5b3a687f41ef20
+run_id=36016153040
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/36016153040
+commit=48112c9a046c426b9fef23179d551dfb34c07c38
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
@@ -29,10 +29,3 @@ no reply
 SSH port attempt 6/18
 ping "100.96.37.124" timed out
 no reply
-SSH port attempt 7/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 8/18
-ping "100.96.37.124" timed out
-no reply
-SSH port attempt 9/18
