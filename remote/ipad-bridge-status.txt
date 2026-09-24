@@ -1,12 +1,12 @@
 iPad Tailscale SSH Bridge
-run_id=33530303615
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/33530303615
-commit=36987bc4ab41536fe349b7fa9a1799640781b4e1
+run_id=36010138578
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/36010138578
+commit=6b11af45edc4b8ec3eb4b6515b1d109fe2ba1090
 environment=TAILSCALE_AUTHKEY-
 validate=success
 tailscale=success
 install_ssh=success
-ssh=failure
+ssh=cancelled
 
 --- sanitized SSH output ---
 Waking and checking iPad SSH port over Tailscale...
@@ -46,30 +46,3 @@ no reply
 SSH port attempt 12/18
 ping "100.116.117.65" timed out
 no reply
-SSH port attempt 13/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 14/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 15/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 16/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 17/18
-ping "100.116.117.65" timed out
-no reply
-SSH port attempt 18/18
-ping "100.116.117.65" timed out
-no reply
-Could not reach iPad TCP port 22 after wake and retry attempts.
-100.72.67.112    github-ipad-33530303615-1    NightVibes33@  linux    -                                                              
-100.116.117.65   bobbys-ipad                  NightVibes33@  iOS      active; relay "dfw"; offline, last seen 1d ago, tx 12636 rx 0  
-100.127.94.70    desktop-o56xs                NightVibes33@  windows  offline, last seen 38d ago                                     
-100.102.123.85   github-iphone-33530303561-1  NightVibes33@  linux    offline, last seen 5m ago                                      
-100.127.234.119  github-iphone-33530303615    NightVibes33@  linux    offline, last seen 5m ago                                      
-100.100.46.67    github-runnervmgx7h7         NightVibes33@  linux    -                                                              
-100.96.37.124    iphone                       NightVibes33@  iOS      -                                                              
-100.79.177.16    iphone173                    NightVibes33@  iOS      offline, last seen 20h ago                                     
