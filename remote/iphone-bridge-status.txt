@@ -1,7 +1,7 @@
 iPhone Tailscale SSH Bridge
-run_id=36010138470
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/36010138470
-commit=6b11af45edc4b8ec3eb4b6515b1d109fe2ba1090
+run_id=36010617225
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/36010617225
+commit=60776a5c642e8859e3aaa0c7fe63e43f630c7eef
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
@@ -10,6 +10,146 @@ install_ssh=success
 ssh=cancelled
 
 --- sanitized SSH output ---
+filter:
+--- PAYLOAD /var/jb/usr/lib/TweakInject/AAASnowBoardStub.dylib ---
+-rwxr-xr-x 1 root wheel 132512 Jul  8  2024 /var/jb/usr/lib/TweakInject/AAASnowBoardStub.dylib
+owner=
+--- PAYLOAD /var/jb/usr/lib/TweakInject/AAASnowBoardStub.plist ---
+-rw-r--r-- 1 root wheel 93 Jul  8  2024 /var/jb/usr/lib/TweakInject/AAASnowBoardStub.plist
+owner=
+filter:
+--- PAYLOAD /var/jb/usr/lib/TweakInject/AirpodsCompanion.dylib ---
+-rwxr-xr-x 1 root wheel 438560 Oct  7  2024 /var/jb/usr/lib/TweakInject/AirpodsCompanion.dylib
+owner=
+--- PAYLOAD /var/jb/usr/lib/TweakInject/AirpodsCompanion.plist ---
+-rw-r--r-- 1 root wheel 93 Oct  7  2024 /var/jb/usr/lib/TweakInject/AirpodsCompanion.plist
+owner=
+filter:
+--- PAYLOAD /var/jb/usr/lib/TweakInject/AppData.dylib ---
+-rwxr-xr-x 1 root wheel 4047392 Feb 10  2026 /var/jb/usr/lib/TweakInject/AppData.dylib
+owner=
+--- PAYLOAD /var/jb/usr/lib/TweakInject/AppData.plist ---
+-rw-r--r-- 1 root wheel 93 Feb 10  2026 /var/jb/usr/lib/TweakInject/AppData.plist
+owner=
+filter:
+--- PAYLOAD /var/jb/usr/lib/TweakInject/AppList.dylib ---
+-rwxr-xr-x 1 _installd _installd 471888 Jun  6  2023 /var/jb/usr/lib/TweakInject/AppList.dylib
+owner=
+--- PAYLOAD /var/jb/usr/lib/TweakInject/AppList.plist ---
+-rw-r--r-- 1 _installd _installd 93 May  9  2020 /var/jb/usr/lib/TweakInject/AppList.plist
+owner=
+filter:
+--- PAYLOAD /var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.dylib ---
+-rwxr-xr-x 1 root wheel 231168 Nov 28  2024 /var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.dylib
+owner=
+--- PAYLOAD /var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.plist ---
+-rw-r--r-- 1 root wheel 356 Nov 28  2024 /var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.plist
+owner=
+filter:
+--- PAYLOAD /var/jb/usr/lib/TweakInject/AppSyncUnified-installd.dylib ---
+-rwxr-xr-x 1 root wheel 234800 Nov 28  2024 /var/jb/usr/lib/TweakInject/AppSyncUnified-installd.dylib
+owner=
+--- PAYLOAD /var/jb/usr/lib/TweakInject/AppSyncUnified-installd.plist ---
+-rw-r--r-- 1 root wheel 299 Nov 28  2024 /var/jb/usr/lib/TweakInject/AppSyncUnified-installd.plist
+owner=
+filter:
+--- PAYLOAD /var/jb/usr/lib/TweakInject/ArthurBrowserPro.dylib ---
+-rwxr-xr-x 1 root wheel 84544 Dec 25  2024 /var/jb/usr/lib/TweakInject/ArthurBrowserPro.dylib
+owner=
+--- PAYLOAD /var/jb/usr/lib/TweakInject/ArthurBrowserPro.plist ---
+-rw-r--r-- 1 root wheel 89 Dec 25  2024 /var/jb/usr/lib/TweakInject/ArthurBrowserPro.plist
+owner=
+filter:
+--- PAYLOAD /var/jb/usr/lib/TweakInject/AutoRevenueCat.dylib ---
+-rwxr-xr-x 1 root wheel 202528 Apr 23  2025 /var/jb/usr/lib/TweakInject/AutoRevenueCat.dylib
+owner=
+--- PAYLOAD /var/jb/usr/lib/TweakInject/AutoRevenueCat.plist ---
+-rw-r--r-- 1 root wheel 87 Apr 23  2025 /var/jb/usr/lib/TweakInject/AutoRevenueCat.plist
+owner=
+filter:
+--- PAYLOAD /var/jb/usr/lib/TweakInject/CC26.dylib ---
+-rwxr-xr-x 1 root wheel 202784 Jul  6  2025 /var/jb/usr/lib/TweakInject/CC26.dylib
+owner=
+--- PAYLOAD /var/jb/usr/lib/TweakInject/CC26.plist ---
+-rwxr-xr-x 1 root wheel 92 Jul  6  2025 /var/jb/usr/lib/TweakInject/CC26.plist
+owner=
+filter:
+--- PAYLOAD /var/jb/usr/lib/TweakInject/CCSupport.dylib ---
+-rwxr-xr-x 1 root wheel 272208 Mar 28  2024 /var/jb/usr/lib/TweakInject/CCSupport.dylib
+owner=
+--- PAYLOAD /var/jb/usr/lib/TweakInject/CCSupport.plist ---
+-rw-r--r-- 1 root wheel 119 Mar 28  2024 /var/jb/usr/lib/TweakInject/CCSupport.plist
+owner=
+filter:
+--- PAYLOAD /var/jb/usr/lib/TweakInject/CarBridge.dylib ---
+-rwxr-xr-x 1 root wheel 408016 Oct 28  2024 /var/jb/usr/lib/TweakInject/CarBridge.dylib
+owner=
+--- PAYLOAD /var/jb/usr/lib/TweakInject/CarBridge.plist ---
+-rw-r--r-- 1 root wheel 112 Oct 28  2024 /var/jb/usr/lib/TweakInject/CarBridge.plist
+owner=
+filter:
+--- PAYLOAD /var/jb/usr/lib/TweakInject/CarBridgeDashboard.dylib ---
+-rwxr-xr-x 1 root wheel 236448 Oct 28  2024 /var/jb/usr/lib/TweakInject/CarBridgeDashboard.dylib
+owner=
+--- PAYLOAD /var/jb/usr/lib/TweakInject/CarBridgeDashboard.plist ---
+-rw-r--r-- 1 root wheel 92 Oct 28  2024 /var/jb/usr/lib/TweakInject/CarBridgeDashboard.plist
+owner=
+filter:
+--- PAYLOAD /var/jb/usr/lib/TweakInject/CepheiSpringBoard.dylib ---
+lrwxr-xr-x 1 root wheel 50 May 28  2023 /var/jb/usr/lib/TweakInject/CepheiSpringBoard.dylib -> /var/jb/Library/Frameworks/Cephei.framework/Cephei
+owner=
+--- PAYLOAD /var/jb/usr/lib/TweakInject/CepheiSpringBoard.plist ---
+-rw-r--r-- 1 root wheel 92 May 28  2023 /var/jb/usr/lib/TweakInject/CepheiSpringBoard.plist
+owner=
+filter:
+--- PAYLOAD /var/jb/usr/lib/TweakInject/ChargingBanner.dylib ---
+-rwxr-xr-x 1 root wheel 176864 Oct 24  2025 /var/jb/usr/lib/TweakInject/ChargingBanner.dylib
+owner=
+--- PAYLOAD /var/jb/usr/lib/TweakInject/ChargingBanner.plist ---
+-rw-r--r-- 1 root wheel 348 Oct 24  2025 /var/jb/usr/lib/TweakInject/ChargingBanner.plist
+owner=
+filter:
+--- PAYLOAD /var/jb/usr/lib/TweakInject/ChatGPTWebLegacyCompat.dylib ---
+-rwxr-xr-x 1 root wheel 168064 May  3 04:34 /var/jb/usr/lib/TweakInject/ChatGPTWebLegacyCompat.dylib
+owner=
+--- PAYLOAD /var/jb/usr/lib/TweakInject/ChatGPTWebLegacyCompat.plist ---
+-rw-r--r-- 1 root wheel 147 May  3 04:34 /var/jb/usr/lib/TweakInject/ChatGPTWebLegacyCompat.plist
+owner=
+filter:
+--- PAYLOAD /var/jb/usr/lib/TweakInject/ChoicyMenu.dylib ---
+-rwxr-xr-x 1 root wheel 166464 Jan  8  2026 /var/jb/usr/lib/TweakInject/ChoicyMenu.dylib
+owner=
+--- PAYLOAD /var/jb/usr/lib/TweakInject/ChoicyMenu.plist ---
+-rw-r--r-- 1 root wheel 56 Jan  8  2026 /var/jb/usr/lib/TweakInject/ChoicyMenu.plist
+owner=
+filter:
+--- PAYLOAD /var/jb/usr/lib/TweakInject/ChoicySB.dylib ---
+-rwxr-xr-x 1 root wheel 204928 Jan  8  2026 /var/jb/usr/lib/TweakInject/ChoicySB.dylib
+owner=
+--- PAYLOAD /var/jb/usr/lib/TweakInject/ChoicySB.plist ---
+-rw-r--r-- 1 root wheel 126 Jan  8  2026 /var/jb/usr/lib/TweakInject/ChoicySB.plist
+owner=
+filter:
+--- PAYLOAD /var/jb/usr/lib/TweakInject/CircleAppsiPad.dylib ---
+-rwxr-xr-x 1 root wheel 239952 Jan 29  2024 /var/jb/usr/lib/TweakInject/CircleAppsiPad.dylib
+owner=
+--- PAYLOAD /var/jb/usr/lib/TweakInject/CircleAppsiPad.plist ---
+-rw-r--r-- 1 root wheel 57 Jan 29  2024 /var/jb/usr/lib/TweakInject/CircleAppsiPad.plist
+owner=
+filter:
+--- PAYLOAD /var/jb/usr/lib/TweakInject/CircleAppsiPhone.dylib ---
+-rwxr-xr-x 1 root wheel 239952 Jan 29  2024 /var/jb/usr/lib/TweakInject/CircleAppsiPhone.dylib
+owner=
+--- PAYLOAD /var/jb/usr/lib/TweakInject/CircleAppsiPhone.plist ---
+-rw-r--r-- 1 root wheel 57 Jan 29  2024 /var/jb/usr/lib/TweakInject/CircleAppsiPhone.plist
+owner=
+filter:
+--- PAYLOAD /var/jb/usr/lib/TweakInject/CraneSB.dylib ---
+-rwxr-xr-x 1 root wheel 534304 Aug 15 15:05 /var/jb/usr/lib/TweakInject/CraneSB.dylib
+owner=
+--- PAYLOAD /var/jb/usr/lib/TweakInject/CraneSB.plist ---
+-rw-r--r-- 1 root wheel 126 Aug 15 15:05 /var/jb/usr/lib/TweakInject/CraneSB.plist
+owner=
 filter:
 --- PAYLOAD /var/jb/usr/lib/TweakInject/CraneSupport.dylib ---
 -rwxr-xr-x 1 root wheel 550256 Aug 15 15:05 /var/jb/usr/lib/TweakInject/CraneSupport.dylib
@@ -128,145 +268,5 @@ filter:
 owner=
 --- PAYLOAD /var/jb/usr/lib/TweakInject/KeepMyJB.plist ---
 -rw-r--r-- 1 root wheel 93 Aug  3  2023 /var/jb/usr/lib/TweakInject/KeepMyJB.plist
-owner=
-filter:
---- PAYLOAD /var/jb/usr/lib/TweakInject/LimneosCrack.dylib ---
--rwxr-xr-x 1 _installd _installd 165680 Feb 13  2024 /var/jb/usr/lib/TweakInject/LimneosCrack.dylib
-owner=
---- PAYLOAD /var/jb/usr/lib/TweakInject/LimneosCrack.plist ---
--rw-r--r-- 1 _installd _installd 87 Feb 13  2024 /var/jb/usr/lib/TweakInject/LimneosCrack.plist
-owner=
-filter:
---- PAYLOAD /var/jb/usr/lib/TweakInject/Little16.dylib ---
--rwxr-xr-x 1 root wheel 166288 Aug 23 09:59 /var/jb/usr/lib/TweakInject/Little16.dylib
-owner=
---- PAYLOAD /var/jb/usr/lib/TweakInject/Little16.plist ---
--rw-r--r-- 1 root wheel 93 Aug 23 09:59 /var/jb/usr/lib/TweakInject/Little16.plist
-owner=
-filter:
---- PAYLOAD /var/jb/usr/lib/TweakInject/MacOSNotifications.dylib ---
--rwxr-xr-x 1 root wheel 199120 Nov 30  2024 /var/jb/usr/lib/TweakInject/MacOSNotifications.dylib
-owner=
---- PAYLOAD /var/jb/usr/lib/TweakInject/MacOSNotifications.plist ---
--rw-r--r-- 1 root wheel 308 Mar 22  2021 /var/jb/usr/lib/TweakInject/MacOSNotifications.plist
-owner=
-filter:
---- PAYLOAD /var/jb/usr/lib/TweakInject/MacPass.dylib ---
--rwxr-xr-x 1 _installd _installd 336496 Aug 17  2023 /var/jb/usr/lib/TweakInject/MacPass.dylib
-owner=
---- PAYLOAD /var/jb/usr/lib/TweakInject/MacPass.plist ---
--rw-r--r-- 1 _installd _installd 93 Aug 17  2023 /var/jb/usr/lib/TweakInject/MacPass.plist
-owner=
-filter:
---- PAYLOAD /var/jb/usr/lib/TweakInject/Misaka15Compat.dylib ---
--rwxr-xr-x 1 root wheel 67936 Sep  1 22:35 /var/jb/usr/lib/TweakInject/Misaka15Compat.dylib
-owner=
---- PAYLOAD /var/jb/usr/lib/TweakInject/Misaka15Compat.plist ---
--rw-r--r-- 1 root wheel 100 Sep  1 22:35 /var/jb/usr/lib/TweakInject/Misaka15Compat.plist
-owner=
-filter:
---- PAYLOAD /var/jb/usr/lib/TweakInject/NFCSpringBoard.dylib ---
--rwxr-xr-x 1 root wheel 217360 May 11  2023 /var/jb/usr/lib/TweakInject/NFCSpringBoard.dylib
-owner=
---- PAYLOAD /var/jb/usr/lib/TweakInject/NFCSpringBoard.plist ---
--rw-r--r-- 1 root wheel 57 May 11  2023 /var/jb/usr/lib/TweakInject/NFCSpringBoard.plist
-owner=
-filter:
---- PAYLOAD /var/jb/usr/lib/TweakInject/NFCWriterDaemon.dylib ---
--rwxr-xr-x 1 root wheel 417040 May 11  2023 /var/jb/usr/lib/TweakInject/NFCWriterDaemon.dylib
-owner=
---- PAYLOAD /var/jb/usr/lib/TweakInject/NFCWriterDaemon.plist ---
--rw-r--r-- 1 root wheel 43 May 11  2023 /var/jb/usr/lib/TweakInject/NFCWriterDaemon.plist
-owner=
-filter:
---- PAYLOAD /var/jb/usr/lib/TweakInject/Nazuna.dylib ---
--rwxr-xr-x 1 root wheel 2575728 Jul 23  2025 /var/jb/usr/lib/TweakInject/Nazuna.dylib
-owner=
---- PAYLOAD /var/jb/usr/lib/TweakInject/Nazuna.plist ---
--rw-r--r-- 1 root wheel 93 Jul 20  2025 /var/jb/usr/lib/TweakInject/Nazuna.plist
-owner=
-filter:
---- PAYLOAD /var/jb/usr/lib/TweakInject/Polyfills.dylib ---
--rwxr-xr-x 1 root wheel 238032 Aug 29 22:53 /var/jb/usr/lib/TweakInject/Polyfills.dylib
-owner=
---- PAYLOAD /var/jb/usr/lib/TweakInject/Polyfills.plist ---
--rw-r--r-- 1 root wheel 147 Aug 29 22:53 /var/jb/usr/lib/TweakInject/Polyfills.plist
-owner=
-filter:
---- PAYLOAD /var/jb/usr/lib/TweakInject/PreferenceLoader.dylib ---
--rwxr-xr-x 1 root wheel 170192 Jul 22  2024 /var/jb/usr/lib/TweakInject/PreferenceLoader.dylib
-owner=
---- PAYLOAD /var/jb/usr/lib/TweakInject/PreferenceLoader.plist ---
--rw-r--r-- 1 root wheel 56 Jul 22  2024 /var/jb/usr/lib/TweakInject/PreferenceLoader.plist
-owner=
-filter:
---- PAYLOAD /var/jb/usr/lib/TweakInject/RocketBootstrap.dylib ---
-lrwxr-xr-x 1 root wheel 40 Jun 29  2023 /var/jb/usr/lib/TweakInject/RocketBootstrap.dylib -> /var/jb/usr/lib/librocketbootstrap.dylib
-owner=
---- PAYLOAD /var/jb/usr/lib/TweakInject/RocketBootstrap.plist ---
--rw-r--r-- 1 root wheel 174 May 27  2024 /var/jb/usr/lib/TweakInject/RocketBootstrap.plist
-owner=
-filter:
---- PAYLOAD /var/jb/usr/lib/TweakInject/SandyProxy.dylib ---
--rwxr-xr-x 1 root wheel 168240 Mar 28 20:07 /var/jb/usr/lib/TweakInject/SandyProxy.dylib
-owner=
---- PAYLOAD /var/jb/usr/lib/TweakInject/SandyProxy.plist ---
--rw-r--r-- 1 root wheel 83 Mar 28 20:07 /var/jb/usr/lib/TweakInject/SandyProxy.plist
-owner=
-filter:
---- PAYLOAD /var/jb/usr/lib/TweakInject/Satella.dylib ---
--rwxr-xr-x 1 _installd _installd 132448 Aug 11  2023 /var/jb/usr/lib/TweakInject/Satella.dylib
-owner=
---- PAYLOAD /var/jb/usr/lib/TweakInject/Satella.plist ---
--rw-r--r-- 1 _installd _installd 90 Aug 11  2023 /var/jb/usr/lib/TweakInject/Satella.plist
-owner=
-filter:
---- PAYLOAD /var/jb/usr/lib/TweakInject/Sentinel.dylib ---
--rwxr-xr-x 1 root wheel 201856 Apr 13  2025 /var/jb/usr/lib/TweakInject/Sentinel.dylib
-owner=
---- PAYLOAD /var/jb/usr/lib/TweakInject/Sentinel.plist ---
--rw-r--r-- 1 root wheel 308 May  3  2021 /var/jb/usr/lib/TweakInject/Sentinel.plist
-owner=
-filter:
---- PAYLOAD /var/jb/usr/lib/TweakInject/SettingsButtons.dylib ---
--rwxr-xr-x 1 _installd _installd 203216 Apr 18  2024 /var/jb/usr/lib/TweakInject/SettingsButtons.dylib
-owner=
---- PAYLOAD /var/jb/usr/lib/TweakInject/SettingsButtons.plist ---
--rw-r--r-- 1 _installd _installd 93 Apr 18  2024 /var/jb/usr/lib/TweakInject/SettingsButtons.plist
-owner=
-filter:
---- PAYLOAD /var/jb/usr/lib/TweakInject/Snowboard.dylib ---
--rwxr-xr-x 1 root wheel 166704 Jul  8  2024 /var/jb/usr/lib/TweakInject/Snowboard.dylib
-owner=
---- PAYLOAD /var/jb/usr/lib/TweakInject/Snowboard.plist ---
--rw-r--r-- 1 root wheel 197 Jul  8  2024 /var/jb/usr/lib/TweakInject/Snowboard.plist
-owner=
-filter:
---- PAYLOAD /var/jb/usr/lib/TweakInject/Sonus15.dylib ---
--rwxr-xr-x 1 root wheel 341136 Sep 19  2024 /var/jb/usr/lib/TweakInject/Sonus15.dylib
-owner=
---- PAYLOAD /var/jb/usr/lib/TweakInject/Sonus15.plist ---
--rwxr-xr-x 1 root wheel 308 Sep 19  2024 /var/jb/usr/lib/TweakInject/Sonus15.plist
-owner=
-filter:
---- PAYLOAD /var/jb/usr/lib/TweakInject/SparkAppListSB.dylib ---
--rwxr-xr-x 1 root wheel 167552 May 11  2023 /var/jb/usr/lib/TweakInject/SparkAppListSB.dylib
-owner=
---- PAYLOAD /var/jb/usr/lib/TweakInject/SparkAppListSB.plist ---
--rw-r--r-- 1 root wheel 93 May 11  2023 /var/jb/usr/lib/TweakInject/SparkAppListSB.plist
-owner=
-filter:
---- PAYLOAD /var/jb/usr/lib/TweakInject/Speedster.dylib ---
--rwxr-xr-x 1 root wheel 150144 Feb  5  2026 /var/jb/usr/lib/TweakInject/Speedster.dylib
-owner=
---- PAYLOAD /var/jb/usr/lib/TweakInject/Speedster.plist ---
--rw-r--r-- 1 root wheel 113 Feb  5  2026 /var/jb/usr/lib/TweakInject/Speedster.plist
-owner=
-filter:
---- PAYLOAD /var/jb/usr/lib/TweakInject/StageDaemon.dylib ---
--rwxr-xr-x 1 root wheel 167008 Jul 22  2025 /var/jb/usr/lib/TweakInject/StageDaemon.dylib
-owner=
---- PAYLOAD /var/jb/usr/lib/TweakInject/StageDaemon.plist ---
--rw-r--r-- 1 root wheel 87 Jul 22  2025 /var/jb/usr/lib/TweakInject/StageDaemon.plist
 owner=
 filter:
