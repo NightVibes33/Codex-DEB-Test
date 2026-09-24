@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: iphone-tailscale-ssh
+  group: iphone-tailscale-ssh-bounded-verify
   cancel-in-progress: true
 
 jobs:
