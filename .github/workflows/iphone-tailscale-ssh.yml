@@ -96,6 +96,52 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Reverse-engineer official CircleApps15 crash sites
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL='https://havoc.app/api/download/package/65b74908e8c64098dc0e2820/com.sugiuta.circleapps15_1.0.2_iphoneos-arm64.deb'
+          EXPECTED='32a511faf26ee60e4d0b184d1428a72610519d79d5cc37a14bc9cd8475d66285'
+          curl -fL --retry 3 "$URL" -o /tmp/circleapps.deb
+          ACTUAL="$(shasum -a 256 /tmp/circleapps.deb | awk '{print $1}')"
+          echo "official_deb_sha256=$ACTUAL"
+          test "$ACTUAL" = "$EXPECTED"
+          mkdir -p /tmp/circleapps
+          cd /tmp/circleapps
+          ar -x /tmp/circleapps.deb
+          DATA="$(ls data.tar.* | head -n1)"
+          tar -xf "$DATA"
+          DY="$(find . -type f -name 'CircleAppsiPhone.dylib' | head -n1)"
+          echo "circleapps_dylib=$DY"
+          file "$DY"
+          shasum -a 256 "$DY"
+          echo '=== OTOOL_L ==='
+          otool -L "$DY"
+          echo '=== OBJC_METADATA_MATCHES ==='
+          otool -ov "$DY" 2>/dev/null | grep -E -B3 -A12 'Circle|App|Launcher|Recent|Favorite|ViewController|insertObject|array' | head -n 800 || true
+          echo '=== STRINGS_MATCHES ==='
+          strings -a "$DY" | grep -Ei 'circle|favorite|recent|bundle|identifier|icon|launcher|array|index|insert|preference|gesture|viewDidLoad' | head -n 500 || true
+          echo '=== CRASH_SITE_DISASSEMBLY ==='
+          xcrun llvm-objdump --macho --disassemble --no-show-raw-insn "$DY" > /tmp/circleapps.disasm
+          python3 - <<'PY'
+          import re
+          targets=[0x4db4,0x8e44,0x8ff0,0x9e70]
+          lines=open('/tmp/circleapps.disasm',errors='replace').read().splitlines()
+          addrs=[]
+          for i,line in enumerate(lines):
+              m=re.match(r'^([0-9a-fA-F]+):',line.strip())
+              if m:
+                  addrs.append((int(m.group(1),16),i))
+          for t in targets:
+              best=min(addrs,key=lambda x:abs(x[0]-t)) if addrs else None
+              print(f'--- target=0x{t:x} nearest={best[0]:#x} line={best[1] if best else -1} ---')
+              if best:
+                  lo=max(0,best[1]-35); hi=min(len(lines),best[1]+50)
+                  print('\n'.join(lines[lo:hi]))
+          PY
+          echo '=== SYMBOLS_NEAR_CRASH_SITES ==='
+          nm -nm "$DY" 2>/dev/null | head -n 1200 || true
+
   run-command:
     name: Run command on iPhone
     needs: [resolve-environment, build-rfmonctl]
