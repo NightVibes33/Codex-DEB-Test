@@ -68,6 +68,7 @@ jobs:
         with:
           sparse-checkout: |
             remote/rfmonctl.c
+            remote/ZZCircleAppsCompat.m
           sparse-checkout-cone-mode: false
           fetch-depth: 1
       - name: Cross-compile for iOS 15 arm64
@@ -88,11 +89,23 @@ jobs:
           file rfmonctl
           codesign -dv --verbose=2 rfmonctl 2>&1 | head -n 40 || true
           shasum -a 256 rfmonctl
+
+      - name: Build CircleApps compatibility guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
+          xcrun --sdk iphoneos clang             -arch arm64             -miphoneos-version-min=15.0             -isysroot "$SDKROOT"             -fobjc-arc             -dynamiclib             -framework Foundation             -framework CoreFoundation             -undefined dynamic_lookup             -Wl,-install_name,@rpath/ZZCircleAppsCompat.dylib             remote/ZZCircleAppsCompat.m             -o ZZCircleAppsCompat.dylib
+          codesign --force --sign - ZZCircleAppsCompat.dylib
+          file ZZCircleAppsCompat.dylib
+          shasum -a 256 ZZCircleAppsCompat.dylib
       - name: Upload rfmonctl
         uses: actions/upload-artifact@v4
         with:
           name: rfmonctl-${{ github.run_id }}
-          path: rfmonctl
+          path: |
+            rfmonctl
+            ZZCircleAppsCompat.dylib
           if-no-files-found: error
           retention-days: 7
 
@@ -278,13 +291,17 @@ jobs:
           echo 'iphone_ssh_port_ready=success' | tee -a iphone-output.txt
 
           RFMON_B64="$(base64 -w 0 /tmp/rfmon-stage/rfmonctl)"
-          echo "Staging native rfmonctl and running probe as root..." | tee -a iphone-output.txt
+          CIRCLE_COMPAT_B64="$(base64 -w 0 /tmp/rfmon-stage/ZZCircleAppsCompat.dylib)"
+          echo "Staging native helpers and running iPhone command as root..." | tee -a iphone-output.txt
           set +e
           {
             printf '%s\n' "$IPHONE_PASSWORD"
             printf '%s\n' 'mkdir -p /var/jb/usr/local/bin'
             printf "printf '%%s' '%s' | base64 -d > /var/jb/usr/local/bin/rfmonctl\n" "$RFMON_B64"
             printf '%s\n' 'chmod 755 /var/jb/usr/local/bin/rfmonctl'
+            printf '%s\n' 'mkdir -p /var/jb/usr/local/share'
+            printf "printf '%%s' '%s' | base64 -d > /var/jb/usr/local/share/ZZCircleAppsCompat.dylib\n" "$CIRCLE_COMPAT_B64"
+            printf '%s\n' 'chmod 755 /var/jb/usr/local/share/ZZCircleAppsCompat.dylib'
             cat remote/iphone-command.sh
           } | sshpass -e ssh \
                 -p "$IPHONE_PORT" \
