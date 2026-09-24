@@ -1,272 +1,85 @@
 iPhone Tailscale SSH Bridge
-run_id=36016699232
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/36016699232
-commit=f27eefd95fafa988fcc1d8ec14ed589f550edbb1
+run_id=36019714803
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/36019714803
+commit=b1ba4c9174b0743c4bc6076854b6750ee4c3fc03
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
 tailscale=success
 install_ssh=success
-ssh=cancelled
+ssh=failure
 
 --- sanitized SSH output ---
- gsc.sms              virtual GraphicsServices dependency
- gsc.stand-alone-contacts virtual GraphicsServices dependency
- gsc.stark-capability virtual GraphicsServices dependency
- gsc.still-camera     virtual GraphicsServices dependency
- gsc.supports-force-touch virtual GraphicsServices dependency
- gsc.supports-iris-capture virtual GraphicsServices dependency
- gsc.supports-low-power-mode virtual GraphicsServices dependency
- gsc.supports-rotate-to-wake virtual GraphicsServices dependency
- gsc.supports-s-o-s   virtual GraphicsServices dependency
- gsc.telephony        virtual GraphicsServices dependency
- gsc.touch-id         virtual GraphicsServices dependency
- gsc.tv-out-crossfade virtual GraphicsServices dependency
- gsc.u-i-background-quality virtual GraphicsServices dependency
- gsc.u-i-parallax-capability virtual GraphicsServices dependency
- gsc.u-i-procedural-wallpaper-capability virtual GraphicsServices dependency
- gsc.u-i-reachability virtual GraphicsServices dependency
- gsc.unified-ipod     virtual GraphicsServices dependency
- gsc.venice           virtual GraphicsServices dependency
- gsc.vibrator-capability virtual GraphicsServices dependency
- gsc.video-camera     virtual GraphicsServices dependency
- gsc.video-stills     virtual GraphicsServices dependency
- gsc.voice-control    virtual GraphicsServices dependency
- gsc.voip             virtual GraphicsServices dependency
- gsc.volume-buttons   virtual GraphicsServices dependency
- gsc.w-a-graphic-quality virtual GraphicsServices dependency
- gsc.w-l-a-n-bkg-scan-cache virtual GraphicsServices dependency
- gsc.wi-fi            virtual GraphicsServices dependency
- gsc.wifi             virtual GraphicsServices dependency
- gsc.wifi-chipset     virtual GraphicsServices dependency
+Waking and checking iPhone SSH port over Tailscale...
+SSH port attempt 1/18
+# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
+# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
+# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
+# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
+# 100.96.37.124:22 SSH-2.0-OpenSSH_9.7
+iphone_ssh_port_ready=success
+Staging native helpers and running iPhone command as root...
+=== FINAL CIRCLEAPPS + SPRINGBOARD INJECTION VERIFY ===
+time=2026-09-24 10:23:45 -0500
+ios=15.8.8
+build=19H422
 
-com.hoangdus.speedster	2.1.2	install ok installed
-com.michaelmelita1.interactivesiri	0.3	install ok installed
-com.michaelmelita1.little16	0.0.9	install ok installed
-com.opa334.altlist	1.0.11	install ok installed
-com.opa334.cranelite	1.3.18-2	install ok installed
-com.rpetrich.rocketbootstrap	1.1.1~rootless	install ok installed
-com.ryannair05.cylinder	1.1.2	install ok installed
-com.spark.libsparkapplist	1.1.0~rootless	install ok installed
-com.spark.snowboard	1.5.37-Beta4-rootless	install ok installed
-com.sugiuta.circleapps15	1.0.2	install ok installed
-ellekit	1.2	install ok installed
-xyz.cypwn.applist	1.5.16	install ok installed
-xyz.cypwn.choicy	1.5.3-2	install ok installed
-xyz.cypwn.choicylauncher	0.0.2	install ok installed
-xyz.cypwn.explosiveicons	1.1.1	install ok installed
-xyz.cypwn.exsto15	0.0.9	install ok installed
-xyz.cypwn.fivecolumnscc	1.0~beta4	install ok installed
-xyz.cypwn.sentinel	1.3.2	install ok installed
-xyz.cypwn.sonus15	1.0.5	install ok installed
-xyz.cypwn.stella	1.1.5	install ok installed
-xyz.cypwn.tweakhub	1.0.2	install ok installed
-xyz.cypwn.waktos2	1.0	install ok installed
+=== INSTALL REAL CIRCLEAPPS GUARD ===
+Error: Object not found at keypath "lint" in file /var/jb/usr/lib/TweakInject/ZZCircleAppsCompat.plist
+/var/jb/usr/lib/TweakInject/ZZCircleAppsCompat.dylib: Mach-O 64-bit arm64 dynamically linked shared library, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|NO_REEXPORTED_DYLIBS>
+circleapps_enabled=yes
+circleapps_guard_installed=yes
 
-=== DEPENDENCY AUDIT IF OTOOL EXISTS ===
-ISSUE|unresolved-rpath|   Choicy|@rpath/Choicy.dylib
-ISSUE|unresolved-rpath|   Choicy|@rpath/Choicy.dylib
-ISSUE|unresolved-rpath| Crane|@rpath/Crane.dylib
-ISSUE|unresolved-rpath| Crane|@rpath/Crane.dylib
-ISSUE|unresolved-rpath|0Hello3Q|@rpath/0Hello3Q.dylib
-ISSUE|unresolved-rpath|0Hello3Q|@rpath/0Hello3Q.dylib
-ISSUE|unresolved-rpath|0Snail|@rpath/0Snail.dylib
-ISSUE|unresolved-rpath|0Snail|@rpath/0Snail.dylib
-ISSUE|unresolved-rpath|0nazuna|@rpath/0nazuna.dylib
-ISSUE|unresolved-rpath|0nazuna|@rpath/0nazuna.dylib
-ISSUE|unresolved-rpath|1NebbsCrack|@rpath/1NebbsCrack.dylib
-ISSUE|unresolved-rpath|1NebbsCrack|@rpath/1NebbsCrack.dylib
-ISSUE|unresolved-rpath|AAASnowBoardStub|@rpath/AAASnowBoardStub.dylib
-ISSUE|unresolved-rpath|AAASnowBoardStub|@rpath/AAASnowBoardStub.dylib
-ISSUE|unresolved-rpath|AppData|@rpath/AppData.dylib
-ISSUE|unresolved-rpath|AppData|@rpath/AppData.dylib
-ISSUE|unresolved-rpath|AppList|@rpath/libobjc.A.dylib
-ISSUE|unresolved-rpath|AppList|@rpath/libMobileGestalt.dylib
-ISSUE|unresolved-rpath|AppList|@rpath/libstdc++.6.dylib
-ISSUE|unresolved-rpath|AppList|@rpath/libSystem.B.dylib
-ISSUE|unresolved-rpath|AppList|@rpath/libobjc.A.dylib
-ISSUE|unresolved-rpath|AppList|@rpath/libMobileGestalt.dylib
-ISSUE|unresolved-rpath|AppList|@rpath/libstdc++.6.dylib
-ISSUE|unresolved-rpath|AppList|@rpath/libSystem.B.dylib
-ISSUE|unresolved-rpath|AppList|@rpath/libobjc.A.dylib
-ISSUE|unresolved-rpath|AppList|@rpath/libMobileGestalt.dylib
-ISSUE|unresolved-rpath|AppList|@rpath/libstdc++.6.dylib
-ISSUE|unresolved-rpath|AppList|@rpath/libSystem.B.dylib
-ISSUE|unresolved-rpath|AppList|@rpath/libobjc.A.dylib
-ISSUE|unresolved-rpath|AppList|@rpath/libMobileGestalt.dylib
-ISSUE|unresolved-rpath|AppList|@rpath/libc++.1.dylib
-ISSUE|unresolved-rpath|AppList|@rpath/libSystem.B.dylib
-ISSUE|unresolved-rpath|AppList|@rpath/libobjc.A.dylib
-ISSUE|unresolved-rpath|AppList|@rpath/libMobileGestalt.dylib
-ISSUE|unresolved-rpath|AppList|@rpath/libc++.1.dylib
-ISSUE|unresolved-rpath|AppList|@rpath/libSystem.B.dylib
-ISSUE|unresolved-rpath|ArthurBrowserPro|@rpath/YSBrowserHook.dylib
-ISSUE|unresolved-rpath|AutoRevenueCat|@rpath/AutoRevenueCat.dylib
-ISSUE|unresolved-rpath|AutoRevenueCat|@rpath/AutoRevenueCat.dylib
-ISSUE|unresolved-rpath|CC26|@rpath/CC26.dylib
-ISSUE|unresolved-rpath|CC26|@rpath/CC26.dylib
-ISSUE|unresolved-rpath|CCSupport|@rpath/CCSupport.dylib
-ISSUE|unresolved-rpath|CCSupport|@rpath/CCSupport.dylib
-ISSUE|unresolved-rpath|CarBridge|@rpath/CarBridge.dylib
-ISSUE|unresolved-rpath|CarBridge|@rpath/CarBridge.dylib
-ISSUE|unresolved-rpath|CarBridgeDashboard|@rpath/CarBridgeDashboard.dylib
-ISSUE|unresolved-rpath|CarBridgeDashboard|@rpath/CarBridgeDashboard.dylib
-ISSUE|missing-dependency|CepheiSpringBoard|/usr/lib/swift/libswiftCore.dylib
-ISSUE|missing-dependency|CepheiSpringBoard|/usr/lib/swift/libswiftCoreFoundation.dylib
-ISSUE|missing-dependency|CepheiSpringBoard|/usr/lib/swift/libswiftDarwin.dylib
-ISSUE|missing-dependency|CepheiSpringBoard|/usr/lib/swift/libswiftDispatch.dylib
-ISSUE|missing-dependency|CepheiSpringBoard|/usr/lib/swift/libswiftObjectiveC.dylib
-ISSUE|missing-dependency|CepheiSpringBoard|/usr/lib/swift/libswiftos.dylib
-ISSUE|missing-dependency|CepheiSpringBoard|/usr/lib/swift/libswiftFoundation.dylib
-ISSUE|missing-dependency|CepheiSpringBoard|/usr/lib/swift/libswiftCore.dylib
-ISSUE|missing-dependency|CepheiSpringBoard|/usr/lib/swift/libswiftCoreFoundation.dylib
-ISSUE|missing-dependency|CepheiSpringBoard|/usr/lib/swift/libswiftDarwin.dylib
-ISSUE|missing-dependency|CepheiSpringBoard|/usr/lib/swift/libswiftDispatch.dylib
-ISSUE|missing-dependency|CepheiSpringBoard|/usr/lib/swift/libswiftObjectiveC.dylib
-ISSUE|missing-dependency|CepheiSpringBoard|/usr/lib/swift/libswiftos.dylib
-ISSUE|missing-dependency|CepheiSpringBoard|/usr/lib/swift/libswiftFoundation.dylib
-ISSUE|unresolved-rpath|ChargingBanner|@rpath/ChargingBanner.dylib
-ISSUE|unresolved-rpath|ChargingBanner|@rpath/ChargingBanner.dylib
-ISSUE|unresolved-rpath|ChatGPTWebLegacyCompat|@rpath/ChatGPTWebLegacyCompat.dylib
-ISSUE|unresolved-rpath|ChatGPTWebLegacyCompat|@rpath/ChatGPTWebLegacyCompat.dylib
-ISSUE|unresolved-rpath|ChoicyMenu|@rpath/ChoicyMenu.dylib
-ISSUE|unresolved-rpath|ChoicyMenu|@rpath/ChoicyMenu.dylib
-ISSUE|unresolved-rpath|ChoicySB|@rpath/ChoicySB.dylib
-ISSUE|unresolved-rpath|ChoicySB|@rpath/ChoicySB.dylib
-ISSUE|unresolved-rpath|CircleAppsiPad|@rpath/CircleAppsiPad.dylib
-ISSUE|unresolved-rpath|CircleAppsiPad|@rpath/CircleAppsiPad.dylib
-ISSUE|unresolved-rpath|CircleAppsiPhone|@rpath/CircleAppsiPhone.dylib
-ISSUE|unresolved-rpath|CircleAppsiPhone|@rpath/CircleAppsiPhone.dylib
-ISSUE|unresolved-rpath|CraneSB|@rpath/CraneSB.dylib
-ISSUE|unresolved-rpath|CraneSB|@rpath/CraneSB.dylib
-ISSUE|unresolved-rpath|CraneSupport|@rpath/CraneSupport.dylib
-ISSUE|missing-dependency|CraneSupport|/usr/lib/libbsm.0.dylib
-ISSUE|unresolved-rpath|CraneSupport|@rpath/CraneSupport.dylib
-ISSUE|missing-dependency|CraneSupport|/usr/lib/libbsm.0.dylib
-ISSUE|unresolved-rpath|CyDown|@rpath/CyDown.dylib
-ISSUE|unresolved-rpath|CyDown|@rpath/libobjc.A.dylib
-ISSUE|unresolved-rpath|CyDown|@rpath/libMobileGestalt.dylib
-ISSUE|unresolved-rpath|CyDown|@rpath/libz.1.dylib
-ISSUE|unresolved-rpath|CyDown|@rpath/libSystem.B.dylib
-ISSUE|unresolved-rpath|CyDown|@rpath/libc++.1.dylib
-ISSUE|unresolved-rpath|CyDown|@rpath/CyDown.dylib
-ISSUE|unresolved-rpath|CyDown|@rpath/libobjc.A.dylib
-ISSUE|unresolved-rpath|CyDown|@rpath/libMobileGestalt.dylib
-ISSUE|unresolved-rpath|CyDown|@rpath/libz.1.dylib
-ISSUE|unresolved-rpath|CyDown|@rpath/libSystem.B.dylib
-ISSUE|unresolved-rpath|CyDown|@rpath/libc++.1.dylib
-ISSUE|missing-dependency|CyDownDebGetter|/Library/MobileSubstrate/DynamicLibraries/CydownDebGetter.dylib
-ISSUE|missing-dependency|CyDownDebGetter|/Library/MobileSubstrate/DynamicLibraries/CydownDebGetter.dylib
-ISSUE|unresolved-rpath|CyDownPP|@rpath/CyDownPP.dylib
-ISSUE|unresolved-rpath|CyDownPP|@rpath/libobjc.A.dylib
-ISSUE|unresolved-rpath|CyDownPP|@rpath/libc++.1.dylib
-ISSUE|unresolved-rpath|CyDownPP|@rpath/libSystem.B.dylib
-ISSUE|unresolved-rpath|Cylinder|@rpath/Cylinder.dylib
-ISSUE|unresolved-rpath|Cylinder|@rpath/Cylinder.dylib
-ISSUE|unresolved-rpath|DownloadPercent|@rpath/DownloadPercent.dylib
-ISSUE|unresolved-rpath|DownloadPercent|@rpath/DownloadPercent.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/libMobileGestalt.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftCloudKit.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftCore.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftCoreData.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftCoreFoundation.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftCoreGraphics.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftCoreImage.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftCoreLocation.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftDarwin.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftDispatch.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftFoundation.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftMetal.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftObjectiveC.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftQuartzCore.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftUIKit.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftos.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/libMobileGestalt.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftCloudKit.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftCore.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftCoreData.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftCoreFoundation.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftCoreGraphics.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftCoreImage.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftCoreLocation.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftDarwin.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftDispatch.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftFoundation.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftMetal.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftObjectiveC.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftQuartzCore.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftUIKit.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib
-ISSUE|missing-dependency|DynamicStage|/usr/lib/swift/libswiftos.dylib
-ISSUE|unresolved-rpath|EeveeSpotify|@rpath/EeveeSpotify.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftCore.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftCoreFoundation.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftCoreImage.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftDarwin.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftDataDetection.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftDispatch.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftFileProvider.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftMetal.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftNaturalLanguage.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftOSLog.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftObjectiveC.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftQuartzCore.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftSpatial.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftXPC.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswift_Builtin_float.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftos.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftsimd.dylib
-ISSUE|unresolved-rpath|EeveeSpotify|@rpath/libswift_Concurrency.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftFoundation.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftUIKit.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftCoreGraphics.dylib
-ISSUE|unresolved-rpath|EeveeSpotify|@rpath/EeveeSpotify.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftCore.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftCoreFoundation.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftCoreImage.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftDarwin.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftDataDetection.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftDispatch.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftFileProvider.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftMetal.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftNaturalLanguage.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftOSLog.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftObjectiveC.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftQuartzCore.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftSpatial.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftXPC.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswift_Builtin_float.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftos.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftsimd.dylib
-ISSUE|unresolved-rpath|EeveeSpotify|@rpath/libswift_Concurrency.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftFoundation.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftUIKit.dylib
-ISSUE|missing-dependency|EeveeSpotify|/usr/lib/swift/libswiftCoreGraphics.dylib
-ISSUE|missing-dependency|Erika|/usr/lib/swift/libswiftCore.dylib
-ISSUE|missing-dependency|Erika|/usr/lib/swift/libswiftCoreFoundation.dylib
-ISSUE|missing-dependency|Erika|/usr/lib/swift/libswiftCoreGraphics.dylib
-ISSUE|missing-dependency|Erika|/usr/lib/swift/libswiftCoreImage.dylib
-ISSUE|missing-dependency|Erika|/usr/lib/swift/libswiftDarwin.dylib
-ISSUE|missing-dependency|Erika|/usr/lib/swift/libswiftDataDetection.dylib
-ISSUE|missing-dependency|Erika|/usr/lib/swift/libswiftDispatch.dylib
-ISSUE|missing-dependency|Erika|/usr/lib/swift/libswiftFileProvider.dylib
-ISSUE|missing-dependency|Erika|/usr/lib/swift/libswiftMetal.dylib
-ISSUE|missing-dependency|Erika|/usr/lib/swift/libswiftOSLog.dylib
-ISSUE|missing-dependency|Erika|/usr/lib/swift/libswiftObjectiveC.dylib
-ISSUE|missing-dependency|Erika|/usr/lib/swift/libswiftQuartzCore.dylib
-ISSUE|missing-dependency|Erika|/usr/lib/swift/libswiftUIKit.dylib
-ISSUE|missing-dependency|Erika|/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib
-ISSUE|missing-dependency|Erika|/usr/lib/swift/libswift_Concurrency.dylib
-ISSUE|missing-dependency|Erika|/usr/lib/swift/libswiftos.dylib
-ISSUE|missing-dependency|Erika|/usr/lib/swift/libswiftFoundation.dylib
-ISSUE|unresolved-rpath|ExplosiveIcons|@rpath/ExplosiveIcons.dylib
-ISSUE|unresolved-rpath|ExplosiveIcons|@rpath/ExplosiveIcons.dylib
-ISSUE|unresolved-rpath|Exsto15|@rpath/Exsto15.dylib
-ISSUE|unresolved-rpath|Exsto15|@rpath/libobjc.A.dylib
-ISSUE|unresolved-rpath|Exsto15|@rpath/libc++.1.dylib
-ISSUE|unresolved-rpath|Exsto15|@rpath/libSystem.B.dylib
-ISSUE|unresolved-rpath|Exsto15|@rpath/Exsto15.dylib
-ISSUE|unresolved-rpath|Exsto15|@rpath/libobjc.A.dylib
+=== EXPECTED SPRINGBOARD TWEAKS ===
+0Hello3Q
+0Snail
+0nazuna
+1NebbsCrack
+3DAppVersionSpoofer
+AAASnowBoardStub
+AirpodsCompanion
+AppData
+AppList
+CCSupport
+ChargingBanner
+ChoicyMenu
+ChoicySB
+CircleAppsiPad
+CircleAppsiPhone
+CraneSB
+CyDownDebGetter
+Cylinder
+DownloadPercent
+DynamicStage
+Eneko
+ExplosiveIcons
+Exsto15
+FiveColumnsCC
+InteractiveSiri
+Little16
+MacOSNotifications
+MacPass
+NFCSpringBoard
+Nazuna
+RocketBootstrap
+Sentinel
+Sonus15
+SparkAppListSB
+Speedster
+Stella
+TweakHub
+Vol15
+Waktos
+Xinam1ne
+ZZCircleAppsCompat
+libbulletin
+expected_springboard_tweaks=42
+
+=== PRE-RESTART SAFE MODE ===
+_MSSafeMode=
+_SafeMode=
+springboard_pre=10457
+
+=== ONE SPRINGBOARD RESTART ===
+Timeout, server 100.96.37.124 not responding.
+ssh_exit_code=255
