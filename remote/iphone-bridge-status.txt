@@ -1,7 +1,7 @@
 iPhone Tailscale SSH Bridge
-run_id=36011097286
-run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/36011097286
-commit=cf2c2c8bf884347c9d3396ccb22563d7c7a90155
+run_id=36011578827
+run_url=https://github.com/NightVibes33/Codex-DEB-Test/actions/runs/36011578827
+commit=3bca822d25b0706445335f9146f177884922dbf0
 environment=TAILSCALE_AUTHKEY-
 target=100.96.37.124:22
 validate=success
@@ -10,263 +10,263 @@ install_ssh=success
 ssh=success
 
 --- sanitized SSH output ---
---- FILTER /var/jb/Library/MobileSubstrate/DynamicLibraries/Sonus15.plist ---
---- FILTER /var/jb/Library/MobileSubstrate/DynamicLibraries/SparkAppListSB.plist ---
---- FILTER /var/jb/Library/MobileSubstrate/DynamicLibraries/Speedster.plist ---
---- FILTER /var/jb/Library/MobileSubstrate/DynamicLibraries/StageDaemon.plist ---
---- FILTER /var/jb/Library/MobileSubstrate/DynamicLibraries/Stella.plist ---
---- FILTER /var/jb/Library/MobileSubstrate/DynamicLibraries/TweakHub.plist ---
---- FILTER /var/jb/Library/MobileSubstrate/DynamicLibraries/Vol15.plist ---
---- FILTER /var/jb/Library/MobileSubstrate/DynamicLibraries/Waktos.plist ---
---- FILTER /var/jb/Library/MobileSubstrate/DynamicLibraries/WebKitCompat.plist ---
---- FILTER /var/jb/Library/MobileSubstrate/DynamicLibraries/Xinam1ne.plist ---
---- FILTER /var/jb/Library/MobileSubstrate/DynamicLibraries/afc2dService.plist ---
---- FILTER /var/jb/Library/MobileSubstrate/DynamicLibraries/appstoretroller.plist ---
---- FILTER /var/jb/Library/MobileSubstrate/DynamicLibraries/iCleanerProCrack.plist ---
---- FILTER /var/jb/Library/MobileSubstrate/DynamicLibraries/ipad2phone.plist ---
---- FILTER /var/jb/Library/MobileSubstrate/DynamicLibraries/libbulletin.plist ---
---- FILTER /var/jb/Library/MobileSubstrate/DynamicLibraries/mmaintenanced_hook.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/   Choicy.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/ Crane.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/0Hello3Q.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/0Snail.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/0nazuna.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/1NebbsCrack.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/3DAppVersionSpoofer.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/AAASnowBoardStub.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/AirpodsCompanion.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/AppData.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/AppList.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/AppSyncUnified-FrontBoard.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/AppSyncUnified-installd.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/ArthurBrowserPro.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/AutoRevenueCat.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/CC26.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/CCSupport.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/CarBridge.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/CarBridgeDashboard.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/CepheiSpringBoard.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/ChargingBanner.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/ChatGPTWebLegacyCompat.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/ChoicyMenu.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/ChoicySB.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/CircleAppsiPad.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/CircleAppsiPhone.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/CraneSB.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/CraneSupport.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/CyDown.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/CyDownDebGetter.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/CyDownPP.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/Cylinder.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/DownloadPercent.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/DynamicStage.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/EeveeSpotify.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/Eneko.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/Erika.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/ExplosiveIcons.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/Exsto15.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/FilzaCrack.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/FiveColumnsCC.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/GboardAll.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/InteractiveSiri.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/KeepMyJB.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/LimneosCrack.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/Little16.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/MacOSNotifications.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/MacPass.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/Misaka15Compat.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/NFCSpringBoard.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/NFCWriterDaemon.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/Nazuna.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/Polyfills.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/PreferenceLoader.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/RocketBootstrap.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/SandyProxy.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/Satella.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/Sentinel.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/SettingsButtons.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/Snowboard.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/Sonus15.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/SparkAppListSB.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/Speedster.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/StageDaemon.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/Stella.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/TweakHub.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/Vol15.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/Waktos.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/WebKitCompat.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/Xinam1ne.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/afc2dService.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/appstoretroller.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/iCleanerProCrack.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/ipad2phone.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/libbulletin.plist ---
---- FILTER /var/jb/usr/lib/TweakInject/mmaintenanced_hook.plist ---
+</dict>
+</plist>
+-rwxr-xr-x 1 _installd _installd 135584 Dec  3  2023 /var/jb/Library/MobileSubstrate/DynamicLibraries/FiveColumnsCC.dylib
+--- TARGET /var/jb/Library/MobileSubstrate/DynamicLibraries/InteractiveSiri.plist ---
+bplist00
+VFilter
+WBundles
+com.apple.springboard
+-rwxr-xr-x 1 root wheel 165424 Aug 17 08:24 /var/jb/Library/MobileSubstrate/DynamicLibraries/InteractiveSiri.dylib
+--- TARGET /var/jb/Library/MobileSubstrate/DynamicLibraries/Little16.plist ---
+bplist00
+VFilter
+WBundles
+com.apple.springboard
+-rwxr-xr-x 1 root wheel 166288 Aug 23 09:59 /var/jb/Library/MobileSubstrate/DynamicLibraries/Little16.dylib
+--- TARGET /var/jb/Library/MobileSubstrate/DynamicLibraries/MacOSNotifications.plist ---
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+<key>Filter</key>
+<dict>
+<key>Bundles</key>
+<array>
+<string>com.apple.springboard</string>
+</array>
+</dict>
+</dict>
+</plist>
+-rwxr-xr-x 1 root wheel 199120 Nov 30  2024 /var/jb/Library/MobileSubstrate/DynamicLibraries/MacOSNotifications.dylib
+--- TARGET /var/jb/Library/MobileSubstrate/DynamicLibraries/MacPass.plist ---
+bplist00
+VFilter
+WBundles
+com.apple.springboard
+-rwxr-xr-x 1 _installd _installd 336496 Aug 17  2023 /var/jb/Library/MobileSubstrate/DynamicLibraries/MacPass.dylib
+--- TARGET /var/jb/Library/MobileSubstrate/DynamicLibraries/NFCSpringBoard.plist ---
+{ Filter = { Bundles = ( "com.apple.springboard" ); }; }
+-rwxr-xr-x 1 root wheel 217360 May 11  2023 /var/jb/Library/MobileSubstrate/DynamicLibraries/NFCSpringBoard.dylib
+--- TARGET /var/jb/Library/MobileSubstrate/DynamicLibraries/Nazuna.plist ---
+bplist00
+VFilter
+WBundles
+com.apple.springboard
+-rwxr-xr-x 1 root wheel 2575728 Jul 23  2025 /var/jb/Library/MobileSubstrate/DynamicLibraries/Nazuna.dylib
+--- TARGET /var/jb/Library/MobileSubstrate/DynamicLibraries/RocketBootstrap.plist ---
+bplist00
+VFilter
+WBundles_
+CoreFoundationVersion[Executables
+com.apple.springboard
+MobileGestaltHelper
+!9EG_ajl
+lrwxr-xr-x 1 root wheel 40 Jun 29  2023 /var/jb/Library/MobileSubstrate/DynamicLibraries/RocketBootstrap.dylib -> /var/jb/usr/lib/librocketbootstrap.dylib
+--- TARGET /var/jb/Library/MobileSubstrate/DynamicLibraries/Sentinel.plist ---
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+<key>Filter</key>
+<dict>
+<key>Bundles</key>
+<array>
+<string>com.apple.springboard</string>
+</array>
+</dict>
+</dict>
+</plist>
+-rwxr-xr-x 1 root wheel 201856 Apr 13  2025 /var/jb/Library/MobileSubstrate/DynamicLibraries/Sentinel.dylib
+--- TARGET /var/jb/Library/MobileSubstrate/DynamicLibraries/Sonus15.plist ---
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+<key>Filter</key>
+<dict>
+<key>Bundles</key>
+<array>
+<string>com.apple.springboard</string>
+</array>
+</dict>
+</dict>
+</plist>
+-rwxr-xr-x 1 root wheel 341136 Sep 19  2024 /var/jb/Library/MobileSubstrate/DynamicLibraries/Sonus15.dylib
+--- TARGET /var/jb/Library/MobileSubstrate/DynamicLibraries/SparkAppListSB.plist ---
+bplist00
+VFilter
+WBundles
+com.apple.springboard
+-rwxr-xr-x 1 root wheel 167552 May 11  2023 /var/jb/Library/MobileSubstrate/DynamicLibraries/SparkAppListSB.dylib
+--- TARGET /var/jb/Library/MobileSubstrate/DynamicLibraries/Speedster.plist ---
+bplist00
+VFilter
+WBundles
+com.apple.UIKit_
+com.apple.springboard
+-rwxr-xr-x 1 root wheel 150144 Feb  5  2026 /var/jb/Library/MobileSubstrate/DynamicLibraries/Speedster.dylib
+--- TARGET /var/jb/Library/MobileSubstrate/DynamicLibraries/Stella.plist ---
+bplist00
+VFilter
+WBundles
+com.apple.springboard
+-rwxr-xr-x 1 _installd _installd 578848 Jan 15  2025 /var/jb/Library/MobileSubstrate/DynamicLibraries/Stella.dylib
+--- TARGET /var/jb/Library/MobileSubstrate/DynamicLibraries/TweakHub.plist ---
+bplist00
+VFilter
+WBundles
+com.apple.springboard
+-rwxr-xr-x 1 root wheel 238512 Jun 20  2023 /var/jb/Library/MobileSubstrate/DynamicLibraries/TweakHub.dylib
+--- TARGET /var/jb/Library/MobileSubstrate/DynamicLibraries/Vol15.plist ---
+bplist00
+VFilter
+WBundles
+com.apple.springboard
+-rwxr-xr-x 1 _installd _installd 166496 Jun 15  2023 /var/jb/Library/MobileSubstrate/DynamicLibraries/Vol15.dylib
+--- TARGET /var/jb/Library/MobileSubstrate/DynamicLibraries/Waktos.plist ---
+bplist00
+VFilter
+WBundles
+com.apple.springboard
+-rwxr-xr-x 1 root wheel 562624 Jun 26  2025 /var/jb/Library/MobileSubstrate/DynamicLibraries/Waktos.dylib
+--- TARGET /var/jb/Library/MobileSubstrate/DynamicLibraries/Xinam1ne.plist ---
+bplist00
+VFilter
+WBundles
+com.apple.springboard
+-rwxr-xr-x 1 root wheel 137440 Oct  2  2024 /var/jb/Library/MobileSubstrate/DynamicLibraries/Xinam1ne.dylib
+--- TARGET /var/jb/Library/MobileSubstrate/DynamicLibraries/libbulletin.plist ---
+{ Filter = { Bundles = ( "com.apple.springboard" ); }; }
+-rwxr-xr-x 1 root wheel 349632 Feb  9  2025 /var/jb/Library/MobileSubstrate/DynamicLibraries/libbulletin.dylib
 
-=== DPKG OWNERSHIP FOR TWEAK DIRECTORIES ===
-preferenceloader: /var/jb/Library/MobileSubstrate/DynamicLibraries/PreferenceLoader.dylib
-xyz.cypwn.explosiveicons: /var/jb/Library/MobileSubstrate/DynamicLibraries/ExplosiveIcons.dylib
-xyz.cypwn.icleanerprocrack: /var/jb/Library/MobileSubstrate/DynamicLibraries/iCleanerProCrack.dylib
-com.tigisoftware.filza: /var/jb/Library/MobileSubstrate/DynamicLibraries/ct_FilzaCrack.dylib
-com.nightvibes.misaka15compat: /var/jb/Library/MobileSubstrate/DynamicLibraries/Misaka15Compat.plist
-com.spark.snowboard: /var/jb/Library/MobileSubstrate/DynamicLibraries/Snowboard.dylib
-me.tomt000.stageduo: /var/jb/Library/MobileSubstrate/DynamicLibraries/DynamicStage.plist
-com.cureux.cc26: /var/jb/Library/MobileSubstrate/DynamicLibraries/CC26.dylib
-xyz.cypwn.cydown: /var/jb/Library/MobileSubstrate/DynamicLibraries/CyDownDebGetter.dylib
-com.ps.chatgptweblegacycompat: /var/jb/Library/MobileSubstrate/DynamicLibraries/ChatGPTWebLegacyCompat.plist
-xyz.cypwn.carbridge13: /var/jb/Library/MobileSubstrate/DynamicLibraries/CarBridge.plist
-com.tigisoftware.filza: /var/jb/Library/MobileSubstrate/DynamicLibraries/ct_FilzaCrack.plist
-com.spark.libsparkapplist: /var/jb/Library/MobileSubstrate/DynamicLibraries/SparkAppListSB.dylib
-xyz.cypwn.xinam1ne: /var/jb/Library/MobileSubstrate/DynamicLibraries/Xinam1ne.plist
-xyz.cypwn.carbridge13: /var/jb/Library/MobileSubstrate/DynamicLibraries/CarBridge.dylib
-com.nightvibes.misaka15compat: /var/jb/Library/MobileSubstrate/DynamicLibraries/Misaka15Compat.dylib
-xyz.cypwn.appstoretrollern: /var/jb/Library/MobileSubstrate/DynamicLibraries/appstoretroller.dylib
-xyz.cypwn.appsyncunified: /var/jb/Library/MobileSubstrate/DynamicLibraries/AppSyncUnified-FrontBoard.dylib
-xyz.cypwn.cydown: /var/jb/Library/MobileSubstrate/DynamicLibraries/CyDownPP.dylib
-xyz.cypwn.tweakhub: /var/jb/Library/MobileSubstrate/DynamicLibraries/TweakHub.dylib
-xyz.cypwn.satella: /var/jb/Library/MobileSubstrate/DynamicLibraries/Satella.dylib
-xyz.cypwn.carbridge13: /var/jb/Library/MobileSubstrate/DynamicLibraries/CarBridgeDashboard.dylib
-com.michaelmelita1.little16: /var/jb/Library/MobileSubstrate/DynamicLibraries/Little16.plist
-com.michaelmelita1.interactivesiri: /var/jb/Library/MobileSubstrate/DynamicLibraries/InteractiveSiri.plist
-com.cannathea.afc2d-arm64: /var/jb/Library/MobileSubstrate/DynamicLibraries/afc2dService.plist
-xyz.cypwn.appsyncunified: /var/jb/Library/MobileSubstrate/DynamicLibraries/AppSyncUnified-installd.dylib
-ws.hbang.common: /var/jb/Library/MobileSubstrate/DynamicLibraries/CepheiSpringBoard.dylib
-com.ps.polyfills: /var/jb/Library/MobileSubstrate/DynamicLibraries/Polyfills.dylib
-xyz.cypwn.cydown: /var/jb/Library/MobileSubstrate/DynamicLibraries/CyDownDebGetter.plist
-xyz.cypwn.waktos2: /var/jb/Library/MobileSubstrate/DynamicLibraries/Waktos.dylib
-com.ps.gboardall: /var/jb/Library/MobileSubstrate/DynamicLibraries/GboardAll.dylib
-net.limneos.nfcwriterx-rootless: /var/jb/Library/MobileSubstrate/DynamicLibraries/NFCWriterDaemon.plist
-xyz.cypwn.choicy: /var/jb/Library/MobileSubstrate/DynamicLibraries/   Choicy.dylib
-xyz.cypwn.sonus15: /var/jb/Library/MobileSubstrate/DynamicLibraries/Sonus15.plist
-com.nahtedetihw.airpodscompanion: /var/jb/Library/MobileSubstrate/DynamicLibraries/AirpodsCompanion.dylib
-net.limneos.nfcwriterx-rootless: /var/jb/Library/MobileSubstrate/DynamicLibraries/NFCSpringBoard.plist
-xyz.cypwn.settingsbuttons: /var/jb/Library/MobileSubstrate/DynamicLibraries/SettingsButtons.dylib
-xyz.cypwn.stopautolaunchapps: /var/jb/Library/MobileSubstrate/DynamicLibraries/0Hello3Q.dylib
-xyz.cypwn.sonus15: /var/jb/Library/MobileSubstrate/DynamicLibraries/Sonus15.dylib
-xyz.cypwn.vol15: /var/jb/Library/MobileSubstrate/DynamicLibraries/Vol15.plist
-xyz.cypwn.choicylauncher: /var/jb/Library/MobileSubstrate/DynamicLibraries/ChoicyMenu.dylib
-xyz.cypwn.appdata: /var/jb/Library/MobileSubstrate/DynamicLibraries/AppData.plist
-xyz.cypwn.exsto15: /var/jb/Library/MobileSubstrate/DynamicLibraries/Exsto15.dylib
-xyz.cypwn.vol15: /var/jb/Library/MobileSubstrate/DynamicLibraries/Vol15.dylib
-com.cannathea.afc2d-arm64: /var/jb/Library/MobileSubstrate/DynamicLibraries/afc2dService.dylib
-com.sugiuta.circleapps15: /var/jb/Library/MobileSubstrate/DynamicLibraries/CircleAppsiPhone.plist
-xyz.cypwn.appsyncunified: /var/jb/Library/MobileSubstrate/DynamicLibraries/AppSyncUnified-FrontBoard.plist
-xyz.cypwn.filzacrackrootless: /var/jb/Library/MobileSubstrate/DynamicLibraries/FilzaCrack.plist
-xyz.cypwn.arthurbrowserpro: /var/jb/Library/MobileSubstrate/DynamicLibraries/ArthurBrowserPro.plist
-com.opa334.cranelite: /var/jb/Library/MobileSubstrate/DynamicLibraries/ Crane.plist
-xyz.cypwn.choicy: /var/jb/Library/MobileSubstrate/DynamicLibraries/ChoicySB.plist
-xyz.cypwn.nazuna: /var/jb/Library/MobileSubstrate/DynamicLibraries/Nazuna.dylib
-xyz.cypwn.nazuna: /var/jb/Library/MobileSubstrate/DynamicLibraries/0nazuna.plist
-me.tomt000.stageduo: /var/jb/Library/MobileSubstrate/DynamicLibraries/StageDaemon.dylib
-com.ps.chatgptweblegacycompat: /var/jb/Library/MobileSubstrate/DynamicLibraries/ChatGPTWebLegacyCompat.dylib
-xyz.cypwn.ipad2phone: /var/jb/Library/MobileSubstrate/DynamicLibraries/ipad2phone.plist
-com.tigisoftware.appdatamanager: /var/jb/Library/MobileSubstrate/DynamicLibraries/ct_AppsManagerCrack.dylib
-com.opa334.libsandy: /var/jb/Library/MobileSubstrate/DynamicLibraries/SandyProxy.dylib
-com.0xkuj.3dappversionspoofer: /var/jb/Library/MobileSubstrate/DynamicLibraries/3DAppVersionSpoofer.dylib
-xyz.cypwn.appstoretrollern: /var/jb/Library/MobileSubstrate/DynamicLibraries/appstoretroller.plist
-xyz.cypwn.snail: /var/jb/Library/MobileSubstrate/DynamicLibraries/0Snail.plist
-com.cydiageek.downloadpercent: /var/jb/Library/MobileSubstrate/DynamicLibraries/DownloadPercent.plist
-com.michaelmelita1.interactivesiri: /var/jb/Library/MobileSubstrate/DynamicLibraries/InteractiveSiri.dylib
-ws.hbang.common: /var/jb/Library/MobileSubstrate/DynamicLibraries/CepheiSpringBoard.plist
-xyz.cypwn.carbridge13: /var/jb/Library/MobileSubstrate/DynamicLibraries/CarBridgeDashboard.plist
-xyz.cypwn.systemmemoryresetfix: /var/jb/Library/MobileSubstrate/DynamicLibraries/mmaintenanced_hook.plist
-com.ryannair05.cylinder: /var/jb/Library/MobileSubstrate/DynamicLibraries/Cylinder.dylib
-xyz.cypwn.arthurbrowserpro: /var/jb/Library/MobileSubstrate/DynamicLibraries/ArthurBrowserPro.dylib
-com.cydiageek.downloadpercent: /var/jb/Library/MobileSubstrate/DynamicLibraries/DownloadPercent.dylib
-com.spark.snowboard: /var/jb/Library/MobileSubstrate/DynamicLibraries/AAASnowBoardStub.dylib
-xyz.cypwn.systemmemoryresetfix: /var/jb/Library/MobileSubstrate/DynamicLibraries/mmaintenanced_hook.dylib
-com.sugiuta.circleapps15: /var/jb/Library/MobileSubstrate/DynamicLibraries/CircleAppsiPad.plist
-xyz.cypwn.ipad2phone: /var/jb/Library/MobileSubstrate/DynamicLibraries/ipad2phone.dylib
-xyz.cypwn.erika: /var/jb/Library/MobileSubstrate/DynamicLibraries/Erika.plist
-xyz.cypwn.sentinel: /var/jb/Library/MobileSubstrate/DynamicLibraries/Sentinel.plist
-com.sugiuta.circleapps15: /var/jb/Library/MobileSubstrate/DynamicLibraries/CircleAppsiPad.dylib
-xyz.cypwn.webkitcompat: /var/jb/Library/MobileSubstrate/DynamicLibraries/WebKitCompat.plist
-com.opa334.cranelite: /var/jb/Library/MobileSubstrate/DynamicLibraries/CraneSupport.plist
-xyz.cypwn.icleanerpro: /var/jb/Library/MobileSubstrate/DynamicLibraries/ct_iCleanerProCrack.dylib
-net.limneos.nfcwriterx-rootless: /var/jb/Library/MobileSubstrate/DynamicLibraries/NFCSpringBoard.dylib
-xyz.cypwn.limneos: /var/jb/Library/MobileSubstrate/DynamicLibraries/LimneosCrack.plist
-xyz.cypwn.sentinel: /var/jb/Library/MobileSubstrate/DynamicLibraries/Sentinel.dylib
-xyz.cypwn.eneko: /var/jb/Library/MobileSubstrate/DynamicLibraries/Eneko.dylib
-net.limneos.nfcwriterx-rootless: /var/jb/Library/MobileSubstrate/DynamicLibraries/NFCWriterDaemon.dylib
-xyz.cypwn.explosiveicons: /var/jb/Library/MobileSubstrate/DynamicLibraries/ExplosiveIcons.plist
-xyz.cypwn.webkitcompat: /var/jb/Library/MobileSubstrate/DynamicLibraries/WebKitCompat.dylib
-com.ryannair05.cylinder: /var/jb/Library/MobileSubstrate/DynamicLibraries/Cylinder.plist
-com.hoangdus.speedster: /var/jb/Library/MobileSubstrate/DynamicLibraries/Speedster.dylib
-com.opa334.cranelite: /var/jb/Library/MobileSubstrate/DynamicLibraries/ Crane.dylib
-xyz.cypwn.appsyncunified: /var/jb/Library/MobileSubstrate/DynamicLibraries/AppSyncUnified-installd.plist
-com.michaelmelita1.little16: /var/jb/Library/MobileSubstrate/DynamicLibraries/Little16.dylib
-com.ps.polyfills: /var/jb/Library/MobileSubstrate/DynamicLibraries/Polyfills.plist
-com.spark.snowboard: /var/jb/Library/MobileSubstrate/DynamicLibraries/Snowboard.plist
-com.tigisoftware.appdatamanager: /var/jb/Library/MobileSubstrate/DynamicLibraries/ct_AppsManagerCrack.plist
-xyz.cypwn.stopautolaunchapps: /var/jb/Library/MobileSubstrate/DynamicLibraries/0Hello3Q.plist
-me.tomt000.stageduo: /var/jb/Library/MobileSubstrate/DynamicLibraries/StageDaemon.plist
-net.limneos.libbulletin: /var/jb/Library/MobileSubstrate/DynamicLibraries/libbulletin.dylib
-xyz.cypwn.nebbs: /var/jb/Library/MobileSubstrate/DynamicLibraries/1NebbsCrack.dylib
-xyz.cypwn.nazuna: /var/jb/Library/MobileSubstrate/DynamicLibraries/0nazuna.dylib
-com.spark.libsparkapplist: /var/jb/Library/MobileSubstrate/DynamicLibraries/SparkAppListSB.plist
-xyz.cypwn.choicy: /var/jb/Library/MobileSubstrate/DynamicLibraries/ChoicySB.dylib
-net.limneos.libbulletin: /var/jb/Library/MobileSubstrate/DynamicLibraries/libbulletin.plist
-xyz.cypwn.macosnotifications: /var/jb/Library/MobileSubstrate/DynamicLibraries/MacOSNotifications.plist
-xyz.cypwn.autorc: /var/jb/Library/MobileSubstrate/DynamicLibraries/AutoRevenueCat.plist
-com.spark.snowboard: /var/jb/Library/MobileSubstrate/DynamicLibraries/AAASnowBoardStub.plist
-xyz.cypwn.applist: /var/jb/Library/MobileSubstrate/DynamicLibraries/AppList.plist
-com.opa334.cranelite: /var/jb/Library/MobileSubstrate/DynamicLibraries/CraneSB.plist
-xyz.cypwn.autorc: /var/jb/Library/MobileSubstrate/DynamicLibraries/AutoRevenueCat.dylib
-com.ps.gboardall: /var/jb/Library/MobileSubstrate/DynamicLibraries/GboardAll.plist
-xyz.cypwn.exsto15: /var/jb/Library/MobileSubstrate/DynamicLibraries/Exsto15.plist
-xyz.cypwn.fivecolumnscc: /var/jb/Library/MobileSubstrate/DynamicLibraries/FiveColumnsCC.dylib
-com.icraze.keepmyjb: /var/jb/Library/MobileSubstrate/DynamicLibraries/KeepMyJB.dylib
-com.cydiageek.chargingbanner: /var/jb/Library/MobileSubstrate/DynamicLibraries/ChargingBanner.dylib
-com.rpetrich.rocketbootstrap: /var/jb/Library/MobileSubstrate/DynamicLibraries/RocketBootstrap.dylib
-net.limneos.nfcwriterx-rootless: /var/jb/Library/MobileSubstrate/DynamicLibraries/ct_NFCWriterXSCrack.plist
-xyz.cypwn.tweakhub: /var/jb/Library/MobileSubstrate/DynamicLibraries/TweakHub.plist
-xyz.cypwn.eneko: /var/jb/Library/MobileSubstrate/DynamicLibraries/Eneko.plist
-xyz.cypwn.snail: /var/jb/Library/MobileSubstrate/DynamicLibraries/0Snail.dylib
-net.limneos.nfcwriterx-rootless: /var/jb/Library/MobileSubstrate/DynamicLibraries/ct_NFCWriterXSCrack.dylib
-xyz.cypwn.stella: /var/jb/Library/MobileSubstrate/DynamicLibraries/Stella.plist
-xyz.cypwn.choicy: /var/jb/Library/MobileSubstrate/DynamicLibraries/   Choicy.plist
-xyz.cypwn.fivecolumnscc: /var/jb/Library/MobileSubstrate/DynamicLibraries/FiveColumnsCC.plist
-xyz.cypwn.settingsbuttons: /var/jb/Library/MobileSubstrate/DynamicLibraries/SettingsButtons.plist
-com.icraze.keepmyjb: /var/jb/Library/MobileSubstrate/DynamicLibraries/KeepMyJB.plist
-xyz.cypwn.nebbs: /var/jb/Library/MobileSubstrate/DynamicLibraries/1NebbsCrack.plist
-com.hoangdus.speedster: /var/jb/Library/MobileSubstrate/DynamicLibraries/Speedster.plist
-xyz.cypwn.satella: /var/jb/Library/MobileSubstrate/DynamicLibraries/Satella.plist
-xyz.cypwn.cydown: /var/jb/Library/MobileSubstrate/DynamicLibraries/CyDown.plist
-xyz.cypwn.cydown: /var/jb/Library/MobileSubstrate/DynamicLibraries/CyDownPP.plist
-me.tomt000.stageduo: /var/jb/Library/MobileSubstrate/DynamicLibraries/DynamicStage.dylib
-xyz.cypwn.xinam1ne: /var/jb/Library/MobileSubstrate/DynamicLibraries/Xinam1ne.dylib
-xyz.cypwn.macpass: /var/jb/Library/MobileSubstrate/DynamicLibraries/MacPass.plist
-com.cureux.cc26: /var/jb/Library/MobileSubstrate/DynamicLibraries/CC26.plist
-xyz.cypwn.cydown: /var/jb/Library/MobileSubstrate/DynamicLibraries/CyDown.dylib
-com.sugiuta.circleapps15: /var/jb/Library/MobileSubstrate/DynamicLibraries/CircleAppsiPhone.dylib
-xyz.cypwn.choicylauncher: /var/jb/Library/MobileSubstrate/DynamicLibraries/ChoicyMenu.plist
-com.opa334.ccsupport: /var/jb/Library/MobileSubstrate/DynamicLibraries/CCSupport.plist
-xyz.cypwn.erika: /var/jb/Library/MobileSubstrate/DynamicLibraries/Erika.dylib
-xyz.cypwn.nazuna: /var/jb/Library/MobileSubstrate/DynamicLibraries/Nazuna.plist
-com.opa334.cranelite: /var/jb/Library/MobileSubstrate/DynamicLibraries/CraneSB.dylib
-com.opa334.ccsupport: /var/jb/Library/MobileSubstrate/DynamicLibraries/CCSupport.dylib
-com.opa334.libsandy: /var/jb/Library/MobileSubstrate/DynamicLibraries/SandyProxy.plist
-xyz.cypwn.filzacrackrootless: /var/jb/Library/MobileSubstrate/DynamicLibraries/FilzaCrack.dylib
-com.rpetrich.rocketbootstrap: /var/jb/Library/MobileSubstrate/DynamicLibraries/RocketBootstrap.plist
-xyz.cypwn.spotify: /var/jb/Library/MobileSubstrate/DynamicLibraries/EeveeSpotify.plist
-xyz.cypwn.icleanerpro: /var/jb/Library/MobileSubstrate/DynamicLibraries/ct_iCleanerProCrack.plist
-preferenceloader: /var/jb/Library/MobileSubstrate/DynamicLibraries/PreferenceLoader.plist
-com.cydiageek.chargingbanner: /var/jb/Library/MobileSubstrate/DynamicLibraries/ChargingBanner.plist
-xyz.cypwn.macpass: /var/jb/Library/MobileSubstrate/DynamicLibraries/MacPass.dylib
-com.0xkuj.3dappversionspoofer: /var/jb/Library/MobileSubstrate/DynamicLibraries/3DAppVersionSpoofer.plist
-xyz.cypwn.spotify: /var/jb/Library/MobileSubstrate/DynamicLibraries/EeveeSpotify.dylib
-xyz.cypwn.limneos: /var/jb/Library/MobileSubstrate/DynamicLibraries/LimneosCrack.dylib
-xyz.cypwn.stella: /var/jb/Library/MobileSubstrate/DynamicLibraries/Stella.dylib
-com.nahtedetihw.airpodscompanion: /var/jb/Library/MobileSubstrate/DynamicLibraries/AirpodsCompanion.plist
-xyz.cypwn.macosnotifications: /var/jb/Library/MobileSubstrate/DynamicLibraries/MacOSNotifications.dylib
-xyz.cypwn.waktos2: /var/jb/Library/MobileSubstrate/DynamicLibraries/Waktos.plist
-xyz.cypwn.icleanerprocrack: /var/jb/Library/MobileSubstrate/DynamicLibraries/iCleanerProCrack.plist
-xyz.cypwn.appdata: /var/jb/Library/MobileSubstrate/DynamicLibraries/AppData.dylib
-xyz.cypwn.applist: /var/jb/Library/MobileSubstrate/DynamicLibraries/AppList.dylib
-com.opa334.cranelite: /var/jb/Library/MobileSubstrate/DynamicLibraries/CraneSupport.dylib
+=== NEWEST TWEAK FILES ===
+total 29852
+-rw-r--r-- 1 root      wheel         100 Sep  1 22:35 Misaka15Compat.plist
+-rwxr-xr-x 1 root      wheel       67936 Sep  1 22:35 Misaka15Compat.dylib
+-rwxr-xr-x 1 root      wheel      238032 Aug 29 22:53 Polyfills.dylib
+-rw-r--r-- 1 root      wheel         147 Aug 29 22:53 Polyfills.plist
+-rw-r--r-- 1 root      wheel          65 Aug 28 12:44 mmaintenanced_hook.plist
+-rw-r--r-- 1 root      wheel          93 Aug 23 09:59 Little16.plist
+-rwxr-xr-x 1 root      wheel      166288 Aug 23 09:59 Little16.dylib
+-rwxr-xr-x 1 root      wheel      165424 Aug 17 08:24 InteractiveSiri.dylib
+-rw-r--r-- 1 root      wheel          93 Aug 17 08:24 InteractiveSiri.plist
+-rw-r--r-- 1 root      wheel         104 Aug 15 15:05  Crane.plist
+-rw-r--r-- 1 root      wheel         126 Aug 15 15:05 CraneSB.plist
+-rw-r--r-- 1 root      wheel         159 Aug 15 15:05 CraneSupport.plist
+-rwxr-xr-x 1 root      wheel      550256 Aug 15 15:05 CraneSupport.dylib
+-rwxr-xr-x 1 root      wheel      169712 Aug 15 15:05  Crane.dylib
+-rwxr-xr-x 1 root      wheel      534304 Aug 15 15:05 CraneSB.dylib
+-rwxr-xr-x 1 root      wheel      168064 May  3 04:34 ChatGPTWebLegacyCompat.dylib
+-rw-r--r-- 1 root      wheel         147 May  3 04:34 ChatGPTWebLegacyCompat.plist
+-rw-r--r-- 1 root      wheel          83 Mar 28 20:07 SandyProxy.plist
+-rwxr-xr-x 1 root      wheel      168240 Mar 28 20:07 SandyProxy.dylib
+-rwxr-xr-x 1 root      wheel      174640 Feb 19  2026 DownloadPercent.dylib
+-rw-r--r-- 1 root      wheel          57 Feb 19  2026 DownloadPercent.plist
+-rwxr-xr-x 1 root      wheel     4047392 Feb 10  2026 AppData.dylib
+-rw-r--r-- 1 root      wheel          93 Feb 10  2026 AppData.plist
+-rw-r--r-- 1 root      wheel         113 Feb  5  2026 Speedster.plist
+-rwxr-xr-x 1 root      wheel      150144 Feb  5  2026 Speedster.dylib
+-rwxr-xr-x 1 root      wheel      166544 Jan 14  2026 afc2dService.dylib
+-rw-r--r-- 1 root      wheel         123 Jan 14  2026 afc2dService.plist
+-rwxr-xr-x 1 root      wheel      166464 Jan  8  2026 ChoicyMenu.dylib
+-rw-r--r-- 1 root      wheel          56 Jan  8  2026 ChoicyMenu.plist
+-rw-r--r-- 1 root      wheel         110 Jan  8  2026    Choicy.plist
+-rw-r--r-- 1 root      wheel         126 Jan  8  2026 ChoicySB.plist
+-rwxr-xr-x 1 root      wheel      239440 Jan  8  2026    Choicy.dylib
+-rwxr-xr-x 1 root      wheel      204928 Jan  8  2026 ChoicySB.dylib
+-rwxr-xr-x 1 root      wheel      169504 Dec 18  2025 WebKitCompat.dylib
+-rw-r--r-- 1 root      wheel         503 Dec 18  2025 WebKitCompat.plist
+-rwxr-xr-x 1 root      wheel      176864 Oct 24  2025 ChargingBanner.dylib
+-rw-r--r-- 1 root      wheel         348 Oct 24  2025 ChargingBanner.plist
+-rwxr-xr-x 1 root      wheel       66416 Aug 13  2025 ipad2phone.dylib
+-rw-r--r-- 1 root      wheel          93 Aug 13  2025 ipad2phone.plist
+-rwxr-xr-x 1 root      wheel     2575728 Jul 23  2025 Nazuna.dylib
+-rwxr-xr-x 1 root      wheel      282112 Jul 23  2025 0nazuna.dylib
+-rw-r--r-- 1 root      wheel         119 Jul 23  2025 0nazuna.plist
+-rwxr-xr-x 1 root      wheel     1946256 Jul 22  2025 DynamicStage.dylib
+-rw-r--r-- 1 root      wheel          93 Jul 22  2025 DynamicStage.plist
+-rw-r--r-- 1 root      wheel          87 Jul 22  2025 StageDaemon.plist
+-rwxr-xr-x 1 root      wheel      167008 Jul 22  2025 StageDaemon.dylib
+-rw-r--r-- 1 root      wheel          93 Jul 20  2025 Nazuna.plist
+-rwxr-xr-x 1 root      wheel      202784 Jul  6  2025 CC26.dylib
+-rwxr-xr-x 1 root      wheel          92 Jul  6  2025 CC26.plist
+-rwxr-xr-x 1 root      wheel      562624 Jun 26  2025 Waktos.dylib
+-rw-r--r-- 1 root      wheel          93 Jun 26  2025 Waktos.plist
+-rwxr-xr-x 1 _installd _installd  215216 Jun  3  2025 0Hello3Q.dylib
+-rw-r--r-- 1 _installd _installd     134 Jun  3  2025 0Hello3Q.plist
+-rwxr-xr-x 1 root      wheel      644352 May 12  2025 Cylinder.dylib
+-rw-r--r-- 1 root      wheel          93 May 12  2025 Cylinder.plist
+-rwxr-xr-x 1 root      wheel      202528 Apr 23  2025 AutoRevenueCat.dylib
+-rw-r--r-- 1 root      wheel          87 Apr 23  2025 AutoRevenueCat.plist
+-rw-r--r-- 1 root      wheel          94 Apr 16  2025 appstoretroller.plist
+-rwxr-xr-x 1 root      wheel      166576 Apr 16  2025 appstoretroller.dylib
+-rwxr-xr-x 1 root      wheel      201856 Apr 13  2025 Sentinel.dylib
+-rwxr-xr-x 1 root      wheel      349632 Feb  9  2025 libbulletin.dylib
+-rw-r--r-- 1 root      wheel          57 Feb  9  2025 libbulletin.plist
+-rw-r--r-- 1 _installd _installd      93 Jan 15  2025 Stella.plist
+-rwxr-xr-x 1 _installd _installd  578848 Jan 15  2025 Stella.dylib
+-rwxr-xr-x 1 root      wheel       84544 Dec 25  2024 ArthurBrowserPro.dylib
+-rw-r--r-- 1 root      wheel          89 Dec 25  2024 ArthurBrowserPro.plist
+-rwxr-xr-x 1 root      wheel         133 Dec  4  2024 GboardAll.plist
+-rwxr-xr-x 1 root      wheel      132576 Dec  4  2024 GboardAll.dylib
+-rwxr-xr-x 1 root      wheel      199120 Nov 30  2024 MacOSNotifications.dylib
+-rwxr-xr-x 1 root      wheel      231168 Nov 28  2024 AppSyncUnified-FrontBoard.dylib
+-rw-r--r-- 1 root      wheel         356 Nov 28  2024 AppSyncUnified-FrontBoard.plist
+-rwxr-xr-x 1 root      wheel      234800 Nov 28  2024 AppSyncUnified-installd.dylib
+-rw-r--r-- 1 root      wheel         299 Nov 28  2024 AppSyncUnified-installd.plist
+-rw-r--r-- 1 root      wheel          90 Nov  7  2024 EeveeSpotify.plist
+-rwxr-xr-x 1 root      wheel     2738720 Nov  7  2024 EeveeSpotify.dylib
+-rwxr-xr-x 1 root      wheel      168640 Nov  1  2024 3DAppVersionSpoofer.dylib
+-rw-r--r-- 1 root      wheel         113 Nov  1  2024 3DAppVersionSpoofer.plist
+-rw-r--r-- 1 root      wheel         112 Oct 28  2024 CarBridge.plist
+-rwxr-xr-x 1 root      wheel      236448 Oct 28  2024 CarBridgeDashboard.dylib
+-rw-r--r-- 1 root      wheel          92 Oct 28  2024 CarBridgeDashboard.plist
+-rwxr-xr-x 1 root      wheel      408016 Oct 28  2024 CarBridge.dylib
+-rwxr-xr-x 1 root      wheel      236064 Oct 14  2024 Exsto15.dylib
+-rwxr-xr-x 1 root      wheel         308 Oct 14  2024 Exsto15.plist
+-rw-r--r-- 1 root      wheel          93 Oct  7  2024 AirpodsCompanion.plist
+-rwxr-xr-x 1 root      wheel      438560 Oct  7  2024 AirpodsCompanion.dylib
+-rwxr-xr-x 1 root      wheel     2835216 Oct  5  2024 CyDown.dylib
+-rwxr-xr-x 1 root      wheel         352 Oct  5  2024 CyDown.plist
+-rwxr-xr-x 1 root      wheel      150880 Oct  5  2024 CyDownDebGetter.dylib
+-rwxr-xr-x 1 root      wheel          93 Oct  5  2024 CyDownDebGetter.plist
+-rwxr-xr-x 1 root      wheel      105008 Oct  5  2024 CyDownPP.dylib
+-rwxr-xr-x 1 root      wheel         380 Oct  5  2024 CyDownPP.plist
+-rwxr-xr-x 1 root      wheel      137440 Oct  2  2024 Xinam1ne.dylib
+-rw-r--r-- 1 root      wheel          93 Oct  2  2024 Xinam1ne.plist
+-rwxr-xr-x 1 root      wheel      341136 Sep 19  2024 Sonus15.dylib
+-rwxr-xr-x 1 root      wheel         308 Sep 19  2024 Sonus15.plist
+-rwxr-xr-x 1 root      wheel      170192 Jul 22  2024 PreferenceLoader.dylib
+-rw-r--r-- 1 root      wheel          56 Jul 22  2024 PreferenceLoader.plist
+-rw-r--r-- 1 root      wheel          93 Jul  8  2024 AAASnowBoardStub.plist
+-rw-r--r-- 1 root      wheel         197 Jul  8  2024 Snowboard.plist
+-rwxr-xr-x 1 root      wheel      132512 Jul  8  2024 AAASnowBoardStub.dylib
+-rwxr-xr-x 1 root      wheel      166704 Jul  8  2024 Snowboard.dylib
+-rw-r--r-- 1 root      wheel         174 May 27  2024 RocketBootstrap.plist
+-rw-r--r-- 1 _installd _installd      93 Apr 18  2024 SettingsButtons.plist
+-rwxr-xr-x 1 _installd _installd  203216 Apr 18  2024 SettingsButtons.dylib
+-rw-r--r-- 1 _installd _installd      93 Apr 17  2024 ExplosiveIcons.plist
+-rwxr-xr-x 1 _installd _installd  170416 Apr 17  2024 ExplosiveIcons.dylib
+-rw-r--r-- 1 root      wheel         119 Mar 28  2024 CCSupport.plist
+-rwxr-xr-x 1 root      wheel      272208 Mar 28  2024 CCSupport.dylib
+-rwxr-xr-x 1 _installd _installd  165632 Mar  2  2024 1NebbsCrack.dylib
+-rw-r--r-- 1 _installd _installd     119 Mar  2  2024 1NebbsCrack.plist
+-rwxr-xr-x 1 _installd _installd  165680 Feb 13  2024 LimneosCrack.dylib
+-rw-r--r-- 1 _installd _installd      87 Feb 13  2024 LimneosCrack.plist
+-rwxr-xr-x 1 _installd _installd  200304 Feb 13  2024 0Snail.dylib
+-rw-r--r-- 1 _installd _installd     119 Feb 13  2024 0Snail.plist
+-rwxr-xr-x 1 root      wheel      239952 Jan 29  2024 CircleAppsiPad.dylib
+-rw-r--r-- 1 root      wheel          57 Jan 29  2024 CircleAppsiPad.plist
+-rwxr-xr-x 1 root      wheel      239952 Jan 29  2024 CircleAppsiPhone.dylib
+-rw-r--r-- 1 root      wheel          57 Jan 29  2024 CircleAppsiPhone.plist
+-rwxr-xr-x 1 _installd _installd  135584 Dec  3  2023 FiveColumnsCC.dylib
 
-=== RECENT PACKAGE LOG ===
+=== RECENT DPKG CHANGES ===
 
-=== LATEST SPRINGBOARD CRASHES ===
-IPHONE_SAFE_MODE_TRIAGE_COMPLETE=1
+=== LATEST SPRINGBOARD CRASH SUMMARY ===
+
+=== SAFE MODE MARKERS ===
+IPHONE_SAFE_MODE_FAST_TRIAGE_COMPLETE=1
 ssh_exit_code=0
