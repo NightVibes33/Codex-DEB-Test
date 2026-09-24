@@ -7,7 +7,6 @@ on:
       - main
     paths:
       - "remote/ipad-command.sh"
-      - "remote/iphone-command.sh"
       - ".github/workflows/ipad-tailscale-ssh.yml"
 
 permissions:
