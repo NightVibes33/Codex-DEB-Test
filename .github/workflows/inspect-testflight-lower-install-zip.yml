@@ -1,0 +1,37 @@
+name: Inspect TestFlight Lower Install Bundle
+
+on:
+  push:
+    branches:
+      - temp/powernfc-testflight-extract
+    paths:
+      - ".github/workflows/inspect-testflight-lower-install-zip.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fetch pinned helper bundle
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3             https://raw.githubusercontent.com/Cellxv7/testflight-lower-install/05e77455ce76bd769f43dbcf01cae00f4437a57b/tflowerinstallprefs/layout/install_lower_testflight_v1.5.zip             -o helper.zip
+          sha256sum helper.zip
+          unzip -l helper.zip
+          mkdir -p extracted
+          unzip -q helper.zip -d extracted
+          find extracted -maxdepth 4 -type f -print -exec file {} \; | tee contents.txt
+          echo '=== text-ish files ===' | tee -a contents.txt
+          find extracted -type f -size -2M -print0 | xargs -0 -I{} sh -c 'echo "===== {} ====="; strings -a "{}" | head -n 300' | tee -a contents.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lower-install-helper-inspection-${{ github.run_id }}
+          path: |
+            contents.txt
+            extracted/
+          if-no-files-found: error
+          retention-days: 2
