@@ -1,0 +1,109 @@
+name: Bootstrap TestFlight on iOS 15
+
+on:
+  push:
+    branches:
+      - temp/powernfc-testflight-extract
+    paths:
+      - "remote/powernfc-testflight-bootstrap.sh"
+      - ".github/workflows/powernfc-testflight-bootstrap.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: powernfc-testflight-bootstrap
+  cancel-in-progress: true
+
+jobs:
+  build-lower-install:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - name: Build pinned TestFlight lower-install tweak
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --recursive --depth=1 https://github.com/theos/theos.git "$HOME/theos"
+          git clone https://github.com/Cellxv7/testflight-lower-install.git src
+          cd src
+          git checkout 05e77455ce76bd769f43dbcf01cae00f4437a57b
+          export THEOS="$HOME/theos"
+          make package FINALPACKAGE=1
+          find packages -type f -name '*.deb' -print -exec shasum -a 256 {} \;
+          cp "$(find packages -type f -name '*.deb' | head -n1)" "$GITHUB_WORKSPACE/tflowerinstall.deb"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tflowerinstall-deb-${{ github.run_id }}
+          path: tflowerinstall.deb
+          if-no-files-found: error
+          retention-days: 2
+
+  install-and-open:
+    needs: build-lower-install
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tflowerinstall-deb-${{ github.run_id }}
+          path: stage
+
+      - name: Download and extract appstorectl 1.1.0
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3             https://github.com/appknox/appstorectl/releases/download/1.1.0/com.appknox.appstorectl_1.1.0_iphoneos-arm64.deb             -o stage/appstorectl.deb
+          echo 'fea186aa0341c19183060a206aabdbee1c16466600dfba7416f400e6c9327b99  stage/appstorectl.deb' | sha256sum -c -
+          mkdir -p stage/appstorectl-root
+          dpkg-deb -x stage/appstorectl.deb stage/appstorectl-root
+          cp stage/appstorectl-root/var/jb/usr/bin/appstorectl stage/appstorectl
+          chmod 755 stage/appstorectl
+          file stage/appstorectl
+          sha256sum stage/appstorectl
+
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Install spoof tweak, install TestFlight, open PowerNFC invite
+        env:
+          IPHONE_HOST: 100.96.37.124
+          IPHONE_PORT: "22"
+          IPHONE_USER: mobile
+          IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh" result
+          chmod 700 "$HOME/.ssh"
+          ssh-keyscan -T 15 -H -p "$IPHONE_PORT" "$IPHONE_HOST" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+          sshpass -e scp -P "$IPHONE_PORT"             -o StrictHostKeyChecking=yes             -o UserKnownHostsFile="$HOME/.ssh/known_hosts"             stage/tflowerinstall.deb             "$IPHONE_USER@$IPHONE_HOST:/var/mobile/Media/tflowerinstall.deb"
+
+          sshpass -e scp -P "$IPHONE_PORT"             -o StrictHostKeyChecking=yes             -o UserKnownHostsFile="$HOME/.ssh/known_hosts"             stage/appstorectl             "$IPHONE_USER@$IPHONE_HOST:/var/mobile/Media/appstorectl"
+
+          set +e
+          {
+            printf '%s\n' "$IPHONE_PASSWORD"
+            cat remote/powernfc-testflight-bootstrap.sh
+          } | timeout 420s sshpass -e ssh               -p "$IPHONE_PORT"               -o BatchMode=no               -o ConnectTimeout=20               -o ServerAliveInterval=15               -o ServerAliveCountMax=3               -o StrictHostKeyChecking=yes               -o UserKnownHostsFile="$HOME/.ssh/known_hosts"               "$IPHONE_USER@$IPHONE_HOST"               'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s'               2>&1 | tee result/bootstrap-session.txt
+          RC=${PIPESTATUS[1]}
+          set -e
+          echo "ssh_rc=$RC"
+
+          sshpass -e scp -P "$IPHONE_PORT"             -o StrictHostKeyChecking=yes             -o UserKnownHostsFile="$HOME/.ssh/known_hosts"             "$IPHONE_USER@$IPHONE_HOST:/var/mobile/Media/PowerNFC-testflight-bootstrap.txt"             result/PowerNFC-testflight-bootstrap.txt || true
+
+          cat result/PowerNFC-testflight-bootstrap.txt 2>/dev/null || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: PowerNFC-TestFlight-bootstrap-${{ github.run_id }}
+          path: result/
+          if-no-files-found: warn
+          retention-days: 7
