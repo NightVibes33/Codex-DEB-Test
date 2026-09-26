@@ -20,48 +20,25 @@ echo
 echo '=== FAST APP DISCOVERY ==='
 APP=''
 
-echo '[1] bundle-directory names'
-for p in /var/containers/Bundle/Application/*/*.app; do
-  [ -d "$p" ] || continue
-  base="$(basename "$p" | tr '[:upper:]' '[:lower:]')"
-  case "$base" in
-    *powernfc*|*power*nfc*) APP="$p"; break ;;
-  esac
-done
+echo '[1] single-pass bundle-directory lookup'
+APP="$(find /var/containers/Bundle/Application -mindepth 2 -maxdepth 2 -type d \( -iname '*PowerNFC*.app' -o -iname '*Power*NFC*.app' \) -print -quit 2>/dev/null)"
 echo "directory_match=${APP:-NONE}"
 
 if [ -z "$APP" ] && command -v uicache >/dev/null 2>&1; then
-  echo '[2] uicache registry'
-  uicache -l 2>/dev/null | grep -Ei -A2 -B2 'PowerNFC|power.*nfc' | head -n 80 || true
+  echo '[2] uicache registry hint'
+  uicache -l 2>/dev/null | grep -Ei -A2 -B2 'PowerNFC|power.*nfc' | head -n 40 || true
 fi
 
 if [ -z "$APP" ]; then
-  echo '[3] Info.plist raw-string scan'
-  for plist in /var/containers/Bundle/Application/*/*.app/Info.plist; do
-    [ -f "$plist" ] || continue
-    if strings "$plist" 2>/dev/null | grep -Eqi 'PowerNFC|power.*nfc'; then
-      APP="$(dirname "$plist")"
-      break
-    fi
-  done
+  echo '[3] batched Info.plist raw lookup'
+  MATCH_PLIST="$(find /var/containers/Bundle/Application -mindepth 3 -maxdepth 3 -type f -name Info.plist -exec grep -aEil -m1 'PowerNFC|power.?nfc' {} + 2>/dev/null | head -n 1)"
+  [ -n "$MATCH_PLIST" ] && APP="$(dirname "$MATCH_PLIST")"
 fi
 echo "final_app_match=${APP:-NONE}"
 
 echo
 echo '=== TESTFLIGHT DISCOVERY ==='
-TF=''
-for p in /var/containers/Bundle/Application/*/TestFlight.app; do
-  [ -d "$p" ] && { TF="$p"; break; }
-done
-if [ -z "$TF" ]; then
-  for plist in /var/containers/Bundle/Application/*/*.app/Info.plist; do
-    [ -f "$plist" ] || continue
-    if strings "$plist" 2>/dev/null | grep -Fqi 'com.apple.TestFlight'; then
-      TF="$(dirname "$plist")"
-      break
-    fi
-  done
-fi
+TF="$(find /var/containers/Bundle/Application -mindepth 2 -maxdepth 2 -type d -name 'TestFlight.app' -print -quit 2>/dev/null)"
 echo "testflight_app=${TF:-NOT_FOUND}"
 echo "uiopen=$(command -v uiopen 2>/dev/null || true)"
 echo "open=$(command -v open 2>/dev/null || true)"
