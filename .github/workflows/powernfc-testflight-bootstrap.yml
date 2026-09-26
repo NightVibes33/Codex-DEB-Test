@@ -29,7 +29,10 @@ jobs:
           git clone https://github.com/Cellxv7/testflight-lower-install.git src
           cd src
           git checkout 05e77455ce76bd769f43dbcf01cae00f4437a57b
-          sed -i '' 's/TARGET := iphone:clang:16.5:15.0/TARGET := iphone:clang:latest:15.0/' tflowerinstallprefs/Makefile
+          # We only need the runtime tweak. The preference bundle links Apple's private
+          # Preferences framework, which is absent from stock Xcode SDKs.
+          sed -i '' '/SUBPROJECTS += tflowerinstallprefs/d' Makefile
+          sed -i '' '/aggregate.mk/d' Makefile
           export THEOS="$HOME/theos"
           make package FINALPACKAGE=1
           find packages -type f -name '*.deb' -print -exec shasum -a 256 {} \;
