@@ -77,10 +77,12 @@ jobs:
           ssh-keyscan -T 15 -H -p "$IPHONE_PORT" "$IPHONE_HOST" > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/known_hosts"
 
+          echo 'Starting SSH session to iPhone...'
+          set +e
           {
             printf '%s\n' "$IPHONE_PASSWORD"
             cat remote/powernfc-testflight-extract.sh
-          } | sshpass -e ssh \
+          } | timeout 180s sshpass -e ssh \
               -p "$IPHONE_PORT" \
               -o BatchMode=no \
               -o ConnectTimeout=20 \
@@ -89,15 +91,19 @@ jobs:
               -o StrictHostKeyChecking=yes \
               -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
               "$IPHONE_USER@$IPHONE_HOST" \
-              'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s'
+              'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
+              2>&1 | tee extracted/iphone-session.txt
+          SSH_RC=${PIPESTATUS[1]}
+          set -e
+          echo "ssh_rc=$SSH_RC"
 
-          sshpass -e scp -P "$IPHONE_PORT" \
+          timeout 90s sshpass -e scp -P "$IPHONE_PORT" \
               -o StrictHostKeyChecking=yes \
               -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
               "$IPHONE_USER@$IPHONE_HOST:/var/mobile/Media/PowerNFC-analysis.txt" \
               extracted/PowerNFC-analysis.txt || true
 
-          sshpass -e scp -P "$IPHONE_PORT" \
+          timeout 90s sshpass -e scp -P "$IPHONE_PORT" \
               -o StrictHostKeyChecking=yes \
               -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
               "$IPHONE_USER@$IPHONE_HOST:/var/mobile/Media/PowerNFC-TestFlight.ipa" \
@@ -106,6 +112,7 @@ jobs:
           echo '=== retrieved files ==='
           ls -lah extracted
           test -s extracted/PowerNFC-analysis.txt
+          echo '=== PowerNFC analysis ==='
           cat extracted/PowerNFC-analysis.txt
           if grep -Fq 'powernfc_extract_status=RAW_IPA_READY' extracted/PowerNFC-analysis.txt; then
             test -s extracted/PowerNFC-TestFlight.ipa
