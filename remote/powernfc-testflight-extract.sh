@@ -42,6 +42,31 @@ TF="$(find /var/containers/Bundle/Application -mindepth 2 -maxdepth 2 -type d -n
 echo "testflight_app=${TF:-NOT_FOUND}"
 echo "uiopen=$(command -v uiopen 2>/dev/null || true)"
 echo "open=$(command -v open 2>/dev/null || true)"
+echo "appstorectl=$(command -v appstorectl 2>/dev/null || true)"
+echo "apt=$(command -v apt 2>/dev/null || true)"
+echo "dpkg=$(command -v dpkg 2>/dev/null || true)"
+for pkg in ellekit com.ex.substitute mobilesubstrate ai.akemi.appsyncunified com.cokepokes.appstoreplusplus com.arx8x.lowerinstall; do
+  if dpkg -s "$pkg" >/dev/null 2>&1; then
+    echo "package_present=$pkg"
+  fi
+done
+echo "sileo=$(command -v sileo 2>/dev/null || true)"
+echo "uicache=$(command -v uicache 2>/dev/null || true)"
+echo "mgask=$(command -v mgask 2>/dev/null || true)"
+echo "defaults=$(command -v defaults 2>/dev/null || true)"
+
+echo
+echo '=== VERSION-SPOOF SURFACE ==='
+for f in \
+  /System/Library/CoreServices/SystemVersion.plist \
+  /System/Library/CoreServices/SystemVersionCompatibility.plist \
+  /var/jb/System/Library/CoreServices/SystemVersion.plist; do
+  if [ -e "$f" ]; then
+    echo "system_version_plist=$f"
+    ls -l "$f" 2>/dev/null || true
+    plutil -p "$f" 2>/dev/null | head -n 80 || true
+  fi
+done
 
 if [ -z "$APP" ]; then
   echo 'powernfc_installed=NO'
