@@ -9,8 +9,7 @@ TMP=/var/mobile/Media/.powernfc-extract-$$
 rm -f "$OUT" "$IPA"
 rm -rf "$TMP"
 
-exec >"$OUT" 2>&1
-
+{
 echo '=== POWERNFC TESTFLIGHT EXTRACTION ==='
 date '+time=%Y-%m-%d %H:%M:%S %z'
 printf 'ios='; sw_vers -productVersion 2>/dev/null || true
@@ -53,7 +52,6 @@ if [ -z "$APP" ]; then
   echo "uiopen=$(command -v uiopen 2>/dev/null || true)"
   echo "open=$(command -v open 2>/dev/null || true)"
   echo 'powernfc_extract_status=NOT_INSTALLED'
-  chmod 644 "$OUT" 2>/dev/null || true
   exit 0
 fi
 
@@ -142,4 +140,6 @@ else
   echo "ipa_pack_rc=$RC"
   echo 'powernfc_extract_status=PACKAGING_FAILED'
 fi
+echo '=== EXTRACTION SCRIPT COMPLETE ==='
 exit 0
+} 2>&1 | tee "$OUT"
