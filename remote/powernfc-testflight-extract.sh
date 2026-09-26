@@ -17,119 +17,142 @@ printf 'build='; sw_vers -buildVersion 2>/dev/null || true
 printf 'machine='; uname -m 2>/dev/null || true
 echo
 
+echo '=== FAST APP DISCOVERY ==='
 APP=''
-for p in /var/containers/Bundle/Application/*/*.app /var/jb/Applications/*.app /Applications/*.app; do
+
+echo '[1] bundle-directory names'
+for p in /var/containers/Bundle/Application/*/*.app; do
   [ -d "$p" ] || continue
-  plist="$p/Info.plist"
-  [ -f "$plist" ] || continue
-  bid="$(plutil -extract CFBundleIdentifier raw -o - "$plist" 2>/dev/null)"
-  name="$(plutil -extract CFBundleDisplayName raw -o - "$plist" 2>/dev/null)"
-  [ -n "$name" ] || name="$(plutil -extract CFBundleName raw -o - "$plist" 2>/dev/null)"
-  case "$(printf '%s %s %s' "$name" "$bid" "$p" | tr '[:upper:]' '[:lower:]')" in
-    *powernfc*|*power\ nfc*)
-      APP="$p"
-      break
-      ;;
+  base="$(basename "$p" | tr '[:upper:]' '[:lower:]')"
+  case "$base" in
+    *powernfc*|*power*nfc*) APP="$p"; break ;;
   esac
 done
+echo "directory_match=${APP:-NONE}"
 
-echo '=== INSTALLED APP PROBE ==='
+if [ -z "$APP" ] && command -v uicache >/dev/null 2>&1; then
+  echo '[2] uicache registry'
+  uicache -l 2>/dev/null | grep -Ei -A2 -B2 'PowerNFC|power.*nfc' | head -n 80 || true
+fi
+
+if [ -z "$APP" ]; then
+  echo '[3] Info.plist raw-string scan'
+  for plist in /var/containers/Bundle/Application/*/*.app/Info.plist; do
+    [ -f "$plist" ] || continue
+    if strings "$plist" 2>/dev/null | grep -Eqi 'PowerNFC|power.*nfc'; then
+      APP="$(dirname "$plist")"
+      break
+    fi
+  done
+fi
+echo "final_app_match=${APP:-NONE}"
+
+echo
+echo '=== TESTFLIGHT DISCOVERY ==='
+TF=''
+for p in /var/containers/Bundle/Application/*/TestFlight.app; do
+  [ -d "$p" ] && { TF="$p"; break; }
+done
+if [ -z "$TF" ]; then
+  for plist in /var/containers/Bundle/Application/*/*.app/Info.plist; do
+    [ -f "$plist" ] || continue
+    if strings "$plist" 2>/dev/null | grep -Fqi 'com.apple.TestFlight'; then
+      TF="$(dirname "$plist")"
+      break
+    fi
+  done
+fi
+echo "testflight_app=${TF:-NOT_FOUND}"
+echo "uiopen=$(command -v uiopen 2>/dev/null || true)"
+echo "open=$(command -v open 2>/dev/null || true)"
+
 if [ -z "$APP" ]; then
   echo 'powernfc_installed=NO'
-  echo 'Searching install database text for PowerNFC/App Store ID 6748850927...'
-  for f in /var/mobile/Library/Caches/com.apple.mobile.installation.plist /var/mobile/Library/Caches/com.apple.mobile.installation_backup.plist; do
-    [ -f "$f" ] || continue
-    strings "$f" 2>/dev/null | grep -Ei -m 10 'PowerNFC|6748850927' || true
-  done
-
-  TF=''
-  for p in /var/containers/Bundle/Application/*/*.app; do
-    [ -f "$p/Info.plist" ] || continue
-    bid="$(plutil -extract CFBundleIdentifier raw -o - "$p/Info.plist" 2>/dev/null)"
-    if [ "$bid" = 'com.apple.TestFlight' ]; then TF="$p"; break; fi
-  done
-  echo "testflight_app=${TF:-NOT_FOUND}"
-  echo "uiopen=$(command -v uiopen 2>/dev/null || true)"
-  echo "open=$(command -v open 2>/dev/null || true)"
   echo 'powernfc_extract_status=NOT_INSTALLED'
+  echo '=== EXTRACTION SCRIPT COMPLETE ==='
   exit 0
 fi
 
+echo
+echo '=== APP METADATA ==='
 echo 'powernfc_installed=YES'
 echo "app_path=$APP"
 PLIST="$APP/Info.plist"
+
+# Prefer PlistBuddy/plutil if available, but never loop over the whole app registry with it.
 BID="$(plutil -extract CFBundleIdentifier raw -o - "$PLIST" 2>/dev/null)"
 NAME="$(plutil -extract CFBundleDisplayName raw -o - "$PLIST" 2>/dev/null)"
+[ -n "$NAME" ] || NAME="$(plutil -extract CFBundleName raw -o - "$PLIST" 2>/dev/null)"
 VER="$(plutil -extract CFBundleShortVersionString raw -o - "$PLIST" 2>/dev/null)"
 BUILD="$(plutil -extract CFBundleVersion raw -o - "$PLIST" 2>/dev/null)"
 EXE="$(plutil -extract CFBundleExecutable raw -o - "$PLIST" 2>/dev/null)"
-BIN="$APP/$EXE"
 
+# Fallback parser for iOS plutil variants that do not support -extract.
+if [ -z "$BID" ] || [ -z "$EXE" ]; then
+  PJSON="$(plutil -convert json -o - "$PLIST" 2>/dev/null)"
+  if [ -n "$PJSON" ] && command -v python3 >/dev/null 2>&1; then
+    eval "$(printf '%s' "$PJSON" | python3 -c 'import json,sys,shlex; d=json.load(sys.stdin); keys=["CFBundleIdentifier","CFBundleDisplayName","CFBundleName","CFBundleShortVersionString","CFBundleVersion","CFBundleExecutable"]; print("\n".join(k+"="+shlex.quote(str(d.get(k,""))) for k in keys))' 2>/dev/null)"
+    BID="$CFBundleIdentifier"
+    [ -n "$NAME" ] || NAME="${CFBundleDisplayName:-$CFBundleName}"
+    VER="$CFBundleShortVersionString"
+    BUILD="$CFBundleVersion"
+    EXE="$CFBundleExecutable"
+  fi
+fi
+
+BIN="$APP/$EXE"
 echo "bundle_id=$BID"
 echo "display_name=$NAME"
 echo "version=$VER"
 echo "build=$BUILD"
 echo "executable=$EXE"
 echo "binary=$BIN"
-echo "binary_size=$(stat -f %z "$BIN" 2>/dev/null || stat -c %s "$BIN" 2>/dev/null || true)"
 
 echo
 echo '=== INFO.PLIST ==='
-plutil -p "$PLIST" 2>/dev/null || true
+plutil -p "$PLIST" 2>/dev/null | head -n 500 || strings "$PLIST" 2>/dev/null | head -n 500 || true
 
 echo
-echo '=== EMBEDDED PROVISION / ENTITLEMENTS ==='
-if command -v ldid >/dev/null 2>&1; then
-  ldid -e "$BIN" 2>&1 || true
+echo '=== ENTITLEMENTS ==='
+if command -v ldid >/dev/null 2>&1 && [ -f "$BIN" ]; then
+  ldid -e "$BIN" 2>&1 | head -n 800 || true
 else
-  echo 'ldid=NOT_FOUND'
+  echo 'ldid_or_binary=NOT_AVAILABLE'
 fi
 
 echo
-echo '=== MACH-O LOAD COMMANDS ==='
-if command -v otool >/dev/null 2>&1; then
-  otool -L "$BIN" 2>&1 || true
-  echo '--- selected load-command markers ---'
-  otool -l "$BIN" 2>/dev/null | grep -E -A4 -B2 'LC_ENCRYPTION_INFO|LC_ENCRYPTION_INFO_64|cryptid|LC_LOAD_DYLIB|LC_LOAD_WEAK_DYLIB' | head -n 600 || true
+echo '=== MACH-O / ENCRYPTION ==='
+if command -v otool >/dev/null 2>&1 && [ -f "$BIN" ]; then
+  otool -L "$BIN" 2>&1 | head -n 500 || true
+  otool -l "$BIN" 2>/dev/null | grep -E -A4 -B2 'LC_ENCRYPTION_INFO|LC_ENCRYPTION_INFO_64|cryptid' | head -n 100 || true
 else
-  echo 'otool=NOT_FOUND'
+  echo 'otool_or_binary=NOT_AVAILABLE'
 fi
 
 echo
-echo '=== EMBEDDED FRAMEWORKS / PLUGINS ==='
-find "$APP" -maxdepth 4 \( -name '*.framework' -o -name '*.dylib' -o -name '*.appex' \) -print 2>/dev/null | sort || true
+echo '=== EMBEDDED FRAMEWORKS / EXTENSIONS ==='
+find "$APP" -maxdepth 4 \( -name '*.framework' -o -name '*.dylib' -o -name '*.appex' \) -print 2>/dev/null | sort | head -n 500 || true
 
 echo
-echo '=== HIGH-VALUE STRING MARKERS ==='
-if command -v strings >/dev/null 2>&1; then
+echo '=== HIGH-VALUE STRINGS ==='
+if command -v strings >/dev/null 2>&1 && [ -f "$BIN" ]; then
   strings -a "$BIN" 2>/dev/null | grep -Ei 'AirTraffic|Grappa|MobileBackup|MobileRestore|BackupAgent|bookassetd|itunesstored|AFC|lockdown|RemoteXPC|RPPairing|remotepairing|RSD|syslog|passd|Passbook|Stockholm|/var/mobile/Library/Passes|Cards/|pairing.*plist|SparseRestore|BookRestore|restore|MobileDevice|Developer Mode|LocalDevVPN|Wallet' | head -n 1200 || true
-else
-  echo 'strings=NOT_FOUND'
 fi
-
-echo
-echo '=== AVAILABLE DUMP/DEBUG TOOLS ==='
-for c in frida frida-ps frida-trace python3 ldid otool nm strings zip unzip tar cycript debugserver gdb; do
-  p="$(command -v "$c" 2>/dev/null || true)"
-  [ -n "$p" ] && echo "$c=$p" || echo "$c=NOT_FOUND"
-done
-find /var/jb /usr/local /Applications -maxdepth 5 -type f \( -iname '*decrypt*' -o -iname '*dumpdecrypted*' -o -iname '*frida*dump*' -o -iname '*bfdecrypt*' \) -print 2>/dev/null | head -n 100 || true
 
 echo
 echo '=== PACKAGE RAW INSTALLED APP AS IPA ==='
 mkdir -p "$TMP/Payload"
 cp -a "$APP" "$TMP/Payload/" 2>&1
+RC=127
 if command -v zip >/dev/null 2>&1; then
   (cd "$TMP" && zip -qry "$IPA" Payload)
   RC=$?
 elif command -v python3 >/dev/null 2>&1; then
   (cd "$TMP" && python3 -m zipfile -c "$IPA" Payload)
   RC=$?
-else
-  echo 'No zip or python3 available to create IPA.'
-  RC=127
 fi
 rm -rf "$TMP"
+
 if [ "$RC" -eq 0 ] && [ -s "$IPA" ]; then
   chmod 644 "$IPA" "$OUT" 2>/dev/null || true
   echo "ipa_path=$IPA"
@@ -140,6 +163,7 @@ else
   echo "ipa_pack_rc=$RC"
   echo 'powernfc_extract_status=PACKAGING_FAILED'
 fi
+
 echo '=== EXTRACTION SCRIPT COMPLETE ==='
 exit 0
 } 2>&1 | tee "$OUT"
