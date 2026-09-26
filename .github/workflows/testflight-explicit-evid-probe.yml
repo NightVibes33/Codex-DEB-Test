@@ -1,0 +1,108 @@
+name: Probe TestFlight Explicit EVIDs
+
+on:
+  push:
+    branches:
+      - temp/powernfc-testflight-extract
+    paths:
+      - "remote/testflight-explicit-evid-probe.sh"
+      - ".github/workflows/testflight-explicit-evid-probe.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: testflight-explicit-evid-probe
+  cancel-in-progress: true
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - name: Resolve environment
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsSL -H 'Accept: application/vnd.github+json' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" \
+            -o environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json, sys
+          target = int(sys.argv[1])
+          data = json.load(open("environments.json"))
+          for env in data.get("environments", []):
+              if int(env.get("id", -1)) == target:
+                  print("environment_name=" + env["name"])
+                  raise SystemExit(0)
+          raise SystemExit("environment not found")
+          PY
+
+  probe:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Run explicit TestFlight version probe
+        env:
+          IPHONE_HOST: 100.96.37.124
+          IPHONE_PORT: "22"
+          IPHONE_USER: mobile
+          IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh" result
+          chmod 700 "$HOME/.ssh"
+          ssh-keyscan -T 15 -H -p "$IPHONE_PORT" "$IPHONE_HOST" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+          set +e
+          {
+            printf '%s\n' "$IPHONE_PASSWORD"
+            cat remote/testflight-explicit-evid-probe.sh
+          } | timeout 600s sshpass -e ssh \
+              -p "$IPHONE_PORT" \
+              -o BatchMode=no \
+              -o ConnectTimeout=20 \
+              -o ServerAliveInterval=15 \
+              -o ServerAliveCountMax=3 \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              "$IPHONE_USER@$IPHONE_HOST" \
+              'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s' \
+              2>&1 | tee result/session.txt
+          RC=${PIPESTATUS[1]}
+          set -e
+          echo "ssh_rc=$RC"
+
+          sshpass -e scp -P "$IPHONE_PORT" \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            "$IPHONE_USER@$IPHONE_HOST:/var/mobile/Media/TestFlight-explicit-evid-probe.txt" \
+            result/TestFlight-explicit-evid-probe.txt || true
+
+          cat result/TestFlight-explicit-evid-probe.txt 2>/dev/null || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TestFlight-explicit-evid-probe-${{ github.run_id }}
+          path: result/
+          if-no-files-found: warn
+          retention-days: 7
