@@ -24,6 +24,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          brew install ldid
           git clone --recursive --depth=1 https://github.com/theos/theos.git "$HOME/theos"
           git clone https://github.com/Cellxv7/testflight-lower-install.git src
           cd src
