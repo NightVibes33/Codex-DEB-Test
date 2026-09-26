@@ -1,0 +1,122 @@
+name: PowerNFC TestFlight Extract
+
+on:
+  push:
+    branches:
+      - temp/powernfc-testflight-extract
+    paths:
+      - "remote/powernfc-testflight-extract.sh"
+      - ".github/workflows/powernfc-testflight-extract.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: powernfc-testflight-extract
+  cancel-in-progress: true
+
+jobs:
+  resolve-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+    steps:
+      - name: Resolve environment
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT_ID: "18728387881"
+        run: |
+          set -euo pipefail
+          curl -fsSL -H 'Accept: application/vnd.github+json' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/environments?per_page=100" \
+            -o environments.json
+          python3 - "$TARGET_ENVIRONMENT_ID" <<'PY' >> "$GITHUB_OUTPUT"
+          import json, sys
+          target = int(sys.argv[1])
+          data = json.load(open("environments.json"))
+          for env in data.get("environments", []):
+              if int(env.get("id", -1)) == target:
+                  print("environment_name=" + env["name"])
+                  raise SystemExit(0)
+          raise SystemExit("environment not found")
+          PY
+
+  extract:
+    needs: resolve-environment
+    environment:
+      name: ${{ needs.resolve-environment.outputs.environment_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Install SSH tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends openssh-client sshpass
+
+      - name: Run extraction probe on jailbroken iPhone
+        env:
+          IPHONE_HOST: 100.96.37.124
+          IPHONE_PORT: "22"
+          IPHONE_USER: mobile
+          IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh" extracted
+          chmod 700 "$HOME/.ssh"
+          ssh-keyscan -T 15 -H -p "$IPHONE_PORT" "$IPHONE_HOST" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+          {
+            printf '%s\n' "$IPHONE_PASSWORD"
+            cat remote/powernfc-testflight-extract.sh
+          } | sshpass -e ssh \
+              -p "$IPHONE_PORT" \
+              -o BatchMode=no \
+              -o ConnectTimeout=20 \
+              -o ServerAliveInterval=15 \
+              -o ServerAliveCountMax=2 \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              "$IPHONE_USER@$IPHONE_HOST" \
+              'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; sudo -k; exec sudo -S -p "" "$SHELL_PATH" -s'
+
+          sshpass -e scp -P "$IPHONE_PORT" \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              "$IPHONE_USER@$IPHONE_HOST:/var/mobile/Media/PowerNFC-analysis.txt" \
+              extracted/PowerNFC-analysis.txt || true
+
+          sshpass -e scp -P "$IPHONE_PORT" \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              "$IPHONE_USER@$IPHONE_HOST:/var/mobile/Media/PowerNFC-TestFlight.ipa" \
+              extracted/PowerNFC-TestFlight.ipa || true
+
+          echo '=== retrieved files ==='
+          ls -lah extracted
+          test -s extracted/PowerNFC-analysis.txt
+          cat extracted/PowerNFC-analysis.txt
+          if grep -Fq 'powernfc_extract_status=RAW_IPA_READY' extracted/PowerNFC-analysis.txt; then
+            test -s extracted/PowerNFC-TestFlight.ipa
+          fi
+
+      - name: Upload extracted PowerNFC material
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PowerNFC-TestFlight-extract-${{ github.run_id }}
+          path: extracted/
+          if-no-files-found: warn
+          include-hidden-files: true
+          retention-days: 7
