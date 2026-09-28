@@ -1,0 +1,19 @@
+name: Arc discovery pre-cap PoC
+
+on:
+  push:
+    branches:
+      - arc-discovery-precap-poc
+    paths:
+      - "arc-discovery-poc/**"
+      - ".github/workflows/arc-discovery-precap-poc.yml"
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run release benchmark
+        working-directory: arc-discovery-poc
+        run: cargo run --release
