@@ -57,7 +57,7 @@ exe=target/"Music"
 main=bytearray(exe.read_bytes())
 magic,cpu,subtype,filetype,ncmds,sizeofcmds,flags,reserved=struct.unpack_from("<IiiIIIII",main,0)
 assert magic==0xfeedfacf and cpu==0x100000c and filetype==2
-name=b"@executable_path/Frameworks/MusicHEICCompat.dylib\x00"
+name=b"@loader_path/Frameworks/MusicHEICCompat.dylib\x00"
 cmdsize=(24+len(name)+7)&~7
 load=struct.pack("<6I",0xc,cmdsize,24,0,0,0)+name
 load+=b"\x00"*(cmdsize-len(load))
@@ -92,7 +92,7 @@ Path("patch-report.txt").write_text(
     f"Size: {out_path.stat().st_size}\n"
     f"SHA256: {hashlib.sha256(out_path.read_bytes()).hexdigest()}\n"
     f"Six weak CarPlayUI imports preserved from previous test IPA.\n"
-    f"Added LC_LOAD_DYLIB: @executable_path/Frameworks/MusicHEICCompat.dylib\n"
+    f"Added LC_LOAD_DYLIB: @loader_path/Frameworks/MusicHEICCompat.dylib\n"
     f"HEIC selector is implemented as a runtime compatibility method, not removed.\n"
     f"Modified identifiers: {len(modified)}\n"
     f"Members: {len(manifest)}\n"
