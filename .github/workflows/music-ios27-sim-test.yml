@@ -1,0 +1,156 @@
+name: Music iOS27 iPhone18Pro Simulator Validation
+
+on:
+  push:
+    branches: [temp/apple-music-iphone7-extract-20261017]
+    paths:
+      - .github/workflows/music-ios27-sim-test.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  test:
+    runs-on: xcode-27
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/MusicHEICCompat.m
+            tools/patch_music_ios27.py
+          sparse-checkout-cone-mode: false
+      - name: Get iOS 15 Apple Music archive
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p source output
+          xcodebuild -version | tee output/xcode-version.txt
+          xcrun simctl list devices available > output/simulator-list.txt
+          gh run download 39042034353 -R "$GITHUB_REPOSITORY" -n iphone-apple-music-extraction-39042034353 -D source
+          test -s source/extracted/Music.app/Music
+      - name: Build preserved-HEIC compatibility IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          xcrun clang -arch arm64 -target arm64-apple-ios15.0 -isysroot "$SDK" -fobjc-arc -O2 \
+            -dynamiclib -fvisibility=hidden -framework Foundation \
+            -Wl,-install_name,@rpath/MusicHEICCompat.dylib \
+            -o output/MusicHEICCompat-device.dylib tools/MusicHEICCompat.m
+          python3 tools/patch_music_ios27.py source output/MusicHEICCompat-device.dylib output/AppleMusic-iOS27-FlekDeck-HEICCompat-unsigned.ipa
+          cp patch-report.txt output/
+          xcrun otool -L staging/Payload/Music.app/Music | tee output/executable-dependencies.txt
+          grep -F MusicHEICCompat.dylib output/executable-dependencies.txt
+      - name: Boot iPhone 18 Pro on iOS 27
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,subprocess
+          data=json.loads(subprocess.check_output(['xcrun','simctl','list','-j','devices','available']))
+          devices=[x for k,ls in data['devices'].items() if 'iOS-27' in k for x in ls if x['name']=='iPhone 18 Pro' and x.get('isAvailable')]
+          assert devices,'No iOS 27 iPhone 18 Pro simulator installed'
+          open('output/sim-id.txt','w').write(devices[0]['udid'])
+          print('simulator_device=',devices[0]['udid'])
+          PY
+          SIM="$(cat output/sim-id.txt)"
+          xcrun simctl boot "$SIM" || true
+          xcrun simctl bootstatus "$SIM" -b | tee output/simulator-boot.txt
+      - name: Try to install original device app on simulator
+        shell: bash
+        run: |
+          set +e
+          SIM="$(cat output/sim-id.txt)"
+          cp -R staging/Payload/Music.app output/SimulatorMusic.app
+          codesign --force --deep --sign - output/SimulatorMusic.app >/dev/null 2>&1
+          xcrun simctl install "$SIM" output/SimulatorMusic.app > output/original-app-sim-install.log 2>&1
+          code=$?
+          echo "sim_install_exit=$code" >> output/original-app-sim-install.log
+          if [ "$code" -eq 0 ]; then
+            xcrun simctl launch "$SIM" com.nightvibes33.applemusic27 >>output/original-app-sim-install.log 2>&1
+            echo "sim_launch_exit=$?" >> output/original-app-sim-install.log
+          fi
+          cat output/original-app-sim-install.log
+          exit 0
+      - name: Run selector-preservation proof on iOS 27 simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="$(xcrun --sdk iphonesimulator --show-sdk-path)"
+          mkdir -p output/HEICProbe.app/Frameworks
+          xcrun clang -arch arm64 -target arm64-apple-ios27.0-simulator -isysroot "$SDK" \
+            -fobjc-arc -dynamiclib -framework Foundation \
+            -Wl,-install_name,@rpath/MusicHEICCompat.dylib \
+            -o output/HEICProbe.app/Frameworks/MusicHEICCompat.dylib tools/MusicHEICCompat.m
+          cat > output/probe.m <<'OBJC'
+          #import <Foundation/Foundation.h>
+          #import <objc/runtime.h>
+          #import <objc/message.h>
+          #import <dlfcn.h>
+          @interface MPStoreArtworkDataSource : NSObject @end
+          @implementation MPStoreArtworkDataSource @end
+          int main(void) {
+            @autoreleasepool {
+              NSString *path=[[[NSBundle mainBundle] privateFrameworksPath] stringByAppendingPathComponent:@"MusicHEICCompat.dylib"];
+              void *handle=dlopen(path.UTF8String,RTLD_NOW);
+              if(!handle){fprintf(stderr,"HEIC_COMPAT_FAIL dlopen=%s\n",dlerror());return 21;}
+              int (*install)(void)=dlsym(handle,"MUSICCompatInstall");
+              double (*get)(id)=dlsym(handle,"MUSICCompatMaxHEICPercentage");
+              if(!install||!get||install()!=1){fprintf(stderr,"HEIC_COMPAT_FAIL install\n");return 22;}
+              id artwork=[MPStoreArtworkDataSource new];
+              SEL setter=sel_registerName("setMaxHEICRequestPercentage:");
+              if(![artwork respondsToSelector:setter]){fprintf(stderr,"HEIC_COMPAT_FAIL selector\n");return 23;}
+              ((void(*)(id,SEL,double))objc_msgSend)(artwork,setter,0.65);
+              double value=get(artwork);
+              if(value<0.649||value>0.651){fprintf(stderr,"HEIC_COMPAT_FAIL value=%.5lf\n",value);return 24;}
+              fprintf(stderr,"HEIC_COMPAT_PASS value=%0.2lf\n",value);
+              return 0;
+            }
+          }
+          OBJC
+          xcrun clang -arch arm64 -target arm64-apple-ios27.0-simulator -isysroot "$SDK" \
+            -fobjc-arc -framework Foundation -framework UIKit \
+            -o output/HEICProbe.app/HEICProbe output/probe.m
+          python3 - <<'PY'
+          import plistlib
+          p={'CFBundleIdentifier':'com.nightvibes33.HEICProbe','CFBundleExecutable':'HEICProbe','CFBundleName':'HEICProbe','CFBundlePackageType':'APPL','CFBundleShortVersionString':'1.0','CFBundleVersion':'1','MinimumOSVersion':'27.0','UIDeviceFamily':[1],'LSRequiresIPhoneOS':True}
+          with open('output/HEICProbe.app/Info.plist','wb') as f:plistlib.dump(p,f)
+          PY
+          codesign --force --sign - output/HEICProbe.app/Frameworks/MusicHEICCompat.dylib
+          codesign --force --sign - output/HEICProbe.app
+          xcrun simctl install "$(cat output/sim-id.txt)" output/HEICProbe.app
+          python3 - <<'PY'
+          import subprocess
+          sim=open('output/sim-id.txt').read().strip()
+          cmd=['xcrun','simctl','launch','--console',sim,'com.nightvibes33.HEICProbe']
+          try:
+              p=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=60)
+              result=f"exit_code={p.returncode}\n"+p.stdout
+          except subprocess.TimeoutExpired as e:
+              result='HEIC_COMPAT_FAIL simulator launch timed out\n'+str(e)
+          open('output/HEIC-compat-probe.log','w').write(result)
+          print(result)
+          assert 'HEIC_COMPAT_PASS' in result,'HEIC selector compatibility test failed'
+          PY
+      - name: Upload IPA and simulator results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: music-ios27-iphone18pro-results
+          path: |
+            output/AppleMusic-iOS27-FlekDeck-HEICCompat-unsigned.ipa
+            output/patch-report.txt
+            output/executable-dependencies.txt
+            output/xcode-version.txt
+            output/simulator-list.txt
+            output/sim-id.txt
+            output/simulator-boot.txt
+            output/original-app-sim-install.log
+            output/HEIC-compat-probe.log
+          if-no-files-found: warn
+          retention-days: 7
