@@ -212,7 +212,7 @@ public final class MusicLegacySubscriptionLyricsBridge: NSObject {
             guard error == nil, let data = data,
                   let http = response as? HTTPURLResponse, http.statusCode == 200,
                   let result = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                Self.searchLyricsFallback(track: cleanTrack, artist: cleanArtist, completion: completion)
+                Self.searchLyricsFallback(track: cleanTrack, artist: cleanArtist, durationSeconds: durationSeconds, completion: completion)
                 return
             }
             let synced = (result["syncedLyrics"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
@@ -223,7 +223,7 @@ public final class MusicLegacySubscriptionLyricsBridge: NSObject {
                     (cleanArtist.isEmpty ||
                      returnedArtist.caseInsensitiveCompare(cleanArtist) == .orderedSame),
                   !synced.isEmpty || !plain.isEmpty else {
-                Self.searchLyricsFallback(track: cleanTrack, artist: cleanArtist, completion: completion)
+                Self.searchLyricsFallback(track: cleanTrack, artist: cleanArtist, durationSeconds: durationSeconds, completion: completion)
                 return
             }
             Self.emit(completion, [
@@ -330,6 +330,7 @@ public final class MusicLegacySubscriptionLyricsBridge: NSObject {
     // title+artist match so unrelated songs cannot silently receive lyrics.
     private static func searchLyricsFallback(track: String,
                                              artist: String,
+                                             durationSeconds: Int,
                                              completion: @escaping (NSDictionary) -> Void) {
         var components = URLComponents()
         components.scheme = "https"
@@ -358,9 +359,14 @@ public final class MusicLegacySubscriptionLyricsBridge: NSObject {
                 return title.caseInsensitiveCompare(track) == .orderedSame &&
                     (artist.isEmpty || singer.caseInsensitiveCompare(artist) == .orderedSame)
             }
-            let selected = matched.first {
-                !(( $0["syncedLyrics"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)).isEmpty
-            } ?? matched.first
+            let durationMatched = matched.filter { record in
+                guard durationSeconds > 0,
+                      let actual = record["duration"] as? Int else { return true }
+                return abs(actual - durationSeconds) <= 3
+            }
+            let selected = durationMatched.first {
+                !(($0["syncedLyrics"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)).isEmpty
+            } ?? durationMatched.first
             guard let selected else {
                 emit(completion, ["found": false, "source": "LRCLIB",
                                   "reason": "No matching lyrics"])
