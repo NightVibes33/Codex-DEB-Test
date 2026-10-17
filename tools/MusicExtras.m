@@ -324,7 +324,53 @@
         dispatch_async(dispatch_get_main_queue(), ^{
             MLEExtras *self2=weak;
             if (!self2 || ![self2.currentMode isEqualToString:@"Synced lyrics"]) return;
-            if (!found.length) { self2.body.text=@"No matching lyrics found. Try a different title/artist. Apple subscription lyrics are not exposed by public MusicKit lyrics APIs."; return; }
+            if (!found.length) {
+                [self2 searchLyricsFallback:title artist:artist cache:cache];
+                return;
+            }
+            [found writeToFile:cache atomically:YES encoding:NSUTF8StringEncoding error:nil];
+            [self2 consumeLyrics:found];
+        });
+        [session finishTasksAndInvalidate];
+    }];
+    [self.lyricsRequest resume];
+}
+- (void)searchLyricsFallback:(NSString *)title artist:(NSString *)artist cache:(NSString *)cache {
+    NSString *query=[NSString stringWithFormat:@"%@ %@",title,artist ?: @""];
+    NSURLComponents *url=[NSURLComponents componentsWithString:@"https://lrclib.net/api/search"];
+    url.queryItems=@[[NSURLQueryItem queryItemWithName:@"q" value:query]];
+    NSURLSessionConfiguration *config=NSURLSessionConfiguration.ephemeralSessionConfiguration;
+    config.timeoutIntervalForRequest=12;
+    NSURLSession *session=[NSURLSession sessionWithConfiguration:config];
+    __weak typeof(self) weak=self;
+    self.lyricsRequest=[session dataTaskWithURL:url.URL completionHandler:^(NSData *data, NSURLResponse *response, NSError *error){
+        NSArray *json=data?[NSJSONSerialization JSONObjectWithData:data options:0 error:nil]:nil;
+        NSString *result=nil;
+        if ([json isKindOfClass:NSArray.class]) {
+            for (NSDictionary *row in json) {
+                if (![row isKindOfClass:NSDictionary.class]) continue;
+                NSString *resultTitle=row[@"trackName"];
+                NSString *resultArtist=row[@"artistName"];
+                if (![resultTitle isKindOfClass:NSString.class]) continue;
+                // Avoid displaying unrelated lyrics for similar song names.
+                if ([resultTitle caseInsensitiveCompare:title]!=NSOrderedSame) continue;
+                if (artist.length && [resultArtist isKindOfClass:NSString.class] &&
+                    [resultArtist rangeOfString:artist options:NSCaseInsensitiveSearch].location==NSNotFound) continue;
+                NSString *synced=row[@"syncedLyrics"];
+                NSString *plain=row[@"plainLyrics"];
+                if ([synced isKindOfClass:NSString.class] && synced.length) { result=synced; break; }
+                if (!result && [plain isKindOfClass:NSString.class] && plain.length) result=plain;
+            }
+        }
+        NSString *found=[result copy];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            MLEExtras *self2=weak;
+            if (!self2 || ![self2.currentMode isEqualToString:@"Synced lyrics"] ||
+                ![self2.selectedSong isEqualToString:title]) return;
+            if (!found.length) {
+                self2.body.text=@"No verified lyrics match found on LRCLIB. Your existing Apple Music lyrics view remains unchanged.";
+                return;
+            }
             [found writeToFile:cache atomically:YES encoding:NSUTF8StringEncoding error:nil];
             [self2 consumeLyrics:found];
         });
