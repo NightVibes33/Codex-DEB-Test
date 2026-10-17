@@ -1,0 +1,132 @@
+name: Extract Apple Music bundle from iPhone
+
+on:
+  push:
+    branches:
+      - temp/apple-music-iphone7-extract-20261017
+    paths:
+      - .github/workflows/iphone-music-extract.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  extract:
+    name: Read-only iPhone Music.app capture
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    environment:
+      name: TAILSCALE_AUTHKEY-
+    steps:
+      - name: Join device Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - name: Install SSH client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends openssh-client sshpass binutils
+      - name: Copy Apple Music application bundle via SSH
+        id: extract
+        shell: bash
+        env:
+          IPHONE_HOST: "100.96.37.124"
+          IPHONE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          : "${IPHONE_PASSWORD:?Missing IPAD_PASSWORD environment secret}"
+          mkdir -p output "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          if ! ssh-keyscan -T 12 -H -p 22 "$IPHONE_HOST" > "$HOME/.ssh/known_hosts" 2>output/ssh-keyscan.log; then
+            echo "Unable to reach iPhone SSH port 22" >&2
+            exit 2
+          fi
+          test -s "$HOME/.ssh/known_hosts" || { echo "No host key received from iPhone" >&2; exit 2; }
+          chmod 600 "$HOME/.ssh/known_hosts"
+          {
+            printf '%s\n' "$IPHONE_PASSWORD"
+            cat <<'DEVICE'
+          set -eu
+          export PATH="/var/jb/usr/bin:/var/jb/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+          echo "device_model=$(sysctl -n hw.machine 2>/dev/null || echo unknown)" >&2
+          echo "device_ios=$(sw_vers -productVersion 2>/dev/null || echo unknown)" >&2
+          APP=""
+          for candidate in /Applications/Music.app /Applications/MobileMusic.app /System/Applications/Music.app /System/Applications/MobileMusic.app; do
+            if [ -d "$candidate" ] && [ -f "$candidate/Info.plist" ]; then APP="$candidate"; break; fi
+          done
+          if [ -z "$APP" ]; then
+            for root in /Applications /System/Applications; do
+              [ -d "$root" ] || continue
+              candidate="$(find "$root" -maxdepth 1 -type d -iname '*music*.app' -print -quit 2>/dev/null || true)"
+              if [ -n "$candidate" ] && [ -f "$candidate/Info.plist" ]; then APP="$candidate"; break; fi
+            done
+          fi
+          [ -n "$APP" ] || { echo "Apple Music.app bundle not found at standard system locations" >&2; exit 3; }
+          echo "app_path=$APP" >&2
+          cd "$(dirname "$APP")"
+          exec tar -cf - "$(basename "$APP")"
+          DEVICE
+          } | timeout 270 sshpass -e ssh -o BatchMode=no -o ConnectTimeout=18 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" mobile@"$IPHONE_HOST" 'exec sudo -k -S -p "" /bin/sh -s' > output/apple-music-app.tar 2>output/device-ssh.log
+          test -s output/apple-music-app.tar
+          tar -tf output/apple-music-app.tar > output/bundle-file-list.txt
+          mkdir -p output/extracted
+          tar -xf output/apple-music-app.tar -C output/extracted
+          echo "archive_size_bytes=$(wc -c < output/apple-music-app.tar)"
+          cat output/device-ssh.log
+      - name: Recover available binary symbols and assembly
+        if: steps.extract.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p output/analysis
+          command -v llvm-objdump || true
+          command -v llvm-nm || true
+          python3 - <<'PY'
+          from pathlib import Path
+          import plistlib, subprocess, hashlib, json, os
+          root=Path("output/extracted")
+          analysis=Path("output/analysis")
+          files=[p for p in root.rglob("*") if p.is_file()]
+          app=next((p for p in root.iterdir() if p.is_dir() and p.name.endswith(".app")),None)
+          if app is None: raise SystemExit("No Music.app in archive")
+          info=plistlib.loads((app/"Info.plist").read_bytes())
+          (analysis/"Info.plist.json").write_text(json.dumps(info,indent=2,default=str,ensure_ascii=False))
+          (analysis/"NOTICE.txt").write_text("Apple Music's original source code is not included in an installed .app. The archive contains compiled executables, resources and generated analysis. Reverse-engineered symbols/disassembly are not original Apple source files.\n")
+          manifest=[]
+          for p in files:
+              manifest.append({"relative_path":str(p.relative_to(root)),"bytes":p.stat().st_size,"sha256":hashlib.sha256(p.read_bytes()).hexdigest()})
+          (analysis/"SHA256-manifest.json").write_text(json.dumps(manifest,indent=2))
+          binaries=[]
+          for p in files:
+              try:
+                  typ=subprocess.run(["file","-b",str(p)],capture_output=True,text=True,timeout=3).stdout.strip()
+                  if "Mach-O" in typ: binaries.append((p,typ))
+              except Exception: pass
+          (analysis/"binary-inventory.txt").write_text("\n".join(f"{p.relative_to(root)}: {typ}" for p,typ in binaries)+"\n")
+          # Produce best-effort analysis for each Mach-O; never overwrite device data.
+          for i,(p,typ) in enumerate(binaries):
+              prefix=analysis/f"binary-{i:03d}"
+              prefix.with_suffix(".path.txt").write_text(str(p.relative_to(root))+"\n"+typ+"\n")
+              for cmd,name in [
+                  (["strings","-a",str(p)],".strings.txt"),
+                  (["llvm-nm","-a",str(p)],".symbols.txt"),
+                  (["llvm-objdump","--macho","--disassemble","--no-show-raw-insn",str(p)],".assembly.txt")]:
+                  if cmd[0] not in __import__("shutil").which(cmd[0]).split("/") if __import__("shutil").which(cmd[0]) else True:
+                      continue
+                  with open(str(prefix)+name,"wb") as out:
+                      try: subprocess.run(cmd,stdout=out,stderr=subprocess.DEVNULL,timeout=90,check=False)
+                      except (FileNotFoundError,subprocess.TimeoutExpired): pass
+          (analysis/"summary.txt").write_text(f"Bundle: {app.name}\nExecutable: {info.get('CFBundleExecutable','unknown')}\nMach-O count: {len(binaries)}\nTotal files: {len(files)}\n")
+          PY
+          cat output/analysis/summary.txt
+      - name: Upload Music.app and analysis files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iphone-apple-music-extraction-${{ github.run_id }}
+          path: output/
+          retention-days: 7
+          if-no-files-found: warn
