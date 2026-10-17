@@ -92,7 +92,7 @@ Path("patch-report.txt").write_text(
     f"Size: {out_path.stat().st_size}\n"
     f"SHA256: {hashlib.sha256(out_path.read_bytes()).hexdigest()}\n"
     f"Six weak CarPlayUI imports preserved from previous test IPA.\n"
-    f"Added LC_LOAD_DYLIB: {name.decode().strip(chr(0))}\n"
+    f"Added LC_LOAD_DYLIB: @executable_path/Frameworks/MusicHEICCompat.dylib\n"
     f"HEIC selector is implemented as a runtime compatibility method, not removed.\n"
     f"Modified identifiers: {len(modified)}\n"
     f"Members: {len(manifest)}\n"
