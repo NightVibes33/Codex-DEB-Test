@@ -56,9 +56,11 @@ static NSString *stateString(MPMusicPlaybackState status) {
         default:return @"unknown";
     }
 }
-static BOOL entitlementPresent(SecTaskRef task, NSString *key) {
+static BOOL entitlementPresent(CFTypeRef task, NSString *key) {
     if (!task) return NO;
-    CFTypeRef v=SecTaskCopyValueForEntitlement(task,(__bridge CFStringRef)key,NULL);
+    CFTypeRef (*copyEntitlement)(CFTypeRef,CFStringRef,CFErrorRef*) = (void*)dlsym(RTLD_DEFAULT,"SecTaskCopyValueForEntitlement");
+    if(!copyEntitlement)return NO;
+    CFTypeRef v=copyEntitlement(task,(__bridge CFStringRef)key,NULL);
     BOOL answer=NO;
     if (v) {
         if(CFGetTypeID(v)==CFBooleanGetTypeID()) answer=CFBooleanGetValue(v);
@@ -167,7 +169,8 @@ __attribute__((constructor))
 static void startup(void) {
     dispatch_async(dispatch_get_main_queue(), ^{
         if(!isGuest())return;
-        SecTaskRef sec=SecTaskCreateFromSelf(kCFAllocatorDefault);
+        CFTypeRef (*createTask)(CFAllocatorRef) = (void*)dlsym(RTLD_DEFAULT,"SecTaskCreateFromSelf");
+        CFTypeRef sec=createTask?createTask(kCFAllocatorDefault):NULL;
         traceLine([NSString stringWithFormat:@"START hostBundle=%@ musicUsageKey=%d musicUserTokenEntitlement=%d libraryEntitlement=%d",
           NSBundle.mainBundle.bundleIdentifier,
           NSBundle.mainBundle.infoDictionary[@"NSAppleMusicUsageDescription"]!=nil,
