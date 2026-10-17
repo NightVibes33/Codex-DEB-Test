@@ -1,0 +1,56 @@
+name: Verify mo1 Music Playback State Adapter
+
+on:
+  push:
+    branches: [temp/apple-music-iphone7-extract-20261017]
+    paths:
+      - tools/MusicLegacyPlaybackStateAdapter.m
+      - .github/workflows/verify-mo1-music-state-adapter.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: xcode-27
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/MusicLegacyPlaybackStateAdapter.m
+          sparse-checkout-cone-mode: false
+      - name: Build the non-injected iOS 27 adapter
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p output
+          xcodebuild -version | tee output/xcode.txt
+          for kind in iphoneos iphonesimulator; do
+            sdk="$(xcrun --sdk "$kind" --show-sdk-path)"
+            if [ "$kind" = iphoneos ]; then
+              target="arm64-apple-ios27.0"
+            else
+              target="arm64-apple-ios27.0-simulator"
+            fi
+            output="output/MusicLegacyPlaybackStateAdapter-$kind.dylib"
+            xcrun clang -arch arm64 -target "$target" -isysroot "$sdk" \
+              -fobjc-arc -O2 -dynamiclib -fvisibility=hidden \
+              -framework Foundation -framework MediaPlayer \
+              -Wl,-install_name,@rpath/MusicLegacyPlaybackStateAdapter.dylib \
+              -o "$output" tools/MusicLegacyPlaybackStateAdapter.m
+            file "$output" | tee -a output/verification.txt
+            xcrun otool -L "$output" | tee -a output/verification.txt
+            xcrun nm -gU "$output" | grep -F _MLMusicPlaybackSnapshot | tee -a output/verification.txt
+            codesign --force --sign - "$output"
+            codesign --verify --verbose=2 "$output"
+          done
+          echo "Both targets compiled. No playback interception or app binary modifications were performed." >>output/verification.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mo1-music-legacy-state-adapter-${{ github.run_id }}
+          path: output/
+          if-no-files-found: warn
+          retention-days: 7
