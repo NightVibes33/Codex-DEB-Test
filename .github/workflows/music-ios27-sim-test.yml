@@ -6,6 +6,7 @@ on:
     paths:
       - .github/workflows/music-ios27-sim-test.yml
       - tools/patch_music_ios27.py
+      - tools/audit_music_recovery.py
       - tools/MusicHEICCompat.m
   workflow_dispatch:
 
@@ -23,6 +24,7 @@ jobs:
           sparse-checkout: |
             tools/MusicHEICCompat.m
             tools/patch_music_ios27.py
+            tools/audit_music_recovery.py
           sparse-checkout-cone-mode: false
       - name: Get iOS 15 Apple Music archive
         shell: bash
@@ -46,6 +48,7 @@ jobs:
             -Wl,-install_name,@rpath/MusicHEICCompat.dylib \
             -o output/MusicHEICCompat-device.dylib tools/MusicHEICCompat.m
           python3 tools/patch_music_ios27.py source output/MusicHEICCompat-device.dylib output/AppleMusic-iOS27-FlekDeck-HEICCompat-unsigned.ipa
+          python3 tools/audit_music_recovery.py output/AppleMusic-iOS27-FlekDeck-HEICCompat-unsigned.ipa | tee output/recovery-guard.txt
           cp patch-report.txt output/
           xcrun otool -L staging/Payload/Music.app/Music | tee output/executable-dependencies.txt
           grep -F MusicHEICCompat.dylib output/executable-dependencies.txt
@@ -63,6 +66,7 @@ jobs:
           path: |
             output/AppleMusic-iOS27-FlekDeck-HEICCompat-unsigned.ipa
             output/patch-report.txt
+            output/recovery-guard.txt
             output/executable-dependencies.txt
           if-no-files-found: error
           retention-days: 7
