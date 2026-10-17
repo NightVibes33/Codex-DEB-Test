@@ -7,6 +7,7 @@ on:
       - .github/workflows/music-ios27-sim-test.yml
       - tools/patch_music_ios27.py
       - tools/MusicHEICCompat.m
+      - tools/MusicExtras.m
   workflow_dispatch:
 
 permissions:
@@ -22,6 +23,7 @@ jobs:
         with:
           sparse-checkout: |
             tools/MusicHEICCompat.m
+            tools/MusicExtras.m
             tools/patch_music_ios27.py
           sparse-checkout-cone-mode: false
       - name: Get iOS 15 Apple Music archive
@@ -42,8 +44,9 @@ jobs:
           SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
           xcrun clang -arch arm64 -target arm64-apple-ios15.0 -isysroot "$SDK" -fobjc-arc -O2 \
             -dynamiclib -fvisibility=hidden -framework Foundation \
+            -framework UIKit -framework MediaPlayer -framework AVFoundation \
             -Wl,-install_name,@rpath/MusicHEICCompat.dylib \
-            -o output/MusicHEICCompat-device.dylib tools/MusicHEICCompat.m
+            -o output/MusicHEICCompat-device.dylib tools/MusicHEICCompat.m tools/MusicExtras.m
           python3 tools/patch_music_ios27.py source output/MusicHEICCompat-device.dylib output/AppleMusic-iOS27-FlekDeck-HEICCompat-unsigned.ipa
           cp patch-report.txt output/
           xcrun otool -L staging/Payload/Music.app/Music | tee output/executable-dependencies.txt
