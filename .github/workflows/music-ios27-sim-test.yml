@@ -7,7 +7,6 @@ on:
       - .github/workflows/music-ios27-sim-test.yml
       - tools/patch_music_ios27.py
       - tools/MusicHEICCompat.m
-      - tools/MusicNowPlayingTrace.m
   workflow_dispatch:
 
 permissions:
@@ -23,7 +22,6 @@ jobs:
         with:
           sparse-checkout: |
             tools/MusicHEICCompat.m
-            tools/MusicNowPlayingTrace.m
             tools/patch_music_ios27.py
           sparse-checkout-cone-mode: false
       - name: Get iOS 15 Apple Music archive
@@ -44,9 +42,9 @@ jobs:
           SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
           xcrun clang -arch arm64 -target arm64-apple-ios15.0 -isysroot "$SDK" -fobjc-arc -O2 \
             -dynamiclib -fvisibility=hidden -framework Foundation \
-            -framework UIKit -framework MediaPlayer -framework AVFoundation -framework CoreGraphics -framework Security \
+            \
             -Wl,-install_name,@rpath/MusicHEICCompat.dylib \
-            -o output/MusicHEICCompat-device.dylib tools/MusicHEICCompat.m tools/MusicNowPlayingTrace.m
+            -o output/MusicHEICCompat-device.dylib tools/MusicHEICCompat.m
           python3 tools/patch_music_ios27.py source output/MusicHEICCompat-device.dylib output/AppleMusic-iOS27-FlekDeck-HEICCompat-unsigned.ipa
           cp patch-report.txt output/
           xcrun otool -L staging/Payload/Music.app/Music | tee output/executable-dependencies.txt
@@ -54,14 +52,14 @@ jobs:
           python3 - <<'PY'
           import plistlib
           p=plistlib.load(open("staging/Payload/Music.app/Info.plist","rb"))
-          assert p.get("NSAppleMusicUsageDescription"), "MusicKit purpose string missing"
           assert p["CFBundleIdentifier"]=="com.nightvibes33.applemusic27"
-          print("MusicKit permission purpose key and guest bundle identifier verified")
+          assert "NSAppleMusicUsageDescription" not in p, "unexpected guest metadata"
+          print("Original playable guest metadata verified")
           PY
       - name: Upload device IPA immediately after build
         uses: actions/upload-artifact@v4
         with:
-          name: music-nowplaying-trace-ipa-${{ github.run_id }}
+          name: music-playback-baseline-recovery-${{ github.run_id }}
           path: |
             output/AppleMusic-iOS27-FlekDeck-HEICCompat-unsigned.ipa
             output/patch-report.txt
