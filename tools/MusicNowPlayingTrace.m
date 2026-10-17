@@ -105,9 +105,45 @@ static void scanLabels(UIView *root, NSMutableArray<NSString *> *found, NSUInteg
         scanLabels(sub,found,depth+1);
     }
 }
+static void logControllerAPI(Class cls) {
+    unsigned int propCount=0,ivarCount=0,methodCount=0;
+    objc_property_t *properties=class_copyPropertyList(cls,&propCount);
+    Ivar *ivars=class_copyIvarList(cls,&ivarCount);
+    Method *methods=class_copyMethodList(cls,&methodCount);
+    NSMutableArray<NSString *> *names=[NSMutableArray array];
+    for(unsigned int i=0;i<propCount&&i<80;i++){
+        const char *name=property_getName(properties[i]);
+        if(name)[names addObject:[@"property:" stringByAppendingString:@(name)]];
+    }
+    for(unsigned int i=0;i<ivarCount&&i<120;i++){
+        const char *name=ivar_getName(ivars[i]);
+        if(name)[names addObject:[@"ivar:" stringByAppendingString:@(name)]];
+    }
+    NSMutableArray<NSString *> *selectors=[NSMutableArray array];
+    for(unsigned int i=0;i<methodCount&&selectors.count<90;i++){
+        NSString *methodName=NSStringFromSelector(method_getName(methods[i]));
+        NSString *lower=methodName.lowercaseString;
+        if([lower containsString:@"play"] || [lower containsString:@"song"] ||
+           [lower containsString:@"track"] || [lower containsString:@"item"] ||
+           [lower containsString:@"state"] || [lower containsString:@"queue"] ||
+           [lower containsString:@"content"] || [lower containsString:@"model"] ||
+           [lower containsString:@"press"] || [lower containsString:@"tap"]){
+            [selectors addObject:methodName];
+        }
+    }
+    if(properties)free(properties);
+    if(ivars)free(ivars);
+    if(methods)free(methods);
+    traceLine([NSString stringWithFormat:@"CONTROLLER_API class=%@ ivars=%@ methods=%@",
+               NSStringFromClass(cls),names,selectors]);
+}
 static void logController(id controller, NSString *stage) {
     if(!isGuest())return;
     UIViewController *vc=(UIViewController*)controller;
+    static NSMutableSet *reported;
+    if(!reported)reported=[NSMutableSet new];
+    NSString *type=NSStringFromClass([vc class]);
+    if(![reported containsObject:type]) { [reported addObject:type]; logControllerAPI([vc class]); }
     NSMutableArray<NSString*> *labels=[NSMutableArray array];
     scanLabels(vc.view,labels,0);
     traceLine([NSString stringWithFormat:@"VIEW %@ class=%@ visibleLabels=%@",
