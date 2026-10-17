@@ -5,6 +5,8 @@ on:
     branches: [temp/apple-music-iphone7-extract-20261017]
     paths:
       - .github/workflows/music-ios27-sim-test.yml
+      - tools/patch_music_ios27.py
+      - tools/MusicHEICCompat.m
   workflow_dispatch:
 
 permissions:
