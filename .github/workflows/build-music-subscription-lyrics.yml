@@ -1,0 +1,56 @@
+name: Build MusicKit Subscription and Synced Lyrics Bridge
+
+on:
+  push:
+    branches: [temp/apple-music-iphone7-extract-20261017]
+    paths:
+      - .github/workflows/build-music-subscription-lyrics.yml
+      - tools/MusicLegacySubscriptionLyricsBridge.swift
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    name: iOS 27 MusicKit bridge (device and simulator)
+    runs-on: xcode-27
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/MusicLegacySubscriptionLyricsBridge.swift
+          sparse-checkout-cone-mode: false
+      - name: Compile independent MusicKit native extensions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p output
+          xcodebuild -version | tee output/xcode-version.txt
+          for platform in iphoneos iphonesimulator; do
+            case "$platform" in
+              iphoneos) triple=arm64-apple-ios27.0 ;;
+              iphonesimulator) triple=arm64-apple-ios27.0-simulator ;;
+            esac
+            sdk="$(xcrun --sdk "$platform" --show-sdk-path)"
+            output="output/MusicLegacySubscriptionLyricsBridge-$platform.dylib"
+            xcrun swiftc -swift-version 5 -O -parse-as-library \
+              -sdk "$sdk" -target "$triple" \
+              -module-name MusicLegacySubscriptionLyricsBridge \
+              -emit-library -emit-module \
+              -Xlinker -install_name -Xlinker @rpath/MusicLegacySubscriptionLyricsBridge.dylib \
+              tools/MusicLegacySubscriptionLyricsBridge.swift -o "$output"
+            file "$output" | tee -a output/build-report.txt
+            xcrun otool -L "$output" | tee -a output/build-report.txt
+            xcrun nm -gU "$output" | grep -E '(MusicLegacySubscriptionLyricsBridge|objc)' | head -n 12 | tee -a output/build-report.txt || true
+          done
+          printf '%s\n' 'Native MusicKit subscription / app-owned playback + LRCLIB timed lyrics compiled.' \
+            'No injection or runtime change made to previously playable Music.app' >> output/build-report.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: musickit-lyrics-bridge-${{ github.run_id }}
+          path: output/
+          retention-days: 7
+          if-no-files-found: warn
