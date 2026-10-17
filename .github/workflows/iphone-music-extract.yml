@@ -101,12 +101,6 @@ jobs:
             exit 3
           fi
           echo "app_path=$APP" >&2
-          echo '=== INFO.PLIST ID ===' >&2
-          plutil -p "$APP/Info.plist" 2>/dev/null | grep -E 'CFBundleIdentifier|CFBundleExecutable|CFBundleDisplayName' >&2 || true
-          if ! plutil -p "$APP/Info.plist" 2>/dev/null | grep -Eq '"CFBundleIdentifier" => "com[.]apple[.]Music"'; then
-            echo 'Bundle identifier mismatch: refusing to archive a different Music app' >&2
-            exit 4
-          fi
           cd "$(dirname "$APP")"
           exec tar -cf - "$(basename "$APP")"
           DEVICE
@@ -134,6 +128,10 @@ jobs:
           app=next((p for p in root.iterdir() if p.is_dir() and p.name.endswith(".app")),None)
           if app is None: raise SystemExit("No Music.app in archive")
           info=plistlib.loads((app/"Info.plist").read_bytes())
+          bundle_id=info.get("CFBundleIdentifier")
+          print("bundle_id=",bundle_id,flush=True)
+          if bundle_id!="com.apple.Music":
+              raise SystemExit(f"Wrong bundle {bundle_id!r}; expected com.apple.Music")
           (analysis/"Info.plist.json").write_text(json.dumps(info,indent=2,default=str,ensure_ascii=False))
           (analysis/"NOTICE.txt").write_text("Apple Music's original source code is not included in an installed .app. The archive contains compiled executables, resources and generated analysis. Reverse-engineered symbols/disassembly are not original Apple source files.\n")
           manifest=[]
