@@ -37,6 +37,10 @@ for f in target.rglob("Info.plist"):
         if f.parent==target:
             data["CFBundleName"]="Music Legacy"
             data["CFBundleDisplayName"]="Music Legacy"
+            # Original Apple system apps can use private media privileges.
+            # A re-bundled app's MusicKit/MPMediaLibrary permission flow needs
+            # a normal user-facing purpose string as documented by Apple.
+            data["NSAppleMusicUsageDescription"]="Access your Apple Music subscription and existing library for music playback."
         f.write_bytes(plistlib.dumps(data,fmt=plistlib.FMT_BINARY,sort_keys=False))
         modified.append((str(f.relative_to(target)),identifier,data["CFBundleIdentifier"]))
 
