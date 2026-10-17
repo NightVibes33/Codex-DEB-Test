@@ -50,6 +50,16 @@ jobs:
           cp patch-report.txt output/
           xcrun otool -L staging/Payload/Music.app/Music | tee output/executable-dependencies.txt
           grep -F MusicHEICCompat.dylib output/executable-dependencies.txt
+      - name: Upload device IPA immediately after build
+        uses: actions/upload-artifact@v4
+        with:
+          name: music-playback-diagnostic-ipa-${{ github.run_id }}
+          path: |
+            output/AppleMusic-iOS27-FlekDeck-HEICCompat-unsigned.ipa
+            output/patch-report.txt
+            output/executable-dependencies.txt
+          if-no-files-found: error
+          retention-days: 7
       - name: Boot iPhone 18 Pro on iOS 27
         shell: bash
         run: |
