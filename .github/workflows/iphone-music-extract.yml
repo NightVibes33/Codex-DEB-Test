@@ -81,7 +81,7 @@ jobs:
           cd "$(dirname "$APP")"
           exec tar -cf - "$(basename "$APP")"
           DEVICE
-          } | timeout 270 sshpass -e ssh -o BatchMode=no -o ConnectTimeout=18 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" mobile@"$IPHONE_HOST" 'exec sudo -k -S -p "" /bin/sh -s' > output/apple-music-app.tar 2>output/device-ssh.log
+          } | timeout 270 sshpass -e ssh -o BatchMode=no -o ConnectTimeout=18 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" mobile@"$IPHONE_HOST" 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; exec sudo -k -S -p "" "$SHELL_PATH" -s' > output/apple-music-app.tar 2>output/device-ssh.log
           test -s output/apple-music-app.tar
           tar -tf output/apple-music-app.tar > output/bundle-file-list.txt
           mkdir -p output/extracted
