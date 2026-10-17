@@ -7,6 +7,7 @@
 #import <objc/runtime.h>
 #import <dlfcn.h>
 #import <unistd.h>
+#import <limits.h>
 #import <stdatomic.h>
 
 typedef void (*MRPlayingQuery)(dispatch_queue_t, void (^)(Boolean));
