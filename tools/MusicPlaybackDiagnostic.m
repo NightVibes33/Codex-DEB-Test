@@ -53,7 +53,7 @@ static void sampleRemote(void) {
         if (playerPID != lastPID) {
             lastPID = playerPID;
             logStatus([NSString stringWithFormat:@"remote_now_playing_pid=%d guest_host_pid=%d ownership=%@",
-                       playerPID, getpid(), playerPID == getpid() ? @"in-host-process" : @"other-process"]);
+                       playerPID, getpid(), playerPID <= 0 ? @"unavailable" : (playerPID == getpid() ? @"in-host-process" : @"other-process")]);
         }
     });
     queryPlaying(stateQueue, ^(Boolean playing) {
