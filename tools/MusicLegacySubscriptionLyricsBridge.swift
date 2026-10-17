@@ -212,9 +212,7 @@ public final class MusicLegacySubscriptionLyricsBridge: NSObject {
             guard error == nil, let data = data,
                   let http = response as? HTTPURLResponse, http.statusCode == 200,
                   let result = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                Self.emit(completion, ["found": false,
-                                       "source": "LRCLIB",
-                                       "reason": "Unavailable or no exact match"])
+                Self.searchLyricsFallback(track: cleanTrack, artist: cleanArtist, completion: completion)
                 return
             }
             let synced = (result["syncedLyrics"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
@@ -225,8 +223,7 @@ public final class MusicLegacySubscriptionLyricsBridge: NSObject {
                     (cleanArtist.isEmpty ||
                      returnedArtist.caseInsensitiveCompare(cleanArtist) == .orderedSame),
                   !synced.isEmpty || !plain.isEmpty else {
-                Self.emit(completion, ["found": false, "source": "LRCLIB",
-                                       "reason": "No confident lyrics match"])
+                Self.searchLyricsFallback(track: cleanTrack, artist: cleanArtist, completion: completion)
                 return
             }
             Self.emit(completion, [
@@ -327,6 +324,65 @@ public final class MusicLegacySubscriptionLyricsBridge: NSObject {
         Task { @MainActor in
             ApplicationMusicPlayer.shared.playbackTime = seconds
         }
+    }
+
+    // Mirrors døPe's exact-first then search fallback. Only accepts an exact
+    // title+artist match so unrelated songs cannot silently receive lyrics.
+    private static func searchLyricsFallback(track: String,
+                                             artist: String,
+                                             completion: @escaping (NSDictionary) -> Void) {
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "lrclib.net"
+        components.path = "/api/search"
+        components.queryItems = [
+            URLQueryItem(name: "q", value: [track, artist].filter { !$0.isEmpty }.joined(separator: " "))
+        ]
+        guard let url = components.url else {
+            emit(completion, ["found": false, "source": "LRCLIB"])
+            return
+        }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 12
+        request.setValue("MusicLegacy-iOS27/1.0", forHTTPHeaderField: "User-Agent")
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            guard error == nil, let data,
+                  let http = response as? HTTPURLResponse, http.statusCode == 200,
+                  let records = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+                emit(completion, ["found": false, "source": "LRCLIB"])
+                return
+            }
+            let matched = records.filter { record in
+                let title = record["trackName"] as? String ?? ""
+                let singer = record["artistName"] as? String ?? ""
+                return title.caseInsensitiveCompare(track) == .orderedSame &&
+                    (artist.isEmpty || singer.caseInsensitiveCompare(artist) == .orderedSame)
+            }
+            let selected = matched.first {
+                !(( $0["syncedLyrics"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)).isEmpty
+            } ?? matched.first
+            guard let selected else {
+                emit(completion, ["found": false, "source": "LRCLIB",
+                                  "reason": "No matching lyrics"])
+                return
+            }
+            let synced = selected["syncedLyrics"] as? String ?? ""
+            let plain = selected["plainLyrics"] as? String ?? ""
+            guard !synced.isEmpty || !plain.isEmpty else {
+                emit(completion, ["found": false, "source": "LRCLIB"])
+                return
+            }
+            emit(completion, [
+                "found": true,
+                "source": "LRCLIB",
+                "hasSyncedLyrics": !synced.isEmpty,
+                "syncedLyrics": synced,
+                "plainLyrics": plain,
+                "track": selected["trackName"] as? String ?? track,
+                "artist": selected["artistName"] as? String ?? artist,
+                "fallback": true
+            ])
+        }.resume()
     }
 
 }
