@@ -51,10 +51,17 @@ jobs:
           cp patch-report.txt output/
           xcrun otool -L staging/Payload/Music.app/Music | tee output/executable-dependencies.txt
           grep -F MusicHEICCompat.dylib output/executable-dependencies.txt
+          python3 - <<'PY'
+          import plistlib
+          p=plistlib.load(open("staging/Payload/Music.app/Info.plist","rb"))
+          assert p.get("NSAppleMusicUsageDescription"), "MusicKit purpose string missing"
+          assert p["CFBundleIdentifier"]=="com.nightvibes33.applemusic27"
+          print("MusicKit permission purpose key and guest bundle identifier verified")
+          PY
       - name: Upload device IPA immediately after build
         uses: actions/upload-artifact@v4
         with:
-          name: music-playback-diagnostic-ipa-${{ github.run_id }}
+          name: music-nowplaying-trace-ipa-${{ github.run_id }}
           path: |
             output/AppleMusic-iOS27-FlekDeck-HEICCompat-unsigned.ipa
             output/patch-report.txt
