@@ -40,11 +40,23 @@ jobs:
           : "${IPHONE_PASSWORD:?Missing IPAD_PASSWORD environment secret}"
           mkdir -p output "$HOME/.ssh"
           chmod 700 "$HOME/.ssh"
-          if ! ssh-keyscan -T 12 -H -p 22 "$IPHONE_HOST" > "$HOME/.ssh/known_hosts" 2>output/ssh-keyscan.log; then
-            echo "Unable to reach iPhone SSH port 22" >&2
+          echo "Checking previously configured iPhone SSH target: $IPHONE_HOST:22"
+          tailscale status | grep -F "$IPHONE_HOST" || true
+          ready=0
+          for attempt in 1 2 3 4; do
+            echo "iPhone SSH connectivity check $attempt/4"
+            if ssh-keyscan -T 8 -H -p 22 "$IPHONE_HOST" > "$HOME/.ssh/known_hosts" 2>output/ssh-keyscan.log && test -s "$HOME/.ssh/known_hosts"; then
+              ready=1
+              break
+            fi
+            tailscale ping --timeout=5s --c 1 "$IPHONE_HOST" || true
+            sleep 5
+          done
+          if [ "$ready" != 1 ]; then
+            echo "Unable to reach iPhone SSH port 22 at $IPHONE_HOST after retries" >&2
+            cat output/ssh-keyscan.log >&2
             exit 2
           fi
-          test -s "$HOME/.ssh/known_hosts" || { echo "No host key received from iPhone" >&2; exit 2; }
           chmod 600 "$HOME/.ssh/known_hosts"
           {
             printf '%s\n' "$IPHONE_PASSWORD"
@@ -86,7 +98,7 @@ jobs:
           command -v llvm-nm || true
           python3 - <<'PY'
           from pathlib import Path
-          import plistlib, subprocess, hashlib, json, os
+          import plistlib, subprocess, hashlib, json, os, shutil
           root=Path("output/extracted")
           analysis=Path("output/analysis")
           files=[p for p in root.rglob("*") if p.is_file()]
@@ -114,7 +126,7 @@ jobs:
                   (["strings","-a",str(p)],".strings.txt"),
                   (["llvm-nm","-a",str(p)],".symbols.txt"),
                   (["llvm-objdump","--macho","--disassemble","--no-show-raw-insn",str(p)],".assembly.txt")]:
-                  if cmd[0] not in __import__("shutil").which(cmd[0]).split("/") if __import__("shutil").which(cmd[0]) else True:
+                  if shutil.which(cmd[0]) is None:
                       continue
                   with open(str(prefix)+name,"wb") as out:
                       try: subprocess.run(cmd,stdout=out,stderr=subprocess.DEVNULL,timeout=90,check=False)
