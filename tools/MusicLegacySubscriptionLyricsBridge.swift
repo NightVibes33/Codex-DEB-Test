@@ -240,4 +240,93 @@ public final class MusicLegacySubscriptionLyricsBridge: NSObject {
             ])
         }.resume()
     }
+    // Source-aware user library loading. MusicKit handles the user's token;
+    // no passwords, session cookies, or authorization headers are exported.
+    @objc public func librarySongs(limit: Int,
+                                   completion: @escaping (NSDictionary) -> Void) {
+        Task {
+            guard MusicAuthorization.currentStatus == .authorized else {
+                Self.emit(completion, ["success": false, "error": "MusicKit permission required"])
+                return
+            }
+            do {
+                var request = MusicLibraryRequest<Song>()
+                request.limit = max(1, min(limit, 100))
+                let response = try await request.response()
+                let records = response.items.map { song -> [String: Any] in
+                    [
+                        "id": song.id.rawValue,
+                        "title": song.title,
+                        "artist": song.artistName,
+                        "album": song.albumTitle ?? "",
+                        "hasLyrics": song.hasLyrics,
+                        "provider": "MusicKit"
+                    ]
+                }
+                Self.emit(completion, [
+                    "success": true,
+                    "count": records.count,
+                    "songs": records
+                ])
+            } catch {
+                Self.emit(completion, ["success": false, "error": error.localizedDescription])
+            }
+        }
+    }
+
+    @objc public func searchCatalog(_ query: String,
+                                    completion: @escaping (NSDictionary) -> Void) {
+        let term = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !term.isEmpty else {
+            Self.emit(completion, ["success": false, "error": "Empty search query"])
+            return
+        }
+        Task {
+            guard MusicAuthorization.currentStatus == .authorized else {
+                Self.emit(completion, ["success": false, "error": "MusicKit permission required"])
+                return
+            }
+            do {
+                var request = MusicCatalogSearchRequest(term: term, types: [Song.self])
+                request.limit = 25
+                let response = try await request.response()
+                let records = response.songs.map { song -> [String: Any] in
+                    [
+                        "id": song.id.rawValue,
+                        "title": song.title,
+                        "artist": song.artistName,
+                        "album": song.albumTitle ?? "",
+                        "hasLyrics": song.hasLyrics,
+                        "provider": "AppleMusicCatalog"
+                    ]
+                }
+                Self.emit(completion, [
+                    "success": true,
+                    "count": records.count,
+                    "songs": records
+                ])
+            } catch {
+                Self.emit(completion, ["success": false, "error": error.localizedDescription])
+            }
+        }
+    }
+
+    @objc public func skipPrevious(_ completion: @escaping (NSDictionary) -> Void) {
+        Task { @MainActor in
+            do {
+                try await ApplicationMusicPlayer.shared.skipToPreviousEntry()
+                Self.emit(completion, ["success": true])
+            } catch {
+                Self.emit(completion, ["success": false, "error": error.localizedDescription])
+            }
+        }
+    }
+
+    @objc public func seekAppOwnedPlayer(to seconds: Double) {
+        guard seconds.isFinite && seconds >= 0 else { return }
+        Task { @MainActor in
+            ApplicationMusicPlayer.shared.playbackTime = seconds
+        }
+    }
+
 }
