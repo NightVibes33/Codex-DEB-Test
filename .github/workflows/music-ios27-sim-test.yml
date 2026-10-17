@@ -69,8 +69,9 @@ jobs:
           set +e
           SIM="$(cat output/sim-id.txt)"
           cp -R staging/Payload/Music.app output/SimulatorMusic.app
-          codesign --force --deep --sign - output/SimulatorMusic.app >/dev/null 2>&1
-          xcrun simctl install "$SIM" output/SimulatorMusic.app > output/original-app-sim-install.log 2>&1
+          perl -e 'alarm shift; exec @ARGV' 60 codesign --force --deep --sign - output/SimulatorMusic.app >output/simulator-resign.log 2>&1
+          echo "sim_resign_exit=$?" >> output/simulator-resign.log
+          perl -e 'alarm shift; exec @ARGV' 100 xcrun simctl install "$SIM" output/SimulatorMusic.app > output/original-app-sim-install.log 2>&1
           code=$?
           echo "sim_install_exit=$code" >> output/original-app-sim-install.log
           if [ "$code" -eq 0 ]; then
@@ -153,6 +154,7 @@ jobs:
             output/sim-id.txt
             output/simulator-boot.txt
             output/original-app-sim-install.log
+            output/simulator-resign.log
             output/HEIC-compat-probe.log
           if-no-files-found: warn
           retention-days: 7
