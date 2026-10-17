@@ -23,6 +23,7 @@ jobs:
         with:
           sparse-checkout: |
             tools/MusicHEICCompat.m
+            tools/MusicPlaybackDiagnostic.m
             tools/patch_music_ios27.py
           sparse-checkout-cone-mode: false
       - name: Get iOS 15 Apple Music archive
