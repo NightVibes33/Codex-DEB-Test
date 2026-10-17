@@ -65,19 +65,48 @@ jobs:
           export PATH="/var/jb/usr/bin:/var/jb/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
           echo "device_model=$(sysctl -n hw.machine 2>/dev/null || echo unknown)" >&2
           echo "device_ios=$(sw_vers -productVersion 2>/dev/null || echo unknown)" >&2
+          # Apple Music can be a removable first-party application on iOS 15.
+          # NEVER fall back to MusicRecognition.app / Shazam.
           APP=""
-          for candidate in /Applications/Music.app /Applications/MobileMusic.app /System/Applications/Music.app /System/Applications/MobileMusic.app; do
-            if [ -d "$candidate" ] && [ -f "$candidate/Info.plist" ]; then APP="$candidate"; break; fi
+          echo '=== APPLE MUSIC SEARCH ===' >&2
+          for candidate in \
+            /Applications/Music.app \
+            /Applications/MobileMusic.app \
+            /System/Applications/Music.app \
+            /System/Applications/MobileMusic.app; do
+            if [ -f "$candidate/Info.plist" ]; then
+              echo "candidate=$candidate" >&2
+              APP="$candidate"
+              break
+            fi
           done
           if [ -z "$APP" ]; then
-            for root in /Applications /System/Applications; do
+            for root in /var/containers/Bundle/Application /private/var/containers/Bundle/Application; do
               [ -d "$root" ] || continue
-              candidate="$(find "$root" -maxdepth 1 -type d -iname '*music*.app' -print -quit 2>/dev/null || true)"
-              if [ -n "$candidate" ] && [ -f "$candidate/Info.plist" ]; then APP="$candidate"; break; fi
+              candidate="$(find "$root" -maxdepth 2 -type d \( -name 'Music.app' -o -name 'MobileMusic.app' \) -print -quit 2>/dev/null || true)"
+              if [ -n "$candidate" ] && [ -f "$candidate/Info.plist" ]; then
+                echo "candidate=$candidate" >&2
+                APP="$candidate"
+                break
+              fi
             done
           fi
-          [ -n "$APP" ] || { echo "Apple Music.app bundle not found at standard system locations" >&2; exit 3; }
+          if [ -z "$APP" ]; then
+            echo "Apple Music.app is not installed at expected system or application-container locations." >&2
+            echo '=== RELATED BUNDLE NAMES (diagnostic only) ===' >&2
+            for root in /Applications /System/Applications /var/containers/Bundle/Application; do
+              [ -d "$root" ] || continue
+              find "$root" -maxdepth 3 -type d \( -iname '*music*.app' -o -iname '*audio*.app' \) -print 2>/dev/null | head -n 50 >&2 || true
+            done
+            exit 3
+          fi
           echo "app_path=$APP" >&2
+          echo '=== INFO.PLIST ID ===' >&2
+          plutil -p "$APP/Info.plist" 2>/dev/null | grep -E 'CFBundleIdentifier|CFBundleExecutable|CFBundleDisplayName' >&2 || true
+          if ! plutil -p "$APP/Info.plist" 2>/dev/null | grep -Eq '"CFBundleIdentifier" => "com[.]apple[.]Music"'; then
+            echo 'Bundle identifier mismatch: refusing to archive a different Music app' >&2
+            exit 4
+          fi
           cd "$(dirname "$APP")"
           exec tar -cf - "$(basename "$APP")"
           DEVICE
