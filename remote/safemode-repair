@@ -248,6 +248,18 @@ test_cancel() {
  echo "Test cancelled and $n restored; respring when ready."
 }
 
+respring() {
+ need_root
+ if command -v sbreload >/dev/null 2>&1; then
+  ( sleep 2; sbreload >/dev/null 2>&1 ) </dev/null >/dev/null 2>&1 &
+ elif command -v killall >/dev/null 2>&1; then
+  ( sleep 2; killall -9 SpringBoard >/dev/null 2>&1 ) </dev/null >/dev/null 2>&1 &
+ else
+  fail 'No supported SpringBoard reload command found.'
+ fi
+ echo 'Respring requested. App will terminate and SpringBoard will restart.'
+}
+
 menu() {
  need_root
  while :; do
@@ -272,6 +284,7 @@ menu() {
 case "${1:-menu}" in
  scan) need_root;scan ;;
  diagnostics) diagnostics ;;
+ respring) respring ;;
  test-start) shift;test_start "$@" ;;
  test-check) test_check ;;
  test-finish) shift;test_finish "$@" ;;
