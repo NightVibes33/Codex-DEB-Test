@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - feature/safe-mode-repair-ios-app
+      - feature/smr-real-diagnostics-v2
     paths:
       - "remote/smr-app/**"
       - "remote/safemode-repair"
@@ -138,7 +139,7 @@ jobs:
           assert a["MinimumOSVersion"]=="15.0"
           PY
           mkdir -p dist
-          dpkg-deb --build --root-owner-group "$ROOT" "dist/safe-mode-repair_1.0.0_iphoneos-arm64.deb"
+          dpkg-deb --build --root-owner-group "$ROOT" "dist/safe-mode-repair_1.1.0_iphoneos-arm64.deb"
           dpkg-deb -I dist/*.deb
           dpkg-deb -c dist/*.deb | grep -E 'SafeModeRepair.app/(SafeModeRepair|Info.plist|AppIcon.png)|smr-rootd|LaunchDaemons'
           sha256sum dist/*.deb > dist/SHA256SUMS
@@ -184,7 +185,7 @@ jobs:
           test -s ~/.ssh/known_hosts
           chmod 0600 ~/.ssh/known_hosts
           opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=10 -o ServerAliveCountMax=4)
-          sshpass -e ssh "${opts[@]}" mobile@"$HOST" 'cat > /var/mobile/Media/safe-mode-repair-app.deb' < dist/safe-mode-repair_1.0.0_iphoneos-arm64.deb
+          sshpass -e ssh "${opts[@]}" mobile@"$HOST" 'cat > /var/mobile/Media/safe-mode-repair-app.deb' < dist/safe-mode-repair_1.1.0_iphoneos-arm64.deb
           {
             printf '%s\n' "$ROOT_PASSWORD"
             cat <<'REMOTE'
