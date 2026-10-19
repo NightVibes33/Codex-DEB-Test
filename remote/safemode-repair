@@ -134,25 +134,36 @@ uninstall() {
  pkg=$(owner "$n") || fail 'No owning Debian package found; cannot safely uninstall.'
  case "$pkg" in apt|dpkg|ellekit|org.coolstar.sileo|com.opa334.altlist|preferenceloader|com.ex.substitute|libhooker)
   fail 'Refusing to remove core package.' ;; esac
- command -v apt-get >/dev/null 2>&1 || fail 'apt-get not installed.'
  mkdir -p "$WORK"
- plan="$WORK/apt-simulate.$$"
- if ! apt-get -s remove "$pkg" > "$plan" 2>&1; then
-  cat "$plan";rm -f "$plan";fail 'APT simulation failed; nothing removed.'
+ plan="$WORK/uninstall-simulate.$$"
+ method=dpkg
+ if command -v apt-get >/dev/null 2>&1 && apt-get -s remove "$pkg" > "$plan" 2>&1; then
+  extra=$(awk -v p="$pkg" '$1=="Remv" && $2!=p {print $2}' "$plan")
+  [ -z "$extra" ] || { cat "$plan";rm -f "$plan";fail "APT would remove dependent packages: $extra"; }
+  grep -F -q "Remv $pkg " "$plan" || { cat "$plan";rm -f "$plan";fail 'APT did not schedule the selected package.'; }
+  method=apt
+ else
+  echo 'APT indexes unavailable; validating direct dpkg removal without force flags.'
+  if ! dpkg --no-act --remove "$pkg" > "$plan" 2>&1; then
+   cat "$plan";rm -f "$plan";fail 'DPKG no-act dependency check failed; nothing removed.'
+  fi
+  grep -F -q "Would remove or purge $pkg " "$plan" || { cat "$plan";rm -f "$plan";fail 'DPKG simulation did not approve package removal.'; }
  fi
- echo "APT dry run for $pkg:"
- grep -E '^(Remv|The following packages|WARNING:|E:)' "$plan" || true
- extra=$(awk -v p="$pkg" '$1=="Remv" && $2!=p {print $2}' "$plan")
- [ -z "$extra" ] || { rm -f "$plan";fail "Removing $pkg also removes: $extra. Operation rejected."; }
- grep -q "^Remv $pkg " "$plan" || { rm -f "$plan";fail "Simulation did not schedule $pkg for removal."; }
+ echo "Validated $method removal simulation for $pkg:"
+ cat "$plan"
  rm -f "$plan"
  printf "Type REMOVE %s to uninstall this package: " "$pkg"
  IFS= read -r confirm || fail 'Cancelled.'
  [ "$confirm" = "REMOVE $pkg" ] || fail 'Cancelled; no packages removed.'
- apt-get remove "$pkg" || fail 'APT uninstall failed. Inspect dpkg status before retry.'
+ if [ "$method" = apt ]; then
+  apt-get remove "$pkg" || fail 'APT removal failed. No fallback removal attempted.'
+ else
+  dpkg --remove "$pkg" || fail 'DPKG removal failed; inspect the package state.'
+ fi
  printf '%s\tUNINSTALL\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$n" "$pkg" >> "$WORK/actions.log"
  echo "Package removed: $pkg. Any disabled copies remain for recovery."
 }
+
 menu() {
  need_root
  while :; do
