@@ -101,6 +101,7 @@ static void handle(int client) {
     if (!strcmp(request,"DIAGNOSTICS")) { run_repair(client,"diagnostics",NULL,0);return; }
     if (!strcmp(request,"TEST_CHECK")) { run_repair(client,"test-check",NULL,0);return; }
     if (!strcmp(request,"TEST_CANCEL")) { run_repair(client,"test-cancel",NULL,0);return; }
+    if (!strcmp(request,"RESPRING")) { run_repair(client,"respring",NULL,0);return; }
     char *space=strchr(request,' ');
     if (!space) {send_text(client,"ERROR: Unknown command.\n");return;}
     *space=0;
