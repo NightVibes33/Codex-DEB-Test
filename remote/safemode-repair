@@ -168,6 +168,86 @@ uninstall() {
  echo "Package removed: $pkg. Any disabled copies remain for recovery."
 }
 
+
+diagnostics() {
+ need_root
+ echo '=== DEVICE DIAGNOSTICS ==='
+ printf 'device='; sysctl -n hw.machine 2>/dev/null || echo unknown
+ printf 'safe_mode='
+ a=$(launchctl getenv _MSSafeMode 2>/dev/null || true)
+ b=$(launchctl getenv _SafeMode 2>/dev/null || true)
+ if [ -n "$a$b" ]; then printf '%s\n' "$a $b"; else echo unknown; fi
+ printf 'available_tweaks='; find "$TI" -maxdepth 1 -name '*.dylib' -type f 2>/dev/null | wc -l | tr -d ' '
+ echo
+ echo '=== LATEST SPRINGBOARD CRASH ==='
+ newest=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 2 -type f \( -name 'SpringBoard-*.ips' -o -name 'backboardd-*.ips' \) -print 2>/dev/null | sort | tail -n 1)
+ if [ -z "$newest" ]; then
+  echo 'crash=none available'
+ else
+  echo "report=$(basename "$newest")"
+  if grep -q 'Fault hit memory shortage' "$newest"; then
+    echo 'vm_pressure=detected'
+    echo 'analysis=Memory pressure was present, but that does not prove a specific tweak caused it.'
+  fi
+  if grep -q '"signal" : "SIGSEGV"' "$newest"; then echo 'signal=SIGSEGV'; fi
+ fi
+ echo '=== TEST STATE ==='
+ if [ -r "$WORK/test.active" ]; then cat "$WORK/test.active"; else echo 'active_test=none'; fi
+ echo '=== PREVIOUS TEST RESULTS ==='
+ [ -f "$WORK/tested.tsv" ] && tail -n 12 "$WORK/tested.tsv" || true
+}
+test_start() {
+ need_root; require_name "$@"
+ n="$1"
+ mkdir -p "$WORK"
+ if [ -e "$WORK/test.active" ]; then echo 'ERROR: An isolation test is already active.'; return 1; fi
+ [ -f "$TI/$n.dylib" ] || { echo 'ERROR: Tweak is not currently enabled.'; return 1; }
+ disable "$n" || return 1
+ : > "$WORK/test.started"
+ {
+  printf 'active_test=%s\n' "$n"
+  printf 'test_started=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  printf 'status=awaiting_respring_and_verdict\n'
+ } > "$WORK/test.active"
+ echo "ISOLATION STARTED: $n. Respring and report whether Safe Mode ended."
+}
+test_check() {
+ need_root
+ [ -r "$WORK/test.active" ] || { echo 'active_test=none'; return 0; }
+ cat "$WORK/test.active"
+ printf 'new_springboard_crashes='
+ find /var/mobile/Library/Logs/CrashReporter -maxdepth 2 -type f \( -name 'SpringBoard-*.ips' -o -name 'backboardd-*.ips' \) -newer "$WORK/test.started" 2>/dev/null | wc -l | tr -d ' '
+ echo
+ echo 'Confirm whether SpringBoard exited Safe Mode after respring; reports alone do not prove recovery.'
+}
+test_finish() {
+ need_root
+ outcome="$1"
+ case "$outcome" in FIXED|PERSISTS) ;; *) fail 'Use FIXED or PERSISTS' ;; esac
+ [ -f "$WORK/test.active" ] || fail 'No active isolation test.'
+ n=$(sed -n 's/^active_test=//p' "$WORK/test.active" | head -n 1)
+ valid_name "$n" || fail 'Invalid saved test state.'
+ [ -f "$TI/$n.dylib$SUFFIX" ] || fail 'Backup missing; refusing unsafe recovery.'
+ count=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 2 -type f \( -name 'SpringBoard-*.ips' -o -name 'backboardd-*.ips' \) -newer "$WORK/test.started" 2>/dev/null | wc -l | tr -d ' ')
+ if [ "$outcome" = PERSISTS ]; then
+  enable "$n" || return 1
+  echo "Safe Mode persisted without $n: restored the disabled tweak. Respring to apply."
+ else
+  echo "Safe Mode ended without $n: evidence from a controlled isolation test; tweak remains disabled."
+ fi
+ printf '%s\t%s\t%s\tcrashes_after=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$n" "$outcome" "$count" >> "$WORK/tested.tsv"
+ rm -f "$WORK/test.active" "$WORK/test.started"
+}
+test_cancel() {
+ need_root
+ [ -f "$WORK/test.active" ] || fail 'No active isolation test.'
+ n=$(sed -n 's/^active_test=//p' "$WORK/test.active" | head -n 1)
+ valid_name "$n" || fail 'Invalid saved test state.'
+ enable "$n" || return 1
+ rm -f "$WORK/test.active" "$WORK/test.started"
+ echo "Test cancelled and $n restored; respring when ready."
+}
+
 menu() {
  need_root
  while :; do
@@ -191,6 +271,11 @@ menu() {
 }
 case "${1:-menu}" in
  scan) need_root;scan ;;
+ diagnostics) diagnostics ;;
+ test-start) shift;test_start "$@" ;;
+ test-check) test_check ;;
+ test-finish) shift;test_finish "$@" ;;
+ test-cancel) test_cancel ;;
  list-disabled) list_disabled ;;
  disable) shift;disable "$@" ;;
  enable) shift;enable "$@" ;;
