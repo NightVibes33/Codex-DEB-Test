@@ -59,6 +59,8 @@ jobs:
           ls -lt /var/mobile/Library/Logs/CrashReporter/SpringBoard-*.ips /var/mobile/Library/Logs/CrashReporter/backboardd-*.ips /var/mobile/Library/Logs/CrashReporter/Retired/SpringBoard-*.ips /var/mobile/Library/Logs/CrashReporter/Retired/backboardd-*.ips 2>/dev/null | head -n 18 || true
           echo '=== SAFE APT REMOVE SIMULATION: CIRCLEAPPS PACKAGE (NO REMOVAL) ==='
           apt-get -s remove com.sugiuta.circleapps15 2>&1 | tail -n 45 || true
+          echo '=== READ-ONLY DPKG REMOVE SIMULATION ==='
+          dpkg --no-act --remove com.sugiuta.circleapps15 2>&1 | tail -n 50 || true
           echo '=== ROOTLESS PACKAGE AUDIT ==='
           dpkg --audit 2>&1 | head -n 30 || true
           REMOTE
