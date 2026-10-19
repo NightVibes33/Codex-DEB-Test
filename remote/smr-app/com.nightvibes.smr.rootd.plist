@@ -5,6 +5,11 @@
 <key>ProgramArguments</key><array><string>/var/jb/usr/libexec/smr-rootd</string></array>
 <key>RunAtLoad</key><true/>
 <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
+<key>ProcessType</key><string>Interactive</string>
+<key>JetsamProperties</key><dict>
+<key>JetsamPriority</key><integer>10</integer>
+<key>JetsamMemoryLimit</key><integer>64</integer>
+</dict>
 <key>UserName</key><string>root</string>
 <key>WorkingDirectory</key><string>/var/mobile</string>
 </dict></plist>
