@@ -1,0 +1,10 @@
+Package: com.nightvibes.safemoderepair
+Name: Safe Mode Repair
+Version: 1.0.0
+Architecture: iphoneos-arm64
+Section: Utilities
+Priority: optional
+Maintainer: NightVibes33
+Description: On-device iPhone jailbreak safe mode crash analysis and tweak management app.
+ A real UIKit app installed to the Home Screen with a privileged local repair
+ service for reversible tweak disable/re-enable and dependency-checked removal.
