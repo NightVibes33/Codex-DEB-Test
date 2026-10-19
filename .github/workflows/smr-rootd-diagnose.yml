@@ -1,0 +1,76 @@
+name: Diagnose Safe Mode Repair root service
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [.github/workflows/smr-rootd-diagnose.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    environment:
+      name: TAILSCALE_AUTHKEY-
+    timeout-minutes: 12
+    steps:
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+      - name: Diagnose and recover Safe Mode Repair daemon
+        env:
+          HOST: 100.96.37.124
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          ROOT_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends sshpass openssh-client >/dev/null
+          mkdir -p "$HOME/.ssh"
+          chmod 0700 "$HOME/.ssh"
+          for attempt in $(seq 1 10); do
+            if ssh-keyscan -T 8 -H "$HOST" > "$HOME/.ssh/known_hosts" 2>/dev/null && [ -s "$HOME/.ssh/known_hosts" ]; then break; fi
+            sudo tailscale ping --timeout=5s --c 1 "$HOST" || true
+            sleep 5
+          done
+          test -s "$HOME/.ssh/known_hosts"
+          chmod 0600 "$HOME/.ssh/known_hosts"
+          opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" -o ConnectTimeout=20)
+          {
+            printf '%s\n' "$ROOT_PASSWORD"
+            cat <<'REMOTE'
+          set -u
+          export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/usr/bin:/bin:$PATH
+          PLIST=/var/jb/Library/LaunchDaemons/com.nightvibes.smr.rootd.plist
+          echo '=== DEVICE AND PACKAGE ==='
+          sysctl -n hw.machine
+          dpkg-query -W -f='${Package} ${Version} ${db:Status-Abbrev}\n' com.nightvibes.safemoderepair 2>/dev/null || true
+          echo '=== SERVICE BEFORE RECOVERY ==='
+          launchctl list | grep -F 'com.nightvibes.smr.rootd' || true
+          launchctl print system/com.nightvibes.smr.rootd 2>&1 | head -n 90 || true
+          echo '=== DAEMON FILES ==='
+          ls -l "$PLIST" /var/jb/usr/libexec/smr-rootd /var/mobile/Library/SafeModeRepair/rootd.sock 2>&1 || true
+          file /var/jb/usr/libexec/smr-rootd 2>&1 || true
+          codesign -vv /var/jb/usr/libexec/smr-rootd 2>&1 || true
+          plutil -lint "$PLIST" 2>&1 || true
+          echo '=== LAUNCHCTL BOOTSTRAP ==='
+          launchctl bootstrap system "$PLIST" 2>&1 || true
+          launchctl kickstart -k system/com.nightvibes.smr.rootd 2>&1 || true
+          echo '=== SERVICE AFTER RECOVERY ==='
+          launchctl list | grep -F 'com.nightvibes.smr.rootd' || true
+          launchctl print system/com.nightvibes.smr.rootd 2>&1 | head -n 90 || true
+          ls -l /var/mobile/Library/SafeModeRepair/rootd.sock 2>&1 || true
+          echo '=== READ ONLY SOCKET SMOKE ==='
+          sudo -u mobile /var/jb/usr/local/bin/smr-smoke 2>&1 || true
+          echo '=== DONE ==='
+          REMOTE
+          } | sshpass -e ssh "${opts[@]}" mobile@"$HOST" 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; exec sudo -S -p "" "$SHELL_PATH" -s' 2>&1 | tee smr-service-inspect.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smr-service-inspect-${{ github.run_id }}
+          path: smr-service-inspect.txt
+          retention-days: 14
