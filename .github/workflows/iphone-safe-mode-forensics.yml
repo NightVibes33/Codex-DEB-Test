@@ -57,6 +57,8 @@ jobs:
           launchctl getenv _SafeMode 2>&1 || true
           echo '=== CRASH REPORT NAMES ==='
           ls -lt /var/mobile/Library/Logs/CrashReporter/SpringBoard-*.ips /var/mobile/Library/Logs/CrashReporter/backboardd-*.ips /var/mobile/Library/Logs/CrashReporter/Retired/SpringBoard-*.ips /var/mobile/Library/Logs/CrashReporter/Retired/backboardd-*.ips 2>/dev/null | head -n 18 || true
+          echo '=== SAFE APT REMOVE SIMULATION: CIRCLEAPPS PACKAGE (NO REMOVAL) ==='
+          apt-get -s remove com.sugiuta.circleapps15 2>&1 | tail -n 45 || true
           echo '=== ROOTLESS PACKAGE AUDIT ==='
           dpkg --audit 2>&1 | head -n 30 || true
           REMOTE
