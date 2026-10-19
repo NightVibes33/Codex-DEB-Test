@@ -152,9 +152,13 @@ uninstall() {
  echo "Validated $method removal simulation for $pkg:"
  cat "$plan"
  rm -f "$plan"
- printf "Type REMOVE %s to uninstall this package: " "$pkg"
- IFS= read -r confirm || fail 'Cancelled.'
- [ "$confirm" = "REMOVE $pkg" ] || fail 'Cancelled; no packages removed.'
+ if [ "${SMR_GUI_APPROVED:-0}" = 1 ]; then
+  echo "Uninstall approved by Safe Mode Repair app after confirmation."
+ else
+  printf "Type REMOVE %s to uninstall this package: " "$pkg"
+  IFS= read -r confirm || fail 'Cancelled.'
+  [ "$confirm" = "REMOVE $pkg" ] || fail 'Cancelled; no packages removed.'
+ fi
  if [ "$method" = apt ]; then
   apt-get remove "$pkg" || fail 'APT removal failed. No fallback removal attempted.'
  else
