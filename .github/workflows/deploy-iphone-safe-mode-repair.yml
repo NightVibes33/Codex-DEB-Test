@@ -78,13 +78,16 @@ jobs:
           for attempt in $(seq 1 15); do
             if ssh-keyscan -T 8 -H "$IPHONE_HOST" > "$HOME/.ssh/known_hosts" 2>/dev/null && [ -s "$HOME/.ssh/known_hosts" ]; then break; fi
             echo "Waiting for iPhone SSH (${attempt}/15)"
+            sudo tailscale ping --timeout=5s --c 1 "$IPHONE_HOST" || true
             sleep 8
           done
           test -s "$HOME/.ssh/known_hosts" || { echo 'BLOCKED: iPhone SSH not reachable over Tailscale'; exit 1; }
           chmod 600 "$HOME/.ssh/known_hosts"
           opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=10 -o ServerAliveCountMax=4)
-          sshpass -e scp -O "${opts[@]}" stage/smr-scan mobile@"$IPHONE_HOST":/var/mobile/Media/smr-scan-stage
-          sshpass -e scp -O "${opts[@]}" stage/remote/safemode-repair mobile@"$IPHONE_HOST":/var/mobile/Media/safemode-repair-stage
+          # Jailbreak sshd may have no SFTP subsystem / remote scp binary.
+          # Transfer raw bytes with shell and cat instead.
+          sshpass -e ssh "${opts[@]}" mobile@"$IPHONE_HOST" 'cat > /var/mobile/Media/smr-scan-stage' < stage/smr-scan
+          sshpass -e ssh "${opts[@]}" mobile@"$IPHONE_HOST" 'cat > /var/mobile/Media/safemode-repair-stage' < stage/remote/safemode-repair
           {
             printf '%s\n' "$ROOT_PASSWORD"
             cat <<'REMOTE'
