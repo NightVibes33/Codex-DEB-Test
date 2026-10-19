@@ -1,0 +1,167 @@
+#!/bin/sh
+# Safe Mode Repair: reversible tweak controls for Dopamine rootless / ElleKit.
+set -u
+PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/usr/sbin:/sbin:$PATH
+export PATH
+TI=/var/jb/usr/lib/TweakInject
+BIN=/var/jb/usr/local/bin/smr-scan
+WORK=/var/mobile/Library/SafeModeRepair
+SUFFIX=.safemode-repair-disabled
+REPORT="$WORK/latest.tsv"
+fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+need_root() { [ "$(id -u)" = 0 ] || fail 'Root required: sudo /var/jb/usr/local/bin/safemode-repair'; }
+valid_name() {
+ case "$1" in ''|*/*|*'..'*|*[!a-zA-Z0-9_.+-]*) return 1 ;; esac
+ return 0
+}
+require_name() { [ "$#" -eq 1 ] && valid_name "$1" || fail 'Supply an installed tweak name (not a path).'; }
+owner() {
+ n=$1
+ for path in "$TI/$n.dylib" "/usr/lib/TweakInject/$n.dylib" "$TI/$n.dylib$SUFFIX"; do
+  line=$(dpkg-query -S "$path" 2>/dev/null | head -n 1 || true)
+  [ -n "$line" ] || continue
+  pkg=${line%%:*}
+  pkg=${pkg%%,*}
+  case "$pkg" in ''|*[!a-zA-Z0-9.+-]*) continue ;; esac
+  printf '%s\n' "$pkg"
+  return 0
+ done
+ return 1
+}
+scan() {
+ mkdir -p "$WORK" || fail "Cannot make $WORK"
+ umask 077
+ if [ -x "$BIN" ]; then
+  tmp="$REPORT.tmp.$$"
+  if "$BIN" > "$tmp"; then mv -f "$tmp" "$REPORT"; else rm -f "$tmp"; fail 'Crash scanner failed'; fi
+ else
+  : > "$REPORT"
+  for file in "$TI"/*.dylib; do
+   [ -f "$file" ] || continue
+   name=${file##*/};name=${name%.dylib}
+   valid_name "$name" && printf '%s\t0\t0\n' "$name" >> "$REPORT"
+  done
+  echo 'Native crash analyzer missing; installed tweaks listed without attribution.' >&2
+ fi
+ echo
+ echo '=== SAFE MODE CRASH SUSPECTS ==='
+ echo 'Scores use crashing-thread/exception frames, NOT merely loaded images.'
+ echo 'Higher score = stronger evidence, not guaranteed causation.'
+ printf 'SCORE\tREPORTS\tTWEAK\tPACKAGE\n'
+ if [ -s "$REPORT" ]; then
+  tab=$(printf '\t')
+  sort -t "$tab" -k2,2nr "$REPORT" | while IFS="$tab" read -r name score count; do
+   [ -n "$name" ] || continue
+   pkg=$(owner "$name" 2>/dev/null || echo unowned)
+   printf '%s\t%s\t%s\t%s\n' "$score" "$count" "$name" "$pkg"
+  done
+ else
+  echo 'No active tweak dylibs detected.'
+ fi
+ echo
+ echo 'Score 0 means no matching crashing-thread evidence in the recent logs.'
+ echo "Diagnosis saved locally: $REPORT"
+}
+list_disabled() {
+ echo '=== DISABLED BY THIS TOOL ==='
+ seen=0
+ for file in "$TI"/*.dylib"$SUFFIX"; do
+  [ -f "$file" ] || continue
+  name=${file##*/};name=${name%.dylib$SUFFIX}
+  printf '%s\n' "$name";seen=1
+ done
+ [ "$seen" -eq 1 ] || echo '(none)'
+}
+disable() {
+ need_root;require_name "$@"
+ n=$1
+ src="$TI/$n.dylib";dst="$src$SUFFIX"
+ [ -f "$src" ] || fail "Tweak dylib not active or not found: $n"
+ [ ! -e "$dst" ] || fail "Disabled backup already exists for $n; refusing to overwrite."
+ [ ! -e "$TI/$n.plist$SUFFIX" ] || fail 'Filter backup exists; refusing to overwrite.'
+ [ -d "$WORK" ] || mkdir -p "$WORK"
+ mv "$src" "$dst" || fail 'Could not disable dylib'
+ if [ -f "$TI/$n.plist" ]; then
+  if ! mv "$TI/$n.plist" "$TI/$n.plist$SUFFIX"; then
+   mv "$dst" "$src" || true
+   fail 'Filter rename failed; dylib rollback attempted'
+  fi
+ fi
+ printf '%s\tDISABLE\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$n" >> "$WORK/actions.log"
+ echo "DISABLED: $n (original files retained with $SUFFIX)."
+ echo 'Respring only when ready; SSH remains available for re-enable.'
+}
+enable() {
+ need_root;require_name "$@"
+ n=$1
+ src="$TI/$n.dylib$SUFFIX";dst="$TI/$n.dylib"
+ [ -f "$src" ] || fail "No disabled tweak found: $n"
+ [ ! -e "$dst" ] || fail "Active dylib already exists; refusing to overwrite."
+ [ ! -e "$TI/$n.plist" ] || fail 'Active filter already exists; refusing to overwrite.'
+ mv "$src" "$dst" || fail 'Could not restore dylib'
+ if [ -f "$TI/$n.plist$SUFFIX" ]; then
+  if ! mv "$TI/$n.plist$SUFFIX" "$TI/$n.plist"; then
+   mv "$dst" "$src" || true
+   fail 'Filter restore failed; dylib rollback attempted'
+  fi
+ fi
+ mkdir -p "$WORK"
+ printf '%s\tENABLE\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$n" >> "$WORK/actions.log"
+ echo "RE-ENABLED: $n. Respring when ready."
+}
+uninstall() {
+ need_root;require_name "$@"
+ n=$1
+ [ -e "$TI/$n.dylib" ] || [ -e "$TI/$n.dylib$SUFFIX" ] || fail 'Tweak not found'
+ pkg=$(owner "$n") || fail 'No owning Debian package found; cannot safely uninstall.'
+ case "$pkg" in apt|dpkg|ellekit|org.coolstar.sileo|com.opa334.altlist|preferenceloader|com.ex.substitute|libhooker)
+  fail 'Refusing to remove core package.' ;; esac
+ command -v apt-get >/dev/null 2>&1 || fail 'apt-get not installed.'
+ mkdir -p "$WORK"
+ plan="$WORK/apt-simulate.$$"
+ if ! apt-get -s remove "$pkg" > "$plan" 2>&1; then
+  cat "$plan";rm -f "$plan";fail 'APT simulation failed; nothing removed.'
+ fi
+ echo "APT dry run for $pkg:"
+ grep -E '^(Remv|The following packages|WARNING:|E:)' "$plan" || true
+ extra=$(awk -v p="$pkg" '$1=="Remv" && $2!=p {print $2}' "$plan")
+ [ -z "$extra" ] || { rm -f "$plan";fail "Removing $pkg also removes: $extra. Operation rejected."; }
+ grep -q "^Remv $pkg " "$plan" || { rm -f "$plan";fail "Simulation did not schedule $pkg for removal."; }
+ rm -f "$plan"
+ printf "Type REMOVE %s to uninstall this package: " "$pkg"
+ IFS= read -r confirm || fail 'Cancelled.'
+ [ "$confirm" = "REMOVE $pkg" ] || fail 'Cancelled; no packages removed.'
+ apt-get remove "$pkg" || fail 'APT uninstall failed. Inspect dpkg status before retry.'
+ printf '%s\tUNINSTALL\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$n" "$pkg" >> "$WORK/actions.log"
+ echo "Package removed: $pkg. Any disabled copies remain for recovery."
+}
+menu() {
+ need_root
+ while :; do
+  echo;echo '=== Safe Mode Tweak Repair ==='
+  echo '1) Scan SpringBoard/backboardd crashes and rank tweaks'
+  echo '2) Disable a tweak (reversible)'
+  echo '3) Uninstall tweak package (APT confirmation required)'
+  echo '4) Re-enable a disabled tweak'
+  echo '5) List disabled tweaks'
+  echo '6) Exit'
+  printf 'Choice: ';IFS= read -r c || exit 0
+  case "$c" in
+   1) scan ;;
+   2|3|4) printf 'Tweak name (from scan): ';IFS= read -r n || exit 0
+    case "$c" in 2) disable "$n" ;;3) uninstall "$n" ;;4) enable "$n" ;;esac ;;
+   5) list_disabled ;;
+   6) return 0 ;;
+   *) echo 'Invalid choice.' ;;
+  esac
+ done
+}
+case "${1:-menu}" in
+ scan) need_root;scan ;;
+ list-disabled) list_disabled ;;
+ disable) shift;disable "$@" ;;
+ enable) shift;enable "$@" ;;
+ uninstall) shift;uninstall "$@" ;;
+ menu) menu ;;
+ *) echo 'Usage: safemode-repair [scan|menu|disable NAME|enable NAME|uninstall NAME|list-disabled]' >&2;exit 2 ;;
+esac
