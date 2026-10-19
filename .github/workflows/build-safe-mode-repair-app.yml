@@ -1,0 +1,213 @@
+name: Build and Install Safe Mode Repair iPhone App DEB
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - feature/safe-mode-repair-ios-app
+    paths:
+      - "remote/smr-app/**"
+      - "remote/safemode-repair"
+      - "remote/smr-scan.c"
+      - ".github/workflows/build-safe-mode-repair-app.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unit-test scanner and validate source
+        shell: bash
+        run: |
+          set -euo pipefail
+          cc -O2 -Wall remote/smr-scan.c -o /tmp/smr-scan-host
+          mkdir -p /tmp/smr-fixture/tweaks /tmp/smr-fixture/crash
+          printf x > /tmp/smr-fixture/tweaks/BadTweak.dylib
+          printf x > /tmp/smr-fixture/tweaks/LoadedTweak.dylib
+          printf '%s\n%s\n' '{"app_name":"SpringBoard"}' '{"usedImages":[{"path":"/var/jb/usr/lib/TweakInject/BadTweak.dylib"},{"path":"/var/jb/usr/lib/TweakInject/LoadedTweak.dylib"}],"faultingThread":0,"threads":[{"triggered":true,"frames":[{"imageIndex":0}]}]}' > /tmp/smr-fixture/crash/SpringBoard-test.ips
+          /tmp/smr-scan-host --inject /tmp/smr-fixture/tweaks --crashes /tmp/smr-fixture/crash > /tmp/smr-test-output
+          grep -F $'BadTweak\t30\t1' /tmp/smr-test-output
+          grep -F $'LoadedTweak\t0\t0' /tmp/smr-test-output
+          sh -n remote/safemode-repair
+          for f in remote/smr-app/postinst remote/smr-app/prerm remote/smr-app/postrm; do sh -n "$f"; done
+          plutil -lint remote/smr-app/Info.plist remote/smr-app/entitlements.plist remote/smr-app/com.nightvibes.smr.rootd.plist
+
+      - name: Cross-compile native iOS 15 UIKit app and privileged helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          mkdir -p bundle/SafeModeRepair.app
+          cp remote/smr-app/Info.plist bundle/SafeModeRepair.app/Info.plist
+          xcrun --sdk iphoneos clang -arch arm64 -miphoneos-version-min=15.0 -isysroot "$SDK" \
+            -fobjc-arc -O2 -Wall -Wextra \
+            remote/smr-app/main.m -framework Foundation -framework UIKit \
+            -o bundle/SafeModeRepair.app/SafeModeRepair
+          xcrun --sdk iphoneos clang -arch arm64 -miphoneos-version-min=15.0 -isysroot "$SDK" \
+            -O2 -Wall -Wextra remote/smr-app/rootd.c -o bundle/smr-rootd
+          xcrun --sdk iphoneos clang -arch arm64 -miphoneos-version-min=15.0 -isysroot "$SDK" \
+            -O2 -Wall -Wextra remote/smr-scan.c -o bundle/smr-scan
+          file bundle/SafeModeRepair.app/SafeModeRepair bundle/smr-rootd bundle/smr-scan
+
+      - name: Generate a real Home Screen icon and sign binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/smr-icon.swift <<'SWIFT'
+          import AppKit
+          import Foundation
+          let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 512, pixelsHigh: 512, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+          NSGraphicsContext.saveGraphicsState()
+          NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
+          NSGraphicsContext.current?.imageInterpolation = .high
+          NSColor(calibratedRed: 0.055, green: 0.10, blue: 0.19, alpha: 1).setFill()
+          NSBezierPath(rect: NSRect(x: 0, y: 0, width: 512, height: 512)).fill()
+          NSColor(calibratedRed: 0.24, green: 0.82, blue: 0.88, alpha: 1).setStroke()
+          let ring = NSBezierPath(ovalIn: NSRect(x: 70, y: 70, width: 372, height: 372))
+          ring.lineWidth = 18
+          ring.stroke()
+          let bar = NSBezierPath()
+          bar.move(to: NSPoint(x: 136, y: 256))
+          bar.line(to: NSPoint(x: 208, y: 256))
+          bar.line(to: NSPoint(x: 228, y: 300))
+          bar.line(to: NSPoint(x: 271, y: 188))
+          bar.line(to: NSPoint(x: 298, y: 256))
+          bar.line(to: NSPoint(x: 374, y: 256))
+          bar.lineWidth = 20
+          bar.lineCapStyle = .round
+          bar.lineJoinStyle = .round
+          NSColor.white.setStroke()
+          bar.stroke()
+          NSGraphicsContext.restoreGraphicsState()
+          let dest = CommandLine.arguments[1]
+          try bitmap.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: dest))
+          SWIFT
+          swift /tmp/smr-icon.swift bundle/SafeModeRepair.app/AppIcon.png
+          codesign --force --sign - --timestamp=none --entitlements remote/smr-app/entitlements.plist bundle/SafeModeRepair.app
+          codesign --force --sign - --timestamp=none bundle/smr-rootd
+          codesign --force --sign - --timestamp=none bundle/smr-scan
+          codesign --verify --verbose=2 bundle/SafeModeRepair.app
+          codesign --verify --verbose=2 bundle/smr-rootd
+          chmod 0755 bundle/SafeModeRepair.app/SafeModeRepair bundle/smr-rootd bundle/smr-scan
+          tar czf safe-mode-repair-compiled.tar.gz -C bundle .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: safe-mode-repair-compiled-${{ github.run_id }}
+          path: safe-mode-repair-compiled.tar.gz
+          retention-days: 14
+
+  package:
+    needs: compile
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: safe-mode-repair-compiled-${{ github.run_id }}
+      - name: Assemble signed rootless iOS app and installer DEB
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir bundle
+          tar xzf safe-mode-repair-compiled.tar.gz -C bundle
+          ROOT="$PWD/debroot"
+          mkdir -p "$ROOT/DEBIAN" "$ROOT/var/jb/Applications/SafeModeRepair.app" "$ROOT/var/jb/usr/libexec" "$ROOT/var/jb/usr/local/bin" "$ROOT/var/jb/Library/LaunchDaemons"
+          cp -a bundle/SafeModeRepair.app/. "$ROOT/var/jb/Applications/SafeModeRepair.app/"
+          install -m 0755 bundle/smr-rootd "$ROOT/var/jb/usr/libexec/smr-rootd"
+          install -m 0755 bundle/smr-scan "$ROOT/var/jb/usr/local/bin/smr-scan"
+          install -m 0755 remote/safemode-repair "$ROOT/var/jb/usr/local/bin/safemode-repair"
+          cp remote/smr-app/com.nightvibes.smr.rootd.plist "$ROOT/var/jb/Library/LaunchDaemons/"
+          cp remote/smr-app/control "$ROOT/DEBIAN/control"
+          for hook in postinst prerm postrm; do
+            install -m 0755 "remote/smr-app/$hook" "$ROOT/DEBIAN/$hook"
+          done
+          chmod 0755 "$ROOT/var/jb/Applications/SafeModeRepair.app/SafeModeRepair"
+          chmod 0644 "$ROOT/var/jb/Applications/SafeModeRepair.app/Info.plist" "$ROOT/var/jb/Applications/SafeModeRepair.app/AppIcon.png"
+          python3 - <<'PY'
+          import plistlib
+          p="debroot/var/jb/Applications/SafeModeRepair.app/Info.plist"
+          with open(p,"rb") as f: a=plistlib.load(f)
+          assert a["CFBundleIdentifier"]=="com.nightvibes.safemoderepair"
+          assert a["CFBundleExecutable"]=="SafeModeRepair"
+          assert a["MinimumOSVersion"]=="15.0"
+          PY
+          mkdir -p dist
+          dpkg-deb --build --root-owner-group "$ROOT" "dist/safe-mode-repair_1.0.0_iphoneos-arm64.deb"
+          dpkg-deb -I dist/*.deb
+          dpkg-deb -c dist/*.deb | grep -E 'SafeModeRepair.app/(SafeModeRepair|Info.plist|AppIcon.png)|smr-rootd|LaunchDaemons'
+          sha256sum dist/*.deb > dist/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: safe-mode-repair-deb-${{ github.run_id }}
+          path: dist/
+          retention-days: 30
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment:
+      name: TAILSCALE_AUTHKEY-
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: safe-mode-repair-deb-${{ github.run_id }}
+          path: dist
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - name: Install DEB on actual iPhone 6s and verify app registration
+        shell: bash
+        env:
+          HOST: 100.96.37.124
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          ROOT_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends openssh-client sshpass >/dev/null
+          mkdir -p ~/.ssh
+          chmod 0700 ~/.ssh
+          for try in $(seq 1 15); do
+            if ssh-keyscan -T 8 -H "$HOST" > ~/.ssh/known_hosts 2>/dev/null && [ -s ~/.ssh/known_hosts ]; then break; fi
+            sudo tailscale ping --timeout=5s --c 1 "$HOST" || true
+            sleep 7
+          done
+          test -s ~/.ssh/known_hosts
+          chmod 0600 ~/.ssh/known_hosts
+          opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=10 -o ServerAliveCountMax=4)
+          sshpass -e ssh "${opts[@]}" mobile@"$HOST" 'cat > /var/mobile/Media/safe-mode-repair-app.deb' < dist/safe-mode-repair_1.0.0_iphoneos-arm64.deb
+          {
+            printf '%s\n' "$ROOT_PASSWORD"
+            cat <<'REMOTE'
+          set -eu
+          export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/usr/bin:/bin:$PATH
+          [ "$(sysctl -n hw.machine)" = "iPhone8,1" ] || { echo "Wrong target device"; exit 1; }
+          dpkg -i /var/mobile/Media/safe-mode-repair-app.deb
+          test -x /var/jb/Applications/SafeModeRepair.app/SafeModeRepair
+          test -x /var/jb/usr/libexec/smr-rootd
+          test -r /var/jb/Applications/SafeModeRepair.app/Info.plist
+          dpkg-query -W -f='installed_package=${Package} version=${Version} status=${db:Status-Abbrev}\n' com.nightvibes.safemoderepair
+          echo '=== APP SERVICE ==='
+          launchctl list | grep -F 'com.nightvibes.smr.rootd' || true
+          ls -l /var/mobile/Library/SafeModeRepair/rootd.sock 2>/dev/null || true
+          echo '=== INSTALLED APP ==='
+          ls -l /var/jb/Applications/SafeModeRepair.app/Info.plist /var/jb/Applications/SafeModeRepair.app/SafeModeRepair
+          echo 'INSTALL_CHECK_COMPLETE=1'
+          REMOTE
+          } | sshpass -e ssh "${opts[@]}" mobile@"$HOST" 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; exec sudo -S -p "" "$SHELL_PATH" -s' 2>&1 | tee iphone-app-install.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: safe-mode-repair-app-install-${{ github.run_id }}
+          path: iphone-app-install.log
+          if-no-files-found: warn
+          retention-days: 14

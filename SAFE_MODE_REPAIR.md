@@ -1,23 +1,42 @@
-# iPhone 6s Safe Mode Repair
+# Safe Mode Repair — iPhone 6s app
 
-For **iPhone8,1**, iOS 15.8.8, Dopamine rootless and ElleKit.
+**Built for** iPhone 6s (`iPhone8,1`), iOS 15+, Dopamine rootless and ElleKit.
 
-The GitHub Actions workflow **iPhone 6s Safe Mode Repair Installer** builds an iOS arm64 scanner, connects to the existing iPhone over Tailscale/SSH using the configured GitHub secrets, installs both files to `/var/jb/usr/local/bin/` and immediately collects a **read-only** crash report.
+## Install the DEB
 
-## On-device menu
+Install `safe-mode-repair_1.0.0_iphoneos-arm64.deb` using Filza, Sileo, Zebra, or `dpkg -i` via SSH.
 
-Run over SSH or from a privileged jailbreak terminal:
+The DEB **automatically installs a real native UIKit application** at:
+
+`/var/jb/Applications/SafeModeRepair.app`
+
+Package scripts run `uicache` to register the **Safe Mode Repair** Home Screen icon and load its root-owned launchd daemon (`com.nightvibes.smr.rootd`).
+
+App bundle ID: `com.nightvibes.safemoderepair`.
+
+## In-app tools
+
+Open **Safe Mode Repair** from the Home Screen. The main screen scans SpringBoard/backboardd crash reports and lists installed tweak libraries with their originating Debian package. Tap any tweak for:
+
+- **Disable tweak**: reversibly rename its dylib and filter without deleting preferences. No automatic respring.
+- **Uninstall package**: confirm removal, then the service checks APT's removal simulation; if your repository index is malformed, performs a dependency-respecting `dpkg --no-act --remove` before removal.
+- **Restore**: tap **Disabled** at the top to list disabled tweaks and re-enable one.
+
+The app has a **Refresh** button. The scanner bases suspicion on crashing-thread frames, **not merely on a loaded library list**. If the native scanner is terminated by device memory pressure, the interface falls back to an installed-tweak list and clearly labels attribution as unavailable. No tweak is automatically modified.
+
+## Components
+
+- `remote/smr-app/main.m`: native UIKit iPhone UI and socket client.
+- `remote/smr-app/rootd.c`: local root daemon with a strict command allowlist; the socket is owned by the mobile user with 0600 permissions.
+- `remote/safemode-repair`: reversible file management and dependency-checked uninstall.
+- `remote/smr-scan.c`: native crash stack scanner.
+- `remote/smr-app/postinst`: registers the Home Screen app and starts the daemon.
+- `.github/workflows/build-safe-mode-repair-app.yml`: builds the signed app, packages the DEB, and SSH-installs it on the iPhone 6s when merged to `main`.
+
+The previous terminal command remains available for recovery:
 
 ```sh
 sudo /var/jb/usr/local/bin/safemode-repair menu
 ```
 
-- **Scan:** Uses real crashing/faulting thread and exception frames from the newest SpringBoard/backboardd .ips/.crash reports. Merely being listed in `usedImages` does *not* make a tweak suspicious. Results are ranked by evidence score, with Debian package ownership when possible. These are suspect rankings, not proof of a single cause.
-- **Disable:** Renames only the chosen tweak's .dylib and matching .plist by appending `.safemode-repair-disabled`. Reversible; does not wipe preferences.
-- **Uninstall:** Resolves package ownership, previews APT removal, rejects dependent-package removals and prompts for an explicit `REMOVE package.id` confirmation.
-- **Re-enable:** Restores a tweak disabled by this tool.
-- **List disabled:** Shows the reversible disabled-file set.
-
-The tool does not automatically respring or change any tweak during initial deployment. Run a respring separately when ready. Evidence: `/var/mobile/Library/SafeModeRepair/latest.tsv`; history: `actions.log`. If Tailscale/SSH is unreachable, the installer reports failure without claiming the iPhone was modified.
-
-CLI: `safemode-repair scan|disable NAME|enable NAME|uninstall NAME|list-disabled`.
+Logs and results are under `/var/mobile/Library/SafeModeRepair/`. Installing the package does not reboot or respring the device.
