@@ -1,6 +1,6 @@
 Package: com.nightvibes.safemoderepair
 Name: Safe Mode Repair
-Version: 1.1.0
+Version: 1.1.1
 Architecture: iphoneos-arm64
 Section: Utilities
 Priority: optional
