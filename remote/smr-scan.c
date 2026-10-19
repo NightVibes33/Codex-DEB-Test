@@ -19,6 +19,7 @@ static int ntok,invalid;
 static Tweak tweaks[MAXTWEAK];static int tweaks_n;
 static Crash crashes[MAXLOG];static int crashes_n;
 static int hits[MAXTWEAK];
+static int memory_pressure_reports;
 static void ws(const char **p){while(**p&&isspace((unsigned char)**p))++*p;}
 static int parse(const char **p,int depth){
  ws(p);if(depth>110||ntok>=MAXTOK||!**p){invalid=1;return -1;}
@@ -107,6 +108,8 @@ static void inspect_ips(char *json){
   const char *q=nl+1;ws(&q);if(*q=='{')p=q;
  }}
  ntok=0;invalid=0;int root=parse(&p,0);if(root<0||invalid)return;
+ int k=prop(root,"ktriageinfo");char triage[5000];valcopy(k,triage,sizeof(triage));
+ if(strstr(triage,"memory shortage"))memory_pressure_reports++;
  int used=prop(root,"usedImages");int threads=prop(root,"threads");if(used<0)return;
  int map[MAXIMAGE],n=0;
  for(int i=used+1;i<tokens[used].next&&n<MAXIMAGE;i=tokens[i].next){
@@ -168,6 +171,7 @@ int main(int argc,char **argv){
   examined++;free(body);
  }
  fprintf(stderr,"Crash reports examined: %d (SpringBoard/backboardd). Active tweaks: %d.\n",examined,tweaks_n);
+ if(memory_pressure_reports)fprintf(stderr,"System diagnosis: %d crash report(s) contain VM memory shortage. No individual tweak is identified by this evidence.\n",memory_pressure_reports);
  for(int i=0;i<tweaks_n;i++){
   if(strpbrk(tweaks[i].name,"\t\r\n"))continue;
   printf("%s\t%d\t%d\n",tweaks[i].name,tweaks[i].score,tweaks[i].reports);
