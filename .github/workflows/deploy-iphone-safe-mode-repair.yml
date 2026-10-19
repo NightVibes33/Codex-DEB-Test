@@ -1,0 +1,112 @@
+name: iPhone 6s Safe Mode Repair Installer
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - remote/smr-scan.c
+      - remote/safemode-repair
+      - .github/workflows/deploy-iphone-safe-mode-repair.yml
+      - triggers/iphone-safe-mode-repair.txt
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Native scanner unit test
+        shell: bash
+        run: |
+          set -euo pipefail
+          cc -O2 -Wall remote/smr-scan.c -o /tmp/smr-scan-host
+          mkdir -p /tmp/smr-test/tweaks /tmp/smr-test/crash
+          printf x > /tmp/smr-test/tweaks/Faulty.dylib
+          printf x > /tmp/smr-test/tweaks/LoadedOnly.dylib
+          printf '%s\n%s\n' '{"app_name":"SpringBoard"}' '{"usedImages":[{"path":"/var/jb/usr/lib/TweakInject/Faulty.dylib"},{"path":"/var/jb/usr/lib/TweakInject/LoadedOnly.dylib"}],"faultingThread":0,"threads":[{"triggered":true,"frames":[{"imageIndex":0}]}]}' > /tmp/smr-test/crash/SpringBoard-test.ips
+          /tmp/smr-scan-host --inject /tmp/smr-test/tweaks --crashes /tmp/smr-test/crash > /tmp/smr-results
+          grep -F $'Faulty\t30\t1' /tmp/smr-results
+          grep -F $'LoadedOnly\t0\t0' /tmp/smr-results
+          sh -n remote/safemode-repair
+      - name: Cross-compile native arm64 iOS binary
+        run: |
+          set -euo pipefail
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          xcrun --sdk iphoneos clang -arch arm64 -miphoneos-version-min=15.0 -isysroot "$SDK" -O2 -Wall remote/smr-scan.c -o smr-scan
+          codesign --force --sign - smr-scan
+          file smr-scan
+          shasum -a 256 smr-scan
+      - uses: actions/upload-artifact@v4
+        with:
+          name: safe-mode-repair-arm64-${{ github.run_id }}
+          path: |
+            smr-scan
+            remote/safemode-repair
+          retention-days: 14
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: TAILSCALE_AUTHKEY-
+    timeout-minutes: 16
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: safe-mode-repair-arm64-${{ github.run_id }}
+          path: stage
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+      - name: SSH into iPhone 6s, install, scan (no tweaks changed)
+        env:
+          IPHONE_HOST: 100.96.37.124
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          ROOT_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends openssh-client sshpass > /dev/null
+          chmod 755 stage/smr-scan stage/remote/safemode-repair
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          for attempt in $(seq 1 15); do
+            if ssh-keyscan -T 8 -H "$IPHONE_HOST" > "$HOME/.ssh/known_hosts" 2>/dev/null && [ -s "$HOME/.ssh/known_hosts" ]; then break; fi
+            echo "Waiting for iPhone SSH (${attempt}/15)"
+            sleep 8
+          done
+          test -s "$HOME/.ssh/known_hosts" || { echo 'BLOCKED: iPhone SSH not reachable over Tailscale'; exit 1; }
+          chmod 600 "$HOME/.ssh/known_hosts"
+          opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=10 -o ServerAliveCountMax=4)
+          sshpass -e scp "${opts[@]}" stage/smr-scan mobile@"$IPHONE_HOST":/var/mobile/Media/smr-scan-stage
+          sshpass -e scp "${opts[@]}" stage/remote/safemode-repair mobile@"$IPHONE_HOST":/var/mobile/Media/safemode-repair-stage
+          {
+            printf '%s\n' "$ROOT_PASSWORD"
+            cat <<'REMOTE'
+          set -eu
+          export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/usr/bin:/bin:$PATH
+          echo "model=$(sysctl -n hw.machine)"
+          [ "$(sysctl -n hw.machine)" = iPhone8,1 ] || { echo 'Wrong device; no installation'; exit 1; }
+          [ -d /var/jb/usr/lib/TweakInject ] || { echo 'ElleKit directory absent; no installation'; exit 1; }
+          mkdir -p /var/jb/usr/local/bin
+          cp /var/mobile/Media/smr-scan-stage /var/jb/usr/local/bin/smr-scan
+          cp /var/mobile/Media/safemode-repair-stage /var/jb/usr/local/bin/safemode-repair
+          chmod 0755 /var/jb/usr/local/bin/smr-scan /var/jb/usr/local/bin/safemode-repair
+          echo '=== INSTALLED SAFE MODE REPAIR ==='
+          /var/jb/usr/local/bin/safemode-repair scan
+          echo '=== READY ==='
+          echo 'Use sudo /var/jb/usr/local/bin/safemode-repair menu to choose disable/uninstall/restore.'
+          REMOTE
+          } | sshpass -e ssh "${opts[@]}" mobile@"$IPHONE_HOST" 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; exec sudo -S -p "" "$SHELL_PATH" -s' 2>&1 | tee safe-mode-repair-install.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: safe-mode-repair-device-log-${{ github.run_id }}
+          path: safe-mode-repair-install.log
+          if-no-files-found: warn
+          retention-days: 14
