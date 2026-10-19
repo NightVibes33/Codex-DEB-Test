@@ -83,8 +83,8 @@ jobs:
           test -s "$HOME/.ssh/known_hosts" || { echo 'BLOCKED: iPhone SSH not reachable over Tailscale'; exit 1; }
           chmod 600 "$HOME/.ssh/known_hosts"
           opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=10 -o ServerAliveCountMax=4)
-          sshpass -e scp "${opts[@]}" stage/smr-scan mobile@"$IPHONE_HOST":/var/mobile/Media/smr-scan-stage
-          sshpass -e scp "${opts[@]}" stage/remote/safemode-repair mobile@"$IPHONE_HOST":/var/mobile/Media/safemode-repair-stage
+          sshpass -e scp -O "${opts[@]}" stage/smr-scan mobile@"$IPHONE_HOST":/var/mobile/Media/smr-scan-stage
+          sshpass -e scp -O "${opts[@]}" stage/remote/safemode-repair mobile@"$IPHONE_HOST":/var/mobile/Media/safemode-repair-stage
           {
             printf '%s\n' "$ROOT_PASSWORD"
             cat <<'REMOTE'
