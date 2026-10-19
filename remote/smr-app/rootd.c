@@ -98,11 +98,16 @@ static void handle(int client) {
     if (used==sizeof(request)-1) { send_text(client,"ERROR: Command too long.\n"); return; }
     if (!strcmp(request,"SCAN")) { run_repair(client,"scan",NULL,0);return; }
     if (!strcmp(request,"DISABLED")) { run_repair(client,"list-disabled",NULL,0);return; }
+    if (!strcmp(request,"DIAGNOSTICS")) { run_repair(client,"diagnostics",NULL,0);return; }
+    if (!strcmp(request,"TEST_CHECK")) { run_repair(client,"test-check",NULL,0);return; }
+    if (!strcmp(request,"TEST_CANCEL")) { run_repair(client,"test-cancel",NULL,0);return; }
     char *space=strchr(request,' ');
     if (!space) {send_text(client,"ERROR: Unknown command.\n");return;}
     *space=0;
     const char *name=space+1;
     if (!valid_name(name)) {send_text(client,"ERROR: Invalid tweak name.\n");return;}
+    if (!strcmp(request,"TEST_START")) {run_repair(client,"test-start",name,0);return;}
+    if (!strcmp(request,"TEST_FINISH") && (!strcmp(name,"FIXED") || !strcmp(name,"PERSISTS"))) {run_repair(client,"test-finish",name,0);return;}
     if (!strcmp(request,"DISABLE")) {run_repair(client,"disable",name,0);return;}
     if (!strcmp(request,"ENABLE")) {run_repair(client,"enable",name,0);return;}
     if (!strcmp(request,"UNINSTALL")) {run_repair(client,"uninstall",name,1);return;}
