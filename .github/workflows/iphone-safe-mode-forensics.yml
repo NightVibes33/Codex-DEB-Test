@@ -61,7 +61,13 @@ jobs:
           dpkg --audit 2>&1 | head -n 30 || true
           REMOTE
           } | sshpass -e ssh "${opts[@]}" mobile@"$HOST" 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; exec sudo -S -p "" "$SHELL_PATH" -s' 2>&1 | tee smr-system-forensics.txt
-          sshpass -e ssh "${opts[@]}" mobile@"$HOST" 'ls -t /var/mobile/Library/Logs/CrashReporter/SpringBoard-*.ips /var/mobile/Library/Logs/CrashReporter/backboardd-*.ips /var/mobile/Library/Logs/CrashReporter/Retired/SpringBoard-*.ips /var/mobile/Library/Logs/CrashReporter/Retired/backboardd-*.ips 2>/dev/null | head -n 1 | while IFS= read -r f; do head -c 2000000 "$f"; done' > last-crash.ips
+          {
+            printf '%s\n' "$DEVICE_PASSWORD"
+            cat <<'REMOTE_CRASH'
+          p=$(find /var/mobile/Library/Logs/CrashReporter -maxdepth 2 -type f \( -name 'SpringBoard-*.ips' -o -name 'backboardd-*.ips' \) -print | head -n 1)
+          [ -n "$p" ] && cat "$p"
+          REMOTE_CRASH
+          } | sshpass -e ssh "${opts[@]}" mobile@"$HOST" 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; exec sudo -S -p "" "$SHELL_PATH" -s' > last-crash.ips
           python3 - <<'PY' | tee smr-crash-summary.txt
           import json
           from pathlib import Path
