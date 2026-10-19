@@ -38,20 +38,29 @@ owner() {
  printf '%s\n' "$pkg"
 }
 
+scan_fallback() {
+ : > "$REPORT"
+ for file in "$TI"/*.dylib; do
+  [ -f "$file" ] || continue
+  name=${file##*/};name=${name%.dylib}
+  valid_name "$name" && printf '%s\t0\t0\n' "$name" >> "$REPORT"
+ done
+ echo 'Crash attribution unavailable; tweak controls remain available.' >&2
+}
 scan() {
  mkdir -p "$WORK" || fail "Cannot make $WORK"
  umask 077
  if [ -x "$BIN" ]; then
-  tmp="$REPORT.tmp.$$"
-  if "$BIN" > "$tmp"; then mv -f "$tmp" "$REPORT"; else rm -f "$tmp"; fail 'Crash scanner failed'; fi
+  tmp="$REPORT.tmp.$"
+  if "$BIN" > "$tmp"; then
+   mv -f "$tmp" "$REPORT"
+  else
+   rm -f "$tmp"
+   echo 'Native scanner failed or was killed by iOS memory pressure; entering safe fallback.' >&2
+   scan_fallback
+  fi
  else
-  : > "$REPORT"
-  for file in "$TI"/*.dylib; do
-   [ -f "$file" ] || continue
-   name=${file##*/};name=${name%.dylib}
-   valid_name "$name" && printf '%s\t0\t0\n' "$name" >> "$REPORT"
-  done
-  echo 'Native crash analyzer missing; installed tweaks listed without attribution.' >&2
+  scan_fallback
  fi
  echo
  echo '=== SAFE MODE CRASH SUSPECTS ==='
