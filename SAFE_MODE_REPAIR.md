@@ -1,42 +1,36 @@
-# Safe Mode Repair — iPhone 6s app
+# Safe Mode Repair 1.1.0 — Dopamine iPhone 6s
 
-**Built for** iPhone 6s (`iPhone8,1`), iOS 15+, Dopamine rootless and ElleKit.
+A real Home Screen app, installed automatically by `com.nightvibes.safemoderepair` DEB, using a local privileged, mobile-only UNIX socket.
 
-## Install the DEB
+## What changed
 
-Install `safe-mode-repair_1.0.0_iphoneos-arm64.deb` using Filza, Sileo, Zebra, or `dpkg -i` via SSH.
+- Rebuilt dark native UIKit interface with an evidence overview, search, disabled-tweak recovery, and a diagnostics tab.
+- Distinguishes crash-stack evidence from an inconclusive crash. **A zero score is not a finding of innocence or guilt.**
+- Adds controlled single-tweak isolation directly in the app: select a tweak → **Test by temporarily disabling** → **Respring** → record whether Safe Mode disappeared. The result is saved and surfaced at the top of the tweak list.
+- If Safe Mode persists, the tested tweak is restored; respring again to apply.
+- If Safe Mode clears, the tweak remains disabled until you explicitly restore or uninstall it.
+- Any time during the test, **Cancel test and restore** reverses the change; respring to apply.
+- The separate **Uninstall** action checks APT dependency simulation or uses `dpkg --no-act` if APT package indexes are malformed. No automatic package removals.
+- Includes a native, read-only end-to-end service smoke test in deployment.
 
-The DEB **automatically installs a real native UIKit application** at:
+## Evidence and limits
 
-`/var/jb/Applications/SafeModeRepair.app`
+The October 19, 2026 iPhone 6s SpringBoard report contained no injected tweak libraries in its image list; it indicated repeated VM memory-shortage faults. **No software can attribute that report to a particular tweak by crash-frame matching alone.** Controlled isolation can provide new evidence. Multiple interacting tweaks can require more than one test.
 
-Package scripts run `uicache` to register the **Safe Mode Repair** Home Screen icon and load its root-owned launchd daemon (`com.nightvibes.smr.rootd`).
+The app does not auto-disable anything on first run. It does not clear preferences, automatically respring, or remove packages. Its isolation test requires explicit confirmation before each disruptive operation.
 
-App bundle ID: `com.nightvibes.safemoderepair`.
+## Installation
 
-## In-app tools
+Install `safe-mode-repair_1.1.0_iphoneos-arm64.deb` using Sileo, Zebra, Filza, or `dpkg -i`. The post-install script registers `/var/jb/Applications/SafeModeRepair.app` using `uicache` and launches `com.nightvibes.smr.rootd`.
 
-Open **Safe Mode Repair** from the Home Screen. The main screen scans SpringBoard/backboardd crash reports and lists installed tweak libraries with their originating Debian package. Tap any tweak for:
+Bundle ID: `com.nightvibes.safemoderepair`.
 
-- **Disable tweak**: reversibly rename its dylib and filter without deleting preferences. No automatic respring.
-- **Uninstall package**: confirm removal, then the service checks APT's removal simulation; if your repository index is malformed, performs a dependency-respecting `dpkg --no-act --remove` before removal.
-- **Restore**: tap **Disabled** at the top to list disabled tweaks and re-enable one.
+Logs and active tests: `/var/mobile/Library/SafeModeRepair/`.
 
-The app has a **Refresh** button. The scanner bases suspicion on crashing-thread frames, **not merely on a loaded library list**. If the native scanner is terminated by device memory pressure, the interface falls back to an installed-tweak list and clearly labels attribution as unavailable. No tweak is automatically modified.
-
-## Components
-
-- `remote/smr-app/main.m`: native UIKit iPhone UI and socket client.
-- `remote/smr-app/rootd.c`: local root daemon with a strict command allowlist; the socket is owned by the mobile user with 0600 permissions.
-- `remote/safemode-repair`: reversible file management and dependency-checked uninstall.
-- `remote/smr-scan.c`: native crash stack scanner.
-- `remote/smr-app/postinst`: registers the Home Screen app and starts the daemon.
-- `.github/workflows/build-safe-mode-repair-app.yml`: builds the signed app, packages the DEB, and SSH-installs it on the iPhone 6s when merged to `main`.
-
-The previous terminal command remains available for recovery:
+Emergency CLI remains:
 
 ```sh
 sudo /var/jb/usr/local/bin/safemode-repair menu
 ```
 
-Logs and results are under `/var/mobile/Library/SafeModeRepair/`. Installing the package does not reboot or respring the device.
+Build / SSH deployment: `.github/workflows/build-safe-mode-repair-app.yml`.
