@@ -212,8 +212,28 @@ static NSDictionary *SMRKeyValues(NSString *input) {
         self.scanMessage=@"Crash attribution unavailable. Use a controlled isolation test to identify a culprit.";
     }else if(disabled){self.scanMessage=@"Disabled tweaks can be restored at any time.";}
     else{self.scanMessage=@"Only frames on the crashing thread count as direct evidence. Scores of zero are inconclusive.";}
-    self.tweaks=records;
+    self.tweaks=[records sortedArrayUsingComparator:^NSComparisonResult(NSDictionary *a,NSDictionary *b) {
+        NSInteger va=[[self isolationVerdict:a[@"name"]] isEqualToString:@"FIXED"]?2:
+          ([[self isolationVerdict:a[@"name"]] isEqualToString:@"PERSISTS"]?-1:0);
+        NSInteger vb=[[self isolationVerdict:b[@"name"]] isEqualToString:@"FIXED"]?2:
+          ([[self isolationVerdict:b[@"name"]] isEqualToString:@"PERSISTS"]?-1:0);
+        if(va!=vb)return va>vb?NSOrderedAscending:NSOrderedDescending;
+        NSInteger sa=[a[@"score"] integerValue],sb=[b[@"score"] integerValue];
+        if(sa!=sb)return sa>sb?NSOrderedAscending:NSOrderedDescending;
+        return [a[@"name"] localizedStandardCompare:b[@"name"]];
+    }];
     [self applyFilter];
+}
+- (NSString *)isolationVerdict:(NSString *)name {
+    NSString *result=@"";
+    for (NSString *line in [self.diagnosticText componentsSeparatedByCharactersInSet:[NSCharacterSet newlineCharacterSet]]) {
+        NSArray<NSString *> *parts=[line componentsSeparatedByString:@"\t"];
+        if(parts.count>=3 && [parts[1] isEqualToString:name] &&
+           ([parts[2] isEqualToString:@"FIXED"]||[parts[2] isEqualToString:@"PERSISTS"])) {
+            result=parts[2];
+        }
+    }
+    return result;
 }
 - (BOOL)testActive{
     NSString *v=self.facts[@"active_test"];
@@ -289,9 +309,18 @@ static NSDictionary *SMRKeyValues(NSString *input) {
     if(self.mode==1)cell.detailTextLabel.text=@"Disabled • Tap to restore";
     else{
         NSInteger score=[row[@"score"] integerValue];
-        cell.detailTextLabel.text=score>0?[NSString stringWithFormat:@"Crash evidence: %@ • %@",row[@"score"],row[@"package"]]:
-          [NSString stringWithFormat:@"No direct stack match • %@",row[@"package"]];
-        cell.detailTextLabel.textColor=score>0?SMRAccent():SMRMuted();
+        NSString *verdict=[self isolationVerdict:name];
+        if([verdict isEqualToString:@"FIXED"]){
+            cell.detailTextLabel.text=[NSString stringWithFormat:@"Isolation test: Safe Mode cleared • %@",row[@"package"]];
+            cell.detailTextLabel.textColor=SMRAccent();
+        }else if([verdict isEqualToString:@"PERSISTS"]){
+            cell.detailTextLabel.text=[NSString stringWithFormat:@"Isolation test: Safe Mode persisted • %@",row[@"package"]];
+            cell.detailTextLabel.textColor=SMRMuted();
+        }else {
+            cell.detailTextLabel.text=score>0?[NSString stringWithFormat:@"Crash evidence: %@ • %@",row[@"score"],row[@"package"]]:
+              [NSString stringWithFormat:@"No direct stack match • %@",row[@"package"]];
+            cell.detailTextLabel.textColor=score>0?SMRAccent():SMRMuted();
+        }
     }
     return cell;
 }
