@@ -15,19 +15,29 @@ valid_name() {
  return 0
 }
 require_name() { [ "$#" -eq 1 ] && valid_name "$1" || fail 'Supply an installed tweak name (not a path).'; }
+owner_index() {
+ [ -r "$WORK/owners.tsv" ] && return 0
+ mkdir -p "$WORK" || return 1
+ info=/var/jb/var/lib/dpkg/info
+ [ -d "$info" ] || info=/var/lib/dpkg/info
+ tmp="$WORK/owners.tsv.$$"
+ printf 'HEADER\tHEADER\n' > "$tmp"
+ awk 'FILENAME ~ /\.list$/ && /\.dylib$/ {
+   file=FILENAME;sub(/^.*\//,"",file);sub(/\.list$/,"",file)
+   lib=$0;sub(/^.*\//,"",lib);sub(/\.dylib$/,"",lib)
+   print lib "\t" file
+ }' "$info"/*.list >> "$tmp" 2>/dev/null || true
+ mv -f "$tmp" "$WORK/owners.tsv"
+}
 owner() {
  n=$1
- for path in "$TI/$n.dylib" "/usr/lib/TweakInject/$n.dylib" "$TI/$n.dylib$SUFFIX"; do
-  line=$(dpkg-query -S "$path" 2>/dev/null | head -n 1 || true)
-  [ -n "$line" ] || continue
-  pkg=${line%%:*}
-  pkg=${pkg%%,*}
-  case "$pkg" in ''|*[!a-zA-Z0-9.+-]*) continue ;; esac
-  printf '%s\n' "$pkg"
-  return 0
- done
- return 1
+ owner_index || return 1
+ pkg=$(awk -F '\t' -v target="$n" '$1==target {print $2; exit}' "$WORK/owners.tsv")
+ [ -n "$pkg" ] || return 1
+ case "$pkg" in ''|*[!a-zA-Z0-9.+-]*) return 1 ;; esac
+ printf '%s\n' "$pkg"
 }
+
 scan() {
  mkdir -p "$WORK" || fail "Cannot make $WORK"
  umask 077
@@ -49,12 +59,11 @@ scan() {
  echo 'Higher score = stronger evidence, not guaranteed causation.'
  printf 'SCORE\tREPORTS\tTWEAK\tPACKAGE\n'
  if [ -s "$REPORT" ]; then
+  owner_index || fail 'Unable to construct package ownership index'
   tab=$(printf '\t')
-  sort -t "$tab" -k2,2nr "$REPORT" | while IFS="$tab" read -r name score count; do
-   [ -n "$name" ] || continue
-   pkg=$(owner "$name" 2>/dev/null || echo unowned)
-   printf '%s\t%s\t%s\t%s\n' "$score" "$count" "$name" "$pkg"
-  done
+  sort -t "$tab" -k2,2nr "$REPORT" > "$WORK/sorted.tsv"
+  awk -F '\t' 'FNR==NR {if(NF>=2 && $1!="HEADER") owners[$1]=$2; next}
+   NF>=3 {printf "%s\t%s\t%s\t%s\n",$2,$3,$1,($1 in owners ? owners[$1] : "unowned")}' "$WORK/owners.tsv" "$WORK/sorted.tsv"
  else
   echo 'No active tweak dylibs detected.'
  fi
