@@ -7,10 +7,10 @@
 #include <sys/stat.h>
 #include <limits.h>
 #include <time.h>
-#define MAXTOK 150000
-#define MAXTWEAK 600
-#define MAXLOG 512
-#define MAXIMAGE 2000
+#define MAXTOK 12000
+#define MAXTWEAK 256
+#define MAXLOG 128
+#define MAXIMAGE 512
 typedef struct {const char *s; int n,next,children;char type;} Token;
 typedef struct {char name[256];int score,reports;} Tweak;
 typedef struct {char path[PATH_MAX];time_t mtime;} Crash;
