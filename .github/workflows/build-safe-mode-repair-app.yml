@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - feature/safe-mode-repair-ios-app
+      - feature/smr-real-diagnostics-v2
     paths:
       - "remote/smr-app/**"
       - "remote/safemode-repair"
@@ -52,6 +53,8 @@ jobs:
             -O2 -Wall -Wextra remote/smr-app/rootd.c -o bundle/smr-rootd
           xcrun --sdk iphoneos clang -arch arm64 -miphoneos-version-min=15.0 -isysroot "$SDK" \
             -O2 -Wall -Wextra remote/smr-scan.c -o bundle/smr-scan
+          xcrun --sdk iphoneos clang -arch arm64 -miphoneos-version-min=15.0 -isysroot "$SDK" \
+            -O2 -Wall -Wextra remote/smr-app/smoke.c -o bundle/smr-smoke
           file bundle/SafeModeRepair.app/SafeModeRepair bundle/smr-rootd bundle/smr-scan
 
       - name: Generate a real Home Screen icon and sign binaries
@@ -91,9 +94,10 @@ jobs:
           codesign --force --sign - --timestamp=none --entitlements remote/smr-app/entitlements.plist bundle/SafeModeRepair.app
           codesign --force --sign - --timestamp=none bundle/smr-rootd
           codesign --force --sign - --timestamp=none bundle/smr-scan
+          codesign --force --sign - --timestamp=none bundle/smr-smoke
           codesign --verify --verbose=2 bundle/SafeModeRepair.app
           codesign --verify --verbose=2 bundle/smr-rootd
-          chmod 0755 bundle/SafeModeRepair.app/SafeModeRepair bundle/smr-rootd bundle/smr-scan
+          chmod 0755 bundle/SafeModeRepair.app/SafeModeRepair bundle/smr-rootd bundle/smr-scan bundle/smr-smoke
           tar czf safe-mode-repair-compiled.tar.gz -C bundle .
       - uses: actions/upload-artifact@v4
         with:
@@ -121,6 +125,7 @@ jobs:
           cp -a bundle/SafeModeRepair.app/. "$ROOT/var/jb/Applications/SafeModeRepair.app/"
           install -m 0755 bundle/smr-rootd "$ROOT/var/jb/usr/libexec/smr-rootd"
           install -m 0755 bundle/smr-scan "$ROOT/var/jb/usr/local/bin/smr-scan"
+          install -m 0755 bundle/smr-smoke "$ROOT/var/jb/usr/local/bin/smr-smoke"
           install -m 0755 remote/safemode-repair "$ROOT/var/jb/usr/local/bin/safemode-repair"
           cp remote/smr-app/com.nightvibes.smr.rootd.plist "$ROOT/var/jb/Library/LaunchDaemons/"
           cp remote/smr-app/control "$ROOT/DEBIAN/control"
@@ -138,7 +143,7 @@ jobs:
           assert a["MinimumOSVersion"]=="15.0"
           PY
           mkdir -p dist
-          dpkg-deb --build --root-owner-group "$ROOT" "dist/safe-mode-repair_1.0.0_iphoneos-arm64.deb"
+          dpkg-deb --build --root-owner-group "$ROOT" "dist/safe-mode-repair_1.1.0_iphoneos-arm64.deb"
           dpkg-deb -I dist/*.deb
           dpkg-deb -c dist/*.deb | grep -E 'SafeModeRepair.app/(SafeModeRepair|Info.plist|AppIcon.png)|smr-rootd|LaunchDaemons'
           sha256sum dist/*.deb > dist/SHA256SUMS
@@ -184,7 +189,7 @@ jobs:
           test -s ~/.ssh/known_hosts
           chmod 0600 ~/.ssh/known_hosts
           opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=10 -o ServerAliveCountMax=4)
-          sshpass -e ssh "${opts[@]}" mobile@"$HOST" 'cat > /var/mobile/Media/safe-mode-repair-app.deb' < dist/safe-mode-repair_1.0.0_iphoneos-arm64.deb
+          sshpass -e ssh "${opts[@]}" mobile@"$HOST" 'cat > /var/mobile/Media/safe-mode-repair-app.deb' < dist/safe-mode-repair_1.1.0_iphoneos-arm64.deb
           {
             printf '%s\n' "$ROOT_PASSWORD"
             cat <<'REMOTE'
@@ -196,6 +201,8 @@ jobs:
           test -x /var/jb/usr/libexec/smr-rootd
           test -r /var/jb/Applications/SafeModeRepair.app/Info.plist
           dpkg-query -W -f='installed_package=${Package} version=${Version} status=${db:Status-Abbrev}\n' com.nightvibes.safemoderepair
+          echo '=== ROOT SERVICE END-TO-END PROBE ==='
+          sudo -u mobile /var/jb/usr/local/bin/smr-smoke
           echo '=== APP SERVICE ==='
           launchctl list | grep -F 'com.nightvibes.smr.rootd' || true
           ls -l /var/mobile/Library/SafeModeRepair/rootd.sock 2>/dev/null || true
