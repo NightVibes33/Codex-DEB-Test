@@ -1,0 +1,97 @@
+name: iPhone 6s Safe Mode Forensics
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/iphone-safe-mode-forensics.yml
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    environment:
+      name: TAILSCALE_AUTHKEY-
+    timeout-minutes: 12
+    steps:
+      - uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+      - name: Read iPhone packages and crash evidence via SSH
+        shell: bash
+        env:
+          SSHPASS: ${{ secrets.IPAD_PASSWORD }}
+          DEVICE_PASSWORD: ${{ secrets.IPAD_PASSWORD }}
+          HOST: 100.96.37.124
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends sshpass openssh-client >/dev/null
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          for attempt in $(seq 1 12); do
+            if ssh-keyscan -T 8 -H "$HOST" > ~/.ssh/known_hosts 2>/dev/null && [ -s ~/.ssh/known_hosts ]; then break; fi
+            sudo tailscale ping --timeout=5s --c 1 "$HOST" || true
+            sleep 5
+          done
+          test -s ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" -o ConnectTimeout=15)
+          {
+            printf '%s\n' "$DEVICE_PASSWORD"
+            cat <<'REMOTE'
+          export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/usr/bin:/bin:$PATH
+          echo '=== SYSTEM & PACKAGE INFORMATION ==='
+          sysctl -n hw.machine
+          dpkg-query --version 2>&1 | head -n 4 || true
+          ls -ld /var/jb/var/lib/dpkg/info /var/jb/usr/lib/TweakInject /var/lib/dpkg/info 2>&1 || true
+          echo '=== SAMPLE PACKAGE OWNERS ==='
+          for path in /var/jb/usr/lib/TweakInject/CircleAppsiPhone.dylib /usr/lib/TweakInject/CircleAppsiPhone.dylib /Library/MobileSubstrate/DynamicLibraries/CircleAppsiPhone.dylib; do
+            echo "path=$path"
+            dpkg-query -S "$path" 2>&1 | head -n 6 || true
+          done
+          echo '=== DPKG LIST MATCHES ==='
+          grep -R -l -m 1 'CircleAppsiPhone.dylib' /var/jb/var/lib/dpkg/info /var/lib/dpkg/info 2>/dev/null | head -n 15 || true
+          echo '=== SAFE MODE STATE ==='
+          launchctl getenv _MSSafeMode 2>&1 || true
+          launchctl getenv _SafeMode 2>&1 || true
+          echo '=== CRASH REPORT NAMES ==='
+          ls -lt /var/mobile/Library/Logs/CrashReporter/SpringBoard-*.ips /var/mobile/Library/Logs/CrashReporter/backboardd-*.ips /var/mobile/Library/Logs/CrashReporter/Retired/SpringBoard-*.ips /var/mobile/Library/Logs/CrashReporter/Retired/backboardd-*.ips 2>/dev/null | head -n 18 || true
+          echo '=== ROOTLESS PACKAGE AUDIT ==='
+          dpkg --audit 2>&1 | head -n 30 || true
+          REMOTE
+          } | sshpass -e ssh "${opts[@]}" mobile@"$HOST" 'SHELL_PATH="$(command -v sh || true)"; [ -n "$SHELL_PATH" ] || SHELL_PATH=/var/jb/bin/sh; exec sudo -S -p "" "$SHELL_PATH" -s' 2>&1 | tee smr-system-forensics.txt
+          sshpass -e ssh "${opts[@]}" mobile@"$HOST" 'ls -t /var/mobile/Library/Logs/CrashReporter/SpringBoard-*.ips /var/mobile/Library/Logs/CrashReporter/backboardd-*.ips /var/mobile/Library/Logs/CrashReporter/Retired/SpringBoard-*.ips /var/mobile/Library/Logs/CrashReporter/Retired/backboardd-*.ips 2>/dev/null | head -n 1 | while IFS= read -r f; do head -c 2000000 "$f"; done' > last-crash.ips
+          python3 - <<'PY' | tee smr-crash-summary.txt
+          import json
+          from pathlib import Path
+          src=Path('last-crash.ips').read_text(errors='replace')
+          if not src:
+              print('crash_file=unavailable');raise SystemExit(0)
+          try: obj=json.loads(src.split('\n',1)[1] if '\n' in src else src)
+          except Exception as exc: print('json_parse_error=',repr(exc));raise SystemExit(0)
+          print('process=',obj.get('procName'), 'faultingThread=',obj.get('faultingThread'))
+          print('exception=',obj.get('exception'))
+          print('termination=',obj.get('termination'))
+          print('diagnosis=',obj.get('diagnosis'))
+          images=obj.get('usedImages',[])
+          for pos,t in enumerate(obj.get('threads',[])):
+              if t.get('triggered') or pos==obj.get('faultingThread'):
+                  print('=== CRASHING THREAD',pos,'===')
+                  for f in t.get('frames',[])[:24]:
+                      idx=f.get('imageIndex',-1)
+                      print('frame image=',images[idx].get('path',images[idx].get('name')) if 0<=idx<len(images) else 'unknown', 'symbol=',f.get('symbol'))
+          for f in obj.get('lastExceptionBacktrace',[])[:20]:
+              idx=f.get('imageIndex',-1)
+              print('exception image=',images[idx].get('path',images[idx].get('name')) if 0<=idx<len(images) else 'unknown')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: iphone-safemode-forensics-${{ github.run_id }}
+          path: |
+            smr-system-forensics.txt
+            smr-crash-summary.txt
+            last-crash.ips
+          if-no-files-found: warn
+          retention-days: 7
